@@ -131,10 +131,10 @@ export class UiScopeController implements ReactiveController {
   private onParent(value: UiScopeHandle | undefined): void {
     if (value === this.parentHandle) return;
     this.parentHandle = value;
-    if (this.connected && this.current !== undefined && this.options.injector === undefined) {
-      this.detach();
-      this.attach();
-    }
+    if (!this.connected || this.options.injector !== undefined) return;
+    // The parent may provide after we connected (happy-dom/upgrade order): attach late, or re-parent.
+    if (this.current !== undefined) this.detach();
+    if (value !== undefined) this.attach();
   }
 
   private attach(): void {
@@ -154,9 +154,13 @@ export class UiScopeController implements ReactiveController {
         return;
       }
     } else {
-      this.host.dispatchEvent(
-        new SfErrorEvent(NoInjectorError({ details: { element: this.host.localName } }), 'scope'),
-      );
+      queueMicrotask(() => {
+        if (this.connected && this.current === undefined) {
+          this.host.dispatchEvent(
+            new SfErrorEvent(NoInjectorError({ details: { element: this.host.localName } }), 'scope'),
+          );
+        }
+      });
       return;
     }
     const environment = this.options.environment ?? parent?.environment ?? createUiEnvironment();

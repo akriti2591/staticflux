@@ -23,6 +23,7 @@ import {
   WarmupToken,
   NOMINAL_WARMUP_FACTS,
   type LoadStrategy,
+  type ChunkIdShape,
 } from './index.js';
 import { contribution } from '@staticflux/core';
 
@@ -52,6 +53,23 @@ function testEnv(importer: LoaderEnv['importer']): LoaderEnv {
   };
 }
 
+const envUnit = (importer: LoaderEnv['importer']) => unit({ id: 'test/env', provides: LoaderEnvToken, scope: 'app', create: () => testEnv(importer) });
+const gateUnit = unit({ id: 'test/gate', provides: ChunkGateToken, scope: 'app', create: () => (id: string) => id !== 'feature:billing' });
+const profileUnit = unit({
+  id: 'test/profile',
+  provides: LoaderProfileToken,
+  scope: 'app',
+  create: () => () => ({ key: 'web:expanded', hostMode: 'web', formFactor: 'expanded' }),
+});
+const factsUnit = unit({ id: 'test/facts', provides: WarmupFactsToken, scope: 'app', create: () => () => NOMINAL_WARMUP_FACTS });
+const remoteUnit = (remote: LoadStrategy) => contribution({ id: 'test/remote', provides: RemoteStrategyToken, scope: 'app', create: () => remote });
+const advisorUnit = contribution({
+  id: 'test/advisor',
+  provides: WarmupAdvisorsToken,
+  scope: 'app',
+  create: () => ({ id: 'a', rank: (c: readonly ChunkIdShape[]) => [...c].reverse() }),
+});
+
 describe('loader units', () => {
   it('wires loader, warmup, speculation and boot planner with overridable ports', async () => {
     const importer = vi.fn(async (url: string) => ({ url }));
@@ -64,12 +82,12 @@ describe('loader units', () => {
       units: [
         ...loaderUnits,
         manifestUnit(manifest),
-        bind(unit({ id: 'test/env', provides: LoaderEnvToken, scope: 'app', create: () => testEnv(importer) }), { precedence: 'app' }),
-        bind(unit({ id: 'test/gate', provides: ChunkGateToken, scope: 'app', create: () => (id: string) => id !== 'feature:billing' }), { precedence: 'app' }),
-        bind(unit({ id: 'test/profile', provides: LoaderProfileToken, scope: 'app', create: () => () => ({ key: 'web:expanded', hostMode: 'web', formFactor: 'expanded' }) }), { precedence: 'app' }),
-        bind(unit({ id: 'test/facts', provides: WarmupFactsToken, scope: 'app', create: () => () => NOMINAL_WARMUP_FACTS }), { precedence: 'app' }),
-        contribution({ id: 'test/remote', provides: RemoteStrategyToken, scope: 'app', create: () => remote }),
-        contribution({ id: 'test/advisor', provides: WarmupAdvisorsToken, scope: 'app', create: () => ({ id: 'a', rank: (c: readonly string[]) => [...c].reverse() as never }) }),
+        bind(envUnit(importer), { precedence: 'app' }),
+        bind(gateUnit, { precedence: 'app' }),
+        bind(profileUnit, { precedence: 'app' }),
+        bind(factsUnit, { precedence: 'app' }),
+        remoteUnit(remote),
+        advisorUnit,
         speculationRuleUnit(defineSpeculationRule({ id: 'billing/cta', chunks: ['feature:billing'], eagerness: 'eager' })),
         bootPlanUnit(defineBootPlan({ id: 'default', critical: ['lib:shell'] })),
       ],
@@ -104,7 +122,7 @@ describe('loader units', () => {
         units: [
           ...loaderUnits,
           manifestUnit(manifest),
-          bind(unit({ id: 'test/env', provides: LoaderEnvToken, scope: 'app', create: () => testEnv(async () => ({})) }), { precedence: 'app' }),
+          bind(envUnit(async () => ({})), { precedence: 'app' }),
           ...plans.map((p) => bootPlanUnit(p)),
         ],
       });

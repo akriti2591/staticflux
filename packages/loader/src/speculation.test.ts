@@ -54,7 +54,7 @@ const exportPdf = defineSpeculationRule({ id: 'studio/export-pdf', chunks: ['lib
 const shareEager = defineSpeculationRule({ id: 'studio/share', chunks: ['lib:share', 'lib:pdf'], eagerness: 'eager' });
 const immediate = defineSpeculationRule({ id: 'studio/immediate', chunks: ['lib:share'], eagerness: 'immediate' });
 
-function setup(options: { facts?: WarmupFacts; rules?: readonly SpeculationRule[]; advisor?: WarmupAdvisor; io?: IntersectionObserverFactory; canLoad?: (id: string) => boolean } = {}) {
+function setup(options: { facts?: WarmupFacts; rules?: readonly SpeculationRule[]; advisor?: WarmupAdvisor; io?: IntersectionObserverFactory | undefined; canLoad?: (id: string) => boolean } = {}) {
   const sink = createMemorySink();
   const telemetry = createTelemetry({ random: () => 0.5 });
   telemetry.addSink(sink);

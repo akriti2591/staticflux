@@ -62,13 +62,19 @@ export type IdleScheduler = (callback: () => void, signal: AbortSignal) => void;
 export const defaultIdleScheduler: IdleScheduler = (callback, signal) => {
   const ric = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
   const cancelRic = (globalThis as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
+  // The abort listener is itself removed once the callback ran (no leaked listener).
+  const ran = new AbortController();
+  const run = (): void => {
+    ran.abort();
+    callback();
+  };
   if (typeof ric === 'function') {
-    const handle = ric(callback, { timeout: 2_000 });
-    signal.addEventListener('abort', () => cancelRic?.(handle), { once: true });
+    const handle = ric(run, { timeout: 2_000 });
+    signal.addEventListener('abort', () => cancelRic?.(handle), { once: true, signal: ran.signal });
     return;
   }
-  const handle = setTimeout(callback, 50);
-  signal.addEventListener('abort', () => clearTimeout(handle), { once: true });
+  const handle = setTimeout(run, 50);
+  signal.addEventListener('abort', () => clearTimeout(handle), { once: true, signal: ran.signal });
 };
 
 export const warmupMachine = defineMachine({
@@ -123,10 +129,10 @@ export function createWarmup(options: WarmupOptions): Warmup {
         resolve(false);
         return;
       }
-      const onAbort = (): void => resolve(false);
-      signal.addEventListener('abort', onAbort, { once: true });
+      const settled = new AbortController();
+      signal.addEventListener('abort', () => resolve(false), { once: true, signal: settled.signal });
       idle(() => {
-        signal.removeEventListener('abort', onAbort);
+        settled.abort();
         resolve(!signal.aborted);
       }, signal);
     });

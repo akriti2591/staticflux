@@ -5,13 +5,14 @@
  */
 import { err, ok, type Result } from '@staticflux/core';
 import { ComponentDefinitionError } from './errors.js';
-import type { SfElement } from './element.js';
+import type { AnyComponentSpec } from './component.js';
 import { defineScopeElement } from './scope.js';
 import { defineSkeletonElement } from './skeleton.js';
 
 const TAG = /^[a-z][a-z0-9._]*-[a-z0-9._-]*$/;
 
-export type SfElementClass = (new () => SfElement) & { readonly spec: typeof SfElement.spec };
+/** A component class: an `SfElement` subclass with `static spec`. */
+export type SfElementClass = (new () => HTMLElement) & { readonly spec: AnyComponentSpec };
 
 export function defineComponent(
   elementClass: SfElementClass,

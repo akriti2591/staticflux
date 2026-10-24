@@ -13,10 +13,20 @@ import type { DecisionPoint, DecisionPointId } from './decision.js';
 import { normalize } from './decision.js';
 import { AdvisorStorageError, CorruptHistoryError, InsufficientDataError } from './errors.js';
 
-/** Persistence port (user-data slice, IndexedDB, memory). Values are JSON-serializable. */
+/** Per-call options for storage operations (structural subset of `@staticflux/storage` options). */
+export interface AdvisorStorageCallOptions {
+  readonly signal?: AbortSignal;
+}
+
+/**
+ * Persistence port — a minimal structural subset of `@staticflux/storage`'s
+ * `AsyncStore`, so an AsyncStore (or a user-data slice adapter) can be passed
+ * directly. Async only; values are JSON-serializable.
+ */
 export interface AdvisorStoragePort {
-  read(key: string, signal: AbortSignal): Promise<Result<unknown>>;
-  write(key: string, value: unknown, signal: AbortSignal): Promise<Result<void>>;
+  get(key: string, options?: AdvisorStorageCallOptions): Promise<Result<unknown>>;
+  set(key: string, value: unknown, options?: AdvisorStorageCallOptions): Promise<Result<void>>;
+  delete(key: string, options?: AdvisorStorageCallOptions): Promise<Result<void>>;
 }
 
 /** In-memory storage (tests, embedded hosts without storage). */
@@ -26,9 +36,13 @@ export function createMemoryAdvisorStorage(initial: Readonly<Record<string, unkn
   const data = new Map<string, unknown>(Object.entries(initial));
   return {
     data,
-    read: (key) => Promise.resolve(ok(data.get(key))),
-    write: (key, value) => {
+    get: (key) => Promise.resolve(ok(data.get(key))),
+    set: (key, value) => {
       data.set(key, structuredClone(value));
+      return Promise.resolve(ok());
+    },
+    delete: (key) => {
+      data.delete(key);
       return Promise.resolve(ok());
     },
   };
@@ -112,7 +126,7 @@ export function createMarkovModel(options: MarkovModelOptions): MarkovModel {
   const flush = async (signal: AbortSignal = new AbortController().signal): Promise<Result<void>> => {
     dirty = false;
     try {
-      const written = await options.storage.write(options.key, snapshot(), signal);
+      const written = await options.storage.set(options.key, snapshot(), { signal });
       if (!written.ok) {
         const error = AdvisorStorageError({ cause: written.error, details: { key: options.key } });
         options.onError?.(error);
@@ -158,7 +172,7 @@ export function createMarkovModel(options: MarkovModelOptions): MarkovModel {
     async load(signal = new AbortController().signal) {
       let read: Result<unknown>;
       try {
-        read = await options.storage.read(options.key, signal);
+        read = await options.storage.get(options.key, { signal });
       } catch (error) {
         read = err(AdvisorStorageError({ cause: error }));
       }

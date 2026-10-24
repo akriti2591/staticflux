@@ -12,7 +12,7 @@
  * - `measure` / `mutate` helpers (R12.15), `crossOrigin()` per IsolationPolicy (R11.16b),
  *   render records for perf (R12.20).
  */
-import type { Result, Scope, SfError } from '@staticflux/core';
+import type { Injector, Result, Scope, SfError } from '@staticflux/core';
 import { html, LitElement, nothing, type PropertyValues, ReactiveElement, render as litRender } from 'lit';
 import type { AnyComponentSpec, ComponentDeps, ComponentDepsDeclaration, ComponentHooks, DepKey, DepsOf, FunctionalKeys, LazyKeys } from './component.js';
 import { ComponentDepsController, type ComponentState } from './deps.js';
@@ -83,6 +83,11 @@ export abstract class SfElement<S extends AnyComponentSpec = AnyComponentSpec> e
   get environment(): UiEnvironment | undefined {
     // Lit calls requestUpdate() from its constructor, before our controllers exist.
     return (this.sf as ComponentDepsController<DepsOf<S>> | undefined)?.environment;
+  }
+
+  /** The injector of the nearest scope (for directives/controllers that resolve on behalf of the element). */
+  get injector(): Injector | undefined {
+    return this.sf.scopeHandle?.injector;
   }
 
   /** Isolation policy of the nearest scope (read by the `sfSrc` directive). */

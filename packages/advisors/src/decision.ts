@@ -37,20 +37,20 @@ export type FullDistribution<O extends string> = { readonly [K in O]: number };
 export interface DecisionPointOptions<Q, O extends string, Id extends DecisionPointId> {
   readonly id: Id;
   readonly purpose: AdvisoryPurpose;
-  readonly description?: string;
+  readonly description?: string | undefined;
   /** The closed option set. */
   readonly options: readonly O[];
   readonly latency: LatencyClass;
   /** Deterministic default (the heuristic tier). Must be cheap and pure. */
   readonly heuristic: (question: Q) => O | Distribution<O>;
   /** Clamp: options failing this (budgets, gates, invariants) get probability 0. */
-  readonly constrain?: (option: O, question: Q) => boolean;
+  readonly constrain?: ((option: O, question: Q) => boolean) | undefined;
   /** Identity of the input facts; answers are cached until it changes. Default: stable JSON of the question. */
-  readonly cacheKey?: (question: Q) => string;
+  readonly cacheKey?: ((question: Q) => string) | undefined;
   /** Time box in ms (defaults: sync 1, idle 50, background 500). */
-  readonly budgetMs?: number;
+  readonly budgetMs?: number | undefined;
   /** Advisor answers below this confidence fall back to the default. Default 0. */
-  readonly minConfidence?: number;
+  readonly minConfidence?: number | undefined;
 }
 
 export interface DecisionPoint<Q = unknown, O extends string = string, Id extends DecisionPointId = DecisionPointId> {

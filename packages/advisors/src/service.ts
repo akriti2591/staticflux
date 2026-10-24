@@ -378,8 +378,8 @@ export function createAdvisorService(options: AdvisorServiceOptions = {}): Advis
     let timer: ReturnType<typeof setTimeout> | undefined;
     const expired = new Promise<'timeout'>((resolve) => {
       timer = setTimeout(() => {
-        deadline.abort(new DOMException('advisor time box', 'TimeoutError'));
         resolve('timeout');
+        deadline.abort(new DOMException('advisor time box', 'TimeoutError'));
       }, point.budgetMs);
     });
     let reason: AdviceFallback = 'no-advisor';
@@ -394,7 +394,8 @@ export function createAdvisorService(options: AdvisorServiceOptions = {}): Advis
           reason = 'error';
           continue;
         }
-        if (response === 'timeout') return end({ kind: 'fallback', reason: 'timeout', at: now() });
+        // An answer produced after the deadline (e.g. in an abort handler) is discarded.
+        if (response === 'timeout' || deadline.signal.aborted) return end({ kind: 'fallback', reason: 'timeout', at: now() });
         if (scope.signal.aborted) return end({ kind: 'fallback', reason: 'cancelled', at: now() });
         if (!response.ok) {
           reason = response.error.kind === 'timeout' ? 'timeout' : 'error';
