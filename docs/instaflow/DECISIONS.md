@@ -16,6 +16,13 @@ Open questions are listed separately and are **not** decisions.
 
 | D7 | **Extensions extend, never remodel.** Extensions use only a fixed set of safe, declared contribution points (actions/capabilities, panels, storage providers, importers/exporters, model providers, declarative element types, comments). They cannot replace core behaviour, patch the engine, bypass gating/locks/validation, or touch the document except through capabilities and change sets. |
 
+| D8 | **Storage start:** new users start in browser storage (OPFS, `navigator.storage.persist()`), Excalidraw-style; "Open folder" always available; Instaflow suggests moving to a folder past ~2 GB or under storage pressure. Memory scales with what is open (lazy pages, streamed media). |
+| D9 | **Undo:** 200 steps per actor, persisted across reloads. |
+| D10 | **Publishing creates a Release artifact**, not a milestone: a separate read-only asset (rendered HTML/MP4/PDF + an internal frozen snapshot + "published from" label). Plain exports create nothing. |
+| D11 | **Comments:** fast follow immediately after V1; agents are first-class commenters. |
+| D12 | **Agent access:** V1 = WebMCP + in-app chat; optional local MCP bridge (`instaflow mcp` companion connecting desktop agents to the open tab) as an M7 stretch. Same views/change sets/proposals/gating pipeline. |
+| D13 | **Agent autonomy modes** (modelled on Claude Code permission modes): **Plan** (propose only), **Ask** (approve each change set; default for external agents), **Accept edits** (auto-apply undoable document edits; still asks for destructive, spend and outward-facing actions; default for the in-app agent), **Autopilot** (everything within gating up to a user-set spend/step limit; for flows and batch runs). No mode bypasses locks, brand rules, gating or validation. Mode is switchable per agent from its presence chip. |
+
 ## Design direction (agreed, details pending)
 
 - Canonical model: CRDT-based hierarchical document; ECS only as an internal runtime index; content-addressed workspace object store; local-first, cloud-ready.
