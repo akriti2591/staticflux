@@ -43,7 +43,7 @@ export function fragmentToOps(frags, baseIndex) {
       const parent = F.parent ?? parentH;
       const el = { kind: F.kind, ...F.attrs };
       if (F.text !== undefined) el.text = F.text;
-      const op = { op: 'insert', tempId: F.id, parent, el: { kind: F.kind, attrs: F.attrs, text: F.text, children: [] } };
+      const op = { op: 'insert', tempId: F.id, parent, el: { kind: F.kind, attrs: F.attrs, text: KINDS[F.kind]?.text ? (F.text ?? '') : F.text, children: [] } };
       if (F.after !== undefined) op.after = F.after === '' ? null : F.after; else if (afterH !== undefined) op.after = afterH;
       ops.push(op);
       // nested children of a new container → inserted after it

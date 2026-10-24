@@ -87,6 +87,36 @@ Mock response size: 36–52 tokens with ops, 93–116 with fragments.
 - **Coordinator note:** the first markup.fragment run misfiled five answers under neighbouring task ids (75%); it was discarded and rerun one prompt at a time (95%). Harness lesson: name responses by a hash echoed in the prompt, not by file order.
 - Response cost is tiny: 36–59 tokens per change set; prompts 1.6–2.1k tokens.
 
+## Second model family: local Qwen3.8-27B-4bit (omlx, Apple Silicon, 2026-10-24)
+Run with `evals/run-local.mjs` (temperature 0, thinking off, bearer token), v2 prompts (gap meaning clarified).
+140/140 requests, 42 min, median 17.3 s per prompt. **119/140 (85%) overall; 0 parse errors, 0 clobbered edits.**
+
+| combo | Qwen | Sonnet (rescored, codec fix) |
+|---|---|---|
+| markup.rel | **95** | 100 |
+| json.rel | 90 | 95 |
+| timeline.fragment | **100** | 100 |
+| timeline.ops | 90 | 100 |
+| json.ops | 85 | 95 |
+| markup.ops | 80 | 95 |
+| markup.fragment | 80 | 100 |
+| json.fragment | 70 (75 with the codec fix) | 100 |
+
+What it showed:
+- **Relational ops lead for a second model family too.** Most Qwen failures are hand-computed geometry: a centre off
+  by 50 px (F04, three combos), "40 px below the title" (D08, three combos) and the 1.1 px rounding in F10.
+- **D06 (reorder a list in place) is a genuine weak spot.** Qwen swapped the labels instead of moving the elements in
+  markup.rel (deterministic at temperature 0); in json.rel it used the right gap but forgot that `ids[0]` keeps its
+  position. The checker keeps failing label swaps: they do not move anything.
+- **Fragments are the weakest style for the smaller model** (z-order "front-most", creating a shape at an exact spot).
+- Qwen sometimes writes prose before the change set even with thinking off; the parser accepts it.
+
+Fixes from this run (v3 prompts):
+- **Codec:** a text element without a body (self-closing markup or JSON without `text`) now means *unchanged*; an
+  explicit empty body clears. Regression test added. Sonnet rescored: both fragment styles 100%.
+- **Stack docs:** the worked example used D06's own numbers (it leaked the answer). It now uses neutral numbers and
+  says that `ids[0]` keeps its position, so set it first to move the group.
+
 ## Surprises and findings
 1. **Reading Loro, not projecting, is the cost.** `tree.toJSON()` on one 201-node page takes **5–11 ms** (about 30–55 µs per node at the JS↔Wasm boundary, the same as S4). Lazy handles (`getNodes()`) only look cheap: reading each node's map costs the same. Projection from the JS mirror takes about 1 ms. Rule: views read the editor worker's mirror (or the world cache), never Loro. Keeping the mirror fresh costs **0.02 ms** after a property edit. Before tree ops were applied incrementally, a structural edit cost 12.5 ms because the mirror was rebuilt; now it costs 1.6 ms.
 2. **Before caching, lints cost more than serialization.** Text-fit lints took 1.3 ms of a 3 ms projection. A per-node cache keyed by composed version (attrs object → markup line and lint result) cut model + markup from 2.1 + 0.9 ms to 0.52 + 0.40 ms in the benchmark.

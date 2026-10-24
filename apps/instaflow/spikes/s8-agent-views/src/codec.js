@@ -192,7 +192,9 @@ export function elToNode(el) {
     else attrs[k] = typedAttr(k, v);
   }
   const node = { id, kind, attrs, ...extra };
-  if (KINDS[kind]?.text) node.text = el.text ?? '';
+  // A self-closing text element carries no body: its text is unchanged (fragments), never "cleared".
+  // An explicit empty body (<text …></text>) is the empty string.
+  if (KINDS[kind]?.text && el.text !== undefined) node.text = el.text;
   if (el.children.length) node.children = el.children.map(elToNode);
   else if (KINDS[kind]?.container && !el.selfClosing) node.children = [];
   return node;
@@ -218,7 +220,7 @@ export function jsonToNode(o) {
   if (parent !== undefined) node.parent = parent;
   if (after !== undefined) node.after = after;
   if (before !== undefined) node.before = before;
-  if (KINDS[kind]?.text) node.text = text ?? '';
+  if (KINDS[kind]?.text && text !== undefined) node.text = text;   // omitted = unchanged; "" clears
   if (Array.isArray(children)) node.children = children.map(jsonToNode);
   return node;
 }

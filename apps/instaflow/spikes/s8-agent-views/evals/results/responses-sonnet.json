@@ -24,18 +24,18 @@
       "opErrors": 0,
       "staleFlagged": 2,
       "clobbered": 0,
-      "promptTokO200kAvg": 2098,
-      "promptTokChars4Avg": 1607,
+      "promptTokO200kAvg": 2170,
+      "promptTokChars4Avg": 1675,
       "respTokO200kAvg": 56
     },
     {
       "combo": "markup.fragment",
       "tasks": 20,
-      "success": 19,
-      "rate": 95,
+      "success": 20,
+      "rate": 100,
       "parseErrors": 0,
       "opErrors": 0,
-      "staleFlagged": 8,
+      "staleFlagged": 2,
       "clobbered": 0,
       "promptTokO200kAvg": 1707,
       "promptTokChars4Avg": 1333,
@@ -63,18 +63,18 @@
       "opErrors": 2,
       "staleFlagged": 2,
       "clobbered": 0,
-      "promptTokO200kAvg": 2146,
-      "promptTokChars4Avg": 1684,
+      "promptTokO200kAvg": 2218,
+      "promptTokChars4Avg": 1752,
       "respTokO200kAvg": 59
     },
     {
       "combo": "json.fragment",
       "tasks": 20,
-      "success": 19,
-      "rate": 95,
+      "success": 20,
+      "rate": 100,
       "parseErrors": 0,
       "opErrors": 0,
-      "staleFlagged": 9,
+      "staleFlagged": 2,
       "clobbered": 0,
       "promptTokO200kAvg": 1723,
       "promptTokChars4Avg": 1374,
@@ -113,7 +113,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "ops",
-      "applyMs": 17.03,
+      "applyMs": 19.92,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -136,7 +136,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "rel",
-      "applyMs": 8.01,
+      "applyMs": 7.59,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -150,8 +150,8 @@
         "o200k": 35
       },
       "promptTokens": {
-        "chars4": 1706,
-        "o200k": 2242
+        "chars4": 1774,
+        "o200k": 2314
       }
     },
     {
@@ -159,7 +159,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 4.2,
+      "applyMs": 5.88,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -182,7 +182,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "ops",
-      "applyMs": 3.82,
+      "applyMs": 5.83,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -205,7 +205,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "rel",
-      "applyMs": 3.16,
+      "applyMs": 5.16,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -219,8 +219,8 @@
         "o200k": 34
       },
       "promptTokens": {
-        "chars4": 1792,
-        "o200k": 2293
+        "chars4": 1859,
+        "o200k": 2365
       }
     },
     {
@@ -228,7 +228,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "fragment",
-      "applyMs": 3.56,
+      "applyMs": 5.02,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -251,7 +251,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "ops",
-      "applyMs": 3.5,
+      "applyMs": 3.75,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -274,7 +274,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "rel",
-      "applyMs": 2.71,
+      "applyMs": 2.89,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -288,8 +288,8 @@
         "o200k": 25
       },
       "promptTokens": {
-        "chars4": 1704,
-        "o200k": 2240
+        "chars4": 1772,
+        "o200k": 2312
       }
     },
     {
@@ -297,15 +297,14 @@
       "doc": "flyer",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 10.71,
-      "ops": 2,
-      "applied": 2,
+      "applyMs": 2.81,
+      "ops": 1,
+      "applied": 1,
       "status": "applied",
       "errors": [],
       "stale": [],
       "clobbered": 0,
-      "ok": false,
-      "why": "text changed",
+      "ok": true,
       "unexpectedStale": [],
       "respTokens": {
         "chars4": 9,
@@ -321,7 +320,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "ops",
-      "applyMs": 2.54,
+      "applyMs": 2.66,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -344,7 +343,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "rel",
-      "applyMs": 3.09,
+      "applyMs": 3.14,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -358,8 +357,8 @@
         "o200k": 24
       },
       "promptTokens": {
-        "chars4": 1790,
-        "o200k": 2291
+        "chars4": 1858,
+        "o200k": 2363
       }
     },
     {
@@ -367,15 +366,14 @@
       "doc": "flyer",
       "view": "json",
       "style": "fragment",
-      "applyMs": 3.27,
-      "ops": 2,
-      "applied": 2,
+      "applyMs": 2.86,
+      "ops": 1,
+      "applied": 1,
       "status": "applied",
       "errors": [],
       "stale": [],
       "clobbered": 0,
-      "ok": false,
-      "why": "text changed",
+      "ok": true,
       "unexpectedStale": [],
       "respTokens": {
         "chars4": 15,
@@ -391,7 +389,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "ops",
-      "applyMs": 3.37,
+      "applyMs": 3.85,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -414,7 +412,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "rel",
-      "applyMs": 3.31,
+      "applyMs": 3.69,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -428,8 +426,8 @@
         "o200k": 38
       },
       "promptTokens": {
-        "chars4": 1714,
-        "o200k": 2253
+        "chars4": 1782,
+        "o200k": 2325
       }
     },
     {
@@ -437,19 +435,15 @@
       "doc": "flyer",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 12.02,
-      "ops": 4,
-      "applied": 3,
+      "applyMs": 3.66,
+      "ops": 2,
+      "applied": 2,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n10.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "fl-b3"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 19,
         "o200k": 34
@@ -464,7 +458,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "ops",
-      "applyMs": 2.91,
+      "applyMs": 3.34,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -487,7 +481,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "rel",
-      "applyMs": 2.53,
+      "applyMs": 3.58,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -501,8 +495,8 @@
         "o200k": 37
       },
       "promptTokens": {
-        "chars4": 1800,
-        "o200k": 2304
+        "chars4": 1867,
+        "o200k": 2376
       }
     },
     {
@@ -510,19 +504,15 @@
       "doc": "flyer",
       "view": "json",
       "style": "fragment",
-      "applyMs": 6.56,
-      "ops": 4,
-      "applied": 3,
+      "applyMs": 3.11,
+      "ops": 2,
+      "applied": 2,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n10.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "fl-b3"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 27,
         "o200k": 44
@@ -537,7 +527,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "ops",
-      "applyMs": 2.91,
+      "applyMs": 3.39,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -560,7 +550,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "rel",
-      "applyMs": 2.83,
+      "applyMs": 3.04,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -574,8 +564,8 @@
         "o200k": 37
       },
       "promptTokens": {
-        "chars4": 1702,
-        "o200k": 2237
+        "chars4": 1770,
+        "o200k": 2309
       }
     },
     {
@@ -583,19 +573,15 @@
       "doc": "flyer",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 5.88,
-      "ops": 4,
+      "applyMs": 3.82,
+      "ops": 3,
       "applied": 3,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n13.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "fl-cta-label"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 31,
         "o200k": 57
@@ -610,7 +596,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "ops",
-      "applyMs": 2.66,
+      "applyMs": 2.7,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -633,7 +619,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "rel",
-      "applyMs": 2.43,
+      "applyMs": 4.66,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -647,8 +633,8 @@
         "o200k": 36
       },
       "promptTokens": {
-        "chars4": 1787,
-        "o200k": 2288
+        "chars4": 1855,
+        "o200k": 2360
       }
     },
     {
@@ -656,19 +642,15 @@
       "doc": "flyer",
       "view": "json",
       "style": "fragment",
-      "applyMs": 6.09,
-      "ops": 4,
+      "applyMs": 4.76,
+      "ops": 3,
       "applied": 3,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n13.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "fl-cta-label"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 39,
         "o200k": 64
@@ -683,7 +665,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "ops",
-      "applyMs": 4.36,
+      "applyMs": 13.87,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -706,7 +688,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "rel",
-      "applyMs": 2.77,
+      "applyMs": 4.55,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -720,8 +702,8 @@
         "o200k": 33
       },
       "promptTokens": {
-        "chars4": 1699,
-        "o200k": 2237
+        "chars4": 1767,
+        "o200k": 2309
       }
     },
     {
@@ -729,7 +711,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 3.14,
+      "applyMs": 4.19,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -752,7 +734,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "ops",
-      "applyMs": 2.75,
+      "applyMs": 3.1,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -775,7 +757,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "rel",
-      "applyMs": 2.43,
+      "applyMs": 3.04,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -789,8 +771,8 @@
         "o200k": 32
       },
       "promptTokens": {
-        "chars4": 1785,
-        "o200k": 2288
+        "chars4": 1852,
+        "o200k": 2360
       }
     },
     {
@@ -798,7 +780,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "fragment",
-      "applyMs": 2.52,
+      "applyMs": 2.77,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -821,7 +803,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "ops",
-      "applyMs": 2.98,
+      "applyMs": 2.97,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -844,7 +826,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "rel",
-      "applyMs": 2.47,
+      "applyMs": 2.73,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -858,8 +840,8 @@
         "o200k": 26
       },
       "promptTokens": {
-        "chars4": 1691,
-        "o200k": 2229
+        "chars4": 1759,
+        "o200k": 2301
       }
     },
     {
@@ -867,19 +849,15 @@
       "doc": "flyer",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 5.73,
-      "ops": 2,
+      "applyMs": 2.77,
+      "ops": 1,
       "applied": 1,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n5.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "fl-subhead"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 10,
         "o200k": 15
@@ -894,7 +872,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "ops",
-      "applyMs": 2.65,
+      "applyMs": 2.82,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -917,7 +895,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "rel",
-      "applyMs": 2.64,
+      "applyMs": 2.61,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -931,8 +909,8 @@
         "o200k": 25
       },
       "promptTokens": {
-        "chars4": 1777,
-        "o200k": 2280
+        "chars4": 1844,
+        "o200k": 2352
       }
     },
     {
@@ -940,19 +918,15 @@
       "doc": "flyer",
       "view": "json",
       "style": "fragment",
-      "applyMs": 5.65,
-      "ops": 2,
+      "applyMs": 2.77,
+      "ops": 1,
       "applied": 1,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n5.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "fl-subhead"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 17,
         "o200k": 24
@@ -967,7 +941,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "ops",
-      "applyMs": 4.3,
+      "applyMs": 4.75,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -990,7 +964,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "rel",
-      "applyMs": 2.48,
+      "applyMs": 2.66,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1004,8 +978,8 @@
         "o200k": 19
       },
       "promptTokens": {
-        "chars4": 1696,
-        "o200k": 2232
+        "chars4": 1764,
+        "o200k": 2304
       }
     },
     {
@@ -1013,7 +987,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 2.58,
+      "applyMs": 3.11,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1036,7 +1010,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "ops",
-      "applyMs": 2.16,
+      "applyMs": 2.51,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1059,7 +1033,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "rel",
-      "applyMs": 2.53,
+      "applyMs": 2.94,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1073,8 +1047,8 @@
         "o200k": 18
       },
       "promptTokens": {
-        "chars4": 1781,
-        "o200k": 2283
+        "chars4": 1849,
+        "o200k": 2355
       }
     },
     {
@@ -1082,7 +1056,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "fragment",
-      "applyMs": 2.26,
+      "applyMs": 2.75,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1105,7 +1079,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "ops",
-      "applyMs": 7.93,
+      "applyMs": 8.7,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -1128,7 +1102,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "rel",
-      "applyMs": 4.73,
+      "applyMs": 4.34,
       "ops": 4,
       "applied": 4,
       "status": "applied",
@@ -1142,8 +1116,8 @@
         "o200k": 184
       },
       "promptTokens": {
-        "chars4": 1732,
-        "o200k": 2272
+        "chars4": 1800,
+        "o200k": 2344
       }
     },
     {
@@ -1151,7 +1125,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 4.23,
+      "applyMs": 4.29,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -1174,7 +1148,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "ops",
-      "applyMs": 4.04,
+      "applyMs": 10.56,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -1197,7 +1171,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "rel",
-      "applyMs": 4.64,
+      "applyMs": 6.97,
       "ops": 5,
       "applied": 5,
       "status": "applied",
@@ -1211,8 +1185,8 @@
         "o200k": 212
       },
       "promptTokens": {
-        "chars4": 1818,
-        "o200k": 2323
+        "chars4": 1885,
+        "o200k": 2395
       }
     },
     {
@@ -1220,7 +1194,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "fragment",
-      "applyMs": 4.35,
+      "applyMs": 7.2,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -1243,7 +1217,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "ops",
-      "applyMs": 4.3,
+      "applyMs": 5.46,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1266,7 +1240,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "rel",
-      "applyMs": 2.55,
+      "applyMs": 4.01,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1280,8 +1254,8 @@
         "o200k": 24
       },
       "promptTokens": {
-        "chars4": 1695,
-        "o200k": 2231
+        "chars4": 1763,
+        "o200k": 2303
       }
     },
     {
@@ -1289,9 +1263,9 @@
       "doc": "flyer",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 3.25,
-      "ops": 2,
-      "applied": 2,
+      "applyMs": 4.36,
+      "ops": 1,
+      "applied": 1,
       "status": "applied",
       "errors": [],
       "stale": [],
@@ -1312,7 +1286,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "ops",
-      "applyMs": 2.9,
+      "applyMs": 4.04,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1335,7 +1309,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "rel",
-      "applyMs": 3.2,
+      "applyMs": 4.32,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1349,8 +1323,8 @@
         "o200k": 23
       },
       "promptTokens": {
-        "chars4": 1780,
-        "o200k": 2282
+        "chars4": 1848,
+        "o200k": 2354
       }
     },
     {
@@ -1358,9 +1332,9 @@
       "doc": "flyer",
       "view": "json",
       "style": "fragment",
-      "applyMs": 8.32,
-      "ops": 2,
-      "applied": 2,
+      "applyMs": 4.26,
+      "ops": 1,
+      "applied": 1,
       "status": "applied",
       "errors": [],
       "stale": [],
@@ -1381,7 +1355,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "ops",
-      "applyMs": 2.79,
+      "applyMs": 4.1,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1405,7 +1379,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "rel",
-      "applyMs": 3.06,
+      "applyMs": 4.34,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1419,8 +1393,8 @@
         "o200k": 31
       },
       "promptTokens": {
-        "chars4": 1720,
-        "o200k": 2254
+        "chars4": 1788,
+        "o200k": 2326
       }
     },
     {
@@ -1428,7 +1402,7 @@
       "doc": "flyer",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 2.77,
+      "applyMs": 3.83,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1451,7 +1425,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "ops",
-      "applyMs": 2.61,
+      "applyMs": 3.76,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1475,7 +1449,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "rel",
-      "applyMs": 2.67,
+      "applyMs": 4.1,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1489,8 +1463,8 @@
         "o200k": 30
       },
       "promptTokens": {
-        "chars4": 1806,
-        "o200k": 2305
+        "chars4": 1873,
+        "o200k": 2377
       }
     },
     {
@@ -1498,7 +1472,7 @@
       "doc": "flyer",
       "view": "json",
       "style": "fragment",
-      "applyMs": 4.61,
+      "applyMs": 4.05,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1521,7 +1495,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "ops",
-      "applyMs": 5.41,
+      "applyMs": 5.81,
       "ops": 3,
       "applied": 3,
       "status": "applied",
@@ -1544,7 +1518,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "rel",
-      "applyMs": 5.61,
+      "applyMs": 4.26,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -1558,8 +1532,8 @@
         "o200k": 41
       },
       "promptTokens": {
-        "chars4": 1899,
-        "o200k": 2562
+        "chars4": 1967,
+        "o200k": 2634
       }
     },
     {
@@ -1567,19 +1541,15 @@
       "doc": "deck",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 8.42,
-      "ops": 4,
-      "applied": 3,
+      "applyMs": 2.97,
+      "ops": 2,
+      "applied": 2,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n14.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "dk-3-title"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 16,
         "o200k": 26
@@ -1594,7 +1564,7 @@
       "doc": "deck",
       "view": "json",
       "style": "ops",
-      "applyMs": 4.41,
+      "applyMs": 3.07,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -1617,7 +1587,7 @@
       "doc": "deck",
       "view": "json",
       "style": "rel",
-      "applyMs": 3.56,
+      "applyMs": 3.01,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -1631,8 +1601,8 @@
         "o200k": 49
       },
       "promptTokens": {
-        "chars4": 2033,
-        "o200k": 2652
+        "chars4": 2101,
+        "o200k": 2724
       }
     },
     {
@@ -1640,19 +1610,15 @@
       "doc": "deck",
       "view": "json",
       "style": "fragment",
-      "applyMs": 8.1,
-      "ops": 4,
-      "applied": 3,
+      "applyMs": 5,
+      "ops": 2,
+      "applied": 2,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n14.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "dk-3-title"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 26,
         "o200k": 40
@@ -1667,7 +1633,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "ops",
-      "applyMs": 1.81,
+      "applyMs": 1.85,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1690,7 +1656,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "rel",
-      "applyMs": 1.62,
+      "applyMs": 1.61,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1704,8 +1670,8 @@
         "o200k": 32
       },
       "promptTokens": {
-        "chars4": 1208,
-        "o200k": 1495
+        "chars4": 1275,
+        "o200k": 1567
       }
     },
     {
@@ -1713,7 +1679,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 1.82,
+      "applyMs": 1.7,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1736,7 +1702,7 @@
       "doc": "deck",
       "view": "json",
       "style": "ops",
-      "applyMs": 1.71,
+      "applyMs": 1.72,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1759,7 +1725,7 @@
       "doc": "deck",
       "view": "json",
       "style": "rel",
-      "applyMs": 0.61,
+      "applyMs": 0.72,
       "ops": 1,
       "applied": 0,
       "status": "applied",
@@ -1777,8 +1743,8 @@
         "o200k": 31
       },
       "promptTokens": {
-        "chars4": 1228,
-        "o200k": 1502
+        "chars4": 1296,
+        "o200k": 1574
       }
     },
     {
@@ -1786,7 +1752,7 @@
       "doc": "deck",
       "view": "json",
       "style": "fragment",
-      "applyMs": 1.77,
+      "applyMs": 1.81,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -1809,7 +1775,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "ops",
-      "applyMs": 5.37,
+      "applyMs": 5.38,
       "ops": 5,
       "applied": 4,
       "status": "applied",
@@ -1835,7 +1801,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "rel",
-      "applyMs": 5.35,
+      "applyMs": 5.29,
       "ops": 5,
       "applied": 4,
       "status": "applied",
@@ -1852,8 +1818,8 @@
         "o200k": 114
       },
       "promptTokens": {
-        "chars4": 1902,
-        "o200k": 2565
+        "chars4": 1970,
+        "o200k": 2637
       }
     },
     {
@@ -1861,7 +1827,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 5.1,
+      "applyMs": 5.37,
       "ops": 5,
       "applied": 4,
       "status": "applied",
@@ -1887,7 +1853,7 @@
       "doc": "deck",
       "view": "json",
       "style": "ops",
-      "applyMs": 5.4,
+      "applyMs": 5.64,
       "ops": 5,
       "applied": 4,
       "status": "applied",
@@ -1913,7 +1879,7 @@
       "doc": "deck",
       "view": "json",
       "style": "rel",
-      "applyMs": 5.58,
+      "applyMs": 4.91,
       "ops": 5,
       "applied": 4,
       "status": "applied",
@@ -1930,8 +1896,8 @@
         "o200k": 149
       },
       "promptTokens": {
-        "chars4": 2036,
-        "o200k": 2655
+        "chars4": 2104,
+        "o200k": 2727
       }
     },
     {
@@ -1939,7 +1905,7 @@
       "doc": "deck",
       "view": "json",
       "style": "fragment",
-      "applyMs": 4.85,
+      "applyMs": 4.9,
       "ops": 5,
       "applied": 4,
       "status": "applied",
@@ -1965,7 +1931,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "ops",
-      "applyMs": 6.23,
+      "applyMs": 5.29,
       "ops": 4,
       "applied": 4,
       "status": "applied",
@@ -1988,7 +1954,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "rel",
-      "applyMs": 3.68,
+      "applyMs": 3.88,
       "ops": 4,
       "applied": 4,
       "status": "applied",
@@ -2002,8 +1968,8 @@
         "o200k": 84
       },
       "promptTokens": {
-        "chars4": 1893,
-        "o200k": 2558
+        "chars4": 1961,
+        "o200k": 2630
       }
     },
     {
@@ -2011,7 +1977,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 11.73,
+      "applyMs": 10.78,
       "ops": 4,
       "applied": 4,
       "status": "applied",
@@ -2034,7 +2000,7 @@
       "doc": "deck",
       "view": "json",
       "style": "ops",
-      "applyMs": 3.76,
+      "applyMs": 3.75,
       "ops": 4,
       "applied": 4,
       "status": "applied",
@@ -2057,7 +2023,7 @@
       "doc": "deck",
       "view": "json",
       "style": "rel",
-      "applyMs": 3.92,
+      "applyMs": 3.97,
       "ops": 4,
       "applied": 4,
       "status": "applied",
@@ -2071,8 +2037,8 @@
         "o200k": 88
       },
       "promptTokens": {
-        "chars4": 2027,
-        "o200k": 2648
+        "chars4": 2095,
+        "o200k": 2720
       }
     },
     {
@@ -2080,7 +2046,7 @@
       "doc": "deck",
       "view": "json",
       "style": "fragment",
-      "applyMs": 14.79,
+      "applyMs": 5.92,
       "ops": 4,
       "applied": 4,
       "status": "applied",
@@ -2103,7 +2069,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "ops",
-      "applyMs": 2.05,
+      "applyMs": 1.77,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2126,7 +2092,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "rel",
-      "applyMs": 2.78,
+      "applyMs": 1.71,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2140,8 +2106,8 @@
         "o200k": 19
       },
       "promptTokens": {
-        "chars4": 1245,
-        "o200k": 1554
+        "chars4": 1313,
+        "o200k": 1626
       }
     },
     {
@@ -2149,7 +2115,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 2.89,
+      "applyMs": 1.61,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2172,7 +2138,7 @@
       "doc": "deck",
       "view": "json",
       "style": "ops",
-      "applyMs": 2.78,
+      "applyMs": 1.59,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2195,7 +2161,7 @@
       "doc": "deck",
       "view": "json",
       "style": "rel",
-      "applyMs": 2.7,
+      "applyMs": 1.84,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2209,8 +2175,8 @@
         "o200k": 18
       },
       "promptTokens": {
-        "chars4": 1271,
-        "o200k": 1571
+        "chars4": 1339,
+        "o200k": 1643
       }
     },
     {
@@ -2218,7 +2184,7 @@
       "doc": "deck",
       "view": "json",
       "style": "fragment",
-      "applyMs": 2.75,
+      "applyMs": 1.8,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2241,7 +2207,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "ops",
-      "applyMs": 4.76,
+      "applyMs": 3.11,
       "ops": 4,
       "applied": 4,
       "status": "applied",
@@ -2264,7 +2230,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "rel",
-      "applyMs": 4.48,
+      "applyMs": 2.66,
       "ops": 5,
       "applied": 5,
       "status": "applied",
@@ -2278,8 +2244,8 @@
         "o200k": 87
       },
       "promptTokens": {
-        "chars4": 1328,
-        "o200k": 1657
+        "chars4": 1396,
+        "o200k": 1729
       }
     },
     {
@@ -2287,9 +2253,9 @@
       "doc": "deck",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 6.29,
-      "ops": 7,
-      "applied": 7,
+      "applyMs": 2.68,
+      "ops": 4,
+      "applied": 4,
       "status": "applied",
       "errors": [],
       "stale": [],
@@ -2310,7 +2276,7 @@
       "doc": "deck",
       "view": "json",
       "style": "ops",
-      "applyMs": 4.9,
+      "applyMs": 4.19,
       "ops": 5,
       "applied": 5,
       "status": "applied",
@@ -2333,7 +2299,7 @@
       "doc": "deck",
       "view": "json",
       "style": "rel",
-      "applyMs": 5.14,
+      "applyMs": 2.9,
       "ops": 5,
       "applied": 5,
       "status": "applied",
@@ -2347,8 +2313,8 @@
         "o200k": 88
       },
       "promptTokens": {
-        "chars4": 1364,
-        "o200k": 1682
+        "chars4": 1432,
+        "o200k": 1754
       }
     },
     {
@@ -2356,19 +2322,15 @@
       "doc": "deck",
       "view": "json",
       "style": "fragment",
-      "applyMs": 9.51,
-      "ops": 11,
-      "applied": 10,
+      "applyMs": 6.25,
+      "ops": 7,
+      "applied": 7,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n7.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "dk-2-b4"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 50,
         "o200k": 75
@@ -2383,7 +2345,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "ops",
-      "applyMs": 2.32,
+      "applyMs": 3.12,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2406,7 +2368,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "rel",
-      "applyMs": 4.13,
+      "applyMs": 2.45,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2420,8 +2382,8 @@
         "o200k": 31
       },
       "promptTokens": {
-        "chars4": 1230,
-        "o200k": 1533
+        "chars4": 1297,
+        "o200k": 1605
       }
     },
     {
@@ -2429,7 +2391,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 3.06,
+      "applyMs": 1.8,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2452,7 +2414,7 @@
       "doc": "deck",
       "view": "json",
       "style": "ops",
-      "applyMs": 4.33,
+      "applyMs": 2.11,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2475,7 +2437,7 @@
       "doc": "deck",
       "view": "json",
       "style": "rel",
-      "applyMs": 2.6,
+      "applyMs": 2.9,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2489,8 +2451,8 @@
         "o200k": 30
       },
       "promptTokens": {
-        "chars4": 1254,
-        "o200k": 1546
+        "chars4": 1322,
+        "o200k": 1618
       }
     },
     {
@@ -2498,7 +2460,7 @@
       "doc": "deck",
       "view": "json",
       "style": "fragment",
-      "applyMs": 4.73,
+      "applyMs": 2.06,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2521,7 +2483,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "ops",
-      "applyMs": 3.54,
+      "applyMs": 2.1,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2544,7 +2506,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "rel",
-      "applyMs": 2.8,
+      "applyMs": 2.1,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2558,8 +2520,8 @@
         "o200k": 37
       },
       "promptTokens": {
-        "chars4": 1191,
-        "o200k": 1470
+        "chars4": 1259,
+        "o200k": 1542
       }
     },
     {
@@ -2567,19 +2529,15 @@
       "doc": "deck",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 5.62,
-      "ops": 2,
+      "applyMs": 2.04,
+      "ops": 1,
       "applied": 1,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n3.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "dk-1-sub"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 11,
         "o200k": 19
@@ -2594,7 +2552,7 @@
       "doc": "deck",
       "view": "json",
       "style": "ops",
-      "applyMs": 4.01,
+      "applyMs": 3.11,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2617,7 +2575,7 @@
       "doc": "deck",
       "view": "json",
       "style": "rel",
-      "applyMs": 2.95,
+      "applyMs": 1.72,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2631,8 +2589,8 @@
         "o200k": 36
       },
       "promptTokens": {
-        "chars4": 1208,
-        "o200k": 1479
+        "chars4": 1276,
+        "o200k": 1551
       }
     },
     {
@@ -2640,19 +2598,15 @@
       "doc": "deck",
       "view": "json",
       "style": "fragment",
-      "applyMs": 4.09,
-      "ops": 2,
+      "applyMs": 2.66,
+      "ops": 1,
       "applied": 1,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n3.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "dk-1-sub"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 17,
         "o200k": 27
@@ -2667,7 +2621,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "ops",
-      "applyMs": 5.71,
+      "applyMs": 1.98,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2690,7 +2644,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "rel",
-      "applyMs": 2.57,
+      "applyMs": 2.74,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2704,8 +2658,8 @@
         "o200k": 38
       },
       "promptTokens": {
-        "chars4": 1278,
-        "o200k": 1586
+        "chars4": 1345,
+        "o200k": 1658
       }
     },
     {
@@ -2713,7 +2667,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 5.3,
+      "applyMs": 1.8,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2736,7 +2690,7 @@
       "doc": "deck",
       "view": "json",
       "style": "ops",
-      "applyMs": 3.12,
+      "applyMs": 2.74,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2759,7 +2713,7 @@
       "doc": "deck",
       "view": "json",
       "style": "rel",
-      "applyMs": 4.03,
+      "applyMs": 2.41,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2773,8 +2727,8 @@
         "o200k": 37
       },
       "promptTokens": {
-        "chars4": 1304,
-        "o200k": 1603
+        "chars4": 1372,
+        "o200k": 1675
       }
     },
     {
@@ -2782,7 +2736,7 @@
       "doc": "deck",
       "view": "json",
       "style": "fragment",
-      "applyMs": 3.3,
+      "applyMs": 2.65,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2805,7 +2759,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "ops",
-      "applyMs": 36.07,
+      "applyMs": 12.29,
       "ops": 10,
       "applied": 10,
       "status": "applied",
@@ -2828,7 +2782,7 @@
       "doc": "deck",
       "view": "markup",
       "style": "rel",
-      "applyMs": 10.88,
+      "applyMs": 12.86,
       "ops": 10,
       "applied": 10,
       "status": "applied",
@@ -2842,8 +2796,8 @@
         "o200k": 179
       },
       "promptTokens": {
-        "chars4": 1905,
-        "o200k": 2562
+        "chars4": 1973,
+        "o200k": 2634
       }
     },
     {
@@ -2851,19 +2805,15 @@
       "doc": "deck",
       "view": "markup",
       "style": "fragment",
-      "applyMs": 13,
-      "ops": 15,
-      "applied": 14,
+      "applyMs": 9.16,
+      "ops": 10,
+      "applied": 10,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n25.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "dk-5-title"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 78,
         "o200k": 114
@@ -2878,7 +2828,7 @@
       "doc": "deck",
       "view": "json",
       "style": "ops",
-      "applyMs": 9.44,
+      "applyMs": 9.63,
       "ops": 10,
       "applied": 10,
       "status": "applied",
@@ -2901,7 +2851,7 @@
       "doc": "deck",
       "view": "json",
       "style": "rel",
-      "applyMs": 16.72,
+      "applyMs": 9.99,
       "ops": 10,
       "applied": 10,
       "status": "applied",
@@ -2915,8 +2865,8 @@
         "o200k": 180
       },
       "promptTokens": {
-        "chars4": 2040,
-        "o200k": 2652
+        "chars4": 2108,
+        "o200k": 2724
       }
     },
     {
@@ -2924,19 +2874,15 @@
       "doc": "deck",
       "view": "json",
       "style": "fragment",
-      "applyMs": 21.71,
-      "ops": 15,
-      "applied": 14,
+      "applyMs": 10.02,
+      "ops": 10,
+      "applied": 10,
       "status": "applied",
       "errors": [],
-      "stale": [
-        "n25.text"
-      ],
+      "stale": [],
       "clobbered": 0,
       "ok": true,
-      "unexpectedStale": [
-        "dk-5-title"
-      ],
+      "unexpectedStale": [],
       "respTokens": {
         "chars4": 111,
         "o200k": 150
@@ -2951,7 +2897,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "ops",
-      "applyMs": 7.95,
+      "applyMs": 3.81,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -2974,7 +2920,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "fragment",
-      "applyMs": 5.94,
+      "applyMs": 4.17,
       "ops": 4,
       "applied": 4,
       "status": "applied",
@@ -2997,7 +2943,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "ops",
-      "applyMs": 6.85,
+      "applyMs": 3.37,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -3020,7 +2966,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "fragment",
-      "applyMs": 11.26,
+      "applyMs": 6.48,
       "ops": 2,
       "applied": 1,
       "status": "applied",
@@ -3047,7 +2993,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "ops",
-      "applyMs": 4.67,
+      "applyMs": 2.9,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -3070,7 +3016,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "fragment",
-      "applyMs": 4.64,
+      "applyMs": 3.6,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -3093,7 +3039,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "ops",
-      "applyMs": 3.85,
+      "applyMs": 2.9,
       "ops": 2,
       "applied": 1,
       "status": "applied",
@@ -3118,7 +3064,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "fragment",
-      "applyMs": 3.39,
+      "applyMs": 4.38,
       "ops": 4,
       "applied": 3,
       "status": "applied",
@@ -3143,7 +3089,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "ops",
-      "applyMs": 3.7,
+      "applyMs": 2.47,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -3166,7 +3112,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "fragment",
-      "applyMs": 3.63,
+      "applyMs": 2.5,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -3189,7 +3135,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "ops",
-      "applyMs": 3.79,
+      "applyMs": 5.06,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -3212,7 +3158,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "fragment",
-      "applyMs": 5.68,
+      "applyMs": 3.52,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -3235,7 +3181,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "ops",
-      "applyMs": 3.68,
+      "applyMs": 2.75,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -3258,7 +3204,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "fragment",
-      "applyMs": 2.72,
+      "applyMs": 3.78,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -3281,7 +3227,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "ops",
-      "applyMs": 3.85,
+      "applyMs": 2.55,
       "ops": 2,
       "applied": 2,
       "status": "applied",
@@ -3304,7 +3250,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "fragment",
-      "applyMs": 3.96,
+      "applyMs": 2.99,
       "ops": 4,
       "applied": 4,
       "status": "applied",
@@ -3327,7 +3273,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "ops",
-      "applyMs": 4.7,
+      "applyMs": 3.77,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -3350,7 +3296,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "fragment",
-      "applyMs": 4.99,
+      "applyMs": 3.13,
       "ops": 1,
       "applied": 1,
       "status": "applied",
@@ -3373,7 +3319,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "ops",
-      "applyMs": 3.86,
+      "applyMs": 4.42,
       "ops": 5,
       "applied": 5,
       "status": "applied",
@@ -3396,7 +3342,7 @@
       "doc": "reel",
       "view": "timeline",
       "style": "fragment",
-      "applyMs": 5.11,
+      "applyMs": 3.63,
       "ops": 5,
       "applied": 5,
       "status": "applied",

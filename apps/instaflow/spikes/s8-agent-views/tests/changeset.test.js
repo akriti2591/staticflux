@@ -246,3 +246,20 @@ test('stale base token is reported, not guessed', () => {
 });
 
 export { absOf, ticksToSec };
+
+test('fragment: omitted text means unchanged, explicit empty body clears (markup and JSON)', () => {
+  const { agent } = fresh('flyer');
+  const v = agent.readView('markup', 'page:fl-page');
+  const id = byName(v, 'headline');
+  const before = v.model.index.get(id).node.text;
+  for (const frags of [
+    parseMarkupFragment(`<text id="${id}" size="70"/>`),
+    parseJsonFragment({ upsert: [{ id, kind: 'text', size: 70 }] }),
+  ]) {
+    const ops = fragmentToOps(frags, v.model.index);
+    assert.deepEqual(ops, [{ op: 'set', id, attrs: { size: 70 } }]);
+  }
+  assert.ok(before.length > 0);
+  const cleared = fragmentToOps(parseMarkupFragment(`<text id="${id}"></text>`), v.model.index);
+  assert.deepEqual(cleared, [{ op: 'text', id, value: '' }]);
+});
