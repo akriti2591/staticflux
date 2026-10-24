@@ -72,6 +72,15 @@
     },
     {
       "path": "tooling/sf"
+    },
+    {
+      "path": "packages/capabilities"
+    },
+    {
+      "path": "packages/wasm"
+    },
+    {
+      "path": "packages/surface"
     }
   ]
 }

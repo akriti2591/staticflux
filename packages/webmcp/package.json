@@ -17,6 +17,7 @@
     "layer": "vertical"
   },
   "dependencies": {
-    "@staticflux/core": "workspace:*"
+    "@staticflux/core": "workspace:*",
+    "@staticflux/capabilities": "workspace:*"
   }
 }

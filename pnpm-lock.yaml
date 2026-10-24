@@ -54,6 +54,12 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/capabilities:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/config:
     dependencies:
       '@staticflux/core':
@@ -162,6 +168,15 @@ importers:
         specifier: 3.3.3
         version: 3.3.3
 
+  packages/surface:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/worker':
+        specifier: workspace:*
+        version: link:../worker
+
   packages/testkit:
     dependencies:
       '@staticflux/core':
@@ -189,8 +204,20 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/wasm:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/worker':
+        specifier: workspace:*
+        version: link:../worker
+
   packages/webmcp:
     dependencies:
+      '@staticflux/capabilities':
+        specifier: workspace:*
+        version: link:../capabilities
       '@staticflux/core':
         specifier: workspace:*
         version: link:../core
