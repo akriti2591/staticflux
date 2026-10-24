@@ -1,4 +1,4 @@
 ```xml
-<text id="n9" y="604">3 live stages</text>
-<text id="n10" x="721" y="668">Free kids zone</text>
+<text id="n9" x="721" y="604"/>
+<text id="n10" x="721" y="668"/>
 ```

@@ -1,4 +1,4 @@
 ```xml
-<text id="n14" size="72" h="94">New editor</text>
-<text id="n25" size="72" h="94">Team</text>
+<text id="n14" size="72"/>
+<text id="n25" size="72"/>
 ```

@@ -1,6 +1,7 @@
 ```xml
-<text id="n2">Q4 Product Update</text>
-<page id="n18" name="Q4 metrics"/>
-<text id="n19">Q4 metrics</text>
-<text id="n20">Revenue up 32% in Q4. Weekly active teams doubled.</text>
+<image id="n4" x="1720" y="980"/>
+<image id="n12" x="1720" y="980"/>
+<image id="n17" x="1720" y="980"/>
+<image id="n23" x="1720" y="980"/>
+<image id="n29" x="1720" y="980"/>
 ```
