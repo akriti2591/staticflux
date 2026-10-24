@@ -22,6 +22,20 @@ self.onmessage = async (e) => {
         requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);
+      if (m.params.present === 'eager') {
+        // Eager: draw as soon as a new view frame (or, for fast/colo, new input) lands, instead of waiting for rAF.
+        const ctl = m.sabs.ctl;
+        (async () => {
+          for (;;) {
+            const v = Atomics.load(ctl, C.KICK);
+            if (self.__stopped) return;
+            if (editor) editor.step();
+            rc.update(false);
+            const w = Atomics.waitAsync(ctl, C.KICK, v, 1000);
+            if (w.async) await w.value;
+          }
+        })();
+      }
       Atomics.store(m.sabs.ctl, C.RENDER_READY, 1);
       postMessage({ type: 'ready', info: gfx.info, colo: !!editor });
     } catch (err) { postMessage({ type: 'error', error: String(err?.stack ?? err) }); }

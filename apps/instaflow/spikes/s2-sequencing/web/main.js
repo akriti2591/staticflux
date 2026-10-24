@@ -16,6 +16,8 @@ const P = {
   gapEvery: +(q.get('gapEvery') ?? 0),       // drop every Nth delta (E-1 gap → resnapshot)
   editorLoad: +(q.get('editorLoad') ?? 0),   // ms of busy work per editor batch
   align: q.get('align') ?? 'raf',            // raf = dispatch in main rAF (Chrome rAF-aligns pointermove/wheel) | none = timer-paced
+  present: q.get('present') ?? 'raf',        // raf = render draws in its rAF | eager = draws on wake-up (Atomics.waitAsync)
+  eagerCap: +(q.get('eagerCap') ?? 0),       // eager: max draws per vsync interval (0 = unlimited)
   latch: +(q.get('latch') ?? 0),             // ms the render worker may wait in rAF for the editor to catch up
 };
 const out = document.getElementById('out');
@@ -78,11 +80,11 @@ async function run() {
       default: rec(e.type, e.x, e.y, e.dx, e.dy, e.flags); // simulated remote CRDT update (not DOM input)
     }
   };
-  const tStart = performance.now(), mainRaf = [];
+  const tStart = performance.now(), mainRaf = [], mainCbLag = [];
   await new Promise((done) => {
     let i = 0;
     const tick = (ts) => {
-      if (P.align === 'raf') mainRaf.push(performance.timeOrigin + ts);
+      if (P.align === 'raf') { mainRaf.push(performance.timeOrigin + ts); mainCbLag.push(performance.now() - ts); }
       iw.flush();
       const now = performance.now();
       let k = 0;
@@ -106,7 +108,7 @@ async function run() {
   const rf = msg(rw, 'final'); rw.postMessage({ type: 'finish' });
   const R = await rf;
   const E = ew ? (await editorFinal).final : R.editor;
-  return analyze(S, M, tIn, typeOf, flagsOf, R.render, E, { genMs, driveMs, maxInputPending: iw.maxPending, mainRaf });
+  return analyze(S, M, tIn, typeOf, flagsOf, R.render, E, { genMs, driveMs, maxInputPending: iw.maxPending, mainRaf, mainCbLag });
 }
 
 function analyze(S, M, tIn, typeOf, flagsOf, Rn, E, extra) {
@@ -184,6 +186,7 @@ function analyze(S, M, tIn, typeOf, flagsOf, Rn, E, extra) {
   const mr = extra.mainRaf; delete extra.mainRaf;
   if (mr.length) { const ph = []; let k = 0; for (const t of Rn.tickAbs) { while (k + 1 < mr.length && mr[k + 1] <= t) k++; if (mr[k] <= t && t - mr[k] < 40) ph.push(t - mr[k]); } lat.workerRafAfterMainRafMs = stats(ph); }
   lat.latchWaitMs = stats(Rn.latchWaits);
+  lat.callbackAfterFrameTs = { main: stats(extra.mainCbLag), worker: stats(Rn.cbLag) }; delete extra.mainCbLag;
   lat.inputToPresentFrames = groups.all.length ? { median: +(lat.inputToPresentEst.all.median / frameMs).toFixed(2), p95: +(lat.inputToPresentEst.all.p95 / frameMs).toFixed(2) } : null;
   lat.p95WithinBudget = lat.inputToPresentEst.all.p95 != null && lat.inputToPresentEst.all.p95 <= lat.budgetMs;
   // E-4 exposure: pointerdowns that happened while the displayed camera lagged a wheel event already sent

@@ -1,5 +1,5 @@
 // S6 benchmarks + correctness tests (dedicated worker). Posts {type:'done', result}.
-import { Backend, enc, dec, readHead, casHead, encodeHead, decodeHead, frame, putBlob, sha256Hex, deflateRaw, summarize, canonicalJSON } from './core.js';
+import { pool, Backend, enc, dec, readHead, casHead, encodeHead, decodeHead, frame, putBlob, sha256Hex, deflateRaw, summarize, canonicalJSON } from './core.js';
 import { LatestStore } from './latest.js';
 import { createMilestone, gc, exportMilestone, importBundle } from './milestone.js';
 import { makeDoc, editPages, prng } from './doc.js';
@@ -145,20 +145,21 @@ async function gcBench(kind, runs) {
   for (let a = 0; a < 5; a++) {
     const ms = [];
     for (let m = 0; m < 7; m++) {
-      const parts = {}; for (let p = 0; p < 200; p++) { const hex = await put(); live.push(hex); parts[`page:${p}`] = { digest: `sha256:${hex}`, size: 512, mime: 'x' }; }
+      const parts = {}; const hs = await pool(Array.from({ length: 200 }), 8, () => put());
+      hs.forEach((hex, p) => { live.push(hex); parts[`page:${p}`] = { digest: `sha256:${hex}`, size: 512, mime: 'x' }; });
       const id = `ms_${(await sha256Hex(enc.encode(`${a}-${m}-${Math.random()}`)))}`;
       await be.writeAtomic(['records', 'ms', id.slice(3, 5)], `${id}.json`, enc.encode(canonicalJSON({ schema: 'instaflow.milestone/1', id, parts })));
       ms.push(id);
     }
     await casHead(be, lp, `as_${a}`, 0, { schema: 'instaflow.head/1', asset: `as_${a}`, parts: {}, milestones: ms, pinned: [] });
   }
-  const garbage = async () => { const g = []; for (let i = 0; i < 3000; i++) g.push(await put()); return g; };
+  const garbage = () => pool(Array.from({ length: 3000 }), 8, () => put());
   let g = await garbage();
   const setupMs = t() - s0;
   const results = [];
   for (let i = 0; i < runs; i++) {
     if (i > 0) g = await garbage();
-    const res = await gc(be, { graceMs: 0 });
+    const res = await gc(be, { graceMs: 0, conc: i === 0 ? 1 : 16 });   // run 1 sequential for comparison
     results.push(res);
   }
   // correctness: every live blob still there, no garbage left
@@ -167,8 +168,8 @@ async function gcBench(kind, runs) {
   // grace path: 3000 young garbage blobs survive a gc with a 1 h grace (lastModified check)
   await garbage(); const graceRun = await gc(be, { graceMs: 3600e3 });
   return { blobsAtStart: live.length + 3000, setupMs: r2(setupMs), runs: results.length, deletedPerRun: summarize(results.map((x) => x.deleted)), scannedPerRun: summarize(results.map((x) => x.scanned)),
-    markMs: summarize(results.map((x) => x.ms.mark)), sweepMs: summarize(results.map((x) => x.ms.sweep)), totalMs: summarize(results.map((x) => x.ms.total)),
-    liveMissing, garbageLeft, graceRun: { young: graceRun.young, deleted: graceRun.deleted, totalMs: r2(graceRun.ms.total) }, pass: liveMissing === 0 && garbageLeft === 0 && results.every((x) => x.deleted === 3000) };
+    sequentialRun: results[0].ms, parallel16: { markMs: summarize(results.slice(1).map((x) => x.ms.mark)), listMs: summarize(results.slice(1).map((x) => x.ms.list)), deleteMs: summarize(results.slice(1).map((x) => x.ms.delete)), totalMs: summarize(results.slice(1).map((x) => x.ms.total)) },
+    liveMissing, garbageLeft, graceRun: { young: graceRun.young, deleted: graceRun.deleted, ms: graceRun.ms }, pass: liveMissing === 0 && garbageLeft === 0 && results.every((x) => x.deleted === 3000) };
 }
 
 async function zipTest(be, lp, msId, iters, wantBytes) {

@@ -39,6 +39,7 @@ export class EditorHost {
       this.vf.write(ed, this.epoch, ed.displayHash());        // … then the frame that references them
       Atomics.store(this.ctl, C.EDITOR_IN, ed.inputSeq);
       Atomics.notify(this.ctl, C.EDITOR_IN); // wakes a latching render worker
+      Atomics.add(this.ctl, C.KICK, 1); Atomics.notify(this.ctl, C.KICK); // wakes an eager render worker
     }
     return n;
   }

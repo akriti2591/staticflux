@@ -247,3 +247,10 @@ export function summarize(xs) {
   const r = (x) => Math.round(x * 100) / 100;
   return { n: s.length, median: r(q(0.5)), p95: r(q(0.95)), min: r(s[0]), max: r(s[s.length - 1]) };
 }
+
+/** run fn over items with at most n in flight */
+export async function pool(items, n, fn) {
+  const out = new Array(items.length); let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) { const k = i++; out[k] = await fn(items[k], k); } }));
+  return out;
+}
