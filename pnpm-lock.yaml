@@ -193,6 +193,27 @@ importers:
         specifier: workspace:*
         version: link:../storage
 
+  packages/devtools:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/gate':
+        specifier: workspace:*
+        version: link:../gate
+      '@staticflux/perf':
+        specifier: workspace:*
+        version: link:../perf
+      '@staticflux/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@staticflux/ui':
+        specifier: workspace:*
+        version: link:../ui
+      lit:
+        specifier: 3.3.3
+        version: 3.3.3
+
   packages/document:
     dependencies:
       '@staticflux/core':

@@ -1,0 +1,27 @@
+{
+  "name": "@staticflux/devtools",
+  "version": "0.1.0",
+  "description": "Devtools on the telemetry fabric: boot waterfall, journeys, DI graph, lifecycle states, decision traces, store inspector, violations, verbosity controls.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "shell"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*",
+    "@staticflux/ui": "workspace:*",
+    "@staticflux/perf": "workspace:*",
+    "@staticflux/gate": "workspace:*",
+    "@staticflux/runtime": "workspace:*",
+    "lit": "3.3.3"
+  }
+}

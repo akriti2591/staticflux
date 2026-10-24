@@ -99,6 +99,9 @@
     },
     {
       "path": "tooling/rspack-plugin"
+    },
+    {
+      "path": "packages/devtools"
     }
   ]
 }
