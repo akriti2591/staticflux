@@ -2,6 +2,6 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "rootDir": "src", "outDir": "dist", "types": ["node"] },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts", "src/test-helpers.ts"],
   "references": [{ "path": "../../packages/core" }]
 }
