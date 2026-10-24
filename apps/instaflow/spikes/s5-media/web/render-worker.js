@@ -93,7 +93,7 @@ async function composite({ blobs, frames = 300, modes = ['external', 'copy'], re
     await Promise.all(sessions.map((s) => s.start()));
     // decode + composite, a fresh frame on every layer every composite (= 3 x 1080p "60 fps-equivalent" streams)
     const frameMs = []; let mismatches = 0, checks = 0;
-    const warm = 20;
+    const warm = Math.min(20, frames);
     let t0 = 0;
     for (let i = 0; i < frames + warm; i++) {
       if (i === warm) t0 = performance.now();
@@ -105,6 +105,7 @@ async function composite({ blobs, frames = 300, modes = ['external', 'copy'], re
       if (check) { const want = await frameBarcode(fs[0]); const got = await gpu.readBarcode(); checks++; if (want !== got) mismatches++; }
       fs.forEach((f) => f.close());
       if (i >= warm) frameMs.push(performance.now() - a);
+      if (i % 10 === 0) log(`composite ${mode} frame ${i}: ${(performance.now() - a).toFixed(1)} ms`);
     }
     const ms = performance.now() - t0;
     // composite-only: re-import the same three frames (isolates import + GPU work from decode)

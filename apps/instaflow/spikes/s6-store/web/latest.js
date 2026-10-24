@@ -1,7 +1,7 @@
 // Latest store for one tree asset: op log segments + per-part snapshots + head (DOCUMENT-FORMAT §5.2).
 // Synthetic "CRDT": a part's state is the set of commit ids applied to it (idempotent, commutative),
 // which is exactly what the durability test needs to check.
-import { enc, dec, canonicalJSON, sha256Hex, putBlob, getBlob, readHead, casHead, frame, parseFrames, segName, segNum } from './core.js';
+import { pool, enc, dec, canonicalJSON, sha256Hex, putBlob, getBlob, readHead, casHead, frame, parseFrames, segName, segNum } from './core.js';
 
 export class LatestStore {
   constructor(be, { lockPrefix, asset, peer }) {
@@ -29,24 +29,31 @@ export class LatestStore {
     if (hr.status === 'torn') rep.headTorn = hr;
     this.head = hr.head ?? { schema: 'instaflow.head/1', asset: this.asset, generation: 0, engine: 'spike/1', treeSchema: 1, minReader: 1, minWriter: 1, parts: {}, logFrom: 0, undoHorizon: { steps: 200 }, milestones: [], pinned: [] };
     rep.generation = this.head.generation;
-    for (const [part, ref] of Object.entries(this.head.parts)) {
+    const tp = performance.now();
+    const loaded = await pool(Object.entries(this.head.parts), 8, async ([part, ref]) => {
       const hex = ref.digest.slice(7);
       const bytes = await getBlob(this.be, hex);
-      if (!bytes) { rep.partsMissing++; continue; }
-      if (await sha256Hex(bytes) !== hex) { rep.partsBadDigest++; continue; }
-      for (const id of JSON.parse(dec.decode(bytes)).ids) this.#add(id, part, true);
-      rep.partsLoaded++;
-    }
+      if (!bytes) { rep.partsMissing++; return null; }
+      if (await sha256Hex(bytes) !== hex) { rep.partsBadDigest++; return null; }
+      rep.partsLoaded++; return [part, JSON.parse(dec.decode(bytes)).ids];
+    });
+    for (const x of loaded) if (x) for (const id of x[1]) this.#add(id, x[0], true);
+    rep.partsMs = performance.now() - tp;
+    const ts = performance.now();
     let maxNum = this.head.logFrom;
     const segs = (await this.be.list(this.logDir)).map(([n]) => n).filter((n) => n.endsWith('.bin')).sort();
+    const live = [];
     for (const name of segs) {
       const num = segNum(name); maxNum = Math.max(maxNum, num);
-      if (num < this.head.logFrom) { rep.staleSegments++; await this.be.remove(this.logDir, name); continue; }
-      const bytes = await this.be.read(this.logDir, name, { viaFile: true });
+      if (num < this.head.logFrom) { rep.staleSegments++; await this.be.remove(this.logDir, name); } else live.push(name);
+    }
+    const bodies = await pool(live, 8, (name) => this.be.read(this.logDir, name, { viaFile: true }));
+    for (const bytes of bodies) {
       const { recs, torn } = parseFrames(bytes);
       rep.segments++; if (torn) rep.tornTails++;
       for (const r of recs) for (const c of JSON.parse(dec.decode(r))) { rep.records++; if (!this.#add(c.id, c.part)) rep.dupRecords++; }
     }
+    rep.logMs = performance.now() - ts;
     // orphaned temp files from a crashed atomic write
     for (const [n] of await this.be.list(['heads'])) if (n.includes('.tmp-')) { await this.be.remove(['heads'], n); rep.tmpCleaned++; }
     // everything recovered from the log is not yet in a snapshot
@@ -101,8 +108,11 @@ export class LatestStore {
     try {
       const { logFrom, snaps } = await this.run(async () => {
         if (this.be.kind === 'sync') { await this.#closeSegment(); this.segNo++; await this.#openSegment(); }
-        dirty = [...this.dirty]; this.dirty.clear();
-        return { logFrom: this.segNo, snaps: dirty.map((p) => [p, enc.encode(canonicalJSON({ part: p, ids: [...this.parts.get(p)].sort() }))]) };
+        // incremental: at most `chunk` parts per head swap so a short-lived leader still makes progress.
+        // logFrom only advances when no dirty part remains (every older record is then in some snapshot);
+        // recovery marks a part dirty only for log records NOT already in its snapshot.
+        dirty = [...this.dirty].slice(0, hooks.chunk ?? 16); for (const p of dirty) this.dirty.delete(p);
+        return { logFrom: this.dirty.size ? this.head.logFrom : this.segNo, snaps: dirty.map((p) => [p, enc.encode(canonicalJSON({ part: p, ids: [...this.parts.get(p)].sort() }))]) };
       });
       const parts = { ...this.head.parts };
       for (const [p, bytes] of snaps) {
@@ -111,7 +121,7 @@ export class LatestStore {
         parts[p] = { digest: `sha256:${hex}`, size: bytes.length, mime: 'application/x-spike-part' };
       }
       if (hooks.afterBlobs) await hooks.afterBlobs();
-      const res = await casHead(this.be, this.lockPrefix, this.asset, this.head.generation, { ...this.head, parts, logFrom }, hooks);
+      const res = await casHead(this.be, this.lockPrefix, this.asset, this.head.generation, { ...this.head, parts, logFrom }, { beforeMove: hooks.beforeMove });
       if (!res.ok) { this.casConflicts++; throw Object.assign(new Error(res.error.code), { sf: res.error }); }
       this.head = res.head; this.compactions++;
       if (hooks.afterHead) await hooks.afterHead();

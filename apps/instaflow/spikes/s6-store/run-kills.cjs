@@ -67,7 +67,7 @@ const q = (xs, p) => { const s = [...xs].sort((a, b) => a - b); return s.length 
     open().catch((e) => errors.push({ open: String(e) }));
     cur = await waitLeader(before);
     failover.push(cur.t - tKill); recoveryMs.push(cur.rec.ms);
-    recov.push({ i, mode, segments: cur.rec.segments, dirtyAfterRecovery: cur.rec.dirtyParts, headStatus: cur.rec.headStatus, gen: cur.rec.generation, tornTails: cur.rec.tornTails, staleSegments: cur.rec.staleSegments, partsMissing: cur.rec.partsMissing, partsBadDigest: cur.rec.partsBadDigest, recovered: cur.rec.recoveredIds, tmpCleaned: cur.rec.tmpCleaned });
+    recov.push({ i, mode, partsMs: cur.rec.partsMs, logMs: cur.rec.logMs, segments: cur.rec.segments, dirtyAfterRecovery: cur.rec.dirtyParts, headStatus: cur.rec.headStatus, gen: cur.rec.generation, tornTails: cur.rec.tornTails, staleSegments: cur.rec.staleSegments, partsMissing: cur.rec.partsMissing, partsBadDigest: cur.rec.partsBadDigest, recovered: cur.rec.recoveredIds, tmpCleaned: cur.rec.tmpCleaned });
     if ((i + 1) % 10 === 0) console.error(`kill ${i + 1}/${KILLS}: acked=${acked.size} gen=${cur.rec.generation} failover=${failover.at(-1)}ms`);
     while (pages.size < PAGES) await sleep(10);
   }
@@ -101,7 +101,8 @@ const q = (xs, p) => { const s = [...xs].sort((a, b) => a - b); return s.length 
     finalVerify: verify ? { headStatus: verify.rec.headStatus, liveSegments: verify.rec.segments, recoveryMs: verify.rec.ms, tornTails: verify.rec.tornTails, partsMissing: verify.rec.partsMissing, partsBadDigest: verify.rec.partsBadDigest } : null,
     headProbe: probeTot,
     failoverMs: { median: q(failover, 0.5), p95: q(failover, 0.95), max: Math.max(...failover) },
-    recoveryMs: { median: q(recoveryMs, 0.5), p95: q(recoveryMs, 0.95), max: Math.max(...recoveryMs) },
+    recoveryMs: { median: q(recoveryMs, 0.5), p95: q(recoveryMs, 0.95), max: Math.max(...recoveryMs), partsLoadMedian: q(recov.map((r) => r.partsMs), 0.5), logReplayMedian: q(recov.map((r) => r.logMs), 0.5) },
+    lockHandoffMs: { median: q(failover.map((f, i) => f - recoveryMs[i]), 0.5), p95: q(failover.map((f, i) => f - recoveryMs[i]), 0.95) },
     commitAckLatencyMs: { medianOfPerSecondMedians: q(latMed, 0.5), p95OfPerSecondP95: q(latP95, 0.95) },
     leaderDutyCycle: q([...leaderStats.values()].map((s) => s.dutyCycle), 0.5),
     compactionsPerLeader: q([...leaderStats.values()].map((s) => s.compactions), 0.5), leaderStatsLast: [...leaderStats.values()].slice(-5).map(({ generation, compactions, appended, casConflicts }) => ({ generation, compactions, appended, casConflicts })),
