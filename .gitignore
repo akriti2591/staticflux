@@ -20,3 +20,4 @@ apps/instaflow/spikes/**/*.webm
 apps/instaflow/spikes/**/build/
 apps/instaflow/spikes/**/target*/
 apps/instaflow/spikes/**/.tools/
+apps/instaflow/spikes/**/fixtures/

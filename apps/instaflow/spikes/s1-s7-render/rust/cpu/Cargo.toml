@@ -1,0 +1,15 @@
+[package]
+name = "cpu"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ir = { path = "../ir" }
+vello_cpu = { workspace = true }
+png = "0.18"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }

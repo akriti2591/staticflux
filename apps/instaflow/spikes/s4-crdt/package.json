@@ -1,0 +1,20 @@
+{
+  "name": "s4-crdt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "bench": "node node/run.mjs",
+    "bench:browser": "node build.mjs && node ../_harness/serve-and-run.cjs . index.html --timeout=900"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "loro-crdt": "^1.17.1",
+    "yjs": "^13.6.33"
+  },
+  "type": "module",
+  "private": true
+}

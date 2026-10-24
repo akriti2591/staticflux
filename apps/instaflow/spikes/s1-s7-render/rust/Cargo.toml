@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = ["ir", "cpu", "gpu"]
+
+[workspace.dependencies]
+vello_common = { version = "=0.3.0", default-features = false, features = ["std"] }
+vello_gpu = { version = "=0.3.0", default-features = false, features = ["wgpu"] }
+vello_cpu = { version = "=0.3.0", default-features = false, features = ["std", "u8_pipeline"] }
+wgpu = { version = "=30.0.1", default-features = false, features = ["std", "wgsl", "webgpu"] }
+wasm-bindgen = "=0.2.129"
+wasm-bindgen-futures = "=0.4.79"
+js-sys = "=0.3.106"
+web-sys = { version = "=0.3.106", features = ["OffscreenCanvas", "console", "WorkerGlobalScope", "Performance"] }
+
+# Same flags as research/03 §2.2 size measurements.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# Native parity tool: speed over size.
+[profile.native]
+inherits = "release"
+opt-level = 3
+panic = "unwind"

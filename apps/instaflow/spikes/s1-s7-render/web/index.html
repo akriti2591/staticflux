@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>S1/S7 render spike</title>
+<style>
+  body { font: 13px system-ui, sans-serif; margin: 12px; background: #f6f6f6; color: #222; }
+  canvas { border: 1px solid #999; width: 640px; height: 360px; display: block; }
+  pre { white-space: pre-wrap; background: #fff; padding: 8px; max-height: 60vh; overflow: auto; }
+</style>
+</head>
+<body>
+<h3>S1 (vello_gpu in a worker on OffscreenCanvas) + S7 (export parity)</h3>
+<p>Query params: <code>?count=10000&amp;frames=120&amp;budget=4&amp;maxTiles=256&amp;corpus=1&amp;variant=gpu</code></p>
+<canvas id="c" width="1280" height="720"></canvas>
+<pre id="log"></pre>
+<script type="module">
+import initCpu, * as cpu from './pkg/cpu.js';
+const q = new URLSearchParams(location.search);
+const count = +(q.get('count') ?? 10000), frames = +(q.get('frames') ?? 120), budget = +(q.get('budget') ?? 4);
+const maxTiles = +(q.get('maxTiles') ?? 256), doCorpus = (q.get('corpus') ?? '1') === '1', variant = q.get('variant') ?? 'gpu';
+const logEl = document.getElementById('log');
+const say = (m) => { logEl.textContent += m + '\n'; };
+const W = 1280, H = 720;
+const r3 = (x) => +x.toFixed(5);
+const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p * (s.length - 1) + 0.5))]; };
+
+async function main() {
+  const result = { env: { ua: navigator.userAgent, hw: navigator.hardwareConcurrency, crossOriginIsolated, count, frames, budget, maxTiles, variant } };
+  if (!navigator.gpu) throw new Error('no navigator.gpu');
+  const ad = await navigator.gpu.requestAdapter();
+  result.env.adapter = ad ? { ...(ad.info ? { vendor: ad.info.vendor, architecture: ad.info.architecture, device: ad.info.device, description: ad.info.description } : {}), isFallback: ad.info?.isFallbackAdapter } : null;
+
+  const canvas = document.getElementById('c');
+  const off = canvas.transferControlToOffscreen();
+  const tw = performance.now();
+  const worker = new Worker('./gpu-worker.js', { type: 'module' });
+  const done = new Promise((res, rej) => {
+    worker.onmessage = (e) => {
+      if (e.data.type === 'log') say(e.data.msg);
+      else if (e.data.type === 'done') res(e.data.out);
+      else if (e.data.type === 'error') rej(new Error(e.data.error));
+    };
+    worker.onerror = (e) => rej(new Error('worker error: ' + e.message));
+  });
+  worker.postMessage({ canvas: off, count, maxTiles, frames, budget, variant }, [off]);
+  const out = await done;
+  result.worker_roundtrip_ms = +(performance.now() - tw).toFixed(1);
+  Object.assign(result, out.R);
+  say('worker done; parity on main thread');
+
+  // ---------------------------------------------------------------- S7 parity (main thread)
+  const tc = performance.now();
+  await initCpu({ module_or_path: new URL('./pkg/cpu_bg.wasm', import.meta.url) });
+  result.init.cpu_wasm_init_ms = +(performance.now() - tc).toFixed(1);
+  const images = {};
+  const png64 = (rgba, w, h) => { const b = cpu.png(rgba, w, h); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
+  const diffImg = (a, b) => { const d = new Uint8Array(a.length); for (let i = 0; i < a.length; i += 4) { const m = Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2])); const v = Math.min(255, m * 8); d[i] = v; d[i + 1] = v ? 0 : 40; d[i + 2] = 0; d[i + 3] = 255; } return d; };
+  const cmp = (a, b, w, h) => { const [maxd, frac] = cpu.diff(a, b); return { ssim: r3(cpu.ssim(a, b, w, h)), max_channel_diff: maxd, frac_px_diff_gt2: r3(frac), identical: cpu.hash(a) === cpu.hash(b) }; };
+  const cpuRef = {};
+  const cpuTimes = [];
+  result.parity = {};
+  for (const rb of out.readbacks) {
+    const [ox, oy, z] = rb.cam;
+    const key = `${rb.cam.join(',')}|${rb.lifted}|${rb.drag.join(',')}`;
+    if (!cpuRef[key]) {
+      const t = performance.now();
+      cpuRef[key] = cpu.cpu_render_big(count, ox, oy, z, W, H, rb.lifted, rb.drag[0], rb.drag[1], false);
+      cpuTimes.push(performance.now() - t);
+    }
+    const ref = cpuRef[key];
+    result.parity[`${rb.name}_vs_cpu`] = { ...cmp(rb.px, ref, W, H), gpu_hash: cpu.hash(rb.px), cpu_hash: cpu.hash(ref) };
+    if (['A_full', 'A_tiled', 'D_tiled_lifted_cached', 'B_full', 'Z_full', 'C_full'].includes(rb.name)) {
+      images[`${rb.name}_gpu.png`] = png64(rb.px, W, H);
+      images[`${rb.name}_diff_vs_cpu_x8.png`] = png64(diffImg(rb.px, ref), W, H);
+    }
+  }
+  // tiled vs full (tile seams) on the GPU itself
+  const by = Object.fromEntries(out.readbacks.map((r) => [r.name, r.px]));
+  for (const k of ['A', 'B', 'C', 'Z']) result.parity[`${k}_tiled_vs_${k}_full_gpu`] = cmp(by[`${k}_tiled`], by[`${k}_full`], W, H);
+  result.parity.D_cached_vs_D_full_gpu = cmp(by.D_tiled_lifted_cached, by.D_full_lifted, W, H);
+  result.parity.D_reraster_vs_D_full_gpu = cmp(by.D_tiled_lifted_reraster, by.D_full_lifted, W, H);
+  images['A_cpu.png'] = png64(cpuRef['2400,2600,1|0|0,0'], W, H);
+  result.perf.vello_cpu_wasm_frame_ms_1thread = { samples: cpuTimes.map((x) => +x.toFixed(1)) };
+  // quality mode (f32 pipeline) vs speed mode for the same frame (how much does CPU quantization matter?)
+  const q1 = cpu.cpu_render_big(count, 2400, 2600, 1, W, H, 0, 0, 0, true);
+  result.parity.A_cpu_u8_vs_cpu_f32 = cmp(cpuRef['2400,2600,1|0|0,0'], q1, W, H);
+  result.parity.A_full_gpu_vs_cpu_f32 = cmp(by.A_full, q1, W, H);
+
+  // Chrome rasterizing our SVG writer's output vs vello_cpu
+  const rasterSvg = async (svg, w, h) => {
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const img = new Image(); img.src = url; await img.decode();
+    const c = new OffscreenCanvas(w, h); const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    return new Uint8Array(g.getImageData(0, 0, w, h).data.buffer);
+  };
+  {
+    const ts = performance.now();
+    const svg = cpu.svg_big(count, 2400, 2600, 1, W, H);
+    result.svg = { A_bytes: svg.length, A_write_ms: +(performance.now() - ts).toFixed(1) };
+    const px = await rasterSvg(svg, W, H);
+    result.parity.A_svg_chrome_vs_cpu = cmp(px, cpuRef['2400,2600,1|0|0,0'], W, H);
+    result.parity.A_svg_chrome_vs_gpu = cmp(px, by.A_full, W, H);
+    images['A_svg_chrome.png'] = png64(px, W, H);
+    images['A_svg_chrome_diff_vs_cpu_x8.png'] = png64(diffImg(px, cpuRef['2400,2600,1|0|0,0']), W, H);
+    images['A.svg'] = btoa(unescape(encodeURIComponent(svg)));
+  }
+  // 200-scene corpus: GPU vs CPU vs Chrome(SVG)
+  if (doCorpus) {
+    const rows = [];
+    for (let i = 0; i < out.corpus.length; i++) {
+      const g = out.corpus[i];
+      const c = cpu.cpu_render_corpus(i);
+      const s = await rasterSvg(cpu.svg_corpus(i), 256, 256);
+      const gc = cmp(g, c, 256, 256), sc = cmp(s, c, 256, 256);
+      rows.push({ i, gpu_cpu: gc.ssim, gpu_cpu_max: gc.max_channel_diff, svg_cpu: sc.ssim, svg_cpu_max: sc.max_channel_diff });
+      if (i < 6 || gc.ssim < 0.99 || sc.ssim < 0.99) {
+        if (Object.keys(images).filter((k) => k.startsWith('corpus')).length < 48) {
+          images[`corpus_${i}_gpu.png`] = png64(g, 256, 256);
+          images[`corpus_${i}_cpu.png`] = png64(c, 256, 256);
+          images[`corpus_${i}_svgchrome.png`] = png64(s, 256, 256);
+        }
+      }
+    }
+    const agg = (k) => { const a = rows.map((r) => r[k]); return { min: r3(Math.min(...a)), p05: r3(pct(a, 0.05)), median: r3(pct(a, 0.5)), mean: r3(a.reduce((x, y) => x + y, 0) / a.length), below_0_99: a.filter((x) => x < 0.99).length }; };
+    result.corpus = { n: rows.length, gpu_vs_cpu_ssim: agg('gpu_cpu'), svgchrome_vs_cpu_ssim: agg('svg_cpu'),
+      gpu_vs_cpu_max_channel_diff_max: Math.max(...rows.map((r) => r.gpu_cpu_max)),
+      worst_gpu: [...rows].sort((a, b) => a.gpu_cpu - b.gpu_cpu).slice(0, 5), worst_svg: [...rows].sort((a, b) => a.svg_cpu - b.svg_cpu).slice(0, 5) };
+  }
+  if (performance.measureUserAgentSpecificMemory) {
+    try { const m = await performance.measureUserAgentSpecificMemory(); result.memory_ua_bytes = m.bytes; result.memory_ua_breakdown = m.breakdown.filter((b) => b.bytes > 1e6).map((b) => ({ bytes: b.bytes, types: b.types, scope: b.attribution.map((a) => a.scope) })); } catch (e) { result.memory_ua_error = String(e); }
+  }
+  result.worker_log = out.log;
+  say(JSON.stringify({ ...result, images: undefined }, null, 1));
+  if ((q.get('images') ?? '1') === '1') result.images = images;
+  window.__result = result;
+}
+main().catch((e) => { say('ERROR ' + e.stack); window.__result = { error: String(e.stack || e) }; });
+</script>
+</body>
+</html>
