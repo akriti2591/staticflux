@@ -199,3 +199,10 @@ Handshake: `hello{haveVersion}` → `snapshot | patchesSince` (ring buffer); gap
 | 7 | **Tooling**: sf CLI graph/budget checks, eslint rules | tooling/* |
 
 Each phase lands as its own commits; every package ships tests, AGENTS.md and budgets before the next phase depends on it.
+
+## 9. Bundler decision
+
+- **Packages are bundler-agnostic**: plain ESM from `tsc`; the only build contract is the loader's `sf-manifest/1` (logical chunk id → hashed files, deps, tier, budget, profiles).
+- **Default bundler: Vite 8 (Rolldown)** via `@staticflux/vite-plugin` (stable logical chunk naming, manifest emission, per-profile preloads, SW precache list, dev COOP/COEP headers, budget report).
+- **Rspack** via `@staticflux/rspack-plugin` for organisations deploying independently with **Module Federation 2.0** (remotes mapped to logical chunk ids; host-owned shared singletons validated).
+- Any other bundler works by producing the same manifest (`createManifest` in `@staticflux/loader`).
