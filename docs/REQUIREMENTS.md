@@ -210,6 +210,21 @@
 - **R17.3** Devtools panel built on the fabric: boot waterfall, dependency graph, lifecycle states, decision traces, store inspector, overrides, budget violations.
 - **R17.4** Zero-config default (console/devtools sink) on opt-in.
 
+### 17.1 Journey tracing (boot → navigation → feature)
+- **R17.5** One **journey trace** per navigation, from first input to feature complete, with nested phase spans; parallel work is sibling spans; each phase reports total time **and critical path**.
+- **R17.6** Phases: `app.boot` (`boot.core`, `boot.critical` per unit, `boot.shell-frame`) → `nav.pipeline` (one span per stage; chunk loads and prefetches inside) → `feature` (activation, render) → `view` (sub-route transitions).
+- **R17.7** Feature marks: `feature.placeholder-shown`, `feature.first-render`, `feature.largest-render`, `feature.interactive`, `feature.complete`. Completeness defaults to: render deps resolved + initial resources settled + layout-stable window; features may supply their own readiness signal.
+- **R17.8** Journey classification: start (`cold | warm | soft`), feature activation (`fresh | warm | archived`), code source (`network | http-cache | sw`), data source (`network | cache | snapshot`). Enables warm vs cold comparison per feature.
+- **R17.9** Applies uniformly to routes, features, sub-routes and transitions between them.
+- **R17.10** Feature paint marks are framework-measured (render commit + next frame, Element Timing where supported, own largest-element heuristic elsewhere) and labelled with their method; never conflated with browser LCP.
+- **R17.11** App loading state (shell) and feature loading state (feature skeleton) are distinct layers with distinct timings.
+- **R17.12** Journey marks can carry budgets (per feature, per device tier), enforced in e2e lab runs and flagged in devtools.
+
+### 17.2 Verbosity
+- **R17.13** Levels: `off` (compiled to no-ops) · `critical` (journey summary) · `standard` (phases, stages, chunks, resources) · `verbose` (DI resolutions, store actions, gate decisions, worker messages) · `debug` (everything).
+- **R17.14** Level configurable per subsystem, per feature, and per journey (with sampling); switchable at runtime (devtools, URL/dev flag) without reload.
+- **R17.15** Output destination is fully pluggable (OTel-shaped spans/metrics/logs); the framework only guarantees the data is generated.
+
 ## 18. Platform detection
 
 - **R18.1** Capability-based detection: device class, OS, browser, input (touch/pointer/hover), network quality, memory/CPU tier, reduced motion, PWA/webview/embedded host.
