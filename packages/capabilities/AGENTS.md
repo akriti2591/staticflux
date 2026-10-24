@@ -1,0 +1,42 @@
+# @staticflux/capabilities — AGENTS.md
+
+**Layer:** vertical (depends only on `@staticflux/core`). Must not import gate, auth, data, runtime or messaging — they plug in through ports.
+**Budget (proposed):** ≤ 5 KB brotli minified (registry + schema DSL + units). Measured ~8.8 KB unminified with comments.
+
+> ## ⚠ CLIENT GATING IS UX, NOT SECURITY (R6.16)
+> The decide port is advisory. The server re-checks every request a capability
+> implementation makes. Never skip a server check because `invoke` succeeded.
+
+## Purpose
+Typed, schema-described actions (R3.1–R3.3, R6.17, R19.18) that the UI, command palette and AI
+agents (WebMCP) all call through ONE pipeline:
+
+`validate input → authorize (decide port) → confirm (confirm port) → ensure feature active (activation port) → reserve (meter port) → run → validate output → commit | release → Result`
+
+Every invocation is a `capabilities/invocation` machine and a `capability.invoke` span (`capabilities/invoke`).
+
+## Public API (by file)
+- `schema.ts` — DSL `s.object/string/number/boolean/enum/array/optional`, `Infer<S>`, `validate(schema, value)` (SF-CAP-002 with `details.issues`), `toJsonSchema` (strict objects, `additionalProperties: false`).
+- `capability.ts` — `defineCapability({ id, title, description, input, output, policy: { resource, action? }, feature, requiresConfirmation, destructive, costEstimate?(input), exposeToAgents, timeoutMs })`, `describeCapability` (machine-readable descriptor), `implementCapability(cap, run)`, `RunContext` (`signal`, `span`, `subject`, `origin`, `reserved`, `reportCost`), ports `CapabilityDecidePort`, `CapabilityConfirmPort`, `CapabilityMeterPort` (+ `MeterLease`), `FeatureActivationPort` (+ `ActivationLease`, ref-count R5.6).
+- `registry.ts` — `createCapabilityRegistry({ decide, confirm, meter, activation, declarations, implementations, telemetry })` → `declare(cap, { scope })`, `provide(impl, { scope })`, `list`, `describe` (reactive), `isImplemented`, `onChange`, `preview(cap, input, subject)`, `invoke(cap | id, input, { subject, signal, origin, parent })`, `inFlight`, `dispose`. `invocationMachine`, `CapabilityMetrics`.
+- `ports.ts` — defaults `allowAllDecidePort`, `failClosedConfirmPort`, `unmeteredPort`, `alwaysActivePort`; `decidePort(fn)`; `capabilityDecisionFrom(gateDecision)` (structural gate adapter).
+- `units.ts` — tokens `CapabilityRegistryToken`, `CapabilityDeclarationsToken` (multi), `CapabilityImplementationsToken` (multi), port tokens `CapabilityDecidePortToken`, `CapabilityConfirmPortToken`, `CapabilityMeterPortToken`, `FeatureActivationPortToken`; `capabilityUnits` (one-line opt-in), `capabilityDeclarationUnit`, `capabilityImplementationUnit`, `provideCapabilities(registry, impls, scope)` (feature-scoped, all-or-nothing).
+- `errors.ts` — `SF-CAP-001` unknown … `SF-CAP-014` (deny reasons map to kinds: login→auth, quota, rate, unavailable, upgrade/forbidden→forbidden).
+
+## Semantics
+- Confirmation is required when: destructive and subject ≠ `user` (agents!), or `requiresConfirmation`, or the policy decision says so. The default confirm port **fails closed** (SF-CAP-005).
+- Activation runs only after authorization + confirmation, so denied features' chunks are never fetched (I-8).
+- Policy `cost` overrides `costEstimate`; `reportCost(actual)` commits the actual amount; any failure/abort releases.
+- `timeoutMs` aborts the run's signal and fails with SF-ASYNC-001.
+- Declarations are ref-counted per object; a different object with the same id is SF-CAP-009. `provide` implies `declare`.
+
+## Lifecycle (mirror into docs/LIFECYCLES.md §14)
+`capabilities/invocation`: received → validating → authorizing → (confirming) → activating → (reserving) → running → verifying → succeeded; any non-terminal → failed | cancelled (verifying → failed only).
+
+## Rules
+- Capability ids are typed, namespaced values (`feature/action`); never call by a string literal from feature code — import the declaration.
+- Implementations return `Result`; throwing is mapped to SF-CAP-010.
+- Never add an authorization shortcut that bypasses the decide port; the agent subject must stay distinct (R6.17).
+
+## Test
+`npx vitest run packages/capabilities` · `npx tsc -p packages/capabilities --noEmit`
