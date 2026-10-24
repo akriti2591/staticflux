@@ -9,7 +9,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p media
-FONT=/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf
+# Label font: Linux DejaVu, macOS Menlo/Courier; labels are cosmetic and skipped if no font or no drawtext.
+FONT=""
+for f in /usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf /System/Library/Fonts/Menlo.ttc /System/Library/Fonts/Supplemental/Courier\ New.ttf; do
+  [ -f "$f" ] && { FONT="$f"; break; }
+done
+ffmpeg -hide_banner -filters 2>/dev/null | grep -q " drawtext " || FONT=""
 
 barcode() { # $1 = number of bits
   local f="drawbox=x=0:y=0:w=$((48*$1)):h=48:color=black:t=fill"
@@ -20,7 +25,7 @@ barcode() { # $1 = number of bits
 }
 BC=$(barcode 16)
 FLASH="drawbox=x=1500:y=800:w=200:h=200:color=white:t=fill:enable='eq(mod(n,30),0)'"
-LABEL() { echo "drawtext=fontfile=$FONT:text='$1 f%{n} t%{pts\\:hms}':x=40:y=980:fontsize=56:fontcolor=white:box=1:boxcolor=black@0.6"; }
+LABEL() { [ -z "$FONT" ] && { echo "null"; return; }; echo "drawtext=fontfile=$FONT:text='$1 f%{n} t%{pts\\:hms}':x=40:y=980:fontsize=56:fontcolor=white:box=1:boxcolor=black@0.6"; }
 BEEP="aevalsrc='if(lt(mod(t,1),0.04),0.5*sin(2*PI*1000*t),0)|if(lt(mod(t,1),0.04),0.5*sin(2*PI*1000*t),0)':s=48000"
 X264="-c:v libx264 -preset veryfast -profile:v high -pix_fmt yuv420p -b:v 8M -maxrate 10M -bufsize 10M -g 15 -keyint_min 15 -sc_threshold 0 -bf 2"
 
