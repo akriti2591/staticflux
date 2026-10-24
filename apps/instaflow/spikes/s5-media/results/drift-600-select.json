@@ -1,0 +1,133 @@
+{
+  "meta": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "hardwareConcurrency": 4,
+    "crossOriginIsolated": true,
+    "date": "2026-10-24T18:53:17.972Z"
+  },
+  "durationSec": 598,
+  "canvasSize": [
+    1920,
+    1080
+  ],
+  "audio": {
+    "sampleRate": 48000,
+    "decodedFrames": 28708488,
+    "trimmedFrames": 0,
+    "paddedFrames": 0,
+    "ringFillMaxFrames": 38728,
+    "ringFillMinWhilePlayingFrames": 776,
+    "consumedFrames": 28699264,
+    "underrunFrames": 0,
+    "ctxElapsedSec": 597.9013333333334,
+    "consumedSec": 597.9013333333334,
+    "outputLatency": 0.032,
+    "baseLatency": 0.010020833333333333,
+    "beepsDetected": 598,
+    "currentTimeMinusOutputTimestampMs": {
+      "n": 5000,
+      "min": 24.9,
+      "median": 36.2,
+      "max": 42.3
+    },
+    "beepOnsetErrorSamples": {
+      "n": 598,
+      "min": 4,
+      "median": 4,
+      "max": 4
+    }
+  },
+  "video": {
+    "playedSec": 598,
+    "present": "select",
+    "displayLeadMs": 16.666666666666668,
+    "latencies": {
+      "outputLatency": 0.032,
+      "baseLatency": 0.010020833333333333
+    },
+    "tickMs": {
+      "n": 35563,
+      "min": 0.66,
+      "median": 16.67,
+      "p95": 18.42,
+      "p99": 25.89,
+      "max": 135.01,
+      "mean": 16.81
+    },
+    "presented": 17808,
+    "dropped": 127,
+    "late": 0,
+    "wrongFrameForClock": 0,
+    "flashOnsetOffsetMs": {
+      "n": 592,
+      "min": 0.03,
+      "median": 12.4,
+      "p95": 16.96,
+      "p99": 31.09,
+      "max": 32.99,
+      "mean": 10.76
+    },
+    "flashAbsMaxMs": 32.99,
+    "flashTrendMsPerMin": 1.039,
+    "flashMeanFirst30s": 10.28,
+    "flashMeanLast30s": 13.94,
+    "presentedOffsetMs": {
+      "n": 17808,
+      "min": 0,
+      "median": 12.32,
+      "p95": 16.82,
+      "p99": 29.69,
+      "max": 33.33,
+      "mean": 10.69
+    },
+    "gpuSubmitToDoneMs": {
+      "n": 0
+    },
+    "audioVsWallSkew": [
+      {
+        "wallSec": 9,
+        "audioMinusWallMs": -0.02
+      },
+      {
+        "wallSec": 70,
+        "audioMinusWallMs": -10.05
+      },
+      {
+        "wallSec": 130,
+        "audioMinusWallMs": -20.07
+      },
+      {
+        "wallSec": 190,
+        "audioMinusWallMs": -60.12
+      },
+      {
+        "wallSec": 250,
+        "audioMinusWallMs": -70.14
+      },
+      {
+        "wallSec": 310,
+        "audioMinusWallMs": -70.16
+      },
+      {
+        "wallSec": 370,
+        "audioMinusWallMs": -70.14
+      },
+      {
+        "wallSec": 430,
+        "audioMinusWallMs": -80.18
+      },
+      {
+        "wallSec": 490,
+        "audioMinusWallMs": -150.33
+      },
+      {
+        "wallSec": 550,
+        "audioMinusWallMs": -160.38
+      },
+      {
+        "wallSec": 590,
+        "audioMinusWallMs": -160.34
+      }
+    ]
+  }
+}
