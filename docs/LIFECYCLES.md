@@ -49,7 +49,11 @@ ready|busy → unresponsive (missed heartbeat) → crashed
 error event → crashed → respawning → spawning
 crashed (intensity exceeded) → failed          (fallback activated; app → degraded)
 ready|busy → draining → terminated
+idle → spawning (start)
+unresponsive → ready (heartbeat recovers; avoids respawning throttled background tabs)
+failed → spawning (manual restart())
 ```
+`pause` is a flag on ready/busy, not a separate state. Envelope kinds include `cancel` so aborts reach the worker.
 
 On respawn: replicas re-handshake (snapshot/patches), document workers rehydrate from last snapshot, in-flight requests retried if idempotent else failed (`SF-WK-*`).
 
