@@ -305,12 +305,38 @@
 - **R18.1** Capability-based detection: device class, OS, browser, input (touch/pointer/hover), network quality, memory/CPU tier, reduced motion, PWA/webview/embedded host.
 - **R18.2** Platform facts feed gating, warmup and resource-manager decisions.
 
+### 18.1 Modes & app profile
+- **R18.3** Two independent mode axes, both reactive platform facts:
+  - **host mode:** `web | pwa | embed-iframe | embed-agent-host | webview-ios | webview-android`
+  - **form factor:** `compact | medium | expanded` (+ input: touch/pointer, orientation)
+- **R18.4** Host mode × form factor → **app profile** → shell config, feature availability, bindings.
+- **R18.5** **Per-mode variants are separate features**, never `if/else` inside one feature. Features declare `modes`; routes bind to a capability, and the availability stage selects the feature matching the profile. Variants share logic (stores/services) via DI; only UI features differ.
+- **R18.6** Mode changes at runtime (rotate, fold, resize) swap variants without reload: UI unmounts, view state hands off, matching variant mounts, shared logic stays warm. Hysteresis prevents flapping.
+- **R18.7** Build-time completeness: routes without a feature for some mode are reported.
+- **R18.8** **Host bridge** plugin per embedded mode (iframe postMessage, MCP Apps bridge, native JS interface), used by auth, data, router and messaging as a transport.
+- **R18.9** Router history strategy per host mode: Navigation API (`web`, `pwa`); memory history synchronized with host (embedded); native back button via bridge (Android webview).
+- **R18.10** Each host mode has a degraded capability profile (SW, storage, popups, passkeys, notifications, share, install, insets); missing capabilities are facts that gate features and their chunks.
+- **R18.11** **PWA:** web app manifest, SW from warmup tiers, update flow (new version → messaging prompt → safe reinitialize without reload), OS link capture, file/share handlers where supported.
+
+### 18.2 Experience types (validation targets)
+- **R18.12** The primitives must support, without special cases: **chat** (headless agent + chat UI + streamed resources), **wizard** (steps as sub-routes, exit-guard validation, persisted progress), **complex editor** (document worker, projection UI, lazy panels, archive), **co-editing** (CRDT + collaboration transport + presence). A needed special case indicates a missing primitive.
+
 ## 19. Handoff
 
 - **R19.1** State that survives boundaries: reload, deep link, login redirect, tab/window, host↔embed; cross-device as a client contract only.
 - **R19.2** Each handoff entry declares a lifetime: one-shot, session, TTL.
 - **R19.3** Uses the same snapshot format as feature archive (R5.3).
 - **R19.4** Sub-route → sub-route handoff of view state within a feature.
+
+## 19.1 Advisors (intelligence layer)
+
+- **R19.5** Framework **decision points** consult pluggable **advisors** through one typed contract: warmup/preload, retention/eviction, scheduling priority, data prefetch, messaging timing, telemetry sampling.
+- **R19.6** Advisor tiers (all plugins): heuristic (default, deterministic), statistical (per-user history, e.g. next-route prediction, stored in a user-data slice), on-device model (e.g. Gemma / browser built-in AI / WebGPU / WebNN; capability-detected), remote (contract, mocked).
+- **R19.7** **Advisors suggest; the framework decides** — suggestions clamped by budgets, gates and invariants. An advisor can only change performance, never correctness.
+- **R19.8** Never on the critical path: time-boxed (ms / one idle slot); timeout → deterministic default.
+- **R19.9** **Never used for authorization, entitlement or security decisions.**
+- **R19.10** Explainable: decision traces record advisor, confidence, the default it overrode, and the outcome (hit rate, wasted bytes).
+- **R19.11** Private by default (on-device signals); remote advisors explicitly enabled. Auto-downgrade on low-end device, battery saver, slow network.
 
 ## 20. Tooling, repo & enforcement
 
