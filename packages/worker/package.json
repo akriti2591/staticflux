@@ -1,0 +1,30 @@
+{
+  "name": "@staticflux/worker",
+  "version": "0.1.0",
+  "description": "Typed envelopes, supervised workers, store replication, core-context sync.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./channels": {
+      "types": "./dist/channels.d.ts",
+      "import": "./dist/channels.js"
+    },
+    "./coordinator": {
+      "types": "./dist/coordinator-entry.d.ts",
+      "import": "./dist/coordinator-entry.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*"
+  }
+}

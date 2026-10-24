@@ -1,0 +1,359 @@
+[
+  {
+    "name": "@staticflux/core (full runtime surface)",
+    "path": "packages/core/dist/index.js",
+    "ignore": [
+      "mobx"
+    ],
+    "limit": "9.5 KB"
+  },
+  {
+    "name": "@staticflux/core (typical boot: injector + units + telemetry)",
+    "path": "packages/core/dist/index.js",
+    "import": "{ createInjector, unit, token, createTelemetry, ok, err }",
+    "ignore": [
+      "mobx"
+    ],
+    "limit": "7.5 KB"
+  },
+  {
+    "name": "@staticflux/platform detect-mode (inline boot detector)",
+    "path": "packages/platform/dist/detect-mode.js",
+    "limit": "1.1 KB"
+  },
+  {
+    "name": "@staticflux/runtime (boot: bootApp + supervisor + scheduler)",
+    "path": "packages/runtime/dist/index.js",
+    "import": "{ bootApp, createSupervisor, createFrameScheduler }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "8.5 KB"
+  },
+  {
+    "name": "@staticflux/runtime (full)",
+    "path": "packages/runtime/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "14.5 KB"
+  },
+  {
+    "name": "@staticflux/auth (full)",
+    "path": "packages/auth/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "11 KB"
+  },
+  {
+    "name": "@staticflux/gate (full)",
+    "path": "packages/gate/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "9 KB"
+  },
+  {
+    "name": "@staticflux/data (boot: client + transport + resources)",
+    "path": "packages/data/dist/index.js",
+    "import": "{ createDataClient, createFetchTransport, createResources }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "9.5 KB"
+  },
+  {
+    "name": "@staticflux/worker (full)",
+    "path": "packages/worker/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "14 KB"
+  },
+  {
+    "name": "@staticflux/document (excl. yjs)",
+    "path": "packages/document/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker",
+      "yjs"
+    ],
+    "limit": "13.5 KB"
+  },
+  {
+    "name": "@staticflux/i18n (full)",
+    "path": "packages/i18n/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "7.5 KB"
+  },
+  {
+    "name": "@staticflux/a11y (full)",
+    "path": "packages/a11y/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "6.7 KB"
+  },
+  {
+    "name": "@staticflux/handoff (full)",
+    "path": "packages/handoff/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "6 KB"
+  },
+  {
+    "name": "@staticflux/urlstate (full)",
+    "path": "packages/urlstate/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "8 KB"
+  },
+  {
+    "name": "@staticflux/router (full)",
+    "path": "packages/router/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/runtime"
+    ],
+    "limit": "13.5 KB"
+  },
+  {
+    "name": "@staticflux/loader (boot: chunk loader + boot plan)",
+    "path": "packages/loader/dist/index.js",
+    "import": "{ createChunkLoader, selectBootPlan, runBootPlan }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "4.5 KB"
+  },
+  {
+    "name": "@staticflux/perf (full; not on boot path)",
+    "path": "packages/perf/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "9.5 KB"
+  },
+  {
+    "name": "@staticflux/capabilities (full)",
+    "path": "packages/capabilities/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/capabilities"
+    ],
+    "limit": "6.5 KB"
+  },
+  {
+    "name": "@staticflux/advisors (full)",
+    "path": "packages/advisors/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/capabilities"
+    ],
+    "limit": "6.5 KB"
+  },
+  {
+    "name": "@staticflux/ai (full)",
+    "path": "packages/ai/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/capabilities"
+    ],
+    "limit": "6.5 KB"
+  },
+  {
+    "name": "@staticflux/webmcp (full)",
+    "path": "packages/webmcp/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/capabilities"
+    ],
+    "limit": "2.5 KB"
+  },
+  {
+    "name": "@staticflux/ui (full, excl. lit)",
+    "path": "packages/ui/dist/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/runtime"
+    ],
+    "limit": "9 KB"
+  },
+  {
+    "name": "@staticflux/messaging (full, excl. lit)",
+    "path": "packages/messaging/dist/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui"
+    ],
+    "limit": "9 KB"
+  },
+  {
+    "name": "@staticflux/shell (full, excl. lit)",
+    "path": "packages/shell/dist/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/messaging",
+      "@staticflux/a11y"
+    ],
+    "limit": "9.5 KB"
+  },
+  {
+    "name": "@staticflux/worker/channels",
+    "path": "packages/worker/dist/channels.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "9.5 KB"
+  },
+  {
+    "name": "@staticflux/wasm (full)",
+    "path": "packages/wasm/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker"
+    ],
+    "limit": "5.5 KB"
+  },
+  {
+    "name": "@staticflux/surface (full)",
+    "path": "packages/surface/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker"
+    ],
+    "limit": "10.5 KB"
+  },
+  {
+    "name": "@staticflux/storage (boot: createStore + IndexedDB + memory)",
+    "path": "packages/storage/dist/index.js",
+    "import": "{ createStore, createMemoryStore, createIndexedDbStore }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "6 KB"
+  },
+  {
+    "name": "@staticflux/hydrate (islands)",
+    "path": "packages/hydrate/dist/index.js",
+    "import": "{ createIslandHydrator }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/loader",
+      "@staticflux/data",
+      "@staticflux/storage"
+    ],
+    "limit": "7 KB"
+  },
+  {
+    "name": "@staticflux/sandbox (host)",
+    "path": "packages/sandbox/dist/index.js",
+    "import": "{ createPluginHost }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/capabilities",
+      "@staticflux/worker"
+    ],
+    "limit": "8 KB"
+  },
+  {
+    "name": "@staticflux/worker/coordinator",
+    "path": "packages/worker/dist/coordinator-entry.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "14 KB"
+  },
+  {
+    "name": "@staticflux/pwa (page: updater + warm bridge)",
+    "path": "packages/pwa/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/loader",
+      "@staticflux/storage"
+    ],
+    "limit": "6 KB",
+    "import": "{ createPwaUpdater, createSwWarmup }"
+  },
+  {
+    "name": "@staticflux/pwa/sw (service worker runtime)",
+    "path": "packages/pwa/dist/sw.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/loader",
+      "@staticflux/storage"
+    ],
+    "limit": "8.5 KB"
+  },
+  {
+    "name": "@staticflux/platform (full)",
+    "path": "packages/platform/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "14 KB"
+  },
+  {
+    "name": "@staticflux/devtools (collector; dev only)",
+    "path": "packages/devtools/dist/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@staticflux/core",
+      "@staticflux/perf",
+      "@staticflux/gate",
+      "@staticflux/runtime",
+      "@staticflux/ui",
+      "@staticflux/core/graph",
+      "@staticflux/devtools/panel"
+    ],
+    "limit": "17.5 KB"
+  }
+]

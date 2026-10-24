@@ -1,0 +1,22 @@
+{
+  "name": "@staticflux/capabilities",
+  "version": "0.1.0",
+  "description": "Capability registry: typed, schema-described actions callable by UI, command palette, agents and WebMCP.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*"
+  }
+}

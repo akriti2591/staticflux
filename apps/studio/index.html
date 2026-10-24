@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Studio · StaticFlux example</title>
+    <style>
+      /* Critical CSS: the frame paints before the app boots (no layout shift on core-ready). */
+      html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; background: Canvas; color: CanvasText; }
+      #app { min-height: 100%; }
+      #app:empty::before { content: 'Loading Studio…'; display: block; padding: 16px; opacity: 0.6; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

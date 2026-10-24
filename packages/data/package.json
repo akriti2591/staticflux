@@ -1,0 +1,23 @@
+{
+  "name": "@staticflux/data",
+  "version": "0.1.0",
+  "description": "Transports, resources, caching/SWR, batching, schema-first stores with patches, user-data slices.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*",
+    "@staticflux/storage": "workspace:*"
+  }
+}

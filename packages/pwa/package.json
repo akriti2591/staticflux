@@ -1,0 +1,28 @@
+{
+  "name": "@staticflux/pwa",
+  "version": "0.1.0",
+  "description": "PWA: service-worker runtime (precache from the loader manifest), update flow, web app manifest, link capture, share targets, optional COOP/COEP service worker.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./sw": {
+      "types": "./dist/sw.d.ts",
+      "import": "./dist/sw.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*",
+    "@staticflux/loader": "workspace:*",
+    "@staticflux/storage": "workspace:*"
+  }
+}

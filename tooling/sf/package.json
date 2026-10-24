@@ -1,0 +1,30 @@
+{
+  "name": "@staticflux/sf",
+  "version": "0.1.0",
+  "description": "StaticFlux CLI: dependency-graph checks, budget reports, error catalog and manifest generation.",
+  "type": "module",
+  "bin": {
+    "sf": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "tooling"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*",
+    "typescript": "5.9.3"
+  },
+  "devDependencies": {
+    "@staticflux/loader": "workspace:*",
+    "@staticflux/router": "workspace:*",
+    "@staticflux/runtime": "workspace:*"
+  }
+}

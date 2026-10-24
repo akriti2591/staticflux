@@ -1,0 +1,26 @@
+{
+  "name": "@staticflux/config",
+  "version": "0.1.0",
+  "description": "Typed config & feature flags, layered resolution, OpenFeature-compatible provider port.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./flag": {
+      "types": "./dist/flag.d.ts",
+      "import": "./dist/flag.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*"
+  }
+}

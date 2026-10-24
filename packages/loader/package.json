@@ -1,0 +1,22 @@
+{
+  "name": "@staticflux/loader",
+  "version": "0.1.0",
+  "description": "Logical chunk ids, manifest runtime, warmup tiers, speculation, boot plans.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*"
+  }
+}

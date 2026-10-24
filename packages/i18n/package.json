@@ -1,0 +1,22 @@
+{
+  "name": "@staticflux/i18n",
+  "version": "0.1.0",
+  "description": "Typed message catalogs, ICU-style formatting, lazy locales, RTL.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*"
+  }
+}

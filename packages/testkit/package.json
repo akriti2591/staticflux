@@ -1,0 +1,33 @@
+{
+  "name": "@staticflux/testkit",
+  "version": "0.1.0",
+  "description": "Testing toolkit: test injector, deterministic clocks/schedulers, fake session, re-exported package fakes, shared contract suites.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "tooling"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*",
+    "@staticflux/runtime": "workspace:*",
+    "@staticflux/auth": "workspace:*",
+    "@staticflux/data": "workspace:*",
+    "@staticflux/platform": "workspace:*",
+    "@staticflux/storage": "workspace:*",
+    "@staticflux/worker": "workspace:*",
+    "@staticflux/router": "workspace:*",
+    "@staticflux/urlstate": "workspace:*"
+  },
+  "peerDependencies": {
+    "vitest": ">=5"
+  }
+}

@@ -1,0 +1,119 @@
+/**
+ * DI units for the runtime services. Apps register them (e.g. `...runtimeUnits`)
+ * and override any of them with `bind(..., { precedence: 'app' })`. The resource-manager units
+ * live in `resource-units.ts` so apps can load them after boot.
+ */
+import { contribution, err, NoProviderError, ok, unit } from '@staticflux/core';
+import { StoreRegistryToken } from '@staticflux/storage';
+import { archiveStoreFromStore, createMemoryArchiveStore } from './archive.js';
+import { createFeatureHost, type FeatureLoader, manifestFeatureLoader } from './feature-host.js';
+import { nominalMemoryPressureUnit, resourceManagerUnit } from './resource-units.js';
+import { createFrameScheduler, type FrameScheduler } from './scheduler.js';
+import { defineSubsystem, type Subsystem } from './subsystem.js';
+import {
+  AppInjectorToken,
+  ArchiveStoreToken,
+  FeatureHostToken,
+  FeatureLoaderToken,
+  FeatureManifestsToken,
+  FrameSchedulerToken,
+  SubsystemsToken,
+  SupervisorToken,
+} from './tokens.js';
+
+export const frameSchedulerUnit = unit({
+  id: 'runtime/frame-scheduler-unit',
+  provides: FrameSchedulerToken,
+  scope: 'app',
+  create: (_deps, ctx) => {
+    const scheduler = createFrameScheduler({ telemetry: ctx.telemetry });
+    ctx.scope.defer(() => scheduler.dispose());
+    return scheduler;
+  },
+  description: 'Frame scheduler: coalesced flush, measure/mutate phases, prioritized tasks, yieldToMain.',
+});
+
+/** The frame scheduler as a supervised subsystem: app pause stops frames and tasks (I-1). */
+export function frameSchedulerSubsystem(scheduler: FrameScheduler): Subsystem {
+  return defineSubsystem({
+    id: 'runtime/frame-scheduler',
+    critical: false,
+    start: () => undefined,
+    pause: () => scheduler.pause(),
+    resume: () => scheduler.resume(),
+    // Disposal belongs to the unit scope; a reinitialize must leave the scheduler usable.
+    stop: () => scheduler.resume(),
+    description: 'Pauses/resumes the frame scheduler with the app.',
+  });
+}
+
+export const frameSchedulerSubsystemUnit = contribution({
+  id: 'runtime/frame-scheduler-subsystem-unit',
+  provides: SubsystemsToken,
+  scope: 'app',
+  deps: { required: { scheduler: FrameSchedulerToken } },
+  create: ({ scheduler }) => frameSchedulerSubsystem(scheduler),
+});
+
+export const memoryArchiveStoreUnit = unit({
+  id: 'runtime/memory-archive-store-unit',
+  provides: ArchiveStoreToken,
+  scope: 'app',
+  create: () => createMemoryArchiveStore(),
+  description: 'In-memory ArchiveStore (bind an IndexedDB/OPFS store in production).',
+});
+
+/**
+ * ArchiveStore over the `@staticflux/storage` registry: device scope, namespace
+ * `runtime/archive` (IndexedDB with the browser factories; memory fallback reported by the registry).
+ */
+export const registryArchiveStoreUnit = unit({
+  id: 'runtime/registry-archive-store-unit',
+  provides: ArchiveStoreToken,
+  scope: 'app',
+  deps: { required: { registry: StoreRegistryToken } },
+  create: ({ registry }) => archiveStoreFromStore(registry.open('device', 'runtime/archive')),
+  description: 'ArchiveStore persisted through the storage registry (device scope).',
+});
+
+export const featureHostUnit = unit({
+  id: 'runtime/feature-host-unit',
+  provides: FeatureHostToken,
+  scope: 'app',
+  deps: {
+    required: { injector: AppInjectorToken, archive: ArchiveStoreToken, features: FeatureManifestsToken },
+    lazy: { supervisor: SupervisorToken },
+    // Optional: resolved on the first activation (keeps the loader off the boot path).
+    functional: { loader: FeatureLoaderToken },
+  },
+  create: ({ injector, archive, features, supervisor, loader }, ctx) => {
+    const load: FeatureLoader = async (manifest, signal) => {
+      const bound = await loader.get(signal);
+      if (bound.ok) return bound.value(manifest, signal);
+      // Unbound → the manifest's own `load`; a bound loader that failed is an error.
+      if (bound.error.code === NoProviderError.code) return manifestFeatureLoader(manifest, signal);
+      return err(bound.error);
+    };
+    const host = createFeatureHost({
+      injector,
+      archive,
+      features,
+      telemetry: ctx.telemetry,
+      gate: (operation) => supervisor.value?.assertRunnable(operation) ?? ok(),
+      load,
+    });
+    ctx.scope.defer(() => host.dispose());
+    return host;
+  },
+  description: 'Feature host: feature lifecycle, feature injectors, ref-counting, archive. Loads modules via FeatureLoaderToken when bound.',
+});
+
+/** Every runtime service unit with defaults. `bootApp` provides SupervisorToken and AppInjectorToken. */
+export const runtimeUnits = [
+  frameSchedulerUnit,
+  frameSchedulerSubsystemUnit,
+  memoryArchiveStoreUnit,
+  nominalMemoryPressureUnit,
+  featureHostUnit,
+  resourceManagerUnit,
+] as const;
