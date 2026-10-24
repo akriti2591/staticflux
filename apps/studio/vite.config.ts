@@ -4,10 +4,14 @@
  */
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+import { staticflux } from '@staticflux/vite-plugin';
+import { chunkDeclarations } from './src/app/chunks.js';
 
 const packagesDir = fileURLToPath(new URL('../../packages', import.meta.url));
 
 export default defineConfig({
+  // Logical chunk names, sf-manifest.json, SW precache list, build report + budget check (R12.7).
+  plugins: [staticflux({ chunks: chunkDeclarations, budgets: { onViolation: 'warn', bootKb: 150 } })],
   resolve: {
     alias: [
       { find: /^@staticflux\/([^/]+)\/(.+)$/, replacement: `${packagesDir}/$1/src/$2.ts` },
@@ -20,15 +24,5 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: true,
     reportCompressedSize: true,
-    rollupOptions: {
-      output: {
-        // Name feature chunks after their logical chunk id (feature:<name>) for budget reports.
-        chunkFileNames: (chunk) => {
-          const facade = chunk.facadeModuleId ?? '';
-          const feature = /features\/([^/]+)\/index\.ts$/.exec(facade);
-          return feature === null ? 'assets/[name]-[hash].js' : `assets/feature-${feature[1]}-[hash].js`;
-        },
-      },
-    },
   },
 });

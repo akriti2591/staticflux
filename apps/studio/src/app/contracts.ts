@@ -287,4 +287,10 @@ export interface PanelController {
 }
 export const PanelControllerToken = token('studio/panel').type<PanelController>();
 
+/** Resolves once the late units chunk (AI, WebMCP, warmup) is registered (post-boot). */
+export interface LateServices {
+  readonly ready: Promise<Result<void>>;
+}
+export const LateServicesToken = token('studio/late-services').type<LateServices>();
+
 export type { DocumentRecord };

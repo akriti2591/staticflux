@@ -4,17 +4,12 @@
  * start the model router's background probe, restore the theme preference, and
  * activate billing logic once a user is signed in (credit banner).
  */
-import { contribution, ok, type Result, token, toSfError, unit, watch, err } from '@staticflux/core';
+import { contribution, err, ok, type Result, toSfError, unit, watch } from '@staticflux/core';
 import { SessionToken } from '@staticflux/auth';
 import { AppInjectorToken, defineSubsystem, FeatureHostToken, FrameSchedulerToken, SubsystemsToken, SupervisorToken } from '@staticflux/runtime';
 import { ThemeControllerToken } from '@staticflux/shell';
-import { Features } from './contracts.js';
+import { Features, type LateServices, LateServicesToken } from './contracts.js';
 
-/** Resolves once the late units are registered (tests and features may await it). */
-export interface LateServices {
-  readonly ready: Promise<Result<void>>;
-}
-export const LateServicesToken = token('studio/late-services').type<LateServices>();
 
 export const lateServicesUnit = unit({
   id: 'studio/late-services-unit',

@@ -172,6 +172,15 @@ describe('routing', () => {
     expect(transitions).toEqual([]);
   });
 
+  it('picks the per-mode variant: compact form factor mounts studio-mobile over the same document store', async () => {
+    harness = await bootHeadless({ url: '/', server: signedInServer('ada'), width: 390 });
+    await waitFor(() => harness!.session.isAuthenticated, { message: 'signed in' });
+    await openDoc(harness, '2');
+    await waitFor(() => harness!.host.stateOf(Features.studioMobile.id) === 'mounted', { message: 'mobile editor mounted' });
+    expect(harness.host.stateOf(Features.studioDesktop.id)).toBe('declared');
+    expect((await harness.get(DocumentStoreToken)).title).toBe('Document 2');
+  });
+
   it('the exit guard waits for the pending save before leaving the editor', async () => {
     harness = await bootHeadless({ url: '/', server: signedInServer('ada') });
     await waitFor(() => harness!.session.isAuthenticated, { message: 'signed in' });

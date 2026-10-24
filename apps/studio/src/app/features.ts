@@ -4,7 +4,7 @@
  * the chunk through the chunk loader (gated, deduped, retried); `load` below is the
  * plain fallback used when no loader is wired (unit tests of a single feature).
  */
-import { chunk, type ChunkDeclaration, type ChunkId } from '@staticflux/loader';
+import type { ChunkId } from '@staticflux/loader';
 import { defineFeature, type FeatureId, type FeatureManifest, type FeatureModule } from '@staticflux/runtime';
 import { Chunks, Features } from './contracts.js';
 
@@ -20,14 +20,7 @@ export const chunkImports: Readonly<Record<ChunkId, ModuleImport>> = {
   [Chunks.billing]: () => import('../features/billing/index.js'),
 };
 
-export const chunkDeclarations: readonly ChunkDeclaration[] = [
-  chunk(Chunks.studioDesktop, { tier: 'on-demand', budget: { category: 'heavy', reason: 'Editor + surfaces; loaded only after authorize' } }),
-  chunk(Chunks.studioMobile, { tier: 'on-demand', budget: { category: 'heavy', reason: 'Compact editor' } }),
-  chunk(Chunks.agentChat, { tier: 'likely', budget: { category: 'feature' } }),
-  chunk(Chunks.onboarding, { tier: 'likely', budget: { category: 'feature' } }),
-  chunk(Chunks.settings, { tier: 'on-demand', budget: { category: 'feature' } }),
-  chunk(Chunks.billing, { tier: 'speculative', budget: { category: 'feature' } }),
-];
+export { chunkDeclarations } from './chunks.js';
 
 const fromChunk =
   (id: ChunkId) =>

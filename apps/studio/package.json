@@ -11,7 +11,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "e2e": "playwright test"
+    "e2e": "playwright test -c e2e/playwright.config.cjs"
   },
   "dependencies": {
     "@staticflux/a11y": "workspace:*",
