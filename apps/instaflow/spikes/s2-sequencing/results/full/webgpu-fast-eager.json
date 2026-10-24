@@ -14,6 +14,7 @@
     "present": "eager",
     "eagerCap": 0,
     "eagerDelay": 1,
+    "rafDraw": 1,
     "latch": 0
   },
   "gestures": {
@@ -33,7 +34,7 @@
     "missedTargets": 72
   },
   "correctness": {
-    "framesDrawn": 951,
+    "framesDrawn": 1255,
     "framesNotEqualOracle": 0,
     "snapBackFrames": 0,
     "doubleDrawFrames": 0,
@@ -90,139 +91,139 @@
       "snapshotsApplied": 0,
       "staleEpochSkipped": 0,
       "waitFrames": 0,
-      "eagerWakes": 1451,
+      "eagerWakes": 1758,
       "eagerCapped": 0,
-      "ticks": 620,
-      "draws": 951,
+      "ticks": 676,
+      "draws": 1255,
       "orderViolations": 0,
       "overlayAfterCommit": 0,
       "latchHits": 0,
       "latchMisses": 0,
-      "seqlockRetries": 2010454,
+      "seqlockRetries": 457999,
       "tornAccepted": 0,
       "tornSamples": [],
-      "frameReads": 2071
+      "frameReads": 2434
     },
     "editor": {
-      "viewFrames": 7871,
+      "viewFrames": 5986,
       "deltasWritten": 10237,
       "deltasDroppedByFault": 0,
       "snapshots": 0,
-      "batches": 7870,
-      "maxBatch": 476
+      "batches": 5985,
+      "maxBatch": 279
     },
     "pass": true
   },
   "latency": {
     "rafIntervalMs": {
-      "n": 619,
-      "median": 166.66,
-      "p95": 1183.28,
-      "p99": 1749.93,
-      "max": 2983.21
+      "n": 675,
+      "median": 299.99,
+      "p95": 849.97,
+      "p99": 1333.28,
+      "max": 2449.9
     },
-    "budgetMs": 170.66,
+    "budgetMs": 303.99,
     "inputToPresentEst": {
       "all": {
         "n": 50760,
-        "median": 8.43,
-        "p95": 882.76,
-        "p99": 1362.66,
-        "max": 2982.85
+        "median": 143.47,
+        "p95": 860.45,
+        "p99": 1244.39,
+        "max": 2127.85
       },
       "wheelPan": {
         "n": 8562,
-        "median": 7.75,
-        "p95": 764.18,
-        "p99": 1410.69,
-        "max": 1448.54
+        "median": 15.76,
+        "p95": 860.58,
+        "p99": 1330.62,
+        "max": 2127.7
       },
       "wheelZoom": {
         "n": 4331,
-        "median": 8.32,
-        "p95": 745.22,
-        "p99": 1362.53,
-        "max": 1447.54
+        "median": 15.41,
+        "p95": 850.1,
+        "p99": 1182.88,
+        "max": 2127.65
       },
       "pointer": {
         "n": 33839,
-        "median": 8.57,
-        "p95": 886.22,
-        "p99": 1362.51,
-        "max": 2982.85
+        "median": 165.79,
+        "p95": 860.48,
+        "p99": 1244.16,
+        "max": 2127.85
       },
       "key": {
         "n": 4028,
-        "median": 9.35,
-        "p95": 919.75,
-        "p99": 1362.76,
-        "max": 1447.61
+        "median": 169.07,
+        "p95": 869.59,
+        "p99": 1331.05,
+        "max": 2127.74
       }
     },
     "inputToSubmit": {
       "all": {
         "n": 50760,
-        "median": 2.8,
-        "p95": 12.06,
-        "p99": 18.73,
-        "max": 42.64
+        "median": 3.07,
+        "p95": 8.4,
+        "p99": 10.65,
+        "max": 16.23
       },
       "wheelPan": {
         "n": 8562,
-        "median": 2.15,
-        "p95": 6.42,
-        "p99": 10.46,
-        "max": 41.79
+        "median": 2.33,
+        "p95": 6.76,
+        "p99": 8.57,
+        "max": 11.81
       },
       "wheelZoom": {
         "n": 4331,
-        "median": 2.11,
-        "p95": 6.99,
-        "p99": 10.83,
-        "max": 41.4
+        "median": 2.31,
+        "p95": 6.66,
+        "p99": 8.15,
+        "max": 11.35
       },
       "pointer": {
         "n": 33839,
-        "median": 3.02,
-        "p95": 12.98,
-        "p99": 19.11,
-        "max": 42.59
+        "median": 3.4,
+        "p95": 8.74,
+        "p99": 11.16,
+        "max": 16.23
       }
     },
     "inputToViewFrameWritten": {
       "n": 37867,
-      "median": 1.57,
-      "p95": 9.51,
-      "p99": 16.79,
-      "max": 40.83
+      "median": 1.33,
+      "p95": 6.67,
+      "p99": 8.76,
+      "max": 10.64
     },
     "inputToGpuDone": {
-      "n": 38541,
-      "median": 1078.73,
-      "p95": 2008.35,
-      "p99": 2837.67,
-      "max": 3650.88
+      "n": 46592,
+      "median": 696.84,
+      "p95": 1135.38,
+      "p99": 1514.05,
+      "max": 1812.81
     },
     "drawCpuMs": {
-      "n": 951,
-      "median": 0.6,
-      "p95": 1.78,
-      "p99": 4.55,
-      "max": 11.79
+      "n": 1255,
+      "median": 0.53,
+      "p95": 1.11,
+      "p99": 4.79,
+      "max": 6.78
     },
     "rafToDrawStartMs": {
-      "n": 951,
-      "median": 13.91,
-      "p95": 675.71,
-      "p99": 2538.69,
-      "max": 1792870031587.97
+      "n": 1255,
+      "median": 16.78,
+      "p95": 833.47,
+      "p99": 1318.33,
+      "max": 1792878552218.69
     },
     "workerRafAfterMainRafMs": {
-      "n": 586,
-      "median": 0,
+      "n": 487,
+      "median": 16.66,
       "p95": 16.67,
       "p99": 16.67,
-      "max": 33.33
+      "max": 16.67
     },
     "latchWaitMs": {
       "n": 0,
@@ -233,29 +234,29 @@
     },
     "callbackAfterFrameTs": {
       "main": {
-        "n": 684,
-        "median": 7.05,
-        "p95": 20.35,
-        "p99": 31.72,
-        "max": 279.09
+        "n": 1083,
+        "median": 4.13,
+        "p95": 17.4,
+        "p99": 21.52,
+        "max": 25.68
       },
       "worker": {
-        "n": 620,
-        "median": 4.73,
-        "p95": 15.27,
+        "n": 676,
+        "median": 3.49,
+        "p95": 14.37,
         "p99": 16.48,
-        "max": 16.76
+        "max": 16.72
       }
     },
     "inputToPresentFrames": {
-      "median": 0.05,
-      "p95": 5.3
+      "median": 0.48,
+      "p95": 2.87
     },
     "p95WithinBudget": false
   },
   "e4": {
     "pointerdowns": 4695,
-    "displayedCameraStaleAtDown": 3715
+    "displayedCameraStaleAtDown": 4273
   },
   "gfx": {
     "kind": "webgpu",
@@ -265,11 +266,11 @@
       "reason": null
     },
     "errors": [],
-    "skippedGpuDone": 342
+    "skippedGpuDone": 291
   },
   "extra": {
-    "genMs": 380.91999999806285,
-    "driveMs": 217004.1950000003,
+    "genMs": 255.40000000223517,
+    "driveMs": 216804.0150000006,
     "maxInputPending": 0
   },
   "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36"

@@ -1,9 +1,34 @@
 # S5 — Media: Mediabunny → WebCodecs → WebGPU, audio-master clock, export
 
-**Verdict: proceed with the architecture, but the owner still has to run it on a real GPU machine.** Correctness held
+**Verdict (updated 2026-10-24): PASS on the owner's machine — every criterion met; see "Owner real-machine run". Original verdict: proceed with the architecture, but the owner still has to run it on a real GPU machine.** Correctness held
 everywhere: exact seek, the frame chosen for the clock, A/V sync logic, export frame exactness and muxing. Every
 throughput criterion is INCONCLUSIVE here. This container has no GPU (WebGPU runs on SwiftShader), decode is software,
 and 4 cores were shared with other spikes (load average 6–11 during the runs).
+
+
+## Owner real-machine run (2026-10-24, Chrome 155, macOS Apple Silicon, 14 threads, WebGPU metal-3)
+Media from `scripts/gen-media.sh` with Homebrew ffmpeg (no drawtext, so labels were skipped; barcode/flash/beep intact).
+**0 wrong frames in every test; no device loss.**
+
+| Criterion | Result | Numbers |
+|---|---|---|
+| 3 × 1080p layers at 60 fps | **PASS** | 739.5 fps decode + composite with `importExternalTexture` (frame 1.19 / 2.32 ms median/p95); `copyExternalImageToTexture` 527.5 fps. Decode-bound; ≈25× headroom over 30 fps. 540p proxies add only +20%, so not needed for 3 layers here. |
+| Exact seek ≤ 60 ms | **PASS** | 1,350 seeks, all exact. Worst cell p95 17.0 ms, max 18.9 ms (1080p 8 Mbps). 540p flush path 3.9 / 5.7 ms. No single fastest path (flush on 1080p/540p, feed on long10). |
+| A/V drift ≤ 16 ms over 10 min, wired | **PASS** | 18,000 frames presented, 0 dropped/late/wrong, 0 resyncs. Flash-vs-beep offset 6.37 median, 9.09 p95, 19.01 max (one tick outlier); trend −0.015 ms/min, so no drift. 600/600 beeps; beep onset error a constant 4 samples. |
+| A/V sync, Bluetooth (AirPods Pro) | **PASS** | `outputLatency` 0.192 s and `getOutputTimestamp` carries the BT delay (≈199 ms), so compensation works. Offset median 7.02 ms, 0 dropped. **Owner confirms picture and sound in sync by eye and ear.** |
+| 60 s 1080p30 export ≥ 3× real time | **PASS** | VP9 7.98× (7.71× with the GPU 3-layer composite), AV1 5.60× (5.51×); all verified frame-exact after reopening. Encoder-bound (≈90% of wall time is encoder backpressure); the GPU composite adds 0.1–0.3 s. |
+
+Findings and M3 follow-ups:
+1. **H.264 `latencyMode: "realtime"` encodes at half the speed of `"quality"`** (117.9 vs 231.7 fps, likely the macOS
+   hardware encoder). AV1 realtime is 32% faster than quality. Benchmark per codec at export start; do not hard-code.
+2. **Bluetooth wake-up:** the output timestamp needs ≈1 s to settle; ≈1.7 s of frames were skipped at start. Gate
+   playback start (state `starting`) until `getOutputTimestamp` is stable.
+3. 1,400 underrun frames (≈29 ms) with no low ring mid-play: likely start/stop. Record underrun timing.
+4. Harness bug: `video.latencies.outputLatency` was snapshotted before Chrome updated it (0). Log it continuously.
+5. Shorter proxy GOPs are **not** needed: worst seek is 19 ms against a 60 ms budget.
+
+Caveat: this is a fast Apple Silicon machine, not the plan's mid-range iGPU reference. With 25× composite headroom
+and 2.6× export headroom on VP9, a pass there is likely; the 540p preview fallback stays available by policy.
 
 ## What was built (`web/` + `scripts/`, ~1,100 lines)
 - **`common.js`**: tick math (705,600,000/s: 30 fps = 23,520,000 ticks, 48 kHz = 14,700 ticks), Mediabunny `BlobSource`
