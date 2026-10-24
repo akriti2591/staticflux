@@ -3,7 +3,8 @@
 > Status: **draft for owner review** (2026-10-24). IDs are stable: `IF-<section>.<n>`. Error codes are
 > `IF-<AREA>-<NNN>`, and each has a `fix` in the app's error catalog (StaticFlux rule 6). Framework changes
 > referenced here are listed in [PLAN.md §3](PLAN.md#3-staticflux-packages-and-changes) as `SF-Δn`.
-> "Must" is implied: every line is a requirement.
+> "Must" is implied: every line is a requirement. Owner-locked decisions D1–D7 in [DECISIONS.md](DECISIONS.md)
+> are authoritative over this file. §17 and §18 are **design direction**, not V1 features.
 
 ## 0. Conventions
 
@@ -108,8 +109,10 @@
 ## 4. Document model and co-editing
 
 - **IF-4.1** A tree asset's content is a **hierarchical node tree** with stable node ids and typed properties,
-  grouped by component (spatial, temporal, source, style, text, motion, animation, lock, slot, step).
-  DOCUMENT-FORMAT §3 is normative.
+  grouped by component (spatial, temporal, source, style, text, motion, animation, lock, slot, step). Every
+  node has a semantic `role` (a closed, extensible enum: headline, subhead, body, cta, logo, hero, price, legal,
+  caption, reaction, background…) and a `name`, which agents and the accessibility layer both use.
+  DOCUMENT-FORMAT §3 is normative. The ECS is only an internal runtime index of this tree.
 - **IF-4.2** **Space and time are orthogonal components.** A page with `temporal` is a slide with a duration. A
   clip with `spatial` is an overlay or PiP. Lenses differ only in which components their tools edit.
 - **IF-4.3** **Time is integer ticks at 705,600,000 per second.** Frames and samples exist only at the edges.
@@ -172,47 +175,79 @@
 - **IF-5.11** Milestones open read-only (IF-13.1). Comparing two milestones visually (side by side) is in V1.
   Diffing them structurally is not.
 
-## 6. Agent representation and change sets
+## 6. Agent views and change sets (research 05 folded in)
 
-- **IF-6.1** **The agent-facing representation is open, pending research 05.** Whatever is chosen must:
-  1. let an agent understand **what is on screen**: hierarchical and semantic (pages, groups, text with its
-     content, media with what it shows, timing), not a flat ECS dump;
-  2. carry **stable node ids** and typed properties, so that every element maps 1:1 to change-set targets
-     (round-trippable to edits without guessing);
-  3. be **token-efficient**: an outline of a 1,000-node document fits in ≤ 8k tokens, with detail fetched on
-     demand by id, subtree, time window or viewport;
-  4. reflect the **composed** view (inherited brand values visible and explainable) while edits target the
-     document's own opinions;
-  5. carry a **version token** so change sets can declare their base under co-editing;
-  6. be generated from component definitions (no hand-maintained second schema) and be machine-validatable;
-  7. include optional visual context on request (a rendered frame at `t`, a page thumbnail).
-- **IF-6.2** **Change sets are the only write path for agents** (in-app chat, WebMCP, flows). A change set is a
-  typed op batch `{ id, base, author, intent, ops }`. DOCUMENT-FORMAT §7 is normative.
-- **IF-6.3** **Ops:** `create`, `update` (set property paths), `delete`, `move` (reparent/reorder), `text.splice`,
-  `text.mark`, `keyframe.set`, `keyframe.delete`, `clip.place`, `capability.run`. Compound ops (`clip.place`)
-  expand deterministically into primitive ops during validation.
-- **IF-6.4** **Validation** before anything is shown: schema, id existence and temp-id uniqueness, cycles,
-  locks/finality, capability gating for the agent subject, referential integrity, and size limits (≤ 2,000 ops
-  per change set). The result is per-op, with codes `IF-CS-001…` and a fix. Validation of 500 ops takes
-  ≤ 50 ms.
-- **IF-6.5** **Proposal layer.** A valid change set becomes a proposal: a forked CRDT layer rendered over Latest
+- **IF-6.1** **Agents never read the canonical tree or the ECS.** They read **agent views**: read-only, on-demand
+  projections of the **composed** stage, built and cached in the editor worker (DOCUMENT-FORMAT §7). The
+  canonical model is unchanged. Field names and `role`s are chosen to read naturally, so the projection is a
+  shallow 1:1 codec.
+- **IF-6.2** **Views:**
+  - `layout`: restricted, absolutely positioned HTML/SVG-like markup with a closed vocabulary (`<page>`, `<text>`,
+    `<image>`, `<video>`, `<rect>`, `<group>`, `<slot>`, `<transition>`…) and stable ids, for pages and canvas;
+  - `timeline`: OTIO-shaped JSON in **seconds** (never ticks);
+  - `transcript`: words with ids and timeline times, for speech-driven edits;
+  - `graph`: steps, ports and edges as JSON, for flows;
+  - `screenshot`: on demand, with id badges and a legend.
+
+  Real HTML+CSS, JSX, raw SVG documents, Lottie JSON and the raw canonical JSON are not agent views.
+- **IF-6.3** **View rules:**
+  - views are **scoped** (`selection | viewport | page | time window | subtree`) with a token **budget**, and are
+    summarized outside the scope (focused, then blurry, then clusters);
+  - defaults are omitted, and geometry is page-relative and rounded (rounding is undone on compile, so untouched
+    fields keep full precision);
+  - inherited values are annotated (`@token`, `from="brand|template"`, `locked`);
+  - every view has a header (`base`, `viewHash`, scope, units) and, after the first turn, a `changed-since`
+    section;
+  - **lints** (overlap, off-page, text overflow, contrast, safe area, empty slot) come instead of pixels by
+    default;
+  - document text is marked as data, never as instructions.
+- **IF-6.4** **Generated, not hand-written.** View codecs, the agent-op JSON Schema and the prompt vocabulary
+  reference are generated from `defineComponent` schemas plus codec declarations (SF-Δ34). A shared round-trip
+  contract suite gates every codec. An unmapped component appears as `<unknown kind id>`, which an agent can move
+  but not edit.
+- **IF-6.5** **Budgets:** projecting one page takes ≤ 2 ms, re-projecting after a one-node change ≤ 0.5 ms, and
+  compiling an edit ≤ 1 ms. An outline of a 1,000-node document is ≤ 8k tokens. A whole-document request
+  returns an outline, never a full view.
+- **IF-6.6** **Edits are id-addressed JSON ops** over view handles (`set`, `create`, `delete`, `move`, `text`,
+  `animate`, `motion`, `place`, `trim`, `split`, `cut`, `transition`, `step`, `connect`, `disconnect`, `input`,
+  `invoke`), optionally with `expect` preconditions. A **markup fragment upsert by id** is allowed for creating
+  nodes and for replacing agent-created subtrees. It is diffed against **the base view the agent read**, never
+  against current state. Unified diffs, JSON Patch with indices and whole-view regeneration are rejected.
+- **IF-6.7** **Compile to change sets.** Agent ops compile (resolve handles, unround, seconds → ticks, expand
+  compound ops) into one canonical **change set** `{ id, base, author, intent, ops }` (DOCUMENT-FORMAT §7.4).
+  Change sets are the only write path for agents, flows and extensions.
+- **IF-6.8** **Validation** before anything is shown: schema, id existence and temp-id uniqueness, cycles,
+  locks/finality, mode invariants (`in < out ≤ duration`, adjacency for transitions, port types), capability
+  gating for the agent subject, referential integrity, and size limits (≤ 2,000 ops). Results are per op, with
+  codes `IF-CS-001…` and a fix, returned to the agent as data. Validation of 500 ops takes ≤ 50 ms.
+- **IF-6.9** **Stale views at submission.** An op that writes a field someone else changed after `base`, or whose
+  `expect` fails, is not applied and is reported as `IF-CS-010 stale-field { id, field, theirs, yours, fix }`.
+  Non-conflicting ops still apply (`partial`, the default), unless the agent asked for `atomic`.
+- **IF-6.10** **Proposal layer.** A valid change set becomes a proposal: a forked CRDT layer rendered over Latest
   as a preview (ghosts, diffs, takes). Proposals are CRDT state, so every peer (other tabs, later other users)
   sees them. Accept applies the chosen ops (and their dependencies) to Latest as **one transaction and one undo
   step**, attributed to the author with the accepting human recorded. Reject drops the layer. Accepting one op,
   several ops or the whole set is always possible.
-- **IF-6.6** **Conflicts under co-editing** are resolved by CRDT merge semantics, never by blocking. At accept
-  time, any op whose target path changed in Latest since the change set's base is **flagged** with both values,
+- **IF-6.11** **Conflicts under co-editing** are resolved by CRDT merge semantics, never by blocking. At accept
+  time (a proposal that waited while others edited), any op whose target path changed in Latest since the change set's base is **flagged** with both values,
   and the user chooses per op. The default is to keep the current value.
-- **IF-6.7** **Deterministic and replayable.** Applying the same change set to the same base yields the same
+- **IF-6.12** **Deterministic and replayable.** Applying the same change set to the same base yields the same
   tree. New node ids derive from `(changeSetId, applicationId, tempId)`. `capability.run` records its output
   asset on first apply. A replay reuses the output unless "re-run" is chosen. Change sets can be saved as
   parameterized steps in workflow assets (macros, templates).
-- **IF-6.8** **Autonomy levels** per agent per document: `suggest` (always a proposal), `auto-apply-safe`
+- **IF-6.13** **Autonomy levels** per agent per document: `suggest` (always a proposal), `auto-apply-safe`
   (default: non-destructive edits apply immediately as undoable steps; generation, deletion and bulk changes over
   20 nodes are proposals), and `autopilot` (bounded by an op count, a generation count and a time box; stops at
   destructive steps for confirmation).
-- **IF-6.9** Agents are a distinct gate subject (R6.17). Destructive capabilities need confirmation, through the
+- **IF-6.14** Agents are a distinct gate subject (R6.17). Destructive capabilities need confirmation, through the
   agent client's `requestUserInteraction` for WebMCP calls.
+- **IF-6.15** **Handles** (`n1…nN`) are per agent session, mapped to node ids in the editor worker, never reused
+  within the session, and kept across worker respawn. Agent temp ids (`new:cta2`) map to fresh node ids and are
+  returned in the apply result.
+- **IF-6.16** **Format eval before lock-in.** Before M2 ships, a benchmark of about 100 tasks (flyer, deck,
+  reaction cuts, flows, each with a concurrent human edit injected) compares markup vs JSON layout views, ops vs
+  fragments, and with or without screenshots, across two or three model tiers. Defaults are set from the result.
+  A JSON serializer of the layout view (same codec) is kept as a fallback for models that prefer it.
 
 ## 7. Authoring engine
 
@@ -358,8 +393,10 @@
   "Reject agent session" reverts an agent's work since the last approval and names conflicts.
 - **IF-12.8** **Density levels** Focus, Standard and Pro are shell workspaces, not branches. Focus leaves the
   canvas ≥ 85% of the viewport.
-- **IF-12.9** **Persistent UI docks, transient UI floats** (chat, layers, inspector and timeline tray dock; HUD,
-  command bar, previews and toasts float).
+- **IF-12.9** **Persistent UI docks, transient UI floats.** The right dock is tabbed: Layers, Properties (Pro),
+  Chat, Comments, Assets/Library, History & Milestones, and extension panels. The bottom tray holds the filmstrip
+  or tracks. HUD, command bar, menus, previews, toasts and agent cursors float. **Dialogs are only for
+  Share/Export** (routable `/d/share`) and model-key setup. Every other confirmation is inline (UX.md §3).
 
 ## 13. Modes, sharing and export
 
@@ -418,3 +455,40 @@
   and reordering covers every op, ripple edits, proposals and per-actor undo.
 - **IF-16.5** Every lifecycle (job, export, proposal, milestone creation, store head swap, decoder session, media
   clock) is a typed state machine mirrored into `docs/LIFECYCLES.md` when built.
+
+## 17. Extensibility (design direction, not V1; D7)
+
+- **IF-17.1** **Extensions extend, never remodel.** An extension uses only the fixed, declared contribution
+  points: capabilities and HUD actions, docked panels, storage providers, importers and exporters, model
+  providers, declarative element types, and comment actions.
+- **IF-17.2** An extension cannot replace core behaviour, patch the engine or renderer, alter the document
+  format, or bypass gating, locks, validation or confirmation. It touches documents **only** through capabilities
+  and validated change sets, which is the same pipeline as agents (subject `extension`, narrower than `user`).
+- **IF-17.3** Every extension ships a **manifest** (DOCUMENT-FORMAT §12) that declares its contributions and its
+  permissions: document access (`none | read-views | propose`), asset access (`read | create`), allowed network
+  origins, and its own storage namespace. Undeclared access fails with `IF-EXT-001`.
+- **IF-17.4** Contributions declare **when** they apply (selection shape, node kinds, roles, lens) through
+  applicability predicates. They are never tied to a mode.
+- **IF-17.5** Untrusted extensions run in `@staticflux/sandbox` (iframe or worker) and reach the host only through
+  granted capabilities. First-party extensions run in-process under the same manifest and permission checks.
+- **IF-17.6** **First-party features are built as extensions** wherever a contribution point exists (for example
+  the OpenAI and Anthropic model providers, the folder storage provider, the SVG/PDF exporters, the Comments
+  panel), to prove the points before third parties use them.
+- **IF-17.7** **Custom renderable node types are the hard open problem.** Within D7 they are **declarative types
+  composed of core primitives** (a parameter schema plus a pure expansion into a primitive subtree, rendered,
+  exported, hit-tested and shown to agents through the existing pipeline). Render-to-texture custom renderers are
+  rejected because they would patch the renderer and break export parity. Open: expressiveness (layout,
+  animation, interaction) and versioning of type definitions.
+
+## 18. Comments and annotations (design direction, not V1)
+
+- **IF-18.1** Comments are a document primitive with **anchors** to a node, a canvas point (relative to the
+  nearest node when over one), a time range (relative to a clip, or story time), a text range, or a graph node.
+  Anchors **follow their target** when it moves, retimes or is reparented. A comment whose target is deleted
+  becomes orphaned and keeps its last position.
+- **IF-18.2** Comments live in a **separate per-document CRDT doc** (the `comments` part). They are co-editable
+  like content, but they are **not part of milestone content** and are **excluded from exports and releases**.
+- **IF-18.3** Agents can read comments in scope (a `comments` section in views), leave comments, and propose
+  change sets that address a comment (the change set links the comment id, and accepting it offers "resolve").
+- **IF-18.4** Threads, mentions and notifications come with accounts. V1-era comments are single-level notes
+  with author, time and open/resolved status.

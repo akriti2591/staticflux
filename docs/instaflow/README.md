@@ -18,10 +18,11 @@ preview, undo and attribution.
    Flow (step graphs) are views over one document tree. Switching lenses keeps selection, undo and chat.
 3. **Say it or tap it: the same action.** Every UI action is a StaticFlux capability, and every capability is an
    agent tool. Chat has no hidden powers, and buttons never lag behind chat.
-4. **Agents propose, people decide.** Agents read an agent-facing representation of the document and return
-   **change sets**: typed op batches with a base version, an author and an intent. A change set is shown as a
-   proposal layer. You accept it per op or as a whole, as one attributed undo step. *The agent-facing
-   representation itself (HTML, SVG, JSX, a JSON tree or a DSL) is **open, pending research 05**.*
+4. **Agents propose, people decide.** Agents read scoped, read-only **agent views** of the composed document:
+   positioned HTML/SVG-like markup for pages and canvas, timeline JSON in seconds, a transcript, and graph JSON,
+   plus screenshots on demand. They return id-addressed JSON ops that compile into **change sets** (typed op
+   batches with a base version, an author and an intent). A change set is shown as a proposal layer. You accept
+   it per op or as a whole, as one attributed undo step.
 5. **Co-editing is a design constraint, not a feature flag.** People and agents edit the same document
    concurrently through a CRDT. Every tab and every agent is already a separate peer in V1, so networked
    multi-user later is a transport, not a redesign.
@@ -55,17 +56,20 @@ preview, undo and attribution.
 | Generative capabilities with bring-your-own model (OpenAI, Anthropic), **mocked in development**: images, video, audio, "extend this clip", chat | Gemini and other providers, on-device generation |
 | HUD + command bar + chat + WebMCP; proposals; attribution; per-actor undo; agent presence | Local MCP bridge for non-browser agents |
 | Export: PNG, PDF, SVG, MP4 (H.264/AAC), WebM, GIF, viewer HTML, `.iflow` | Lottie/OTIO export, C2PA signing |
+| First-party features built on the extension contribution points (D7) | Third-party extensions in `@staticflux/sandbox`; declarative custom element types |
+| Model for comments and annotations (separate CRDT part, anchors that follow targets) | Comments UI, then threads and mentions with accounts |
 
 ## Documents
 
 | File | What it decides |
 |---|---|
+| [DECISIONS.md](DECISIONS.md) | Owner-locked decisions D1–D7 (authoritative) |
 | [REQUIREMENTS.md](REQUIREMENTS.md) | Numbered requirements `IF-x.y` |
 | [DOCUMENT-FORMAT.md](DOCUMENT-FORMAT.md) | Assets, the tree, components, store layout, `.iflow`, versioning, the change-set protocol |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Threads, engines, data flow, sequencing, StaticFlux mapping |
 | [UX.md](UX.md) | Interaction model, layout, lenses and modes, agent UX, the owner's five scenarios, research plan |
 | [PLAN.md](PLAN.md) | Phase-0 spikes with kill criteria, milestones, new StaticFlux packages and changes |
-| [research/](research/) | Inputs: [01 format](research/01-document-format.md), [02 media](research/02-timeline-media-engine.md), [03 engine](research/03-rendering-authoring-engine.md), [04 agentic UX](research/04-agentic-authoring-ux.md) |
+| [research/](research/) | Inputs: [01 format](research/01-document-format.md), [02 media](research/02-timeline-media-engine.md), [03 engine](research/03-rendering-authoring-engine.md), [04 agentic UX](research/04-agentic-authoring-ux.md), [05 agent representation](research/05-agent-representation.md) |
 
 ## Decisions that resolve disagreements between the reports
 
@@ -78,5 +82,5 @@ preview, undo and attribution.
 | CRDT | **Loro** behind `DocumentCRDT`. A phase-0 kill criterion falls back to an extended LWW engine plus Yjs text. | Loro provides a movable tree, movable lists, rich text, fork (proposals), undo and shallow snapshots in one engine. |
 | Versioning | **Latest + Milestones** (owner). Milestones are engine-independent canonical tree parts addressed by hash. Report 01's frontier-based named versions and history checkout are rejected. | Costs scale with size. The format survives a CRDT engine swap. |
 | Templates and remix | Instantiated as **New document from milestone** (detached). Report 01's live `base` layer is rejected. | One mechanism, no hidden ancestry dependencies. |
-| Agent-facing representation | **Open: pending research 05.** The edit mechanism (change sets + proposal layer) is decided. The representation must meet IF-6.1. | Owner correction, 2026-10-24. |
+| Agent-facing representation | **Projections, not a second document** ([research 05](research/05-agent-representation.md)): restricted absolutely-positioned markup (pages, canvas), OTIO-like timeline JSON in seconds plus a transcript view, graph JSON, and id-labelled screenshots on demand. Edits are id-addressed JSON ops with a base version, and conflicts are reported. The canonical model is unchanged; its vocabulary is aligned and views are generated from component definitions. | Every shipped canvas agent uses a projection. The raw tree costs 5× the tokens and hides composed values. |
 | Catalog | A derived index in IndexedDB through `@staticflux/storage`. sqlite-wasm is rejected for V1. | Simplest build. The index is rebuildable from the store. |

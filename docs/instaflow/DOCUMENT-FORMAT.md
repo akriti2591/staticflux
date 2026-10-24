@@ -1,7 +1,8 @@
 # Instaflow — Document format
 
 > Status: **draft for owner review** (2026-10-24). Normative for IF-3, IF-4, IF-5, IF-6. Types are TypeScript
-> shapes that fix structure, not final API names. **§7.1 (agent-facing representation) is pending research 05.**
+> shapes that fix structure, not final API names. §7 folds in [research 05](research/05-agent-representation.md).
+> §11 (comments) and §12 (extensions) are design direction. [DECISIONS.md](DECISIONS.md) is authoritative.
 
 ## 1. Principles
 
@@ -28,7 +29,7 @@ export type MilestoneId = `ms_${string}`;                // sha256 of the canoni
 export type ExportId = `ex_${string}`;                   // sha256 of the canonical export record
 export type ChangeSetId = `cs_${string}`;                // uuidv7
 export type NodeId = string;                             // asset-local, `<peer36>-<n36>` (createIdGenerator); stable
-export type PartId = 'root' | `page:${NodeId}` | `flow:${NodeId}`;
+export type PartId = 'root' | `page:${NodeId}` | `flow:${NodeId}` | 'comments';   // 'comments': never in milestones or exports
 export type PeerId = string;                             // one per CRDT peer: tab editor worker, store worker, agent session
 export type Ticks = number;                              // integer; 705_600_000 per second ("flicks"); exact to ~147 days
 export type Rational = readonly [num: number, den: number];
@@ -77,6 +78,8 @@ export interface NodeBase<K extends NodeKind> {
   readonly id: NodeId;
   readonly kind: K;
   readonly name?: string;
+  readonly role?: Role;                                  // semantic: headline | subhead | body | cta | logo | hero | price |
+                                                         // legal | caption | reaction | background | … (closed, extensible enum)
   readonly parent: NodeId | null;                        // null only for the root
   readonly order: string;                                // fractional key (keyBetween); ignored inside tracks
 }
@@ -168,7 +171,7 @@ example `video` = `spatial + temporal + source + audioMix + style + matte? + mot
 ### 3.3 Composition rules (SF-Δ7 `@staticflux/stage`)
 
 - **Layer stack**, strongest first: `session` (ephemeral previews, solo/mute, active variant selection; never
-  persisted), `proposal/*` (§7.4), `local` (the asset's own content).
+  persisted), `proposal/*` (§7.5), `local` (the asset's own content).
 - **Arcs:** `reference` (`instance`, media `source.asset`, paint images), `inherit` (`style.inherit`, tokens) and
   `variant` (`Variants.opinions` selected by the session's variant selection or an export preset). Strength:
   local > variant > inherit > reference.
@@ -216,6 +219,8 @@ export interface Provenance {                           // C2PA-aligned vocabula
 - **Generated and derived assets** are blob assets with `generator` and/or `operation`. Mattes and transcripts are
   derived blob assets (expensive to regenerate), and proxies and waveforms are renditions (cheap).
 - **Prompts** are tree assets (rich text plus parameters), so they are versioned, reusable and redactable.
+- **Motion presets** carry a human-readable `slug` (`fade-up`, `smart-move`, `word-by-word`), unique per workspace,
+  which agent views use instead of asset ids.
 
 ## 5. Workspace store
 
@@ -267,7 +272,8 @@ export interface CommitRecord {                          // inside a log segment
 
 - **Partitioning:** each page and each flow is its own CRDT doc (a part), loaded lazily when visible or scheduled
   for render. The root part holds the root, the story order, loose canvas elements, story audio and page
-  transitions. A node moving between pages is one commit record that touches two parts.
+  transitions. A node moving between pages is one commit record that touches two parts. The `comments` part
+  (§11) is a separate CRDT doc in the same head and log, excluded from milestones and exports.
 - **Compaction** (store worker, on close or every 2 MB of log): write new part snapshots, swap the head, and delete
   older segments. History older than the undo horizon is trimmed. Old snapshots are unreferenced and collected.
 
@@ -296,7 +302,7 @@ export interface Milestone {                             // records/ms/…, immu
   readonly createdAt: string; readonly createdBy: Actor;
   readonly parent?: MilestoneId;                         // previous milestone of THE SAME asset; informational
   readonly treeSchema: number;
-  readonly parts: Readonly<Record<PartId, BlobRef>>;     // canonical parts (§6.2); unchanged parts share digests
+  readonly parts: Readonly<Record<Exclude<PartId, 'comments'>, BlobRef>>;  // canonical parts (§6.2); unchanged parts share digests
   readonly references: readonly { ref: AssetRef; where: number /* use count */ }[];   // where-used, GC
   readonly cover?: BlobRef;                              // thumbnail
 }
@@ -362,24 +368,61 @@ other.
 
 ## 7. Agent edit protocol
 
-### 7.1 Agent-facing representation — **pending research 05**
+Pipeline (all in the editor worker, built on demand, never a standing replica):
 
-The representation agents read (HTML, SVG, JSX, a JSON tree, a custom DSL or a mix) is **not decided**. Research
-05 compares the options. The decision must satisfy IF-6.1:
+```
+composed stage ──ViewCodec.project(scope, budget)──► agent view (markup | JSON) + base + viewHash
+agent ops / fragment ──ViewCodec.compile(edit, base, handles)──► ChangeSet (canonical ops, §7.4)
+ChangeSet ──validate──► proposal or applied transaction (§7.5) ──► result: applied / stale / errors (code + fix)
+```
 
-1. **What is on screen:** hierarchical and semantic (pages, groups, text content, what media shows, timing), not
-   a flat ECS dump.
-2. **Stable node ids** on every element, and typed properties that map 1:1 to the property paths in §3.2, so
-   reading round-trips to change-set ops without guessing.
-3. **Token-efficient:** a 1,000-node outline in ≤ 8k tokens, with detail on demand by id, subtree, time window or
-   viewport.
-4. **Composed values** (inherited brand styles visible and explainable), while ops target local opinions.
-5. **A version token** for the change-set `base`, which is mandatory under co-editing.
-6. **Generated** from the component registry, and validatable.
-7. **Visual context on request** (a frame at `t`, a page thumbnail).
+### 7.1 Agent views (research 05)
 
-Already fixed and independent of the choice: node ids, property paths, the version token (§7.2), the change-set
-format (§7.3), proposals (§7.4) and the read tools' scoping parameters (§7.6).
+Views are read-only projections of the **composed** stage. They are generated from component schemas plus a
+codec declaration (SF-Δ34). The canonical model is unchanged.
+
+| View | For | Shape |
+|---|---|---|
+| `layout` | pages, canvas | Restricted, absolutely positioned HTML/SVG-like markup: closed vocabulary, one element per node kind, attributes = component fields |
+| `timeline` | tracks, clips, transitions, keyframes | OTIO-shaped JSON in **seconds** (2–3 decimals) or frames at the declared rate |
+| `transcript` | speech in clips | `[w101 11.20–11.48 "wait,"] …`: word ids with timeline times (from the transcript asset) |
+| `graph` | flows | JSON of steps, ports, edges and inputs, plus a one-line outline |
+| `screenshot` | visual verification | PNG of the scope with id badges and a legend (headless render), on demand only |
+
+Example (`layout`, scope `page:p1`):
+
+```html
+<view kind="layout" base="fr:9a1c" hash="sha256:5be0…" units="px,s" scope="page:p1">
+<page id="n1" name="Diwali sale" w="1080" h="1350" fill="@cream" format="ig-post">
+  <image id="n2" role="background" x="0" y="0" w="1080" h="1350" src="as_bg_lamps" fit="cover" locked="position"/>
+  <text id="n4" role="headline" x="80" y="300" w="920" font="@display" size="120" fill="@primary" align="center"
+        motion-in="fade-up 0.6s">Diwali Sale</text>
+  <slot id="n6" name="hero" accepts="image" x="240" y="600" w="600" h="520"/>
+  <text id="n10" role="legal" x="80" y="1300" w="920" size="18" fill="@muted" from="template">Valid until 3 Nov.</text>
+</page>
+<lints><lint id="n4" code="contrast" detail="3.1:1 (min 4.5)"/></lints>
+<comments><comment id="c3" on="n4" by="Priya">Make this pop more</comment></comments>
+</view>
+```
+
+Rules:
+
+1. **Scope and budget.** `scope = selection | viewport | page:<id> | time:[a,b] | subtree:<id> | outline`, plus a
+   token `budget`. Outside the scope there are *blurry* one-line entries (id, kind, role, bounds, first words),
+   then clusters (`<more count bounds/>`). A whole-document request returns an outline.
+2. **Composed values with annotations:** `@token` (brand token), `from="brand|template"` (inherited or final),
+   `locked="position|content|all"`, `inst="as_…"` (instance).
+3. **Agent units:** page-relative integer geometry (unrounded on compile, so untouched fields keep full precision),
+   seconds instead of ticks, hex or tokens for color, document order instead of fractional keys, and preset
+   `slug`s instead of asset ids for motion presets.
+4. **Defaults omitted.** Semantics explicit: `role`, `name`, and slots as `slot accepts`.
+5. **Handles** `n1…nN` per agent session (IF-6.15), mapped in a worker-side table.
+6. **Header:** `base` (version token), `viewHash` (sha256 of the text), scope and units. From the second turn on,
+   a `changed-since` section lists what others added, removed or updated in scope since the agent's last `base`.
+7. **Lints** (overlap, off-page, text overflow from Parley metrics, contrast, safe area, empty slot) and
+   **comments** in scope are part of the view. Document text is marked as data.
+8. **Caching:** a per-node line cache keyed by `(node, composedVersion)`, page views memoized by `(page,
+   frontier)`, and a stable schema prefix so provider prompt caching keeps working.
 
 ### 7.2 Version token
 
@@ -387,9 +430,49 @@ format (§7.3), proposals (§7.4) and the read tools' scoping parameters (§7.6)
 export interface VersionToken { readonly asset: AssetId; readonly frontier: string /* opaque, engine-encoded */; readonly seq: number }
 ```
 
-Every read returns the token for the state it read. A change set's `base` must be a token returned by a read.
+Every view returns the token for the state it projected. Every edit names it as `base`.
 
-### 7.3 Change sets
+### 7.3 Agent edit ops (view level)
+
+```ts
+export interface AgentEdit {
+  readonly base: string;                                  // the view's base
+  readonly mode?: 'partial' | 'atomic';                   // default partial
+  readonly dryRun?: boolean;                              // compile + validate + preview, no proposal
+  readonly intent: string;
+  readonly ops?: readonly AgentOp[];
+  readonly fragment?: { readonly replace: string /* handle */ | 'new'; readonly markup: string };  // create / agent-created subtrees
+}
+export type AgentOp = (
+  | { op: 'set'; id: Handle; attrs: Record<string, JsonValue> }
+  | { op: 'create'; tempId: `new:${string}`; parent: Handle; after?: Handle; el: string /* one markup element */ }
+  | { op: 'delete'; id: Handle } | { op: 'move'; id: Handle; parent: Handle; after?: Handle }
+  | { op: 'text'; id: Handle; value: string } | { op: 'text'; id: Handle; find: string; replace: string }
+  | { op: 'animate'; id: Handle; prop: string; keys: readonly { t: number; v: JsonValue; ease?: string }[] }
+  | { op: 'motion'; id: Handle; in?: PresetArg; out?: PresetArg; loop?: PresetArg; emphasis?: PresetArg }
+  | { op: 'place'; id: Handle | `new:${string}`; track: Handle; start: number; clip?: AssetId }
+  | { op: 'trim'; id: Handle; in?: number; out?: number } | { op: 'split'; id: Handle; at: number }
+  | { op: 'cut'; range: { start: number; end: number } | { words: readonly string[] }; ripple: boolean }
+  | { op: 'transition'; from: Handle; to: Handle; preset: string; duration: number }
+  | { op: 'step'; tempId: `new:${string}`; capability: string; in: Record<string, JsonValue>; after?: Handle }
+  | { op: 'connect' | 'disconnect'; from: `${Handle}.${string}`; to: `${Handle}.${string}` }
+  | { op: 'input'; name: string; type: string }
+  | { op: 'invoke'; capability: string; input: JsonValue }
+) & { readonly expect?: Record<string, JsonValue> };      // preconditions on fields the agent read
+type Handle = string; type PresetArg = { preset: string /* slug */; duration: number; params?: Record<string, JsonValue> };
+```
+
+- **Fragments are diffed against the base view the agent read**, never against current state. Only fields the
+  agent changed become ops, which keeps concurrent human edits intact (three-way rule: base, theirs, mine).
+- **Compile** resolves handles and temp ids, unrounds, converts seconds to ticks (nearest tick), resolves preset
+  slugs, and expands compound ops (`place`, `cut` with ripple, `connect` replacing a bound edge) into canonical
+  ops. The result is one `ChangeSet` (§7.4).
+- **Stale fields at submission:** a field written by an op that someone else changed after `base`, or a failed
+  `expect`, yields `IF-CS-010 stale-field { id, field, theirs, yours, fix: "re-read the view or resend with
+  expect=theirs" }`. That op is dropped and the rest apply (`partial`), unless `atomic` was requested.
+- **Result:** `{ proposal | applied, created: { "new:cta2": "n31" }, stale: [...], errors: [...], viewHash }`.
+
+### 7.4 Change sets (canonical)
 
 ```ts
 export interface ChangeSet {
@@ -401,6 +484,7 @@ export interface ChangeSet {
   readonly intent: string;                               // one human-readable sentence; becomes the undo label
   readonly ops: readonly Op[];                           // ≤ 2,000
   readonly params?: JsonSchema;                          // when saved as a macro step: `{ "$param": "name" }` values allowed
+  readonly addresses?: CommentId;                        // the comment this change set answers (§11)
 }
 
 export type NodeRef = NodeId | `$${string}`;             // `$name` = temp id created earlier in this change set
@@ -434,12 +518,16 @@ export type Op =
 | `IF-CS-007` | Base older than retained history: allowed, but every op is flagged for review and nothing auto-applies |
 | `IF-CS-008` | Over size limits (2,000 ops, 10 MB) |
 | `IF-CS-009` | Referenced asset missing or of the wrong kind |
+| `IF-CS-010` | Stale field: changed by someone else after `base`, or `expect` failed (op dropped in `partial` mode) |
+| `IF-CS-011` | Mode invariant: `in < out ≤ media duration`, transition between non-adjacent items, port type mismatch |
+| `IF-CS-012` | Unknown preset slug or capability name (the fix lists valid values) |
+| `IF-CS-013` | Write to a `final` (brand/template) path. Use `override: true` for an intended local override where policy allows it |
 
 **Determinism:** new node ids are `hash(changeSetId, applicationId, temp)` encoded as a node id. Compound ops
 expand by a pure function of `(op, base state)`. `capability.run` stores its output reference in the proposal on
 first apply. Replays (macros, templates, batch runs) reuse it unless "re-run" is chosen.
 
-### 7.4 Proposals
+### 7.5 Proposals
 
 A valid change set becomes a **proposal**. The change set and its per-op status are stored in the root part's
 `proposals` map (CRDT state), so every peer (other tabs, later remote users) sees it. Each peer computes the
@@ -459,26 +547,27 @@ one undo step).
 - **Reject** drops the layer. Rejecting an agent session drops its open proposals and reverts its applied commits
   that have no later dependent edits, and names the commits that do.
 
-### 7.5 Undo
+### 7.6 Undo
 
 Undo is per actor and grouped by transaction (SF-Δ9). Undoing an accepted change set reverts exactly its
 transaction, using CRDT inverse ops, so concurrent edits by others survive. The undo stack persists in the log up
 to the undo horizon.
 
-### 7.6 Agent tools (published as capabilities, so as WebMCP tools)
+### 7.7 Agent tools (published as capabilities, so as WebMCP tools)
 
 | Tool | Purpose |
 |---|---|
-| `doc/describe` | The representation's schema and the change-set JSON Schema for this document's kinds *(representation part pending 05)* |
-| `doc/read` | The representation for `{ ids? , subtree?, depth?, timeWindow?, viewport?, fields? }`, plus a `VersionToken` *(pending 05)* |
-| `doc/selection` | The current selection (nodes, ranges, lens) as ids plus a version token |
-| `doc/render` | PNG of a page, a node or the viewport, or a frame at `t` |
-| `doc/explain` | `explain(node, path)` |
-| `doc/propose` | Submit a change set; returns the validation report and the proposal id (or `applied`) |
-| `doc/proposal-status` | State, per-op acceptance and conflicts |
-| `timeline/evaluate` | What is active at `t` (the render graph without pixels) |
+| `agent/describe` | The generated vocabulary reference for each view and the agent-op JSON Schema (a stable prompt prefix) |
+| `agent/read-view` | `{ kind: layout \| timeline \| transcript \| graph, scope, budget }` → view text + `base` + `viewHash` |
+| `agent/selection` | The current selection (handles, ranges, lens) plus `base` |
+| `agent/screenshot` | PNG of a scope with id badges and a legend, or a frame at `t` |
+| `agent/explain` | `explain(handle, attr)`: which layer or brand rule produced a value |
+| `agent/apply` | Submit an `AgentEdit`; returns the proposal or applied result, stale fields and errors |
+| `agent/proposal-status` | State, per-op acceptance and accept-time conflicts |
+| `agent/comment` | Leave a comment on a handle, point, range or graph node (when comments ship, §11) |
 
-All other actions (generate, extend, remove background, export, create milestone) are their own capabilities.
+`invoke` ops and all other actions (generate, extend, remove background, export, create milestone) are their own
+capabilities with their own schemas, gating and confirmation.
 
 ## 8. Schema evolution
 
@@ -518,9 +607,75 @@ launch-campaign.iflow                       zip (EPUB OCF style)
 `IF-STORE-001` quota exceeded · `002` digest mismatch (object quarantined) · `003` head CAS conflict (retried) ·
 `004` folder permission lost (read-only until re-granted) · `005` schema newer than this app · `006` missing blob
 (show a placeholder; offer relink) · `IF-MS-001` milestone part missing · `IF-BUNDLE-001` not an Instaflow bundle ·
-`002` bundle requires an unknown feature. Change-set codes are in §7.3.
+`002` bundle requires an unknown feature · `IF-EXT-001` extension used an undeclared permission · `IF-EXT-002`
+manifest invalid or unknown contribution point. Change-set codes are in §7.4.
 
-## 11. Rejected alternatives
+## 11. Comments and annotations (design direction)
+
+```ts
+export type CommentId = `cm_${string}`;                  // uuidv7
+export type Anchor =
+  | { on: 'node'; node: NodeId }
+  | { on: 'point'; x: number; y: number; relativeTo?: NodeId }       // canvas/page coords; follows relativeTo if set
+  | { on: 'time'; start: Ticks; end: Ticks; relativeTo?: NodeId }    // clip-relative if set, else story time
+  | { on: 'text'; node: NodeId; start: number; end: number }         // follows edits through rich-text anchors
+  | { on: 'graph'; node: NodeId };                                   // a step or edge
+export interface Comment {
+  readonly id: CommentId; readonly anchor: Anchor; readonly body: RichText;
+  readonly author: Actor; readonly createdAt: string;
+  status: 'open' | 'resolved'; orphaned?: { lastKnown: Anchor };   // target deleted
+  addressedBy?: ChangeSetId;                                        // a proposal that addresses it
+  // later, with accounts: replyTo?: CommentId; mentions?: readonly string[]
+}
+```
+
+- Comments are stored in the asset's `comments` part, a separate CRDT doc in the same head and log, co-editable
+  like content.
+- They are **excluded** from milestone parts, `.iflow` milestone bundles (a workspace backup may include them),
+  exports and releases. "New document from milestone" starts with no comments.
+- `ChangeSet.addresses?: CommentId` links a proposal to the comment it answers. Accepting it offers "Resolve".
+
+## 12. Extension manifest (design direction, D7)
+
+```ts
+export interface ExtensionManifest {
+  readonly schema: 'instaflow.extension/1';
+  readonly id: `${string}.${string}`;                      // reverse-DNS-ish, e.g. 'org.example.qr-codes'
+  readonly name: string; readonly version: string; readonly publisher: string;
+  readonly trust: 'first-party' | 'sandboxed';             // sandboxed → @staticflux/sandbox (iframe or worker)
+  readonly entry: string;                                  // module URL or logical chunk id
+  readonly contributes: {
+    readonly capabilities?: readonly { id: CapabilityId; appliesTo: SelectionShape; presentation: HudPresentation }[];
+    readonly panels?: readonly { id: string; title: string; icon: string; appliesTo?: SelectionShape }[];
+    readonly storageProviders?: readonly { id: string; label: string }[];
+    readonly importers?: readonly { mime: readonly string[]; extensions: readonly string[] }[];
+    readonly exporters?: readonly { format: string; label: string }[];
+    readonly modelProviders?: readonly { id: string; tasks: readonly string[] }[];
+    readonly elementTypes?: readonly DeclarativeElementType[];      // the hard open problem (IF-17.7)
+    readonly commentActions?: readonly { id: string; label: string }[];
+  };
+  readonly permissions: {
+    readonly document: 'none' | 'read-views' | 'propose';           // 'propose' = change sets only, same validation as agents
+    readonly assets: readonly ('read' | 'create')[];
+    readonly network: readonly string[];                            // allowed origins, enforced by the sandbox
+    readonly storage: 'own-namespace' | 'none';
+  };
+}
+/** Declarative element type: parameters → a pure expansion into a subtree of core primitives. No custom renderer. */
+export interface DeclarativeElementType {
+  readonly kind: `x:${string}`; readonly version: number;
+  readonly params: JsonSchema;
+  readonly expand: string;                                 // id of a pure, sandboxed expansion function (params → primitive nodes)
+}
+// SelectionShape and HudPresentation: the capability applicability and presentation types (SF-Δ11).
+```
+
+There are no contribution points for replacing core behaviour, engine or renderer hooks, format extensions,
+or bypassing gates, locks, validation or confirmation (D7). Installed extensions are recorded in the library
+document. A document that uses an `x:` element type stores it as a normal `instance`-like node whose expansion
+is cached as primitives, so it still renders and exports when the extension is missing.
+
+## 13. Rejected alternatives
 
 - **Per-design folder with a manifest and page files:** duplicates shared assets, breaks cross-document
   references, is not atomic and does not map to object storage.
@@ -533,3 +688,11 @@ launch-campaign.iflow                       zip (EPUB OCF style)
   locally.
 - **Data URLs or inline media in JSON (Excalidraw):** does not scale.
 - **CRDT bytes in `.iflow`:** couples interchange to the engine and leaks history.
+- **Agents reading the canonical tree directly (research 05):** 5× the tokens, cryptic ticks and keys, and
+  composed values are not stored anywhere. **Making the stored form agent-shaped:** still needs a projection
+  (composed vs one layer) and would weaken CRDT convergence.
+- **Real HTML+CSS, JSX or raw SVG documents as the agent view:** flow layout, cascade and code do not round-trip
+  into our model. They are kept as export targets only.
+- **Unified diffs, JSON Patch with indices, whole-view regeneration as edits:** positional, and they clobber
+  concurrent edits.
+- **Render-to-texture custom element types:** they patch the renderer and break export parity (D7).
