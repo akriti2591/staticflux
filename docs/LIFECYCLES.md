@@ -221,3 +221,5 @@ Every `SfError` carries: `code` (stable), `message` (one line), `units` involved
 | `surface/frame-loop` | stopped → running ⇄ paused → stopped | `packages/surface/AGENTS.md` |
 | `storage/idb-connection` | closed → opening → open → blocked \| closed | `packages/storage/AGENTS.md` |
 | `storage/tiered-flush` | clean → dirty → flushing → clean \| failed (retry) | `packages/storage/AGENTS.md` |
+| `hydrate/island` | static → scheduled → loading → hydrating → interactive; any → failed (retryable) \| skipped (gate denied / never) | `packages/hydrate/AGENTS.md` |
+| `hydrate/snapshots` | idle → restoring → restored → saving ⇄ restored; restore skipped on epoch change | `packages/hydrate/AGENTS.md` |

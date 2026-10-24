@@ -891,6 +891,114 @@
       "fix": "Declare carried slots with `scope: \"tab\"` (or `\"origin\"` when login opens in another tab)."
     },
     {
+      "code": "SF-HYD-001",
+      "kind": "validation",
+      "summary": "An island marker is malformed (missing/invalid chunk id or unknown hydrate strategy).",
+      "fix": "Emit markers with `renderIslandMarker()`; `chunk` must be a logical chunk id (`feature:x`) and `hydrate` one of visible|idle|interaction|eager|never."
+    },
+    {
+      "code": "SF-HYD-002",
+      "kind": "validation",
+      "summary": "Island props could not be parsed or failed the island module's props validation.",
+      "fix": "Serialize props with `serializeIslandProps()` at prerender time and keep the island module's `props` schema in sync with what the prerender step emits."
+    },
+    {
+      "code": "SF-HYD-003",
+      "kind": "forbidden",
+      "summary": "An island was not hydrated because the gate (or the chunk gate/profile check) denied its chunk.",
+      "fix": "Expected for gated features: the island keeps its static markup. Call `handle.retry()` after the gate decision changes (e.g. after login)."
+    },
+    {
+      "code": "SF-HYD-004",
+      "kind": "network",
+      "summary": "The island's chunk failed to load.",
+      "fix": "Inspect `cause` (a `SF-LOAD-*` error). The static markup stays; call `handle.retry()` (e.g. when back online)."
+    },
+    {
+      "code": "SF-HYD-005",
+      "kind": "invariant",
+      "summary": "The island chunk does not export the island contract (`hydrate(element, context)`).",
+      "fix": "Export `hydrate` (or `export default defineIsland({ hydrate })`) from the chunk entry; with `export=\"name\"` the named export must be an island module."
+    },
+    {
+      "code": "SF-HYD-006",
+      "kind": "unknown",
+      "summary": "The island module's `hydrate()` threw or returned an error.",
+      "fix": "Inspect `cause`. `hydrate` must attach behaviour to the existing DOM; queued user events are dropped when it fails."
+    },
+    {
+      "code": "SF-HYD-007",
+      "kind": "invariant",
+      "summary": "An island changed size during hydration, or its static markup does not match its declared size (layout shift risk, R12.19).",
+      "fix": "Make the prerendered markup size-stable: render the same box server-side, declare `size=\"WxH\"` matching it, and avoid inserting/removing content in `hydrate()`."
+    },
+    {
+      "code": "SF-HYD-008",
+      "kind": "validation",
+      "summary": "An island declared `hydrate=\"eager\"` without a `reason`; it was downgraded to `idle` (R12.12).",
+      "fix": "Add `reason=\"…\"` (`data-sf-reason`) explaining why it must hydrate during boot, or use visible/idle/interaction."
+    },
+    {
+      "code": "SF-HYD-020",
+      "kind": "conflict",
+      "summary": "A persisted snapshot has a version with no migration path to the current version; it was dropped.",
+      "fix": "Expected after deploys that change a store schema. Add a migration (`migrations[fromVersion]`) to keep users' state across the change."
+    },
+    {
+      "code": "SF-HYD-021",
+      "kind": "auth",
+      "summary": "A snapshot bound to another identity was found; it was dropped and not restored.",
+      "fix": "Expected after an account switch. Call `registry.clearIdentityBound()` on logout so other identities never see stale snapshots."
+    },
+    {
+      "code": "SF-HYD-022",
+      "kind": "quota",
+      "summary": "A snapshot exceeded its byte budget; it was not saved (and the previous one was removed).",
+      "fix": "Snapshot less (select the visible slice in `capture`) or raise `maxBytes` with a reason; large state belongs in an archive, not the boot snapshot."
+    },
+    {
+      "code": "SF-HYD-023",
+      "kind": "validation",
+      "summary": "A persisted snapshot envelope is malformed; it was dropped.",
+      "fix": "Usually written by an older/foreign build. Nothing to do; if it repeats, check that only the snapshot registry writes under its key prefix."
+    },
+    {
+      "code": "SF-HYD-024",
+      "kind": "validation",
+      "summary": "A snapshot could not be applied (schema validation or store header mismatch); it was dropped.",
+      "fix": "Bump the store/source version when the shape changes and add a migration; never change a schema without bumping its version."
+    },
+    {
+      "code": "SF-HYD-025",
+      "kind": "unavailable",
+      "summary": "The snapshot store failed to read or write.",
+      "fix": "Inspect `cause` (`SF-STORE-*`). Boot continues without snapshots; bind a working AsyncStore to `SnapshotStoreToken`."
+    },
+    {
+      "code": "SF-HYD-026",
+      "kind": "invariant",
+      "summary": "Two snapshot sources were registered with the same id.",
+      "fix": "Give each snapshot source a unique id (normally the store id)."
+    },
+    {
+      "code": "SF-HYD-027",
+      "kind": "timeout",
+      "summary": "Restoring snapshots exceeded its time box; boot continued without them.",
+      "fix": "The snapshot store is slow (cold IndexedDB). Keep snapshots small, or raise `restoreTimeoutMs` with a reason."
+    },
+    {
+      "code": "SF-HYD-028",
+      "kind": "not-found",
+      "summary": "No snapshot source is registered with this id.",
+      "fix": "Register the source (`registry.register(source)` or a `SnapshotSourcesToken` contribution) before restoring it."
+    },
+    {
+      "code": "SF-HYD-030",
+      "kind": "validation",
+      "summary": "Island props contain values that are not plain JSON data (functions, symbols, bigint, cycles, class instances, non-finite numbers).",
+      "fix": "Pass only plain data as island props; derive everything else inside `hydrate()`."
+    },
+    {
       "code": "SF-I18N-001",
       "kind": "validation",
       "summary": "An ICU message has a syntax error.",
@@ -1195,6 +1303,72 @@
       "kind": "unavailable",
       "summary": "The host bridge failed to load.",
       "fix": "Check the bridge chunk and the host handshake; the app should continue in degraded mode without host features."
+    },
+    {
+      "code": "SF-PWA-001",
+      "kind": "unavailable",
+      "summary": "Service workers are not available here (unsupported browser, insecure context, or an embedded host mode).",
+      "fix": "Expected in embedded/webview modes and on http://; the app keeps working without offline support. Gate PWA-only features on `updater.supported`."
+    },
+    {
+      "code": "SF-PWA-002",
+      "kind": "unavailable",
+      "summary": "Registering the service worker failed.",
+      "fix": "Check that the SW script URL is same-origin, served with a JavaScript MIME type, and inside the requested scope (or send `Service-Worker-Allowed`)."
+    },
+    {
+      "code": "SF-PWA-003",
+      "kind": "network",
+      "summary": "Precaching the critical tier failed; the new service worker was not installed (the previous version stays active).",
+      "fix": "Check that every critical-tier file in sf-manifest.json is deployed and returns 200; the browser retries the install on the next update check."
+    },
+    {
+      "code": "SF-PWA-004",
+      "kind": "timeout",
+      "summary": "The waiting service worker did not take control in time after skipWaiting.",
+      "fix": "Make sure the SW runtime handles the `sf-pwa/skip-waiting` message (createServiceWorkerRuntime does); the update is retried on the next check."
+    },
+    {
+      "code": "SF-PWA-005",
+      "kind": "invariant",
+      "summary": "accept() was called but no updated service worker is waiting.",
+      "fix": "Only call accept() while `updater.state === \"available\"` (after the update-available event)."
+    },
+    {
+      "code": "SF-PWA-006",
+      "kind": "unavailable",
+      "summary": "Reinitializing the app after a service worker update failed; the page was reloaded instead.",
+      "fix": "Inspect the cause from the runtime supervisor; subsystems must tolerate `reinitialize` (stop → start)."
+    },
+    {
+      "code": "SF-PWA-007",
+      "kind": "validation",
+      "summary": "The web app manifest declaration is invalid.",
+      "fix": "Fix the field named in `details.field` (see https://www.w3.org/TR/appmanifest/); URLs must stay within `scope`."
+    },
+    {
+      "code": "SF-PWA-008",
+      "kind": "validation",
+      "summary": "A non-idempotent mutation cannot be queued for background replay.",
+      "fix": "Only declare `idempotent: true` for requests that are safe to repeat (PUT/DELETE with an idempotency key); other mutations must fail while offline (R4.6)."
+    },
+    {
+      "code": "SF-PWA-009",
+      "kind": "unavailable",
+      "summary": "The page is still not cross-origin isolated after the COOP/COEP service worker reload.",
+      "fix": "The host or a browser extension strips the headers, the page was hard-reloaded (bypasses the SW), or the page is embedded. Serve COOP/COEP from the host, or use `isolation: \"preferred\"`."
+    },
+    {
+      "code": "SF-PWA-010",
+      "kind": "timeout",
+      "summary": "The service worker did not answer a message in time.",
+      "fix": "Check that the active SW was built with createServiceWorkerRuntime and the matching plugin; the caller falls back to the non-SW path."
+    },
+    {
+      "code": "SF-PWA-011",
+      "kind": "not-found",
+      "summary": "The shared payload referenced by the URL was not found (already consumed or expired).",
+      "fix": "Share payloads are consume-once; re-share from the source app."
     },
     {
       "code": "SF-SCHED-001",

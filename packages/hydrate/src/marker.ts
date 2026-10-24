@@ -199,6 +199,14 @@ export function readIslandMarker(element: Element, fallbackId: (chunk: IslandChu
   });
 }
 
+/** Every island marker element under `root` (including `root` itself), in document order. */
+export function islandElements(root: ParentNode): Element[] {
+  const elements: Element[] = [];
+  if (isElement(root) && islandAttributesOf(root) !== undefined) elements.push(root);
+  elements.push(...Array.from(root.querySelectorAll(ISLAND_SELECTOR)));
+  return elements;
+}
+
 /** Find every island marker under `root` (including `root` itself), in document order. */
 export function scanIslands(root: ParentNode, options: ScanOptions = {}): ScanResult {
   const counters = new Map<string, number>();
@@ -207,9 +215,7 @@ export function scanIslands(root: ParentNode, options: ScanOptions = {}): ScanRe
     counters.set(chunk, n + 1);
     return `${chunk}#${n}`;
   });
-  const elements: Element[] = [];
-  if (isElement(root) && islandAttributesOf(root) !== undefined) elements.push(root);
-  elements.push(...Array.from(root.querySelectorAll(ISLAND_SELECTOR)));
+  const elements = islandElements(root);
   const islands: IslandDescriptor[] = [];
   const issues: SfError[] = [];
   for (const element of elements) {

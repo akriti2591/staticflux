@@ -54,8 +54,10 @@ import {
   type IslandChunkId,
   type IslandDescriptor,
   type IslandSize,
+  islandElements,
   ISLAND_STATE_ATTR,
   parseIslandProps,
+  readIslandMarker,
   scanIslands,
   type ScanResult,
 } from './marker.js';
@@ -179,6 +181,7 @@ export function createIslandHydrator(options: IslandHydratorOptions): IslandHydr
   const root = options.scope?.child('hydrate/islands') ?? createScope('hydrate/islands');
   const handles = new Map<string, IslandHandle>();
   const byElement = new WeakMap<Element, IslandHandle>();
+  const rejected = new WeakSet<Element>();
   const issues: SfError[] = [];
   const violations: LayoutShiftViolation[] = [];
   const idCounters = new Map<string, number>();
@@ -487,12 +490,18 @@ export function createIslandHydrator(options: IslandHydratorOptions): IslandHydr
     scan: (target) => scanIslands(target),
     start(target, startOptions = {}) {
       if (root.disposed) return [];
-      // Registered elements keep their id, so repeated starts never consume new ids.
-      const found = scanIslands(target, { idFor: (chunk, element) => byElement.get(element)?.id ?? nextId(chunk) });
-      for (const issue of found.issues) report(issue);
+      // Only unregistered elements are read, so repeated starts neither consume ids nor re-report.
       const added: IslandHandle[] = [];
-      for (const descriptor of found.islands) {
-        if (byElement.has(descriptor.element)) continue;
+      for (const element of islandElements(target)) {
+        if (byElement.has(element) || rejected.has(element)) continue;
+        const read = readIslandMarker(element, nextId);
+        if (!read.ok) {
+          rejected.add(element);
+          report(read.error);
+          continue;
+        }
+        for (const issue of read.value.issues) report(issue);
+        const descriptor = read.value.descriptor;
         let unique = descriptor;
         if (handles.has(descriptor.id)) {
           let n = 1;

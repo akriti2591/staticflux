@@ -10,7 +10,7 @@
  * during boot — before features start fetching — then starts autosave. Use the `session` level
  * when sources are session-scoped stores/resources (a unit may only require longer-lived units).
  */
-import { contribution, ok, type ScopeLevel, type Token, type TokenId, unit } from '@staticflux/core';
+import { type AnyUnit, contribution, ok, type ScopeLevel, type Token, type TokenId, unit } from '@staticflux/core';
 import { EpochSourceToken } from '@staticflux/data';
 import { ChunkLoaderToken } from '@staticflux/loader';
 import { browserIslandEnv } from './env.js';
@@ -91,9 +91,8 @@ export const snapshotRegistryConfigUnit = unit({
   create: () => ({}),
 });
 
-/** The snapshot registry at `level` (critical: restores during boot, then autosaves). */
-export function snapshotRegistryUnitAt(level: ScopeLevel) {
-  return unit({
+const registryUnitFor = (level: ScopeLevel) =>
+  unit({
     id: 'hydrate/snapshot-registry-unit',
     provides: SnapshotRegistryToken,
     scope: level,
@@ -125,12 +124,19 @@ export function snapshotRegistryUnitAt(level: ScopeLevel) {
     budget: { initMs: 250 },
     description: 'Restores declared store snapshots at boot (instant UI) and saves them on hide/interval (R12.4).',
   });
+
+export type SnapshotRegistryUnit = ReturnType<typeof registryUnitFor>;
+
+/** The snapshot registry at `level` (critical: restores during boot, then autosaves). */
+export function snapshotRegistryUnitAt(level: ScopeLevel): SnapshotRegistryUnit {
+  return registryUnitFor(level);
 }
 
-export const snapshotRegistryUnit = snapshotRegistryUnitAt('app');
+export const snapshotRegistryUnit: SnapshotRegistryUnit = snapshotRegistryUnitAt('app');
 
-export function snapshotUnits(level: ScopeLevel = 'app') {
-  return [anonymousSnapshotIdentityUnit, snapshotRegistryConfigUnit, snapshotRegistryUnitAt(level)] as const;
+/** Default identity (anonymous) + config + the registry at `level`. */
+export function snapshotUnits(level: ScopeLevel = 'app'): readonly [typeof anonymousSnapshotIdentityUnit, typeof snapshotRegistryConfigUnit, SnapshotRegistryUnit] {
+  return [anonymousSnapshotIdentityUnit, snapshotRegistryConfigUnit, snapshotRegistryUnitAt(level)];
 }
 
 /** Contribute a `defineStore` owner (provided by `store`) as a snapshot source. */
@@ -139,7 +145,7 @@ export function storeSnapshotUnit<S>(options: StoreSnapshotSourceOptions & {
   readonly store: Token<SnapshotableStore<S>>;
   readonly scope?: ScopeLevel;
   readonly order?: number;
-}) {
+}): AnyUnit {
   return contribution({
     id: options.unitId,
     provides: SnapshotSourcesToken,

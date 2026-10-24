@@ -272,5 +272,18 @@
       "@staticflux/core"
     ],
     "limit": "6 KB"
+  },
+  {
+    "name": "@staticflux/hydrate (islands)",
+    "path": "packages/hydrate/dist/index.js",
+    "import": "{ createIslandHydrator }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/loader",
+      "@staticflux/data",
+      "@staticflux/storage"
+    ],
+    "limit": "7 KB"
   }
 ]
