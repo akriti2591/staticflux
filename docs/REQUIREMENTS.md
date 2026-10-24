@@ -169,7 +169,21 @@
 - **R12.4** Hydration: partial/islands hydration of static or prerendered HTML **and** state rehydration from snapshots for instant boot.
 - **R12.5** Module federation / import maps supported as loading strategies; host owns shared singletons.
 - **R12.6** **Performance monitoring primitive:** Web Vitals per route epoch, long tasks / LoAF mapped to chunk IDs, boot waterfall, activation timing, memory sampling.
-- **R12.7** Budgets: core < 5 KB gz (excluding MobX/Lit), each vertical 3–8 KB gz; per-feature initial chunk and activation-time budgets (numbers TBD).
+- **R12.7** Starting budgets (gzip; educated estimates, tuned from example-app measurements):
+
+  | Item | Budget |
+  |---|---|
+  | `@staticflux/core` alone | ≤ 5 KB |
+  | Framework runtime loaded at boot (core, runtime, DI, router, auth, gate, config, data, telemetry API) | ≤ 45 KB |
+  | Lit + MobX | ~20 KB |
+  | **Total boot JS** (framework + shell + app critical units) | **≤ 150 KB** (~500 KB raw) |
+  | Feature initial chunk | ≤ 50 KB |
+  | Lazy sub-chunk | ≤ 30 KB |
+  | Heavy feature (declared exemption) | ≤ 200 KB, only after authorize |
+  | Locale catalog per feature | ≤ 10 KB |
+
+  Timing (mid-tier mobile, 4G-class, lab): core-ready ≤ 300 ms cold / 100 ms warm; app loading state ≤ 1.0 s / 300 ms; `feature.first-render` ≤ 1.8 s / 500 ms; `feature.interactive` ≤ 2.5 s / 700 ms; sub-route transition ≤ 150 ms / 100 ms.
+- **R12.8** Budgets **ratchet**: CI proposes tightening when actuals beat them; loosening needs a reviewed change. Exemptions are declared in manifests with a reason.
 
 ## 13. Shell
 
@@ -225,6 +239,14 @@
 - **R17.14** Level configurable per subsystem, per feature, and per journey (with sampling); switchable at runtime (devtools, URL/dev flag) without reload.
 - **R17.15** Output destination is fully pluggable (OTel-shaped spans/metrics/logs); the framework only guarantees the data is generated.
 
+### 17.3 Declarative metrics (own model, not Web Vitals)
+- **R17.16** StaticFlux defines its **own performance model**. Browser Web Vitals may be collected as optional supplementary facts; they are never the source of truth.
+- **R17.17** Metrics are **typed declarations** (`metric.counter | histogram | gauge | mark`), like DI tokens. No manual plumbing.
+- **R17.18** Units declare `informs: [...]` (producer) and `reads: [...]` (consumer: devtools, budgets, sinks, features). Producers and consumers never import each other — only the declaration.
+- **R17.19** Framework primitives inform built-in metrics automatically (DI, stages, chunks, resources, renders, lifecycle, workers). Opting in = full journey trace.
+- **R17.20** Features declare readiness signals (`readiness: { firstRender, interactive, complete }`); journey marks are derived.
+- **R17.21** Build-time check: read-but-never-informed = error; informed-but-never-read = warning.
+
 ## 18. Platform detection
 
 - **R18.1** Capability-based detection: device class, OS, browser, input (touch/pointer/hover), network quality, memory/CPU tier, reduced motion, PWA/webview/embedded host.
@@ -253,7 +275,7 @@
 
 ## 22. Open questions
 
-1. Final budget numbers (R12.7).
+1. ~~Final budget numbers~~ — starting values set in R12.7; tune from measurements.
 2. Collaboration: multi-user over network vs local multi-tab only for v1 (R11.10 assumes contract + mock).
 3. Workspaces swapping features vs reconfiguring only (R13.2 assumes both).
 4. Worker↔worker direct channels vs via main thread (default: direct MessageChannel, brokered by main).
