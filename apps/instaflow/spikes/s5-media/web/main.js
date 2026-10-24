@@ -120,7 +120,7 @@ const tests = {
     const w = new Worker('./export-worker.js', { type: 'module' });
     w.addEventListener('message', (e) => { if (e.data.file) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([e.data.file.bytes])); a.download = e.data.file.name; a.textContent = `download ${e.data.file.name}`; document.body.prepend(a); } });
     const codecs = (q.get('codecs') ?? 'vp9,av1').split(',');
-    return { meta: meta(), export: await rpc(w, { cmd: 'export', blobs, codecs, seconds: Number(q.get('seconds') ?? 60), latencyMode: q.get('latencyMode') ?? 'quality' }) };
+    return { meta: meta(), export: await rpc(w, { cmd: 'export', blobs, codecs, seconds: Number(q.get('seconds') ?? 60), gpuSeconds: Number(q.get('gpuSeconds') ?? q.get('seconds') ?? 60), composites: (q.get('composites') ?? 'none,gpu').split(','), encodeOnlyCodecs: (q.get('encodeOnly') ?? 'vp9,av1,h264').split(',').filter(Boolean), latencyMode: q.get('latencyMode') ?? 'quality' }) };
   },
 };
 function summarize(xs) { if (!xs.length) return { n: 0 }; const s = [...xs].sort((a, b) => a - b); return { n: s.length, min: s[0], median: s[s.length >> 1], max: s[s.length - 1] }; }
