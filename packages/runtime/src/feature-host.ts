@@ -215,7 +215,9 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
   const dependentsOf = (id: FeatureId): FeatureRecord[] =>
     [...records.values()].filter((r) => (r.manifest.requires?.features ?? []).some((ref) => ref.id === id));
 
-  const refCount = (id: FeatureId): number => dependentsOf(id).filter((r) => r.machine.is(...LOGIC_ALIVE_STATES, 'activating')).length;
+  /** Dependents holding a reference: logic alive, activating, or with an activate/mount in flight. */
+  const refCount = (id: FeatureId): number =>
+    dependentsOf(id).filter((r) => r.claims > 0 || r.machine.is(...LOGIC_ALIVE_STATES, 'activating')).length;
 
   const mountedDependents = (id: FeatureId): FeatureId[] =>
     dependentsOf(id)
