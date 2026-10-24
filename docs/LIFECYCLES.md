@@ -66,15 +66,18 @@ any → disposed
 - `refreshOn: [tokens…]` and app epoch bumps drive `ready → refreshing → ready`; consumers keep the last value during refresh.
 - A unit cannot be `ready` while any required dependency is not `ready` (I-3).
 
-## 5. Component dependency handles
+## 5. Dependency kinds (all units) and component handles
 
-| Kind | Component receives | Render behaviour |
-|---|---|---|
-| render | `T` (narrowed to ready) | placeholder until all render deps ready |
-| lazy | `DepHandle<T>`: `pending \| ready \| refreshing \| failed` | reactive |
-| functional | `(…args) => Promise<Result<R>>` | resolves + inits on first call |
+The readiness lifecycle (§4) applies to **every unit** — stores, services, clients, utilities, components. Dependency kinds are generic:
 
-Hooks (scope-bound, auto-disposed): `onInjected`, `onReady`, `onRefresh`, `onFailed`.
+| Kind | Any unit receives | Semantics | Component alias / render behaviour |
+|---|---|---|---|
+| required | `T` (narrowed to ready) | must be `ready` before this unit's `init()` | `render`: placeholder until all ready |
+| lazy | `DepHandle<T>`: `pending \| ready \| refreshing \| failed` | arrives any time; reactive | `lazy`: reactive |
+| functional | `(…args) => Promise<Result<R>>` | resolved + initialized on first call | `functional` |
+
+Hooks for every unit (scope-bound, auto-disposed): `onInjected`, `onReady`, `onRefresh`, `onFailed`.
+Units without `init()` are `ready` on creation (zero overhead).
 
 ## 6. Feature lifecycle
 

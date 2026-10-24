@@ -110,8 +110,8 @@
 - **R6.14** Revocation via refresh, server push, or 403 — all feed the same fact update.
 - **R6.15** Offline: previously granted entitlements honoured until a grace expiry; new grants fail closed.
 - **R6.16** **Client gating is UX, not security.** Server re-checks everything. Documented in every relevant AGENTS.md.
-- **R6.18** **Metered entitlements** (credits, tokens, requests, price): meters with unit, window, balance (server-authoritative, optimistic client view). Policies may reference meters; decisions may be `allow` with a cost. **Reserve → commit | release** for actions of unknown cost (AI calls). Denial reasons `quota | rate`. Low-balance and exhaustion surface through messaging. Credit models are plugins; only the primitives are in the framework.
 - **R6.17** **Agents** are distinct policy subjects with narrower delegated permissions; destructive agent actions require user confirmation policy.
+- **R6.18** **Metered entitlements** (credits, tokens, requests, price): meters with unit, window, balance (server-authoritative, optimistic client view). Policies may reference meters; decisions may be `allow` with a cost. **Reserve → commit | release** for actions of unknown cost (AI calls). Denial reasons `quota | rate`. Low-balance and exhaustion surface through messaging. Credit models are plugins; only the primitives are in the framework.
 
 ## 7. Router & navigation
 
@@ -178,7 +178,8 @@
 - **R9.13** Resolution (instance exists) and readiness (initialized) are distinct states (see `LIFECYCLES.md` §4).
 - **R9.14** `init()` runs once per scope instance; promise cached and shared; typed failure with retry policy.
 - **R9.15** `refreshOn` declarations + app epoch drive automatic refresh; consumers keep last value during refresh.
-- **R9.16** Component hooks `onInjected / onReady / onRefresh / onFailed`, scope-bound.
+- **R9.16** Hooks `onInjected / onReady / onRefresh / onFailed`, scope-bound, for **every unit** (stores, services, utilities, components).
+- **R9.17** Generic dependency kinds for all units: `required` (ready before my init; `render` for components), `lazy` (reactive handle), `functional` (init on first call).
 
 ## 10. Async & error primitives
 
