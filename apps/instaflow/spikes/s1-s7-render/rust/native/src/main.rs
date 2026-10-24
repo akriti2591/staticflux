@@ -62,6 +62,7 @@ fn main() {
 
     // corpus
     let (mut s_resvg, mut s_pdf, mut s_resvg_pdf) = (vec![], vec![], vec![]);
+    let (mut b_resvg, mut b_pdf) = (vec![], vec![]);
     let mut worst = vec![];
     let mut pdf_bytes = 0usize;
     for i in 0..200u32 {
@@ -73,6 +74,7 @@ fn main() {
         let r = resvg_render(&svg, 256, 256);
         let a = ir::ssim(&r, &c, 256, 256);
         s_resvg.push(a);
+        b_resvg.push(ir::ssim_blur3(&r, &c, 256, 256));
         let mut ids = vec![];
         g.query(&d, cam.world_rect(), &mut ids);
         let pdf = pdf::to_pdf(&d, &ids, cam.view(), 256.0, 256.0, &imgs, None);
@@ -81,6 +83,7 @@ fn main() {
             assert_eq!((w, h), (256, 256));
             let b = ir::ssim(&p, &c, 256, 256);
             s_pdf.push(b);
+            b_pdf.push(ir::ssim_blur3(&p, &c, 256, 256));
             s_resvg_pdf.push(ir::ssim(&p, &r, 256, 256));
             worst.push((b, i));
             if i % 25 != 0 {
@@ -97,6 +100,8 @@ fn main() {
     json.push(format!("\"corpus_resvg_vs_cpu_ssim\":{}", stats(&mut s_resvg)));
     json.push(format!("\"corpus_pdf_poppler_vs_cpu_ssim\":{}", stats(&mut s_pdf)));
     json.push(format!("\"corpus_pdf_poppler_vs_resvg_ssim\":{}", stats(&mut s_resvg_pdf)));
+    json.push(format!("\"corpus_resvg_vs_cpu_ssim_blur3\":{}", stats(&mut b_resvg)));
+    json.push(format!("\"corpus_pdf_poppler_vs_cpu_ssim_blur3\":{}", stats(&mut b_pdf)));
     json.push(format!("\"corpus_pdf_worst\":{:?}", &worst[..5.min(worst.len())]));
     json.push(format!("\"corpus_pdf_mean_bytes\":{}", pdf_bytes / 200));
 

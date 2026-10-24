@@ -619,3 +619,26 @@ pub fn draw_frame<P: Painter>(p: &mut P, doc: &Doc, grid: &Grid, cam: &Camera, l
     let v = cam.view() * Affine::translate(offset);
     draw(p, doc, lifted, v, None);
 }
+
+/// Edge-tolerant variant: SSIM after a 3x3 box blur of both images. Used only to show that
+/// SVG/PDF differences are anti-aliasing / pixel-snapping, not missing or wrong content.
+pub fn ssim_blur3(a: &[u8], b: &[u8], w: usize, h: usize) -> f64 {
+    let blur = |p: &[u8]| -> Vec<u8> {
+        let mut o = p.to_vec();
+        for y in 1..h - 1 {
+            for x in 1..w - 1 {
+                for c in 0..3 {
+                    let mut s = 0u32;
+                    for dy in 0..3 {
+                        for dx in 0..3 {
+                            s += p[((y + dy - 1) * w + (x + dx - 1)) * 4 + c] as u32;
+                        }
+                    }
+                    o[(y * w + x) * 4 + c] = (s / 9) as u8;
+                }
+            }
+        }
+        o
+    };
+    ssim(&blur(a), &blur(b), w, h)
+}
