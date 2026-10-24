@@ -627,6 +627,30 @@
       "fix": "Offline-first: nothing to do; the next flush or `sync()` retries."
     },
     {
+      "code": "SF-DEV-001",
+      "kind": "validation",
+      "summary": "The `sf-debug` flag contains entries that are not `<subsystem>:<level>`.",
+      "fix": "Use `?sf-debug=core/di:verbose,router/*:debug` (subsystem `area/name`, `area/*` or `*`; level off|critical|standard|verbose|debug). A bare level applies to every subsystem."
+    },
+    {
+      "code": "SF-DEV-002",
+      "kind": "unavailable",
+      "summary": "The devtools source this view or control needs is not bound.",
+      "fix": "Pass it to `installDevtools({ … })` (gate, supervisor, featureHost, journeys, stores) or call `devtools.bind({ … })` once it exists. With an injector, sources already resolved by the app are bound automatically."
+    },
+    {
+      "code": "SF-DEV-003",
+      "kind": "unavailable",
+      "summary": "The devtools panel module failed to load or define its custom element.",
+      "fix": "Check that `@staticflux/devtools/panel` is reachable by the bundler (it is a separate chunk) and that no other element is registered as `sf-devtools`."
+    },
+    {
+      "code": "SF-DEV-004",
+      "kind": "unavailable",
+      "summary": "The devtools overlay needs a DOM (document + customElements) and none is available.",
+      "fix": "Run the overlay only in the browser main thread; workers and SSR can use the collector (`createDevtools`) without the panel."
+    },
+    {
       "code": "SF-DI-001",
       "kind": "invariant",
       "summary": "No unit provides the requested token in this injector chain.",
@@ -2059,6 +2083,12 @@
       "kind": "conflict",
       "summary": "A cross-tab message from an older leadership term was dropped.",
       "fix": "Usually self-healing (the sender learns the new term and re-handshakes). If it repeats, check that every tab runs the same coordinator id."
+    },
+    {
+      "code": "SF-WK-031",
+      "kind": "invariant",
+      "summary": "Two core-context entries for the context hub use the same key.",
+      "fix": "Contribute each context key once to `CoreContextsToken` (and not again in `contextHubUnit({ entries })`); the `details` name the key."
     }
   ]
 }

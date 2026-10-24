@@ -67,9 +67,9 @@ re-validates the output in CI.
   `StaticfluxViteOptions` (`chunks`, `bootPlans`, `profiles`, `budgets`, `isolation` `required|preferred|off` (default
   off), `coep` `require-corp|credentialless`, `corp`, `crossorigin`, `precache` (`false` | `{ fileName, tiers }`),
   `manifestFileName`, `preloadsFileName`, `reportFileName`, `html` (`false` | `{ profile }`), `buildId`, `remotes`,
-  `sri`, `emitEntryChunks`, `sizeOf`), `validateOptions`, `buildDeclarations`, `gzipKb`, `sha384`, file-name constants.
-- `artifacts.ts` — pure `computeArtifacts(output, options)` → `{ manifest, report, preloads, precache, boot,
-  violations, defaultBoot }`; `BudgetOptions` (`onViolation: 'warn'|'error'`, `bootKb`, `eagerKb`), `BudgetViolation`
+  `sri`, `emitEntryChunks`, `sizeOf`, `bootEntries`), `validateOptions`, `buildDeclarations`, `gzipKb`, `sha384`, file-name constants.
+- `artifacts.ts` — pure `computeArtifacts(output, options)` (`entries`, `bootEntries`, …) → `{ manifest, report,
+  chunkCosts, preloads, precache, boot, violations, defaultBoot }`; `ChunkCost` (`sizeKb` closure, `incrementalKb`); `BudgetOptions` (`onViolation: 'warn'|'error'`, `bootKb`, `eagerKb`), `BudgetViolation`
   (`chunk|eager|boot`), `buildReportJson` (`sf-build-report/1`), `htmlPreloadsFor`, `defaultBuildId`, `ALL_PROFILES`.
 - `chunks-module.ts` — `VIRTUAL_CHUNKS_ID`, `renderChunksModule`, `moduleEntries`, `chunkNameFor`, `isModuleEntry`,
   `devUrlOf`, `devBundlerOutput`, `SfChunksModule`.
@@ -86,9 +86,14 @@ re-validates the output in CI.
 | `sf-build-report.json` | `sf-build-report/1`: over-budget chunks, eager entries, per-profile `bootKb`/`eagerKb`, violations |
 
 ## Semantics to know
-- Sizes are gzip KB of the final chunk code (`sizeOf` overridable). Boot JS per profile = deduplicated files of the
-  boot plan closure (`modulepreload` list); without plans: one boot set (`*`) = critical-tier + eager chunks.
-- Budgets: chunk budgets come from the declarations (`budget.category`/`maxKb`); `bootKb`/`eagerKb` are per profile.
+- Sizes are gzip KB of the final chunk code (`sizeOf` overridable). Boot set per profile = deduplicated files of the
+  app entry chunks' static closure (bundler `isEntry` chunks that are not logical chunks) + `bootEntries` closures +
+  the boot plan closure (`modulepreload` list); without plans: one boot set (`*`) = entry closure + `bootEntries` +
+  critical-tier + eager chunks (so it is never 0 KB just because no plans are declared).
+- Budgets: chunk budgets come from the declarations (`budget.category`/`maxKb`) and apply to `incrementalKb`: the
+  bytes of the chunk's static closure **not** already in the boot set of the profiles it serves (worst case); a chunk
+  that is itself in the boot set counts its whole closure. The manifest's `sizeKb` stays the full closure; the build
+  report lists both (`chunks`). `bootKb`/`eagerKb` are per profile.
   `onViolation: 'warn'` (default) → `this.warn`; `'error'` → the build fails with every violation listed.
 - `transformIndexHtml` (`order: 'post'`) and `generateBundle` share one memoized computation per bundle. Tags get a
   bare `crossorigin` when isolation is off (matches Vite's `<script type="module" crossorigin>`, so the preload is

@@ -461,8 +461,8 @@ describe('feature host: telemetry and readiness', () => {
     const { manifest } = feature('test/editor', { mount: () => undefined }, { budget: { activationMs: -1 } });
     host.register(manifest);
     await host.mount('test/editor');
-    host.mark('test/editor', 'first-render');
-    host.mark('test/editor', 'first-render');
+    host.mark('test/editor', 'firstRender');
+    host.mark('test/editor', 'first-render'); // deprecated alias of the same mark → deduped
     host.mark('test/editor', 'interactive');
     const events = sink.records.filter((r) => r.type === 'event').map((r) => r.name);
     expect(events).toContain('lifecycle.feature.declared→loading');
@@ -470,6 +470,7 @@ describe('feature host: telemetry and readiness', () => {
     expect(events).toContain('feature.budget-exceeded');
     const marks = sink.records.filter((r) => r.type === 'metric' && r.metric === 'runtime/feature-readiness');
     expect(marks).toHaveLength(2);
+    expect(marks.map((r) => (r.type === 'metric' ? r.attrs['mark'] : undefined))).toEqual(['firstRender', 'interactive']);
     const spans = sink.records.filter((r) => r.type === 'span').map((r) => r.name);
     expect(spans).toEqual(expect.arrayContaining(['feature.load', 'feature.activate', 'feature.mount']));
     expect(sink.records.some((r) => r.type === 'metric' && r.metric === 'runtime/active-features')).toBe(true);

@@ -1,4 +1,4 @@
-import { box, createInjector, createMemorySink, createTelemetry, err, ok, type Result, token } from '@staticflux/core';
+import { box, contribution, createInjector, createMemorySink, createTelemetry, err, ok, type Result, token, unit } from '@staticflux/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CoreContexts,
@@ -27,6 +27,7 @@ import {
   WorkerLifecycle,
   contextHubUnit,
   ContextHubToken,
+  CoreContextsToken,
   tokenBrokerUnit,
   TokenBrokerToken,
   staticSource,
@@ -495,5 +496,46 @@ describe('DI units', () => {
     expect((await injector.get(TokenBrokerToken)).ok).toBe(true);
     await injector.scope.dispose();
     expect(worker.ok && worker.value.state).toBe('terminated');
+  });
+
+  it('contextHubUnit collects CoreContextsToken contributions, each with its own deps (regression: no deps)', async () => {
+    const FlagsSourceToken = token('test/flags-source').type<{ readonly value: ReturnType<typeof box<boolean>> }>();
+    const flagsSourceUnit = unit({ id: 'test/flags-source-unit', provides: FlagsSourceToken, scope: 'app', create: () => ({ value: box(false) }) });
+    const flagsContext = contribution({
+      id: 'test/flags-context',
+      provides: CoreContextsToken,
+      scope: 'app',
+      deps: { required: { flags: FlagsSourceToken } },
+      create: ({ flags }) => provideContext(CoreContexts.flags, reactiveSource(() => ({ beta: flags.value.get() }))),
+    });
+    const sessionContext = contribution({
+      id: 'test/session-context',
+      provides: CoreContextsToken,
+      scope: 'app',
+      create: () => provideContext(CoreContexts.session, staticSource({ status: 'anonymous' })),
+    });
+    const injector = createInjector({
+      units: [flagsSourceUnit, flagsContext, sessionContext, contextHubUnit({ entries: () => [provideContext(CoreContexts.observability, staticSource({ defaultLevel: 'standard' as const }))] })],
+    });
+    const hub = await injector.get(ContextHubToken);
+    if (!hub.ok) throw hub.error;
+    expect([...hub.value.ids].sort()).toEqual(['core/flags', 'core/observability', 'core/session']);
+    expect(hub.value.snapshot()['core/flags']?.value).toEqual({ beta: false });
+    const flags = await injector.get(FlagsSourceToken);
+    if (!flags.ok) throw flags.error;
+    flags.value.value.set(true);
+    expect(hub.value.snapshot()['core/flags']).toEqual({ version: 2, value: { beta: true } });
+    await injector.scope.dispose();
+  });
+
+  it('contextHubUnit fails creation when a context key is contributed twice (SF-WK-031)', async () => {
+    const twice = (id: `${string}/${string}`) =>
+      contribution({ id, provides: CoreContextsToken, scope: 'app', create: () => provideContext(CoreContexts.flags, staticSource({})) });
+    const injector = createInjector({ units: [twice('test/a'), twice('test/b'), contextHubUnit()] });
+    const hub = await injector.get(ContextHubToken);
+    expect(hub.ok).toBe(false);
+    const cause = hub.ok ? undefined : (hub.error.cause as { code?: string } | undefined);
+    expect(cause?.code).toBe('SF-WK-031');
+    await injector.scope.dispose();
   });
 });

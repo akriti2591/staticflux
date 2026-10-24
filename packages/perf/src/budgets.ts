@@ -7,7 +7,7 @@
 import { type Conformance, violationOf } from './conformance.js';
 import { BudgetExceededViolation } from './errors.js';
 import type { JourneyStart, JourneySummary, JourneyTracker } from './journey.js';
-import type { FeatureMark } from './telemetry.js';
+import { type FeatureMark, type FeatureMarkInput, normalizeFeatureMark } from './telemetry.js';
 
 export type DeviceTier = 'low' | 'mid' | 'high';
 
@@ -24,14 +24,15 @@ export interface MarkBudget {
   readonly reason?: string;
 }
 
-export function defineMarkBudget(budget: Omit<MarkBudget, 'kind'>): MarkBudget {
-  return Object.freeze({ ...budget, kind: 'mark-budget' });
+/** `mark` also accepts the deprecated kebab-case names (`'first-render'`) for one release. */
+export function defineMarkBudget(budget: Omit<MarkBudget, 'kind' | 'mark'> & { readonly mark: FeatureMarkInput }): MarkBudget {
+  return Object.freeze({ ...budget, mark: normalizeFeatureMark(budget.mark), kind: 'mark-budget' });
 }
 
 /** Starting timing budgets (REQUIREMENTS R12.7; mid-tier mobile, 4G-class, lab). */
 export const DEFAULT_MARK_BUDGETS: readonly MarkBudget[] = Object.freeze([
-  defineMarkBudget({ feature: '*', mark: 'first-render', maxMs: 1_800, starts: ['cold'], reason: 'R12.7' }),
-  defineMarkBudget({ feature: '*', mark: 'first-render', maxMs: 500, starts: ['warm', 'soft'], reason: 'R12.7' }),
+  defineMarkBudget({ feature: '*', mark: 'firstRender', maxMs: 1_800, starts: ['cold'], reason: 'R12.7' }),
+  defineMarkBudget({ feature: '*', mark: 'firstRender', maxMs: 500, starts: ['warm', 'soft'], reason: 'R12.7' }),
   defineMarkBudget({ feature: '*', mark: 'interactive', maxMs: 2_500, starts: ['cold'], reason: 'R12.7' }),
   defineMarkBudget({ feature: '*', mark: 'interactive', maxMs: 700, starts: ['warm', 'soft'], reason: 'R12.7' }),
 ]);

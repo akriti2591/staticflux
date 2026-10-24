@@ -18,7 +18,9 @@ Implements R17.5–R17.12, R17.19–R17.20, R17.22, R12.6, R12.15, R12.19–R12.
   `journeyMachine` (`open → complete|superseded|abandoned|ended`), `JOURNEY_PHASES`.
 - `marks.ts` — `createFeatureMarks({ env, telemetry, layoutStableMs })`: `declare(feature, readiness)`, `start`,
   `placeholderCommitted`, `renderCommitted(feature, element?)`, `renderDepsResolved`, `track(feature, promise)`,
-  `layoutShift`, `signal(feature, mark)`, `marks`. Methods: `commit+frame | element-timing | largest-heuristic |
+  `layoutShift`, `signal(feature, mark)`, `marks`. Mark keys are camelCase (`placeholderShown | firstRender |
+  largestRender | interactive | complete`, readiness `{ firstRender, interactive, complete }` = runtime manifests);
+  kebab-case names (`'first-render'`) are deprecated aliases for one release (`normalizeFeatureMark`). Methods: `commit+frame | element-timing | largest-heuristic |
   framework-default | readiness-signal`.
 - `detectors.ts` — `createLongFrameDetector` (LoAF → longtask → none; `attribute(url)` → chunk → feature),
   `createForcedLayoutDetector` (`write`, `read` measured-read API, `instrument(proto, scope)` dev patching),
@@ -36,7 +38,8 @@ Implements R17.5–R17.12, R17.19–R17.20, R17.22, R12.6, R12.15, R12.19–R12.
   `FeatureMarksToken`, `ConformanceToken`, `ViolationCollectorToken`, `LongFrameDetectorToken`, `ForcedLayoutDetectorToken`,
   `LayoutShiftTrackerToken`, `RenderCounterToken`, `InputLatencyTrackerToken`, `MemorySamplerToken`, `BudgetEvaluatorToken`.
 - `telemetry.ts` — `PERF_SUBSYSTEMS` (`perf/journey|marks|frames|layout|render|input|memory|conformance|budgets`),
-  `FEATURE_MARKS`, `featureMarkMetrics` (`feature/<mark>` mark metrics), `perfMetrics`. `errors.ts` — `SF-PERF-001…008`.
+  `FEATURE_MARKS`, `normalizeFeatureMark`, `featureMarkMetrics` (keyed by camelCase mark; metric ids stay
+  `feature/<kebab-mark>`, events `feature.<kebab-mark>`), `perfMetrics`. `errors.ts` — `SF-PERF-001…008`.
 
 ## Span/attribute conventions the tracker consumes
 `app.boot` starts a cold journey (`attrs.warm: true` → warm); `nav.pipeline` (`attrs.route`, optional `attrs.inputAt`)

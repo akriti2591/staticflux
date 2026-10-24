@@ -43,17 +43,17 @@ const summary = (start: JourneySummary['classification']['start'], marks: Journe
 
 describe('runtime budgets (R17.12)', () => {
   it('defaults follow R12.7 cold/warm timing; specific budgets win over `*`', () => {
-    expect(applicableBudget(DEFAULT_MARK_BUDGETS, 'studio', 'first-render', 'mid', 'cold')?.maxMs).toBe(1_800);
-    expect(applicableBudget(DEFAULT_MARK_BUDGETS, 'studio', 'first-render', 'mid', 'soft')?.maxMs).toBe(500);
+    expect(applicableBudget(DEFAULT_MARK_BUDGETS, 'studio', 'firstRender', 'mid', 'cold')?.maxMs).toBe(1_800);
+    expect(applicableBudget(DEFAULT_MARK_BUDGETS, 'studio', 'firstRender', 'mid', 'soft')?.maxMs).toBe(500);
     expect(applicableBudget(DEFAULT_MARK_BUDGETS, 'studio', 'interactive', 'low', 'warm')?.maxMs).toBe(700);
     expect(applicableBudget(DEFAULT_MARK_BUDGETS, 'studio', 'complete', 'mid', 'cold')).toBeUndefined();
     const budgets = [
       ...DEFAULT_MARK_BUDGETS,
-      defineMarkBudget({ feature: 'studio', mark: 'first-render', maxMs: 2_500, tiers: ['low'], reason: 'heavy editor on low-end' }),
+      defineMarkBudget({ feature: 'studio', mark: 'firstRender', maxMs: 2_500, tiers: ['low'], reason: 'heavy editor on low-end' }),
     ];
-    expect(applicableBudget(budgets, 'studio', 'first-render', 'low', 'cold')?.maxMs).toBe(2_500);
-    expect(applicableBudget(budgets, 'studio', 'first-render', 'high', 'cold')?.maxMs).toBe(1_800);
-    expect(applicableBudget(budgets, 'chat', 'first-render', 'low', 'cold')?.maxMs).toBe(1_800);
+    expect(applicableBudget(budgets, 'studio', 'firstRender', 'low', 'cold')?.maxMs).toBe(2_500);
+    expect(applicableBudget(budgets, 'studio', 'firstRender', 'high', 'cold')?.maxMs).toBe(1_800);
+    expect(applicableBudget(budgets, 'chat', 'firstRender', 'low', 'cold')?.maxMs).toBe(1_800);
   });
 
   it('evaluates journeys and emits SF-PERF-002 violations with the method and tier', () => {
@@ -63,14 +63,14 @@ describe('runtime budgets (R17.12)', () => {
     const conformance = createConformance({ telemetry });
     let tier: 'low' | 'mid' | 'high' = 'mid';
     const evaluator = createBudgetEvaluator({ budgets: DEFAULT_MARK_BUDGETS, conformance, tier: () => tier });
-    const ok = evaluator.evaluate(summary('cold', { studio: { 'first-render': { value: 1_200, method: 'commit+frame' } } }));
+    const ok = evaluator.evaluate(summary('cold', { studio: { 'firstRender': { value: 1_200, method: 'commit+frame' } } }));
     expect(ok).toEqual([]);
     const over = evaluator.evaluate(
       summary('warm', {
-        studio: { 'first-render': { value: 900, method: 'element-timing' }, interactive: { value: 650, method: 'framework-default' } },
+        studio: { 'firstRender': { value: 900, method: 'element-timing' }, interactive: { value: 650, method: 'framework-default' } },
       }),
     );
-    expect(over).toEqual([{ feature: 'studio', mark: 'first-render', valueMs: 900, budgetMs: 500, journey: 'journey-1', start: 'warm', tier: 'mid' }]);
+    expect(over).toEqual([{ feature: 'studio', mark: 'firstRender', valueMs: 900, budgetMs: 500, journey: 'journey-1', start: 'warm', tier: 'mid' }]);
     expect(collector.violations[0]).toMatchObject({ code: 'SF-PERF-002', feature: 'studio', details: { method: 'element-timing', tier: 'mid' } });
     tier = 'low';
     expect(createBudgetEvaluator({ budgets: [] }).evaluate(summary('cold', { a: { complete: { value: 9_999, method: 'x' } } }))).toEqual([]);
@@ -87,7 +87,7 @@ describe('runtime budgets (R17.12)', () => {
     const off = evaluator.attach(tracker);
     tracker.begin({ start: 'soft' });
     t = 800;
-    telemetry.record(featureMarkMetrics['first-render'], 800, { feature: 'settings', method: 'commit+frame', at: 800 });
+    telemetry.record(featureMarkMetrics['firstRender'], 800, { feature: 'settings', method: 'commit+frame', at: 800 });
     telemetry.record(featureMarkMetrics.complete, 900, { feature: 'settings', method: 'framework-default', at: 900 });
     expect(collector.violations.map((v) => v.code)).toEqual(['SF-PERF-002']);
     off();

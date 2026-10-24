@@ -2,10 +2,10 @@
  * DI units for the runtime services. Apps register them (e.g. `...runtimeUnits`)
  * and override any of them with `bind(..., { precedence: 'app' })`.
  */
-import { box, contribution, ok, unit, type UnitDefinition } from '@staticflux/core';
+import { box, contribution, err, NoProviderError, ok, unit, type UnitDefinition } from '@staticflux/core';
 import { StoreRegistryToken } from '@staticflux/storage';
 import { archiveStoreFromStore, createMemoryArchiveStore } from './archive.js';
-import { createFeatureHost } from './feature-host.js';
+import { createFeatureHost, type FeatureLoader, manifestFeatureLoader } from './feature-host.js';
 import type { MemoryPressure, ReactiveInput, ResourceBudgets, ResourceManager } from './resource-manager.js';
 import { createResourceManager } from './resource-manager.js';
 import { createFrameScheduler, type FrameScheduler } from './scheduler.js';
@@ -14,6 +14,7 @@ import {
   AppInjectorToken,
   ArchiveStoreToken,
   FeatureHostToken,
+  FeatureLoaderToken,
   FeatureManifestsToken,
   FrameSchedulerToken,
   MemoryPressureToken,
@@ -92,19 +93,29 @@ export const featureHostUnit = unit({
   deps: {
     required: { injector: AppInjectorToken, archive: ArchiveStoreToken, features: FeatureManifestsToken },
     lazy: { supervisor: SupervisorToken },
+    // Optional: resolved on the first activation (keeps the loader off the boot path).
+    functional: { loader: FeatureLoaderToken },
   },
-  create: ({ injector, archive, features, supervisor }, ctx) => {
+  create: ({ injector, archive, features, supervisor, loader }, ctx) => {
+    const load: FeatureLoader = async (manifest, signal) => {
+      const bound = await loader.get(signal);
+      if (bound.ok) return bound.value(manifest, signal);
+      // Unbound → the manifest's own `load`; a bound loader that failed is an error.
+      if (bound.error.code === NoProviderError.code) return manifestFeatureLoader(manifest, signal);
+      return err(bound.error);
+    };
     const host = createFeatureHost({
       injector,
       archive,
       features,
       telemetry: ctx.telemetry,
       gate: (operation) => supervisor.value?.assertRunnable(operation) ?? ok(),
+      load,
     });
     ctx.scope.defer(() => host.dispose());
     return host;
   },
-  description: 'Feature host: feature lifecycle, feature injectors, ref-counting, archive.',
+  description: 'Feature host: feature lifecycle, feature injectors, ref-counting, archive. Loads modules via FeatureLoaderToken when bound.',
 });
 
 export interface ResourceManagerUnitOptions {

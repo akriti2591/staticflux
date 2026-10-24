@@ -36,8 +36,10 @@ leader election and SharedWorker helpers (R11.9). Requirements: R11.1–R11.7, R
   `id, dependsOn, start, pause, resume, refresh, stop` + `request`, `on`, `whenReady`, `restart`, `inspect`), `WorkerMetrics`.
 - `runtime.ts` — `runWorker({ port, protocol, handlers, contexts, setup, onPause/onResume/onRefresh/onShutdown })` (inside a worker).
 - `control.ts` — handshake/heartbeat/lifecycle message shapes on `sf/control`.
-- `units.ts` — `supervisedWorkerUnit`, `contextHubUnit` (`ContextHubToken`), `tokenBrokerUnit` (`TokenBrokerToken`).
-- `errors.ts` — `SF-WK-001` … `SF-WK-018`.
+- `units.ts` — `supervisedWorkerUnit`, `contextHubUnit({ id?, entries? })` (`ContextHubToken`; collects every
+  `CoreContextsToken` contribution — one `contribution({ provides: CoreContextsToken, deps, create })` per context, each
+  declaring its own deps — plus `entries(context)`; duplicate keys → `SF-WK-031`), `tokenBrokerUnit` (`TokenBrokerToken`).
+- `errors.ts` — `SF-WK-001` … `SF-WK-018`, `SF-WK-031` duplicate core-context key.
 - `coordinator.ts` — **multi-tab coordinator** (R11.9, research §6 Notion pattern): `createTabCoordinator({ id, owned, transport:
   'shared-worker'|'leader-tab'|'auto', sharedWorker?, locks?, broadcast?, lifecycle?, snapshots?, tabId?, clock? })` →
   `TabCoordinator` (`role`, `transport`, `term`, `leaderId`, `isLeader`, `start`, `replica(def)`, `intent(def, action, args,

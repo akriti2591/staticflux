@@ -72,6 +72,12 @@ export interface StaticfluxViteOptions {
   readonly emitEntryChunks?: boolean;
   /** Compressed size in KB (default gzip). */
   readonly sizeOf?: (fileName: string, code: string) => number;
+  /**
+   * Source modules fetched at boot that the entry `import()`s instead of importing
+   * statically (e.g. `['src/boot-browser.ts']` after the inline mode detector). Their
+   * static closure joins the boot set (boot cost; chunk budgets count only bytes beyond it).
+   */
+  readonly bootEntries?: readonly string[];
 }
 
 /** Validate options (throws in `staticflux()` because Vite config errors are thrown). */
@@ -148,6 +154,13 @@ export function staticflux(options: StaticfluxViteOptions): Plugin {
   let logger: Logger = { info: () => undefined, warn: () => undefined };
   const memo = new WeakMap<object, Result<BuildArtifacts>>();
 
+  // App entry chunks (e.g. the index.html script): bundler entries that are not emitted logical chunks.
+  const logicalNames = new Set(options.chunks.map((d) => chunkNameFor(d.id)));
+  const appEntryFiles = (bundle: Readonly<Record<string, RollupLikeOutput>>): string[] =>
+    Object.values(bundle)
+      .filter((out) => out.type === 'chunk' && (out as { readonly isEntry?: boolean }).isEntry === true && !logicalNames.has(out.name ?? ''))
+      .map((out) => out.fileName);
+
   const artifactsFor = (bundle: Readonly<Record<string, RollupLikeOutput>>): Result<BuildArtifacts> => {
     const cached = memo.get(bundle);
     if (cached !== undefined) return cached;
@@ -155,6 +168,8 @@ export function staticflux(options: StaticfluxViteOptions): Plugin {
     const result = computeArtifacts(output, {
       base,
       declarations,
+      entries: appEntryFiles(bundle),
+      ...(options.bootEntries === undefined ? {} : { bootEntries: options.bootEntries }),
       ...(options.buildId === undefined ? {} : { buildId: options.buildId }),
       ...(options.bootPlans === undefined ? {} : { bootPlans: options.bootPlans }),
       ...(options.profiles === undefined ? {} : { profiles: options.profiles }),

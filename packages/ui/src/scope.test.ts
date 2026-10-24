@@ -194,10 +194,82 @@ describe('MobxController', () => {
         throw new Error('render bug');
       }),
     ).toThrow('render bug');
-    // Inside a batch MobX defers reactions: the tracker renders untracked and re-requests once.
+    // Inside a batch the pass is still tracked synchronously (no deferred untracked render).
+    const before = invalidations;
     const value = batch(() => tracker.track(() => a.get()));
     expect(value).toBe(3);
+    expect(tracker.watching).toBe(true);
+    a.set(4);
+    expect(invalidations).toBe(before + 1);
     tracker.dispose();
+    expect(tracker.watching).toBe(false);
+    // A disposed tracker can track again (a fresh reaction).
+    expect(tracker.track(() => a.get())).toBe(4);
+    a.set(5);
+    expect(invalidations).toBe(before + 2);
+    tracker.dispose();
+  });
+
+  it('regression: an observable changing during the tracked pass neither throws nor drops tracking', () => {
+    let invalidations = 0;
+    const tracker = createRenderTracker(() => {
+      invalidations += 1;
+    });
+    const read = box(1);
+    const written = box(0);
+    // First pass: writes an observable it read earlier in the same pass (was "Cannot access 'dispose' before initialization").
+    expect(() =>
+      tracker.track(() => {
+        const value = read.get();
+        written.get();
+        written.set(written.get() + 1);
+        return value;
+      }),
+    ).not.toThrow();
+    expect(tracker.watching).toBe(true);
+    read.set(2);
+    expect(invalidations).toBe(1);
+    // Second pass: the written observable is already observed → exactly one invalidation after the pass.
+    tracker.track(() => {
+      read.get();
+      written.set(written.get() + 1);
+      return written.get();
+    });
+    expect(invalidations).toBe(2);
+    // Re-tracking after that invalidation still works.
+    tracker.track(() => read.get());
+    read.set(3);
+    expect(invalidations).toBe(3);
+    tracker.dispose();
+  });
+
+  it('regression: the host keeps re-rendering when its render changes an observable it reads', async () => {
+    class Writer extends LitElement {
+      readonly mobx = new MobxController(this);
+      readonly value = box('x');
+      readonly connected = box(0);
+      protected override render(): unknown {
+        return this.mobx.track(() => {
+          const label = this.value.get();
+          const connected = this.connected.get();
+          // Simulates children connecting synchronously during the commit (converges at 2).
+          if (connected < 2) this.connected.set(connected + 1);
+          return html`${label}:${connected}`;
+        });
+      }
+    }
+    customElements.define('test-writer-mobx', Writer);
+    const el = document.createElement('test-writer-mobx') as Writer;
+    document.body.append(el);
+    await el.updateComplete;
+    for (const next of ['y', 'z']) {
+      el.value.set(next);
+      await settle(3);
+      await el.updateComplete;
+      expect(el.shadowRoot?.textContent).toContain(`${next}:2`);
+      expect(el.mobx.watching).toBe(true);
+    }
+    el.remove();
   });
 });
 

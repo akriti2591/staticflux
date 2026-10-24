@@ -115,7 +115,7 @@ export const featureMarksUnit = unit({
     ctx.scope.defer(() => marks.dispose());
     return marks;
   },
-  description: 'Feature marks (placeholder-shown … complete), labelled with their method (R17.10).',
+  description: 'Feature marks (placeholderShown … complete), labelled with their method (R17.10).',
 });
 
 export const longFrameDetectorUnit = unit({

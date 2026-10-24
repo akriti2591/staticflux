@@ -3,16 +3,9 @@
  * app profile (host mode × form factor) before anything else loads, so boot and
  * runtime agree and other modes' code is never fetched. Step 2 boots the app.
  */
-import { detectMode } from '@staticflux/platform/detect-mode';
+import { browserEnv, detectMode } from '@staticflux/platform/detect-mode';
 
-type Detect = Parameters<typeof detectMode>[0];
-const g = globalThis as unknown as Record<string, unknown> & { window?: Detect['window']; navigator?: Detect['navigator']; matchMedia?: (q: string) => ReturnType<NonNullable<Detect['matchMedia']>> };
-const detected = detectMode({
-  window: g.window,
-  navigator: g.navigator,
-  matchMedia: typeof g.matchMedia === 'function' ? (query) => g.matchMedia!(query) : undefined,
-  globals: g,
-});
+const detected = detectMode(browserEnv());
 document.documentElement.dataset['sfProfile'] = `${detected.hostMode}:${detected.formFactor}`;
 
 void import('./boot-browser.js').then((boot) => boot.startStudio(detected));

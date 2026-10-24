@@ -43,7 +43,7 @@ export const featureManifests: readonly FeatureManifest[] = [
     weight: 'heavy',
     modes: ['expanded', 'medium'],
     retention: { priority: 'high', archive: true },
-    readiness: { 'first-render': 'framework', interactive: 'feature', complete: 'feature' },
+    readiness: { firstRender: 'framework', interactive: 'feature', complete: 'feature' },
     budget: { chunkKb: 200 },
     load: fromChunk(Chunks.studioDesktop),
     description: 'Document editor for expanded/medium form factors.',

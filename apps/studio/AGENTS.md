@@ -1,8 +1,9 @@
 # apps/studio — AGENTS.md
 
 **Layer:** app (may import every `@staticflux/*` package; packages never import the app).
-**Budget (R12.7):** total boot JS ≤ 150 KB gzip — currently **over** (see README / report: ~198 KB gzip initial);
-feature chunks ≤ 50 KB (own code 1–10 KB gzip), heavy studio-desktop ≤ 200 KB after authorize.
+**Budget (R12.7):** total boot JS ≤ 150 KB gzip — currently **over** (`dist/sf-build-report.json`: ~198 KB gzip,
+entry + `bootEntries: ['src/boot-browser.ts']` closure); feature chunks ≤ 50 KB counted beyond the boot set (1–6 KB
+gzip each), heavy studio-desktop ≤ 200 KB after authorize.
 
 ## Purpose
 The integration proof: every StaticFlux vertical composed into one real app (FEATURE-NEEDS "Studio") against mock

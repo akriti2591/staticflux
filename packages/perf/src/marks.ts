@@ -4,29 +4,48 @@
  *
  * | mark              | default (framework) measurement                                  | method              |
  * |-------------------|------------------------------------------------------------------|---------------------|
- * | placeholder-shown | skeleton commit + next frame                                     | `commit+frame`      |
- * | first-render      | first content commit + next frame                                | `commit+frame`      |
- * | largest-render    | Element Timing `renderTime` where supported, else largest committed element area + frame | `element-timing` / `largest-heuristic` |
- * | interactive       | first-render done ∧ render deps resolved                         | `framework-default` |
+ * | placeholderShown  | skeleton commit + next frame                                     | `commit+frame`      |
+ * | firstRender       | first content commit + next frame                                | `commit+frame`      |
+ * | largestRender     | Element Timing `renderTime` where supported, else largest committed element area + frame | `element-timing` / `largest-heuristic` |
+ * | interactive       | firstRender done ∧ render deps resolved                          | `framework-default` |
  * | complete          | render deps ∧ initial resources settled ∧ no layout shift for `layoutStableMs` | `framework-default` |
  *
  * Features may declare their own readiness (`readiness: { interactive: 'feature' }`); the
  * framework then ignores its default for that mark and waits for `signal()` (method
  * `readiness-signal`). Marks are recorded once per mount (`start()` resets).
+ * Mark keys are camelCase (shared with the runtime `FeatureManifest.readiness`); the
+ * kebab-case `'first-render'` is a deprecated alias for one release.
  */
 import { createNoopTelemetry, type Telemetry } from '@staticflux/core';
 import { type PerfEnv, type PerfEntryLike, supports } from './env.js';
-import { type FeatureMark, featureMarkMetrics, PERF_SUBSYSTEMS } from './telemetry.js';
+import { type FeatureMark, featureMarkMetrics, normalizeFeatureMark, PERF_SUBSYSTEMS } from './telemetry.js';
 
 export type MarkMethod = 'commit+frame' | 'element-timing' | 'largest-heuristic' | 'framework-default' | 'readiness-signal';
 
 export type ReadinessOwner = 'framework' | 'feature';
 
-/** Readiness declaration of a feature (matches the runtime `FeatureManifest.readiness`). */
+/** Marks a feature may own (R17.20) — same names as the runtime `ReadinessMark`. */
+export type ReadinessSignalMark = 'firstRender' | 'interactive' | 'complete';
+/** @deprecated kebab-case alias of `'firstRender'`, accepted for one release. */
+export type LegacyReadinessSignalMark = 'first-render';
+
+/** Readiness declaration of a feature (same shape as the runtime `FeatureManifest.readiness`). */
 export interface ReadinessDeclaration {
   readonly firstRender?: ReadinessOwner;
   readonly interactive?: ReadinessOwner;
   readonly complete?: ReadinessOwner;
+  /** @deprecated use `firstRender` (accepted for one release). */
+  readonly 'first-render'?: ReadinessOwner;
+}
+
+/** Canonical readiness declaration (drops the deprecated alias key). */
+function normalizeDeclaration(readiness: ReadinessDeclaration): Omit<ReadinessDeclaration, 'first-render'> {
+  const firstRender = readiness.firstRender ?? readiness['first-render'];
+  return {
+    ...(firstRender === undefined ? {} : { firstRender }),
+    ...(readiness.interactive === undefined ? {} : { interactive: readiness.interactive }),
+    ...(readiness.complete === undefined ? {} : { complete: readiness.complete }),
+  };
 }
 
 /** Element measurable by the largest-element heuristic. */
@@ -59,7 +78,7 @@ export interface FeatureMarks {
   /** A layout shift in the feature subtree (restarts the layout-stable window). */
   layoutShift(feature: string): void;
   /** Feature-declared readiness signal. */
-  signal(feature: string, mark: 'first-render' | 'interactive' | 'complete'): void;
+  signal(feature: string, mark: ReadinessSignalMark | LegacyReadinessSignalMark): void;
   /** Recorded marks of the current mount session (absolute times). */
   marks(feature: string): Readonly<Partial<Record<FeatureMark, { readonly at: number; readonly method: MarkMethod }>>>;
   dispose(): void;
@@ -85,14 +104,12 @@ interface Session {
   generation: number;
 }
 
-const ownerKey = { 'first-render': 'firstRender', interactive: 'interactive', complete: 'complete' } as const;
-
 export function createFeatureMarks(options: FeatureMarksOptions): FeatureMarks {
   const { env } = options;
   const telemetry = options.telemetry ?? createNoopTelemetry();
   const origin = options.origin ?? (() => 0);
   const layoutStableMs = options.layoutStableMs ?? 500;
-  const declarations = new Map<string, ReadinessDeclaration>();
+  const declarations = new Map<string, Omit<ReadinessDeclaration, 'first-render'>>();
   const sessions = new Map<string, Session>();
   const elementIds = new Map<string, string>();
   let disposed = false;
@@ -106,7 +123,7 @@ export function createFeatureMarks(options: FeatureMarksOptions): FeatureMarks {
     return session;
   };
 
-  const owner = (feature: string, mark: keyof typeof ownerKey): ReadinessOwner => declarations.get(feature)?.[ownerKey[mark]] ?? 'framework';
+  const owner = (feature: string, mark: ReadinessSignalMark): ReadinessOwner => declarations.get(feature)?.[mark] ?? 'framework';
 
   const record = (feature: string, mark: FeatureMark, at: number, method: MarkMethod): void => {
     if (disposed) return;
@@ -114,8 +131,8 @@ export function createFeatureMarks(options: FeatureMarksOptions): FeatureMarks {
     if (session.marks[mark] !== undefined) return;
     session.marks[mark] = { at, method };
     telemetry.record(featureMarkMetrics[mark], at - origin(), { feature, method, at });
-    telemetry.event(`feature.${mark}`, { subsystem: PERF_SUBSYSTEMS.marks, level: 'standard', attrs: { feature, method, at } });
-    if (mark === 'first-render') {
+    telemetry.event(featureMarkMetrics[mark].id.replace('/', '.'), { subsystem: PERF_SUBSYSTEMS.marks, level: 'standard', attrs: { feature, method, at } });
+    if (mark === 'firstRender') {
       session.firstRenderDone = true;
       maybeInteractive(feature);
     }
@@ -134,8 +151,8 @@ export function createFeatureMarks(options: FeatureMarksOptions): FeatureMarks {
 
   const finalizeLargest = (feature: string): void => {
     const session = sessionOf(feature);
-    if (session.largest === undefined || session.marks['largest-render'] !== undefined) return;
-    record(feature, 'largest-render', session.largest.at, session.largest.method);
+    if (session.largest === undefined || session.marks.largestRender !== undefined) return;
+    record(feature, 'largestRender', session.largest.at, session.largest.method);
   };
 
   const maybeInteractive = (feature: string): void => {
@@ -180,7 +197,7 @@ export function createFeatureMarks(options: FeatureMarksOptions): FeatureMarks {
 
   return {
     declare(feature, readiness) {
-      declarations.set(feature, readiness);
+      declarations.set(feature, normalizeDeclaration(readiness));
     },
     start(feature) {
       const session = sessionOf(feature);
@@ -200,7 +217,7 @@ export function createFeatureMarks(options: FeatureMarksOptions): FeatureMarks {
       });
     },
     placeholderCommitted(feature) {
-      afterFrame(feature, (time) => record(feature, 'placeholder-shown', time, 'commit+frame'));
+      afterFrame(feature, (time) => record(feature, 'placeholderShown', time, 'commit+frame'));
     },
     renderCommitted(feature, element) {
       const session = sessionOf(feature);
@@ -219,8 +236,8 @@ export function createFeatureMarks(options: FeatureMarksOptions): FeatureMarks {
           }
         });
       }
-      if (owner(feature, 'first-render') === 'framework') {
-        afterFrame(feature, (time) => record(feature, 'first-render', time, 'commit+frame'));
+      if (owner(feature, 'firstRender') === 'framework') {
+        afterFrame(feature, (time) => record(feature, 'firstRender', time, 'commit+frame'));
       }
     },
     renderDepsResolved(feature) {
@@ -245,7 +262,8 @@ export function createFeatureMarks(options: FeatureMarksOptions): FeatureMarks {
       const session = sessionOf(feature);
       if (session.cancelStable !== undefined) maybeComplete(feature);
     },
-    signal(feature, mark) {
+    signal(feature, signalled) {
+      const mark = normalizeFeatureMark(signalled);
       // First record wins: a feature signal for a framework-owned mark only counts if it comes first.
       record(feature, mark, env.now(), 'readiness-signal');
       if (mark === 'interactive') maybeComplete(feature);

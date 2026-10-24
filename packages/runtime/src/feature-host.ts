@@ -52,8 +52,10 @@ import type {
   FeatureUiContext,
   FeatureWeight,
   ReadinessMark,
+  ReadinessMarkInput,
   RetentionPolicy,
 } from './feature.js';
+import { normalizeReadinessMark } from './feature.js';
 import { defaultNow, runHook } from './hooks.js';
 import {
   type FeatureEvent,
@@ -65,6 +67,13 @@ import {
 import { RUNTIME_SUBSYSTEMS, runtimeMetrics, traceMachine } from './telemetry.js';
 
 const SUB = RUNTIME_SUBSYSTEMS.feature;
+
+/** Span event names stay kebab-case (telemetry naming), independent of the mark keys. */
+const READINESS_EVENTS: Readonly<Record<ReadinessMark, string>> = {
+  firstRender: 'feature.first-render',
+  interactive: 'feature.interactive',
+  complete: 'feature.complete',
+};
 
 export type FeatureLoader = (manifest: FeatureManifest, signal: AbortSignal) => Promise<Result<FeatureModule>>;
 
@@ -153,8 +162,8 @@ export interface FeatureHost {
   evict(id: FeatureId): Promise<Result<void>>;
   /** Mark as used now (LRU). */
   touch(id: FeatureId): void;
-  /** Report a readiness mark (R17.7/R17.20); recorded once per mount. */
-  mark(id: FeatureId, mark: ReadinessMark): void;
+  /** Report a readiness mark (R17.7/R17.20); recorded once per mount. `'first-render'` is a deprecated alias. */
+  mark(id: FeatureId, mark: ReadinessMarkInput): void;
   onTransition(listener: (transition: FeatureTransition) => void): () => void;
   /** Called when the last in-flight activate/mount of a feature settles (it is no longer `busy`). */
   onSettled(listener: (id: FeatureId) => void): () => void;
@@ -184,7 +193,8 @@ interface FeatureRecord {
   claims: number;
 }
 
-const defaultLoader: FeatureLoader = async (manifest, signal) => {
+/** The default feature loader: runs the manifest's own `load(signal)` (errors become `Result`s). */
+export const manifestFeatureLoader: FeatureLoader = async (manifest, signal) => {
   try {
     return ok(await manifest.load(signal));
   } catch (error) {
@@ -196,7 +206,7 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
   const parent = options.injector;
   const telemetry = options.telemetry ?? parent.telemetry;
   const archive = options.archive ?? createMemoryArchiveStore();
-  const loader = options.load ?? defaultLoader;
+  const loader = options.load ?? manifestFeatureLoader;
   const now = options.now ?? defaultNow;
   const gate = options.gate ?? (() => ok());
   const hostScope = createScope('feature-host');
@@ -852,12 +862,13 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
       const record = records.get(id);
       if (record !== undefined) record.lastUsed = now();
     },
-    mark(id, mark) {
+    mark(id, reported) {
+      const mark = normalizeReadinessMark(reported);
       const record = records.get(id);
       if (record === undefined || record.marks.has(mark) || !record.machine.is('mounted', 'hidden')) return;
       record.marks.add(mark);
       telemetry.record(runtimeMetrics.featureReadiness, now() - record.activationStart, { feature: id, mark });
-      record.logicContext?.span.event(`feature.${mark}`, { feature: id });
+      record.logicContext?.span.event(READINESS_EVENTS[mark], { feature: id });
     },
     onTransition(listener) {
       listeners.add(listener);

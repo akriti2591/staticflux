@@ -15,6 +15,7 @@ import {
   readGlobal,
   SAMPLE_USER_AGENTS as UA,
 } from './index.js';
+import * as inlineDetector from './detect-mode.js';
 
 
 describe('host mode detection (built-ins)', () => {
@@ -77,6 +78,13 @@ describe('env helpers', () => {
     const env = browserEnv();
     expect(env.globals).toBe(globalThis);
     expect(typeof mediaMatches(env, '(pointer: fine)')).toBe('boolean');
+  });
+
+  it('the detect-mode subpath exports browserEnv for the inline detector', () => {
+    expect(inlineDetector.browserEnv).toBe(browserEnv);
+    const detected = inlineDetector.detectMode(inlineDetector.browserEnv());
+    expect(detected.hostModeSource).toBe('detected');
+    expect(typeof detected.formFactor).toBe('string');
   });
 
   it('mediaMatches and readGlobal never throw', () => {

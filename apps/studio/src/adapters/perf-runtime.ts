@@ -2,7 +2,8 @@
  * Adapter: @staticflux/perf feature marks ⇄ @staticflux/runtime feature host (R17.7, R17.20).
  *
  * - Every mount starts a perf mark session for the feature (with its declared
- *   readiness ownership); first-render is measured by the framework.
+ *   readiness ownership, same `firstRender | interactive | complete` keys in both
+ *   packages); firstRender is measured by the framework.
  * - Features report the marks they own through `ReadinessToken`, which records them
  *   on both sides: the runtime readiness metric and the perf journey marks.
  */
@@ -12,7 +13,7 @@ import { defineSubsystem, FeatureHostToken, type FeatureId, type ReadinessMark, 
 
 export interface Readiness {
   report(feature: FeatureId, mark: ReadinessMark): void;
-  /** A content render committed (framework-measured first-render). */
+  /** A content render committed (framework-measured firstRender). */
   rendered(feature: FeatureId, element?: Element): void;
 }
 export const ReadinessToken = token('studio/readiness').type<Readiness>();
@@ -29,7 +30,7 @@ export const readinessUnit = unit({
     },
     rendered(feature, element) {
       marks.renderCommitted(feature, element);
-      host.mark(feature, 'first-render');
+      host.mark(feature, 'firstRender');
     },
   }),
 });
@@ -45,14 +46,7 @@ export const featureMarksSubsystemUnit = contribution({
       start: (ctx) => {
         for (const info of host.list()) {
           const readiness = host.handle(info.id)?.manifest.readiness;
-          // PACKAGE GAP (reported): runtime manifests use 'first-render' keys, perf uses camelCase.
-          if (readiness !== undefined) {
-            marks.declare(info.id, {
-              ...(readiness['first-render'] === undefined ? {} : { firstRender: readiness['first-render'] }),
-              ...(readiness.interactive === undefined ? {} : { interactive: readiness.interactive }),
-              ...(readiness.complete === undefined ? {} : { complete: readiness.complete }),
-            });
-          }
+          if (readiness !== undefined) marks.declare(info.id, readiness);
         }
         ctx.scope.defer(
           host.onTransition((t) => {

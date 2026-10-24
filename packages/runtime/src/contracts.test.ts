@@ -10,6 +10,8 @@ import {
   defaultPausedRequestPolicy,
   defineFeature,
   defineSubsystem,
+  normalizeReadinessMark,
+  READINESS_MARKS,
   featureMachine,
   featureRef,
   frameSchedulerSubsystem,
@@ -123,6 +125,16 @@ describe('contracts', () => {
     expect(Object.isFrozen(ref)).toBe(true);
     const sub = defineSubsystem({ id: 'worker/document', start: () => undefined });
     expect(sub.id).toBe('worker/document');
+  });
+
+  it('readiness marks are camelCase; the kebab-case first-render is a normalized deprecated alias', () => {
+    expect(READINESS_MARKS).toEqual(['firstRender', 'interactive', 'complete']);
+    expect(normalizeReadinessMark('first-render')).toBe('firstRender');
+    expect(normalizeReadinessMark('complete')).toBe('complete');
+    const legacy = defineFeature({ id: 'test/legacy', weight: 'warm', readiness: { 'first-render': 'feature', interactive: 'feature' }, load: async () => ({}) });
+    expect(legacy.readiness).toEqual({ firstRender: 'feature', interactive: 'feature' });
+    const canonical = defineFeature({ id: 'test/canonical', weight: 'warm', readiness: { firstRender: 'framework', complete: 'feature' }, load: async () => ({}) });
+    expect(canonical.readiness).toEqual({ firstRender: 'framework', complete: 'feature' });
   });
 
   it('frameSchedulerSubsystem pauses and resumes the scheduler; stop leaves it usable', async () => {

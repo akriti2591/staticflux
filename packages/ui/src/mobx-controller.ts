@@ -4,8 +4,8 @@
  * `MobxController` is a ReactiveController that tracks every observable read
  * while its host renders and requests an update when one of them changes —
  * fine-grained: only values actually read count. It is built on the core
- * reactivity port (`watch`), not on MobX directly, so the port stays the only
- * coupling to MobX.
+ * reactivity port (`createTracker`), not on MobX directly, so the port stays the
+ * only coupling to MobX.
  *
  * - `SfElement` wires it automatically around its update pass.
  * - Plain LitElements wrap their template: `render() { return this.mobx.track(() => html`…`); }`.
@@ -13,7 +13,7 @@
  *   dropped (observers released, so `onBecomeUnobserved` streams can stop) and one
  *   update is requested when it thaws.
  */
-import { untracked, watch } from '@staticflux/core';
+import { createTracker, untracked, type Tracker } from '@staticflux/core';
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
 
 /** One-shot dependency tracker: runs `fn` tracked, calls `onInvalidate` once when something it read changes. */
@@ -25,62 +25,54 @@ export interface RenderTracker {
 }
 
 /**
- * The core port exposes `watch(expression, effect)`. A one-shot tracker is built
- * from it: the expression runs `fn` on its first evaluation (tracking reads); on
- * invalidation it returns a different value without reading anything, which fires
- * the effect once and leaves the reaction with no dependencies; we then dispose it.
+ * Built on the core port's `createTracker` (a MobX Reaction): `track(fn)` runs `fn`
+ * synchronously and tracks its reads — also inside a batch/action — and the reaction
+ * is only notified after the tracked pass, so an observable that changes *during* the
+ * pass (e.g. a child connecting synchronously in a commit) cannot re-enter the tracker.
+ * A disposed reaction cannot track again, so `dispose()` drops it and the next
+ * `track()` starts a fresh one. Errors thrown by `fn` are rethrown to the caller (the
+ * reaction's own error boundary would only log them).
  */
-export function createRenderTracker(onInvalidate: () => void): RenderTracker {
-  let current: (() => void) | undefined;
-  let lastWasDeferred = false;
-  const stop = (): void => {
-    const dispose = current;
-    current = undefined;
-    dispose?.();
+export function createRenderTracker(onInvalidate: () => void, name = 'sf-ui/render'): RenderTracker {
+  let tracker: Tracker | undefined;
+  let watching = false;
+  const ensure = (): Tracker => {
+    if (tracker !== undefined) return tracker;
+    const created: Tracker = createTracker(name, () => {
+      // Ignore a stale notification from a tracker that has since been dropped.
+      if (tracker !== created || !watching) return;
+      watching = false;
+      onInvalidate();
+    });
+    tracker = created;
+    return created;
   };
   return {
     get watching() {
-      return current !== undefined;
+      return watching;
     },
     track<T>(fn: () => T): T {
-      stop();
-      let evaluated = false;
-      let result: T | undefined;
+      const active = ensure();
       let failure: { error: unknown } | undefined;
-      const dispose = watch(
-        () => {
-          if (!evaluated) {
-            evaluated = true;
-            try {
-              result = fn();
-            } catch (error) {
-              failure = { error };
-            }
-            return 0;
-          }
-          return 1;
-        },
-        () => {
-          if (current === dispose) current = undefined;
-          dispose();
-          onInvalidate();
-        },
-      );
-      if (!evaluated) {
-        // Created inside a batch/action: MobX defers the first run. Render untracked now
-        // and re-render once after the batch so tracking is re-established.
-        dispose();
-        const value = untracked(fn);
-        if (!lastWasDeferred) queueMicrotask(onInvalidate);
-        lastWasDeferred = true;
-        return value;
-      }
-      lastWasDeferred = false;
-      current = dispose;
+      let result: T | undefined;
+      // Watching before the pass: a change during the pass invalidates once, after it.
+      watching = true;
+      active.track(() => {
+        try {
+          result = fn();
+        } catch (error) {
+          failure = { error };
+        }
+      });
       if (failure !== undefined) throw failure.error;
       return result as T;
     },
-    dispose: stop,
+    dispose() {
+      watching = false;
+      const current = tracker;
+      tracker = undefined;
+      current?.dispose();
+    },
   };
 }
 
@@ -94,6 +86,7 @@ export class MobxController implements ReactiveController {
   private frozenState = false;
   private dirty = false;
   private connected = false;
+  private inPass = false;
 
   constructor(
     private readonly host: ReactiveControllerHost,
@@ -115,7 +108,12 @@ export class MobxController implements ReactiveController {
   /** Run `fn` (the render) tracked. Untracked while frozen or disconnected. */
   track<T>(fn: () => T): T {
     if (this.frozenState || !this.connected) return untracked(fn);
-    return this.tracker.track(fn);
+    this.inPass = true;
+    try {
+      return this.tracker.track(fn);
+    } finally {
+      this.inPass = false;
+    }
   }
 
   /** Stop reacting (hidden). Observers are released; one update is requested on thaw. */
@@ -153,6 +151,12 @@ export class MobxController implements ReactiveController {
   private invalidate(): void {
     if (this.frozenState || !this.connected) {
       this.dirty = true;
+      return;
+    }
+    // Invalidated by a change made during the host's own update: Lit ignores
+    // `requestUpdate()` while an update is pending, so ask again once it finished.
+    if (this.inPass) {
+      queueMicrotask(() => this.invalidate());
       return;
     }
     this.request();

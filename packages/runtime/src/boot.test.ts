@@ -5,7 +5,10 @@ import {
   CommandPolicyToken,
   defineFeature,
   FeatureHostToken,
+  FeatureLoaderToken,
+  type FeatureLoader,
   FeatureManifestsToken,
+  manifestFeatureLoader,
   FrameSchedulerToken,
   PausedRequestPolicyToken,
   ResourceManagerToken,
@@ -125,5 +128,54 @@ describe('bootApp', () => {
     await result.value.injector.get(ShellToken);
     await result.value.shutdown();
     expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('the feature host loads modules through a bound FeatureLoaderToken (regression: no DI loader)', async () => {
+    const seen: string[] = [];
+    const loaderUnit = unit({
+      id: 'test/feature-loader',
+      provides: FeatureLoaderToken,
+      scope: 'app',
+      create: (): FeatureLoader => async (manifest, signal) => {
+        seen.push(manifest.id);
+        return manifestFeatureLoader(manifest, signal);
+      },
+    });
+    const result = await bootApp({ units: [...runtimeUnits, editorContribution, loaderUnit] });
+    if (!result.ok) throw result.error;
+    const host = await result.value.injector.get(FeatureHostToken);
+    if (!host.ok) throw host.error;
+    expect((await host.value.activate('test/editor')).ok).toBe(true);
+    expect(seen).toEqual(['test/editor']);
+    await result.value.shutdown();
+  });
+
+  it('a bound feature loader that fails is surfaced as the activation error', async () => {
+    const loaderUnit = unit({
+      id: 'test/failing-feature-loader',
+      provides: FeatureLoaderToken,
+      scope: 'app',
+      create: (): FeatureLoader => async () => err(Boom()),
+    });
+    const result = await bootApp({ units: [...runtimeUnits, editorContribution, loaderUnit] });
+    if (!result.ok) throw result.error;
+    const host = await result.value.injector.get(FeatureHostToken);
+    if (!host.ok) throw host.error;
+    const activated = await host.value.activate('test/editor');
+    expect(activated.ok).toBe(false);
+    await result.value.shutdown();
+  });
+
+  it('without a FeatureLoaderToken binding the host falls back to manifest.load', async () => {
+    const load = vi.fn(async () => ({}));
+    const feature = defineFeature({ id: 'test/plain', weight: 'warm', load });
+    const contributionUnit = unit({ id: 'test/plain-manifest', provides: FeatureManifestsToken, scope: 'app', create: () => feature as never });
+    const result = await bootApp({ units: [...runtimeUnits, contributionUnit] });
+    if (!result.ok) throw result.error;
+    const host = await result.value.injector.get(FeatureHostToken);
+    if (!host.ok) throw host.error;
+    expect((await host.value.activate('test/plain')).ok).toBe(true);
+    expect(load).toHaveBeenCalledOnce();
+    await result.value.shutdown();
   });
 });

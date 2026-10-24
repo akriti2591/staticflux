@@ -5,7 +5,7 @@
 import { type Injector, token } from '@staticflux/core';
 import type { ArchiveStore } from './archive.js';
 import type { FeatureManifest } from './feature.js';
-import type { FeatureHost } from './feature-host.js';
+import type { FeatureHost, FeatureLoader } from './feature-host.js';
 import type { CommandPolicy, PausedRequestPolicy } from './policy.js';
 import type { MemoryPressure, ReactiveInput, ResourceManager } from './resource-manager.js';
 import type { FrameScheduler } from './scheduler.js';
@@ -19,6 +19,12 @@ export const AppInjectorToken = token('runtime/app-injector').type<Injector>();
 
 export const FrameSchedulerToken = token('runtime/frame-scheduler').type<FrameScheduler>();
 export const FeatureHostToken = token('runtime/feature-host').type<FeatureHost>();
+/**
+ * How the feature host loads feature modules (e.g. through the loader package's chunk
+ * loader: chunk ids, gating I-8, dedup, retries). Optional: when unbound, the host runs
+ * `manifest.load(signal)` (`manifestFeatureLoader`). Resolved on the first activation.
+ */
+export const FeatureLoaderToken = token('runtime/feature-loader').type<FeatureLoader>();
 export const ResourceManagerToken = token('runtime/resource-manager').type<ResourceManager>();
 export const ArchiveStoreToken = token('runtime/archive-store').type<ArchiveStore>();
 /** Reactive memory-pressure fact (the platform package binds the real one). */

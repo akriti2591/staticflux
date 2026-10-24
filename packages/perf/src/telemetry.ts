@@ -17,15 +17,38 @@ export const PERF_SUBSYSTEMS = {
   budgets: 'perf/budgets',
 } as const satisfies Record<string, Subsystem>;
 
-/** Feature marks (R17.7), framework-measured. */
-export const FEATURE_MARKS = ['placeholder-shown', 'first-render', 'largest-render', 'interactive', 'complete'] as const;
+/**
+ * Feature marks (R17.7), framework-measured. Mark keys are camelCase everywhere
+ * (manifests, readiness signals, budgets, journey summaries); the telemetry metric
+ * ids / event names stay `feature/first-render` / `feature.first-render`.
+ */
+export const FEATURE_MARKS = ['placeholderShown', 'firstRender', 'largestRender', 'interactive', 'complete'] as const;
 export type FeatureMark = (typeof FEATURE_MARKS)[number];
+
+/**
+ * @deprecated kebab-case mark names, accepted for one release (normalized by
+ * `normalizeFeatureMark`). Use the camelCase `FeatureMark`.
+ */
+export type LegacyFeatureMark = 'placeholder-shown' | 'first-render' | 'largest-render';
+/** A mark name as accepted by APIs during the deprecation window. */
+export type FeatureMarkInput = FeatureMark | LegacyFeatureMark;
+
+const LEGACY_FEATURE_MARKS: Readonly<Record<LegacyFeatureMark, FeatureMark>> = {
+  'placeholder-shown': 'placeholderShown',
+  'first-render': 'firstRender',
+  'largest-render': 'largestRender',
+};
+
+/** Canonical (camelCase) form of a mark name; maps the deprecated kebab-case aliases. */
+export function normalizeFeatureMark(mark: FeatureMarkInput): FeatureMark {
+  return (LEGACY_FEATURE_MARKS as Readonly<Record<string, FeatureMark>>)[mark] ?? (mark as FeatureMark);
+}
 
 /** Declared mark metrics, one per feature mark (attrs: feature, method, at). */
 export const featureMarkMetrics = {
-  'placeholder-shown': metric.mark('feature/placeholder-shown', { description: 'feature.placeholder-shown: feature skeleton painted.' }),
-  'first-render': metric.mark('feature/first-render', { description: 'feature.first-render: first content render committed and painted.' }),
-  'largest-render': metric.mark('feature/largest-render', { description: 'feature.largest-render: largest element of the feature painted.' }),
+  placeholderShown: metric.mark('feature/placeholder-shown', { description: 'feature.placeholder-shown: feature skeleton painted.' }),
+  firstRender: metric.mark('feature/first-render', { description: 'feature.first-render: first content render committed and painted.' }),
+  largestRender: metric.mark('feature/largest-render', { description: 'feature.largest-render: largest element of the feature painted.' }),
   interactive: metric.mark('feature/interactive', { description: 'feature.interactive: handlers attached, render deps ready.' }),
   complete: metric.mark('feature/complete', { description: 'feature.complete: deps + initial resources settled + layout stable.' }),
 } as const satisfies Record<FeatureMark, unknown>;

@@ -24,7 +24,10 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
   → core-ready → running; spans `app.boot` / `boot.core` / `boot.critical` (subsystem `runtime/app`).
 - `feature.ts` — `defineFeature({ id, weight, retention, modes, units, requires: { features }, budget, readiness, headless, load })`,
   `defineFeatureModule({ units, activate, deactivate, mount, visible, hide, unmount, snapshot, restore })`, `featureRef`.
-- `feature-host.ts` — `createFeatureHost({ injector, archive, gate, load })`: `register`, `load`, `activate`, `mount`,
+  Readiness marks are camelCase — `READINESS_MARKS` = `firstRender | interactive | complete` (same keys as perf);
+  `'first-render'` is a deprecated alias for one release (`normalizeReadinessMark`, `normalizeReadiness`; `defineFeature`
+  and `host.mark` normalize it).
+- `feature-host.ts` — `createFeatureHost({ injector, archive, gate, load })` (`FeatureLoader`, default `manifestFeatureLoader`): `register`, `load`, `activate`, `mount`,
   `hide`, `show`, `unmount`, `deactivate`, `archive`, `evict`, `handle` (reactive), `info`, `list`, `refCount`,
   `touch`, `mark` (readiness marks), `onTransition`, `onSettled`, `dispose`.
 - `archive.ts` — `ArchiveStore` port, `SnapshotEnvelope` (`sf-snapshot/1`, shared with handoff), `createMemoryArchiveStore`,
@@ -36,7 +39,8 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
   (priorities `interaction | critical | visible | idle`), `yieldToMain`, `idleUntilUrgent`, `flush`, `pause/resume`;
   free `yieldToMain()`, `defaultMacrotask`, `defaultIdle`.
 - `tokens.ts` — `SupervisorToken`, `AppInjectorToken` (both provided by `bootApp`), `FrameSchedulerToken`,
-  `FeatureHostToken`, `ResourceManagerToken`, `ArchiveStoreToken`, `MemoryPressureToken`, `CommandPolicyToken`,
+  `FeatureHostToken`, `FeatureLoaderToken` (optional; `featureHostUnit` loads modules through it when bound, e.g. the
+  loader package's chunk loader — else `manifest.load`), `ResourceManagerToken`, `ArchiveStoreToken`, `MemoryPressureToken`, `CommandPolicyToken`,
   `PausedRequestPolicyToken`, `FeatureManifestsToken` (multi), `SubsystemsToken` (multi), `BOOT_PROVIDED_TOKENS`.
 - `units.ts` — `runtimeUnits` (all defaults), `frameSchedulerUnit`, `frameSchedulerSubsystemUnit`, `memoryArchiveStoreUnit`, `registryArchiveStoreUnit` (storage registry, device scope, namespace `runtime/archive`),
   `nominalMemoryPressureUnit`, `featureHostUnit`, `resourceManagerUnit`, `resourceManagerUnitWith(budgets)`, `frameSchedulerSubsystem`.

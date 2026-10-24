@@ -59,10 +59,10 @@ describe('journey tracer', () => {
     const orphan = telemetry.span('misc.thing', { subsystem: 'x/y' });
     orphan.end();
 
-    mark(telemetry, 'first-render', 'studio', 300);
-    mark(telemetry, 'largest-render', 'studio', 320, 'largest-heuristic');
-    mark(telemetry, 'largest-render', 'studio', 340, 'element-timing');
-    mark(telemetry, 'first-render', 'studio', 999);
+    mark(telemetry, 'firstRender', 'studio', 300);
+    mark(telemetry, 'largestRender', 'studio', 320, 'largest-heuristic');
+    mark(telemetry, 'largestRender', 'studio', 340, 'element-timing');
+    mark(telemetry, 'firstRender', 'studio', 999);
     telemetry.record(featureMarkMetrics.interactive, 1, { method: 'x' }); // no feature attr → ignored
     at(400);
     mark(telemetry, 'complete', 'studio', 400, 'framework-default');
@@ -74,8 +74,8 @@ describe('journey tracer', () => {
     expect(s.duration).toBe(400);
     expect(s.classification).toEqual({ start: 'cold', activation: 'fresh', code: 'network', data: 'cache' });
     expect(s.marks['studio']).toEqual({
-      'first-render': { value: 300, method: 'commit+frame' },
-      'largest-render': { value: 340, method: 'element-timing' },
+      'firstRender': { value: 300, method: 'commit+frame' },
+      'largestRender': { value: 340, method: 'element-timing' },
       complete: { value: 400, method: 'framework-default' },
     });
     expect(s.phases.map((p) => [p.phase, p.start, p.end, p.total, p.spanCount])).toEqual([
@@ -137,8 +137,8 @@ describe('journey tracer', () => {
   it('all-features completion waits for every marking feature; manual completion never auto-ends', () => {
     const { telemetry, tracker, summaries } = setup();
     tracker.begin({ start: 'soft' });
-    mark(telemetry, 'first-render', 'studio', 10);
-    mark(telemetry, 'first-render', 'agent-chat', 12);
+    mark(telemetry, 'firstRender', 'studio', 10);
+    mark(telemetry, 'firstRender', 'agent-chat', 12);
     mark(telemetry, 'complete', 'studio', 20);
     expect(summaries).toHaveLength(0);
     mark(telemetry, 'complete', 'agent-chat', 30);

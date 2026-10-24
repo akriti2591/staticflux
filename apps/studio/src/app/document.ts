@@ -2,18 +2,15 @@
  * The document runtime as app-level units — loaded lazily (R12.12): nothing here
  * imports the worker/document packages. The first unit that needs a document
  * (an editor feature, or a document capability) resolves `DocumentRuntimeToken`,
- * whose `init` dynamically imports the runtime chunk, builds the core-context hub,
+ * whose `init` dynamically imports the runtime chunk, registers the core-context
+ * contributions + hub (worker-core adapter) into the app injector, builds
  * the supervised document worker and its replicas, and registers the worker as a
  * runtime subsystem (late registration starts it right away).
  */
 import { err, ok, type Result, toSfError, token, unit } from '@staticflux/core';
 import type { DocumentArchive } from '@staticflux/document';
-import { SessionToken } from '@staticflux/auth';
-import { FlagResolverToken } from '@staticflux/config';
 import { DataClientToken } from '@staticflux/data';
-import { GateToken } from '@staticflux/gate';
-import { PlatformFactsToken } from '@staticflux/platform';
-import { SupervisorToken } from '@staticflux/runtime';
+import { AppInjectorToken, SupervisorToken } from '@staticflux/runtime';
 import type { Spawner } from '@staticflux/worker';
 import { type DocumentStore, DocumentStoreToken, type PresenceFeed, PresenceToken } from './contracts.js';
 
@@ -38,9 +35,10 @@ export function documentRuntimeUnit(spawn: Spawner) {
     provides: DocumentRuntimeToken,
     scope: 'app',
     deps: {
-      required: { client: DataClientToken, session: SessionToken, flags: FlagResolverToken, gate: GateToken, platform: PlatformFactsToken, supervisor: SupervisorToken },
+      required: { client: DataClientToken, injector: AppInjectorToken, supervisor: SupervisorToken },
     },
-    create: ({ client, session, flags, gate, platform, supervisor }, ctx): DocumentRuntimeHolder => {
+    // Deps are captured here (create) and used by `init` through the holder (core AGENTS.md).
+    create: ({ client, injector, supervisor }, ctx): DocumentRuntimeHolder => {
       const holder: DocumentRuntimeHolder = {
         current: undefined,
         async load(signal) {
@@ -52,8 +50,10 @@ export function documentRuntimeUnit(spawn: Spawner) {
             return err(toSfError(error));
           }
           if (signal.aborted) return err(toSfError(signal.reason));
-          const hub = contexts.createCoreContextHub({ session, flags, gate, platform, telemetry: ctx.telemetry, span: ctx.span, scope: ctx.scope });
-          const created = runtime.createDocumentRuntime({ spawn, contexts: hub, client, telemetry: ctx.telemetry, scope: ctx.scope });
+          // Core contexts are DI contributions (each with its own deps), registered with the chunk.
+          const hub = await contexts.resolveCoreContextHub(injector, signal);
+          if (!hub.ok) return hub;
+          const created = runtime.createDocumentRuntime({ spawn, contexts: hub.value, client, telemetry: ctx.telemetry, scope: ctx.scope });
           holder.current = created;
           const registered = supervisor.register(created.subsystem);
           return registered.ok ? ok() : registered;

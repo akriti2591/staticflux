@@ -125,3 +125,10 @@ export const ProtocolMismatchError = defineError(
   'The worker speaks a different protocol (id or version) than the supervisor.',
   'Deploy the worker bundle together with the main bundle; bump protocol versions on breaking changes.',
 );
+
+export const DuplicateContextError = defineError(
+  'SF-WK-031',
+  'invariant',
+  'Two core-context entries for the context hub use the same key.',
+  'Contribute each context key once to `CoreContextsToken` (and not again in `contextHubUnit({ entries })`); the `details` name the key.',
+);

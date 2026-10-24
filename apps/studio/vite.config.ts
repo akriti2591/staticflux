@@ -11,7 +11,9 @@ const packagesDir = fileURLToPath(new URL('../../packages', import.meta.url));
 
 export default defineConfig({
   // Logical chunk names, sf-manifest.json, SW precache list, build report + budget check (R12.7).
-  plugins: [staticflux({ chunks: chunkDeclarations, budgets: { onViolation: 'warn', bootKb: 150 } })],
+  // `bootEntries`: main.ts import()s the boot module right after the inline mode detector, so its
+  // closure is boot code (boot cost, and feature chunk budgets count only bytes beyond it).
+  plugins: [staticflux({ chunks: chunkDeclarations, bootEntries: ['src/boot-browser.ts'], budgets: { onViolation: 'warn', bootKb: 150 } })],
   resolve: {
     alias: [
       { find: /^@staticflux\/([^/]+)\/(.+)$/, replacement: `${packagesDir}/$1/src/$2.ts` },

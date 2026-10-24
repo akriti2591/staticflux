@@ -22,9 +22,25 @@ import { type ContextEntry, type ContextHub, createContextHub } from './context.
 import type { AnyProtocol } from './protocol.js';
 import { createSupervisedWorker, type SupervisedWorker, type WorkerSpec } from './supervisor.js';
 import { createTokenBroker, type TokenBroker, type TokenBrokerOptions } from './broker.js';
+import { DuplicateContextError } from './errors.js';
 
 export const ContextHubToken = token('worker/context-hub').type<ContextHub>();
 export const TokenBrokerToken = token('worker/token-broker').type<TokenBroker>();
+/**
+ * Core-context entries for the hub, one contribution per context (R11.1). Each
+ * contribution declares its own deps, so sources are injected services:
+ *
+ * @example
+ * const sessionContextUnit = contribution({
+ *   id: 'app/session-context',
+ *   provides: CoreContextsToken,
+ *   scope: 'app',
+ *   deps: { required: { session: SessionToken } },
+ *   create: ({ session }) => provideContext(CoreContexts.session, reactiveSource(() => ({ status: session.state }))),
+ * });
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const CoreContextsToken = token('worker/core-contexts').multi<ContextEntry<any>>();
 
 export interface SupervisedWorkerUnitOptions<P extends AnyProtocol, Id extends TokenId> {
   readonly id: TokenId;
@@ -63,21 +79,43 @@ export function supervisedWorkerUnit<P extends AnyProtocol, const Id extends Tok
   });
 }
 
-/** A unit providing the core-context hub (entries built from the unit context). */
-export function contextHubUnit(options: {
-  readonly id: TokenId;
+export interface ContextHubUnitOptions {
+  /** Default `worker/context-hub-unit`. */
+  readonly id?: TokenId;
+  /** Extra entries built from the unit context (in addition to `CoreContextsToken` contributions). */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly entries: (context: UnitContext) => readonly ContextEntry<any>[];
-}): UnitDefinition<ContextHub, Record<never, never>, 'worker/context-hub'> {
-  return unit<ContextHub, Record<never, never>, 'worker/context-hub'>({
-    id: options.id,
+  readonly entries?: (context: UnitContext) => readonly ContextEntry<any>[];
+}
+
+export type ContextHubUnit = UnitDefinition<
+  ContextHub,
+  { readonly required: { readonly contributed: typeof CoreContextsToken } },
+  'worker/context-hub'
+>;
+
+/**
+ * A unit providing the core-context hub. Entries are every `CoreContextsToken`
+ * contribution (each with its own deps) plus `options.entries(context)`. A key
+ * contributed twice fails creation with SF-WK-031.
+ */
+export function contextHubUnit(options: ContextHubUnitOptions = {}): ContextHubUnit {
+  return unit({
+    id: options.id ?? 'worker/context-hub-unit',
     provides: ContextHubToken,
     scope: 'app',
-    create: (_deps, context) => {
-      const hub = createContextHub({ entries: options.entries(context), telemetry: context.telemetry });
+    deps: { required: { contributed: CoreContextsToken } },
+    create: ({ contributed }, context) => {
+      const entries = [...contributed, ...(options.entries?.(context) ?? [])];
+      const seen = new Set<string>();
+      for (const entry of entries) {
+        if (seen.has(entry.key.id)) throw DuplicateContextError({ details: { context: entry.key.id } });
+        seen.add(entry.key.id);
+      }
+      const hub = createContextHub({ entries, telemetry: context.telemetry });
       context.scope.defer(() => hub.dispose());
       return hub;
     },
+    description: 'Core-context hub over CoreContextsToken contributions (R11.1).',
   });
 }
 

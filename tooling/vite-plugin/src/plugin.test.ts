@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { chunk, defineBootPlan, parseManifest, type ProfileLike, type RollupLikeOutput, type SfManifest } from '@staticflux/loader';
 import { describe, expect, it } from 'vitest';
-import { ALL_PROFILES, computeArtifacts } from './artifacts.js';
+import { ALL_PROFILES, buildReportJson, computeArtifacts } from './artifacts.js';
 import { chunkNameFor, devBundlerOutput, devUrlOf, isModuleEntry, moduleEntries, RESOLVED_VIRTUAL_CHUNKS_ID, renderChunksModule, VIRTUAL_CHUNKS_ID } from './chunks-module.js';
 import { preloadTags, renderTags } from './html.js';
 import { crossOriginFor, isolationHeaders } from './isolation.js';
@@ -451,5 +451,82 @@ describe('helpers', () => {
     expect(r.ok && r.value.violations.map((v) => v.kind)).toEqual(['boot']);
     expect(r.ok && r.value.manifest.buildId).toMatch(/^[0-9a-f]{12}$/);
     expect(r.ok && r.value.preloads).toBeUndefined();
+  });
+
+  it('regression: feature chunk budgets count only bytes not already in the boot set', () => {
+    const output = {
+      chunks: [
+        { fileName: 'index-11111111.js', name: 'index', moduleId: '/r/index.html', imports: ['shared-22222222.js'], sizeKb: 1 },
+        { fileName: 'shared-22222222.js', name: 'shared', imports: [], sizeKb: 64 },
+        { fileName: 'feature.a-33333333.js', name: 'feature.a', moduleId: '/r/src/a.ts', imports: ['shared-22222222.js'], sizeKb: 1.5 },
+        { fileName: 'feature.b-44444444.js', name: 'feature.b', moduleId: '/r/src/b.ts', imports: ['shared-22222222.js', 'own-55555555.js'], sizeKb: 2 },
+        { fileName: 'own-55555555.js', name: 'own', imports: [], sizeKb: 49 },
+      ],
+    };
+    const declarations = buildDeclarations([
+      chunk('feature:a', { entry: 'src/a.ts', budget: { category: 'feature' } }),
+      chunk('feature:b', { entry: 'src/b.ts', budget: { category: 'feature' } }),
+    ]);
+    const r = computeArtifacts(output, { base: '/', declarations, entries: ['index-11111111.js'] });
+    if (!r.ok) throw r.error;
+    expect(r.value.chunkCosts).toEqual([
+      { chunk: 'feature:a', sizeKb: 65.5, incrementalKb: 1.5, budgetKb: 50 },
+      { chunk: 'feature:b', sizeKb: 115, incrementalKb: 51, budgetKb: 50 },
+    ]);
+    expect(r.value.violations).toEqual([
+      { kind: 'chunk', subject: 'feature:b', actualKb: 51, budgetKb: 50, message: 'Chunk "feature:b" is 51 KB gzip, budget 50 KB.' },
+    ]);
+    expect(r.value.report.overBudget).toEqual([{ chunk: 'feature:b', sizeKb: 51, budgetKb: 50 }]);
+    expect((buildReportJson(r.value) as { chunks: unknown[] }).chunks).toHaveLength(2);
+    // Without the entry the shared code is not boot code: the full closure counts (old behaviour).
+    const noEntry = computeArtifacts(output, { base: '/', declarations });
+    expect(noEntry.ok && noEntry.value.violations.map((v) => v.subject)).toEqual(['feature:a', 'feature:b']);
+  });
+
+  it('regression: without boot plans the boot set defaults to the entry chunk static closure (not 0 KB)', () => {
+    // No boot plans / profiles at all.
+    const plugin = staticflux({ chunks: [chunk('feature:studio', { entry: 'src/features/studio.ts', budget: { category: 'feature' } })], sizeOf, buildId: 'b1', budgets: { bootKb: 10 } });
+    hook(plugin, 'configResolved').call(plugin, { root: ROOT, base: '/', command: 'build', logger: { info: () => undefined, warn: () => undefined } });
+    const bundle = fakeBundle();
+    bundle['assets/index-AAAAAAAA.js'] = { ...(bundle['assets/index-AAAAAAAA.js'] as RollupLikeOutput), isEntry: true } as RollupLikeOutput;
+    // Emitted logical chunks are bundler entries too; they must not count as app entries.
+    bundle['assets/feature.studio-EEEEEEEE.js'] = { ...(bundle['assets/feature.studio-EEEEEEEE.js'] as RollupLikeOutput), isEntry: true } as RollupLikeOutput;
+    const ctx = runGenerate(plugin, bundle);
+    const report = emittedJson(ctx, 'sf-build-report.json') as { boot: { profile: string; bootKb: number }[]; chunks: { chunk: string; incrementalKb: number }[] };
+    expect(report.boot).toEqual([{ profile: ALL_PROFILES, bootKb: 28, eagerKb: 0 }]); // index 3 + lib.shell 10 + lib.vendor 15
+    expect(report.chunks.find((c) => c.chunk === 'feature:studio')?.incrementalKb).toBe(40); // vendor already booted
+    expect(ctx.warnings).toEqual(['SF-VITE-002: Boot JS for profile "*" is 28 KB gzip, budget 10 KB.']);
+  });
+
+  it('bootEntries add dynamically imported boot modules to the boot set', () => {
+    const output = {
+      chunks: [
+        { fileName: 'index-11111111.js', name: 'index', moduleId: '/r/index.html', imports: [], sizeKb: 1 },
+        { fileName: 'boot-22222222.js', name: 'boot', moduleId: '/r/src/boot-browser.ts', imports: ['shared-33333333.js'], sizeKb: 20 },
+        { fileName: 'shared-33333333.js', name: 'shared', imports: [], sizeKb: 60 },
+        { fileName: 'feature.a-44444444.js', name: 'feature.a', moduleId: '/r/src/a.ts', imports: ['shared-33333333.js'], sizeKb: 2 },
+      ],
+    };
+    const declarations = buildDeclarations([chunk('feature:a', { entry: 'src/a.ts', budget: { category: 'feature' } })]);
+    const r = computeArtifacts(output, { base: '/', declarations, entries: ['index-11111111.js'], bootEntries: ['src/boot-browser.ts'] });
+    if (!r.ok) throw r.error;
+    expect(r.value.boot).toEqual([{ profile: ALL_PROFILES, plan: undefined, bootKb: 81, eagerKb: 0 }]);
+    expect(r.value.chunkCosts).toEqual([{ chunk: 'feature:a', sizeKb: 62, incrementalKb: 2, budgetKb: 50 }]);
+    expect(r.value.violations).toEqual([]);
+  });
+
+  it('per-profile boot sets: a chunk outside the plan counts only bytes beyond that profile boot set', () => {
+    const extra = chunk('feature:settings', { entry: 'src/features/settings.ts', budget: { maxKb: 5 } });
+    const { plugin } = makePlugin({ chunks: [...chunks, extra] });
+    const bundle = fakeBundle();
+    bundle['assets/feature.settings-GGGGGGGG.js'] = js('assets/feature.settings-GGGGGGGG.js', 4, {
+      name: 'feature.settings',
+      facadeModuleId: `${ROOT}/src/features/settings.ts`,
+      imports: ['assets/lib.vendor-CCCCCCCC.js'],
+    });
+    const ctx = runGenerate(plugin, bundle);
+    const report = emittedJson(ctx, 'sf-build-report.json') as { chunks: { chunk: string; sizeKb: number; incrementalKb: number }[] };
+    expect(report.chunks.find((c) => c.chunk === 'feature:settings')).toEqual({ chunk: 'feature:settings', sizeKb: 19, incrementalKb: 4, budgetKb: 5 });
+    expect(ctx.warnings.some((w) => w.includes('feature:settings'))).toBe(false);
   });
 });

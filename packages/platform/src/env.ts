@@ -90,11 +90,11 @@ export function browserEnv(): PlatformEnv {
     navigator?: NavigatorLike;
     matchMedia?: (query: string) => MediaQueryListLike;
   };
-  const win = g.window;
+  // Part of the inline detector (≤ 1.1 KB): keep this minimal. `bind` keeps `this === globalThis`.
   return {
-    window: win,
+    window: g.window,
     navigator: g.navigator,
-    matchMedia: typeof g.matchMedia === 'function' ? (query) => (g.matchMedia as (q: string) => MediaQueryListLike)(query) : undefined,
+    matchMedia: g.matchMedia?.bind(g),
     globals: g,
   };
 }

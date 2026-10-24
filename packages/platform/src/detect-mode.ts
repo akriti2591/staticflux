@@ -12,6 +12,10 @@
 import { isEmbedded, mediaMatches, type PlatformEnv, readGlobal } from './env.js';
 import { BUILT_IN_FORM_FACTORS, type FormFactorDefinition, type FormFactorId } from './form-factor.js';
 
+/** The real browser environment for the inline detector: `detectMode(browserEnv())`. */
+export { browserEnv } from './env.js';
+export type { PlatformEnv } from './env.js';
+
 /** Open set of host mode ids; extend via declaration merging (R18.3a). */
 export interface HostModeRegistry {
   web: true;

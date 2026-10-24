@@ -41,8 +41,39 @@ export function featureRef<const Id extends FeatureId>(id: Id): FeatureRef<Id> {
   return Object.freeze({ id });
 }
 
-export const READINESS_MARKS = ['first-render', 'interactive', 'complete'] as const;
+/**
+ * Readiness marks a feature may own (R17.20). camelCase, the same names perf uses
+ * (`firstRender | interactive | complete`, plus perf's `placeholderShown | largestRender`).
+ */
+export const READINESS_MARKS = ['firstRender', 'interactive', 'complete'] as const;
 export type ReadinessMark = (typeof READINESS_MARKS)[number];
+/** @deprecated kebab-case alias of `'firstRender'`, accepted for one release. */
+export type LegacyReadinessMark = 'first-render';
+/** A readiness mark as accepted by APIs during the deprecation window. */
+export type ReadinessMarkInput = ReadinessMark | LegacyReadinessMark;
+
+export type ReadinessOwner = 'framework' | 'feature';
+
+/** Who reports each readiness mark (R17.20). */
+export type ReadinessDeclaration = { readonly [K in ReadinessMark]?: ReadinessOwner } & {
+  /** @deprecated use `firstRender` (accepted for one release; `defineFeature` normalizes it). */
+  readonly 'first-render'?: ReadinessOwner;
+};
+
+/** Canonical (camelCase) readiness mark; maps the deprecated `'first-render'`. */
+export function normalizeReadinessMark(mark: ReadinessMarkInput): ReadinessMark {
+  return mark === 'first-render' ? 'firstRender' : mark;
+}
+
+/** Canonical readiness declaration: the deprecated `'first-render'` key becomes `firstRender`. */
+export function normalizeReadiness(readiness: ReadinessDeclaration): { readonly [K in ReadinessMark]?: ReadinessOwner } {
+  const firstRender = readiness.firstRender ?? readiness['first-render'];
+  return {
+    ...(firstRender === undefined ? {} : { firstRender }),
+    ...(readiness.interactive === undefined ? {} : { interactive: readiness.interactive }),
+    ...(readiness.complete === undefined ? {} : { complete: readiness.complete }),
+  };
+}
 
 export interface FeatureBudget {
   readonly loadMs?: number;
@@ -63,7 +94,7 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
   readonly requires?: { readonly features?: readonly FeatureRef[] };
   readonly budget?: FeatureBudget;
   /** Who reports each readiness mark: the framework (default) or the feature itself (R17.20). */
-  readonly readiness?: { readonly [K in ReadinessMark]?: 'framework' | 'feature' };
+  readonly readiness?: ReadinessDeclaration;
   /** Headless features have no UI (R5.7); mount() is rejected for them. */
   readonly headless?: boolean;
   /** Version of the archived snapshot shape (default 1). */
@@ -128,7 +159,11 @@ export interface FeatureModule {
 export function defineFeature<const Id extends FeatureId>(
   manifest: Omit<FeatureManifest<Id>, 'kind'> & { readonly kind?: 'feature' },
 ): FeatureManifest<Id> {
-  return { ...manifest, kind: 'feature' };
+  return {
+    ...manifest,
+    ...(manifest.readiness === undefined ? {} : { readiness: normalizeReadiness(manifest.readiness) }),
+    kind: 'feature',
+  };
 }
 
 /** Declare a feature module (typed identity). */

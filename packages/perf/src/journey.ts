@@ -315,7 +315,7 @@ export function createJourneyTracker(options: JourneyTrackerOptions): JourneyTra
     const at = typeof record.attrs['at'] === 'number' ? record.attrs['at'] : record.time;
     const method = typeof record.attrs['method'] === 'string' ? record.attrs['method'] : 'unknown';
     const marks = (journey.marks[feature] ??= {});
-    if (marks[mark] === undefined || mark === 'largest-render') marks[mark] = { value: Math.max(0, at - journey.startedAt), method };
+    if (marks[mark] === undefined || mark === 'largestRender') marks[mark] = { value: Math.max(0, at - journey.startedAt), method };
     if (completion === 'all-features' && mark === 'complete') {
       const all = Object.values(journey.marks).every((m) => m.complete !== undefined);
       if (all) close('complete', at);

@@ -3,12 +3,9 @@
  *
  * - The dev/test manifest is built from the static chunk map (no bundler output
  *   needed); the load strategy runs the bundler-visible `import()` per chunk id.
- * - The feature host loads feature modules through the chunk loader, so gating
- *   (I-8), dedup, retries and `chunk.load` spans apply to every activation.
- *
- * PACKAGE GAP (reported): runtime's `featureHostUnit` has no way to pass a
- * `FeatureLoader` (`createFeatureHost({ load })`) through DI, so this file provides
- * its own feature-host unit with the same dependencies plus the chunk loader.
+ * - `chunkFeatureLoaderUnit` binds runtime's `FeatureLoaderToken` to the chunk loader,
+ *   so the stock `featureHostUnit` loads feature modules through it: gating (I-8),
+ *   dedup, retries and `chunk.load` spans apply to every activation.
  */
 import { err, ok, toSfError, unit } from '@staticflux/core';
 import {
@@ -25,15 +22,7 @@ import {
   budgetKbOf,
 } from '@staticflux/loader';
 import { defaultIdleScheduler } from '@staticflux/loader';
-import {
-  AppInjectorToken,
-  ArchiveStoreToken,
-  createFeatureHost,
-  FeatureHostToken,
-  FeatureManifestsToken,
-  type FeatureModule,
-  SupervisorToken,
-} from '@staticflux/runtime';
+import { type FeatureLoader, FeatureLoaderToken, type FeatureModule, manifestFeatureLoader } from '@staticflux/runtime';
 import { chunkDeclarations, chunkImports, featureChunks } from '../app/features.js';
 
 /** Manifest from the static chunk map (`files` are logical; the strategy never fetches them). */
@@ -100,36 +89,18 @@ export const studioLoaderEnvUnit = unit({
   }),
 });
 
-export const loaderFeatureHostUnit = unit({
-  id: 'studio/feature-host-unit',
-  provides: FeatureHostToken,
+export const chunkFeatureLoaderUnit = unit({
+  id: 'studio/chunk-feature-loader-unit',
+  provides: FeatureLoaderToken,
   scope: 'app',
-  deps: {
-    required: { injector: AppInjectorToken, archive: ArchiveStoreToken, features: FeatureManifestsToken, loader: ChunkLoaderToken },
-    lazy: { supervisor: SupervisorToken },
-  },
-  create: ({ injector, archive, features, loader, supervisor }, ctx) => {
-    const host = createFeatureHost({
-      injector,
-      archive,
-      features,
-      telemetry: ctx.telemetry,
-      gate: (operation) => supervisor.value?.assertRunnable(operation) ?? ok(),
-      load: async (manifest, signal) => {
-        const chunkId: ChunkId | undefined = featureChunks[manifest.id];
-        if (chunkId === undefined) {
-          try {
-            return ok(await manifest.load(signal));
-          } catch (error) {
-            return err(toSfError(error));
-          }
-        }
-        const loaded = await loader.load<{ readonly default: FeatureModule }>(chunkId, { signal, origin: 'demand' });
-        return loaded.ok ? ok(loaded.value.default) : loaded;
-      },
-    });
-    ctx.scope.defer(() => host.dispose());
-    return host;
-  },
-  description: 'Feature host whose modules load through the chunk loader (gated, I-8).',
+  deps: { required: { loader: ChunkLoaderToken } },
+  create:
+    ({ loader }): FeatureLoader =>
+    async (manifest, signal) => {
+      const chunkId: ChunkId | undefined = featureChunks[manifest.id];
+      if (chunkId === undefined) return manifestFeatureLoader(manifest, signal);
+      const loaded = await loader.load<{ readonly default: FeatureModule }>(chunkId, { signal, origin: 'demand' });
+      return loaded.ok ? ok(loaded.value.default) : loaded;
+    },
+  description: 'Feature modules load through the chunk loader (gated, I-8); unmapped features use manifest.load.',
 });

@@ -7,6 +7,7 @@ import { ok } from '@staticflux/core';
 import { DataTransportToken, type MockTransport } from '@staticflux/data';
 import { GateFacts, GateToken, MeterRegistryToken } from '@staticflux/gate';
 import { SurfaceManagerToken } from '@staticflux/messaging';
+import { defaultWorkspace, WorkspaceManagerToken } from '@staticflux/shell';
 import { IntentServiceToken } from '@staticflux/urlstate';
 import { afterEach, describe, expect, it } from 'vitest';
 import { SessionScopeToken } from './adapters/auth-runtime.js';
@@ -14,6 +15,7 @@ import { CapabilityInvokerToken } from './adapters/capabilities-router.js';
 import { CreditsMeter, DocumentStoreToken, Features, PanelControllerToken, SummarizeCapability } from './app/contracts.js';
 import { DocsListEndpoint } from './app/endpoints.js';
 import { HomeDocsToken } from './app/home.js';
+import { ExpertWorkspace } from './app/shell.js';
 import { DocRoute, LoginRoute, UpgradeDialog } from './app/routes.js';
 import { ChatControllerToken } from './features/agent-chat/logic.js';
 import { signedInServer, spans } from './test/fixtures.js';
@@ -231,6 +233,23 @@ describe('session lifecycle', () => {
     expect(latest?.epoch).toBe(harness.studio.app.supervisor.epoch);
     const gate = await harness.get(GateToken);
     await waitFor(() => gate.fact(GateFacts.plan) === 'pro', { message: 'plan fact follows the claims' });
+  });
+});
+
+describe('ui', () => {
+  it('the shell re-renders on workspace switches (regression: MobxController lost tracking)', async () => {
+    harness = await bootHeadless({ url: '/', server: signedInServer('ada'), render: true });
+    await waitFor(() => harness!.session.isAuthenticated, { message: 'signed in' });
+    const shell = harness.root?.querySelector('sf-shell');
+    expect(shell).not.toBeNull();
+    const hasInspector = (): boolean => shell?.shadowRoot?.querySelector('studio-inspector') != null;
+    await waitFor(() => shell?.shadowRoot?.querySelector('studio-header') != null, { message: 'shell rendered' });
+    expect(hasInspector()).toBe(false);
+    const workspaces = await harness.get(WorkspaceManagerToken);
+    expect((await workspaces.switchTo(ExpertWorkspace.id)).ok).toBe(true);
+    await waitFor(hasInspector, { message: 'inspector slot after switching to expert' });
+    expect((await workspaces.switchTo(defaultWorkspace.id)).ok).toBe(true);
+    await waitFor(() => !hasInspector(), { message: 'inspector gone after switching back' });
   });
 });
 

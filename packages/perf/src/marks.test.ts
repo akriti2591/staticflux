@@ -1,6 +1,6 @@
 import { createMemorySink, createTelemetry, type MetricRecord } from '@staticflux/core';
 import { describe, expect, it } from 'vitest';
-import { createFeatureMarks, type PerfEntryLike, type PerfEnv } from './index.js';
+import { createFeatureMarks, defineMarkBudget, FEATURE_MARKS, normalizeFeatureMark, type PerfEntryLike, type PerfEnv } from './index.js';
 
 interface FakeObserver {
   readonly cb: (entries: readonly PerfEntryLike[]) => void;
@@ -96,7 +96,7 @@ describe('feature marks (framework defaults)', () => {
     marks.renderCommitted('studio', el(100, 100));
     marks.renderCommitted('studio', el(400, 300));
     frame(116);
-    expect(marks.marks('studio')['first-render']).toEqual({ at: 116, method: 'commit+frame' });
+    expect(marks.marks('studio')['firstRender']).toEqual({ at: 116, method: 'commit+frame' });
     expect(marks.marks('studio').interactive).toBeUndefined();
     set(130);
     marks.renderDepsResolved('studio');
@@ -111,7 +111,7 @@ describe('feature marks (framework defaults)', () => {
     expect(marks.marks('studio').complete).toBeUndefined();
     advance(40);
     expect(marks.marks('studio').complete?.method).toBe('framework-default');
-    expect(marks.marks('studio')['largest-render']).toEqual({ at: 116, method: 'largest-heuristic' });
+    expect(marks.marks('studio')['largestRender']).toEqual({ at: 116, method: 'largest-heuristic' });
     expect(metrics()).toEqual([
       ['feature/placeholder-shown', 'studio', 'commit+frame', 16],
       ['feature/first-render', 'studio', 'commit+frame', 116],
@@ -127,14 +127,14 @@ describe('feature marks (framework defaults)', () => {
     frame(10);
     marks.renderCommitted('settings');
     frame(20);
-    expect(marks.marks('settings')['first-render']?.at).toBe(10);
+    expect(marks.marks('settings')['firstRender']?.at).toBe(10);
     marks.renderCommitted('settings');
     marks.start('settings');
     frame(30);
-    expect(marks.marks('settings')['first-render']).toBeUndefined();
+    expect(marks.marks('settings')['firstRender']).toBeUndefined();
     marks.renderCommitted('settings');
     frame(40);
-    expect(marks.marks('settings')['first-render']?.at).toBe(40);
+    expect(marks.marks('settings')['firstRender']?.at).toBe(40);
     expect(marks.marks('unknown')).toEqual({});
   });
 
@@ -147,16 +147,32 @@ describe('feature marks (framework defaults)', () => {
     advance(1_000);
     expect(marks.marks('agent-chat')).toEqual({});
     set(50);
-    marks.signal('agent-chat', 'first-render');
+    marks.signal('agent-chat', 'firstRender');
     set(60);
     marks.signal('agent-chat', 'interactive');
     set(90);
     marks.signal('agent-chat', 'complete');
     expect(marks.marks('agent-chat')).toEqual({
-      'first-render': { at: 50, method: 'readiness-signal' },
+      firstRender: { at: 50, method: 'readiness-signal' },
       interactive: { at: 60, method: 'readiness-signal' },
       complete: { at: 90, method: 'readiness-signal' },
     });
+  });
+
+  it('deprecated kebab-case readiness names are accepted as aliases (one release)', () => {
+    const { marks, frame, set } = setup();
+    marks.declare('legacy', { 'first-render': 'feature' });
+    marks.renderCommitted('legacy');
+    frame(10);
+    expect(marks.marks('legacy').firstRender).toBeUndefined(); // feature-owned: framework default ignored
+    set(30);
+    marks.signal('legacy', 'first-render');
+    expect(marks.marks('legacy')).toEqual({ firstRender: { at: 30, method: 'readiness-signal' } });
+    expect(defineMarkBudget({ feature: '*', mark: 'first-render', maxMs: 1 }).mark).toBe('firstRender');
+    expect(normalizeFeatureMark('largest-render')).toBe('largestRender');
+    expect(normalizeFeatureMark('placeholder-shown')).toBe('placeholderShown');
+    expect(normalizeFeatureMark('interactive')).toBe('interactive');
+    expect(FEATURE_MARKS).toEqual(['placeholderShown', 'firstRender', 'largestRender', 'interactive', 'complete']);
   });
 
   it('interactive signalled by the feature still lets the framework derive complete', () => {
@@ -184,7 +200,7 @@ describe('feature marks (framework defaults)', () => {
     frame(20);
     marks.renderDepsResolved('studio');
     advance(100);
-    expect(marks.marks('studio')['largest-render']).toEqual({ at: 70, method: 'element-timing' });
+    expect(marks.marks('studio')['largestRender']).toEqual({ at: 70, method: 'element-timing' });
     observers[0]?.cb([{ entryType: 'element', name: 'x', startTime: 0, duration: 0, identifier: 'sf:studio', renderTime: 0, loadTime: 0 } as PerfEntryLike]);
     marks.dispose();
     expect(observers[0]?.disconnected).toBe(true);

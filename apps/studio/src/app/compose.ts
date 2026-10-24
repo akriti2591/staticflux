@@ -58,6 +58,7 @@ import { dialogUnit, type HistoryAdapter, routerSubsystemUnit, routerUnitWith, r
 import {
   type App,
   bootApp,
+  featureHostUnit,
   FeatureManifestsToken,
   frameSchedulerSubsystemUnit,
   frameSchedulerUnit,
@@ -89,7 +90,7 @@ import { guestDraftSlotUnit, guestDraftUnit, guestDraftUpgradeHookUnit } from '.
 import { heldIntentsSlotUnit, intentHoldUnit, intentRestorePluginUnit, loginReturnPortUnit } from '../adapters/handoff-urlstate.js';
 import { localeUrlSubsystemUnit } from '../adapters/i18n-urlstate.js';
 import { chunkScriptAttributionUnit } from '../adapters/loader-perf.js';
-import { buildDevManifest, loaderFeatureHostUnit, staticImportStrategyUnit, studioLoaderEnvUnit } from '../adapters/loader-runtime.js';
+import { buildDevManifest, chunkFeatureLoaderUnit, staticImportStrategyUnit, studioLoaderEnvUnit } from '../adapters/loader-runtime.js';
 import { routableDialogPortUnit } from '../adapters/messaging-router.js';
 import { upsellInvokerUnit } from '../adapters/capabilities-router.js';
 import { intentActivationHookUnit } from '../adapters/urlstate-runtime.js';
@@ -212,7 +213,8 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     frameSchedulerSubsystemUnit,
     registryArchiveStoreUnit,
     nominalMemoryPressureUnit,
-    loaderFeatureHostUnit,
+    featureHostUnit,
+    chunkFeatureLoaderUnit,
     resourceManagerUnit,
     ...featureManifests.map((manifest) => contribution({ id: `studio/feature-${manifest.id.replace('/', '-')}`, provides: FeatureManifestsToken, scope: 'app', create: () => manifest })),
   ];
