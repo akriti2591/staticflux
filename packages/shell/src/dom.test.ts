@@ -1,12 +1,30 @@
+import {
+  a11yEnvironmentUnit,
+  createFocusManager,
+  defaultTimers,
+  focusManagerUnit,
+  shortcutRegistryUnit,
+  ShortcutRegistryToken,
+} from '@staticflux/a11y';
 import { createInjector, createScope, defineError, err, type Registration, token, unit } from '@staticflux/core';
 import { createSurfaceManager, defineSurfaceHost, memorySeenStoreUnit, SurfaceManagerToken } from '@staticflux/messaging';
 import { allowAllDecideUnit, component, DecideToken, defineComponent, gateResource, SfElement, visibilityObserverUnit } from '@staticflux/ui';
 import { mountTestRoot, type MountedRoot, settle } from '@staticflux/ui/testing';
 import { html } from 'lit';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CommandRegistryToken,
+  CommandShortcutBindingsToken,
+  commandContribution,
+  commandPaletteSurface,
   compactPreset,
+  defaultShellMessages,
+  defineSkipLinks,
+  embeddedPreset,
+  ShellMessagesToken,
+  shellKeyboardUnits,
+  type SfSkipLinksElement,
+  SkipLinkEvent,
   createCommandRegistry,
   defineCommand,
   defineShell,
@@ -169,5 +187,158 @@ describe('command palette', () => {
     const outcome = await handle.closed;
     expect(outcome.reason).toBe('action');
     expect(ran).toBe(selected.dataset['command'] === 'studio/export-png' ? 'png' : 'pdf');
+  });
+});
+
+const a11yUnits = (): Registration[] => [
+  a11yEnvironmentUnit({ document, matchMedia: undefined, timers: defaultTimers, isMac: false }),
+  focusManagerUnit,
+  shortcutRegistryUnit,
+];
+
+async function mountShell(extra: readonly Registration[] = []): Promise<SfShellElement> {
+  defineShell();
+  root = mountTestRoot({ units: shellUnitsFor(extra) });
+  const shell = document.createElement('sf-shell') as SfShellElement;
+  root.container.append(shell);
+  await settle(6);
+  return shell;
+}
+
+describe('<sf-shell> accessibility (R15.2)', () => {
+  it('renders skip links first and correct landmark roles', async () => {
+    const shell = await mountShell();
+    const shadow = shell.shadowRoot as ShadowRoot;
+    expect(shadow.firstElementChild?.localName).toBe('sf-skip-links');
+    expect(shadow.querySelector('[data-slot="header"]')?.getAttribute('role')).toBe('banner');
+    expect(shadow.querySelector('[data-slot="main"]')?.localName).toBe('main');
+    const nav = shadow.querySelector('[data-slot="sidebar"]') as HTMLElement;
+    expect(nav.localName).toBe('nav');
+    expect(nav.getAttribute('aria-label')).toBe('Navigation');
+    const panel = shadow.querySelector('[data-slot="panel"]') as HTMLElement;
+    expect(panel.localName).toBe('aside');
+    expect(panel.getAttribute('role')).toBe('complementary');
+    expect(panel.getAttribute('aria-label')).toBe('Side panel');
+    const skip = shadow.querySelector('sf-skip-links') as SfSkipLinksElement;
+    await skip.updateComplete;
+    const links = [...(skip.shadowRoot?.querySelectorAll('a') ?? [])];
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['Skip to main content', 'Skip to navigation', 'Skip to side panel']);
+    expect(skip.shadowRoot?.querySelector('[role="group"]')?.getAttribute('aria-label')).toBe('Skip links');
+  });
+
+  it('a skip link moves focus to its target region (via the a11y focus manager when bound)', async () => {
+    const shell = await mountShell(a11yUnits());
+    const shadow = shell.shadowRoot as ShadowRoot;
+    const skip = shadow.querySelector('sf-skip-links') as SfSkipLinksElement;
+    await settle(3);
+    expect(skip.focusManager).toBeDefined();
+    const events: SkipLinkEvent[] = [];
+    shell.addEventListener(SkipLinkEvent.type, (e) => events.push(e as SkipLinkEvent));
+    (skip.shadowRoot?.querySelector('a[data-skip="main"]') as HTMLAnchorElement).click();
+    const main = shadow.querySelector('main') as HTMLElement;
+    expect(shadow.activeElement).toBe(main);
+    expect(events[0]?.slot).toBe('main');
+    expect(events[0]?.result.ok).toBe(true);
+    (skip.shadowRoot?.querySelector('a[data-skip="sidebar"]') as HTMLAnchorElement).click();
+    expect(shadow.activeElement).toBe(shadow.querySelector('nav'));
+  });
+
+  it('uses localized messages from ShellMessagesToken and the preset skip targets', async () => {
+    const messages = unit({
+      id: 'test/messages',
+      provides: ShellMessagesToken,
+      scope: 'app',
+      create: () => ({ skipLinksLabel: 'Sprunglinks', skipTo: { main: 'Zum Hauptinhalt' }, regions: { sidebar: 'Navigation (de)', panel: 'Seitenleiste' } }),
+    });
+    const shell = await mountShell([messages]);
+    await settle(3);
+    const shadow = shell.shadowRoot as ShadowRoot;
+    const skip = shadow.querySelector('sf-skip-links') as SfSkipLinksElement;
+    await skip.updateComplete;
+    expect([...(skip.shadowRoot?.querySelectorAll('a') ?? [])].map((a) => a.textContent?.trim())).toEqual(['Zum Hauptinhalt']);
+    expect(skip.label).toBe('Sprunglinks');
+    expect(shadow.querySelector('aside')?.getAttribute('aria-label')).toBe('Seitenleiste');
+  });
+
+  it('embedded preset offers only the main skip link', async () => {
+    const shell = await mountShell([shellPresetUnit(embeddedPreset)]);
+    const skip = shell.shadowRoot?.querySelector('sf-skip-links') as SfSkipLinksElement;
+    expect(skip.links.map((l) => l.slot)).toEqual(['main']);
+  });
+});
+
+describe('<sf-skip-links> standalone', () => {
+  it('focuses document targets through the focus manager and is visually hidden until focused', async () => {
+    defineSkipLinks();
+    const target = document.createElement('div');
+    target.setAttribute('data-slot', 'main');
+    const skip = document.createElement('sf-skip-links') as SfSkipLinksElement;
+    const focusManager = createFocusManager({ document });
+    const spy = vi.spyOn(focusManager, 'focusRouteTarget');
+    skip.focusManager = focusManager;
+    document.body.append(skip, target);
+    await skip.updateComplete;
+    (skip.shadowRoot?.querySelector('a') as HTMLAnchorElement).click();
+    expect(spy).toHaveBeenCalledWith({ target, preventScroll: false });
+    expect(document.activeElement).toBe(target);
+    expect(target.getAttribute('tabindex')).toBe('-1');
+    const css = (skip.constructor as typeof SfSkipLinksElement).styles;
+    expect(String(css)).toContain('a:not(:focus)');
+    // Missing target → SF-A11Y-001, no focus move.
+    target.remove();
+    const missing = skip.skipTo('main');
+    expect(!missing.ok && missing.error.code).toBe('SF-A11Y-001');
+    await focusManager.dispose();
+  });
+
+  it('defaults to the main link with an English label', async () => {
+    defineSkipLinks();
+    const skip = document.createElement('sf-skip-links') as SfSkipLinksElement;
+    document.body.append(skip);
+    await skip.updateComplete;
+    expect(skip.shadowRoot?.querySelector('a')?.textContent?.trim()).toBe(defaultShellMessages.skipTo.main);
+  });
+});
+
+describe('keyboard glue (a11y shortcut registry)', () => {
+  it('binds Mod+K to the palette and command shortcuts; palette shows shortcut labels; conflicts are reported', async () => {
+    defineSurfaceHost();
+    const manager = createSurfaceManager();
+    const managerUnit = unit({ id: 'test/manager', provides: SurfaceManagerToken, scope: 'app', create: () => manager });
+    let exported = 0;
+    const units: Registration[] = [
+      allowAllDecideUnit,
+      ...shellUnits,
+      ...a11yUnits(),
+      ...shellKeyboardUnits,
+      managerUnit,
+      memorySeenStoreUnit,
+      commandContribution(defineCommand({ id: 'studio/export-pdf', title: 'Export as PDF', shortcut: 'Mod+Shift+E', run: () => void (exported += 1) })),
+      commandContribution(defineCommand({ id: 'studio/link', title: 'Insert link', shortcut: 'Mod+K', run: () => undefined })),
+    ];
+    root = mountTestRoot({ units });
+    const host = document.createElement('sf-surface-host');
+    root.container.append(host);
+    const bindings = await root.injector.get(CommandShortcutBindingsToken);
+    if (!bindings.ok) throw bindings.error;
+    expect(bindings.value.bound).toEqual(['shell/command-palette', 'studio/export-pdf']);
+    expect(bindings.value.errors.map((e) => e.code)).toEqual(['SF-A11Y-002']);
+    const registry = await root.injector.get(ShortcutRegistryToken);
+    expect(registry.ok && registry.value.list().map((s) => s.id)).toEqual(['shell/command-palette', 'studio/export-pdf']);
+
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'E', code: 'KeyE', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));
+    await settle(2);
+    expect(exported).toBe(1);
+
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', code: 'KeyK', ctrlKey: true, bubbles: true, cancelable: true }));
+    await settle(4);
+    expect(manager.showing('dialog').map((h) => h.def.id)).toEqual([commandPaletteSurface.id]);
+    // A second Mod+K while open does not stack another palette.
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', code: 'KeyK', ctrlKey: true, bubbles: true, cancelable: true }));
+    await settle(2);
+    expect(manager.showing('dialog')).toHaveLength(1);
+    const palette = host.shadowRoot?.querySelector('sf-command-palette') as HTMLElement;
+    const option = palette.shadowRoot?.querySelector('[data-command="studio/export-pdf"]') as HTMLElement;
+    expect(option.querySelector('kbd')?.textContent).toBe('Ctrl+Shift+E');
   });
 });

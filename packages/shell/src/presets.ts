@@ -17,6 +17,8 @@ export interface ShellPreset {
   readonly areas: readonly string[];
   readonly columns: string;
   readonly rows: string;
+  /** Skip-link targets in link order (default `DEFAULT_SKIP_TARGETS`: main, sidebar, panel); only rendered regions are offered. */
+  readonly skipTargets?: readonly SlotId[];
 }
 
 export function defineShellPreset(init: Omit<ShellPreset, 'kind'>): ShellPreset {

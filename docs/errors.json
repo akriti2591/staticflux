@@ -1215,18 +1215,6 @@
       "fix": "Expected for premium/expert workspaces. Check the gate decision; offer the upsell instead of switching."
     },
     {
-      "code": "SF-SHELL-003",
-      "kind": "conflict",
-      "summary": "Another shortcut is already registered for this key combination in an overlapping context.",
-      "fix": "Pick a different combination, or register it under a `when` context that cannot be active at the same time."
-    },
-    {
-      "code": "SF-SHELL-004",
-      "kind": "validation",
-      "summary": "The shortcut string could not be parsed.",
-      "fix": "Use `Mod+Shift+K` style: modifiers (Mod, Ctrl, Meta, Alt, Shift) joined by `+`, then exactly one key."
-    },
-    {
       "code": "SF-SHELL-005",
       "kind": "not-found",
       "summary": "No command with this id is registered.",

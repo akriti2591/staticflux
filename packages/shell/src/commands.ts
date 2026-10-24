@@ -23,6 +23,7 @@ import {
   token,
   toSfError,
 } from '@staticflux/core';
+import type { KeyCombo, ShortcutScopeDef } from '@staticflux/a11y';
 import { allowAllDecide, type DecidePort, type GateResource } from '@staticflux/ui';
 import { CommandFailedError, CommandUnavailableError, DuplicateContributionError, UnknownCommandError } from './errors.js';
 import { SHELL_SUBSYSTEM, shellMetrics } from './telemetry.js';
@@ -41,8 +42,10 @@ export interface CommandDef {
   readonly title: string;
   readonly keywords?: readonly string[];
   readonly group?: string;
-  /** Default key binding (`Mod+K` style) — registered by `bindCommandShortcuts`. */
-  readonly shortcut?: string;
+  /** Default key binding (typed a11y `KeyCombo`, e.g. `Mod+Shift+E`) — registered by `bindCommandShortcuts`. */
+  readonly shortcut?: KeyCombo;
+  /** a11y shortcut scope of `shortcut` (default: the global scope). */
+  readonly shortcutScope?: ShortcutScopeDef;
   readonly gate?: GateResource;
   /** Reactive availability (e.g. "a document is open"). */
   readonly when?: () => boolean;

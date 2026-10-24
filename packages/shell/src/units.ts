@@ -2,15 +2,23 @@
  * DI units of @staticflux/shell. Apps register `shellUnits` (+ `uiUnits`, `messagingUnits`),
  * contribute slots / workspaces / commands, and bind a preset per profile
  * (`shellPresetUnit(shellPresets.compact)` with app precedence).
+ *
+ * Keyboard: the a11y units (`browserA11yEnvironmentUnit`, `shortcutRegistryUnit`,
+ * `focusManagerUnit`) are the source of truth; register `shellKeyboardUnits` on top to
+ * bind the palette and command shortcuts into the a11y registry.
  */
-import { unit } from '@staticflux/core';
+import { ShortcutRegistryToken } from '@staticflux/a11y';
+import { type Result, type SfError, unit } from '@staticflux/core';
+import { SurfaceManagerToken } from '@staticflux/messaging';
 import { DecideToken } from '@staticflux/ui';
 import { CommandRegistryToken, CommandsToken, createCommandRegistry } from './commands.js';
+import { bindCommandPalette } from './palette.js';
 import { expandedPreset, shellPresetUnit } from './presets.js';
-import { createShortcutRegistry, type ShortcutRegistry } from './shortcuts.js';
+import { bindCommandShortcut, CommandPaletteShortcut, type CommandShortcutBindings, CommandShortcutBindingsToken } from './shortcuts.js';
+import { SHELL_SUBSYSTEM } from './telemetry.js';
 import { createThemeController, ThemeControllerToken, ThemePreferenceStoreToken } from './theme.js';
 import { createWorkspaceManager, WorkspaceManagerToken, WorkspacePreferenceStoreToken, WorkspacesToken } from './workspace.js';
-import { type DepHandle, ok, token } from '@staticflux/core';
+import { type DepHandle, ok } from '@staticflux/core';
 import type { KeyValuePort } from '@staticflux/messaging';
 
 /** A KV port over an optional (lazy) binding: unbound → reads nothing, writes are no-ops. */
@@ -26,7 +34,6 @@ function optionalStore<V>(handle: DepHandle<KeyValuePort<V>>, signal: AbortSigna
   };
 }
 
-export const ShortcutRegistryToken = token('shell/shortcut-registry').type<ShortcutRegistry>();
 
 export const workspaceManagerUnit = unit({
   id: 'shell/workspace-manager-unit',
@@ -69,13 +76,42 @@ export const commandRegistryUnit = unit({
   description: 'Command registry (palette, shortcuts, agents); gate decisions refresh with the app epoch.',
 });
 
-export const shortcutRegistryUnit = unit({
-  id: 'shell/shortcut-registry-unit',
-  provides: ShortcutRegistryToken,
+/**
+ * Binds the command palette (`Mod+K`) and every contributed command's `shortcut` into the
+ * a11y shortcut registry for the app lifetime. Resolved by `<sf-shell>` (idle) or on demand.
+ */
+export const commandShortcutsUnit = unit({
+  id: 'shell/command-shortcuts-unit',
+  provides: CommandShortcutBindingsToken,
   scope: 'app',
-  create: (_deps, ctx) => createShortcutRegistry({ scope: ctx.scope }),
-  description: 'Keyboard shortcuts with conflict detection; one keydown listener on document.',
+  deps: { required: { shortcuts: ShortcutRegistryToken, commands: CommandRegistryToken, surfaces: SurfaceManagerToken } },
+  create: ({ shortcuts, commands, surfaces }, ctx): CommandShortcutBindings => {
+    const results: { readonly id: string; readonly result: Result<() => void> }[] = [
+      {
+        id: CommandPaletteShortcut.id,
+        result: bindCommandPalette({ shortcuts, manager: surfaces, registry: commands, owner: { scope: ctx.scope, level: 'app' }, scope: ctx.scope }),
+      },
+    ];
+    for (const command of commands.list()) {
+      const result = bindCommandShortcut(shortcuts, commands, command, ctx.scope);
+      if (result !== undefined) results.push({ id: command.id, result });
+    }
+    const errors: SfError[] = [];
+    const bound: string[] = [];
+    for (const { id, result } of results) {
+      if (result.ok) bound.push(id);
+      else {
+        errors.push(result.error);
+        ctx.telemetry.event('shell.shortcut-error', { subsystem: SHELL_SUBSYSTEM, level: 'standard', attrs: { id, code: result.error.code } });
+      }
+    }
+    return { bound, errors };
+  },
+  description: 'Binds the command palette and command shortcuts into the a11y shortcut registry (conflicts reported as SF-A11Y-002).',
 });
+
+/** Keyboard glue; requires the a11y shortcut registry and the messaging surface manager. */
+export const shellKeyboardUnits = [commandShortcutsUnit] as const;
 
 export const themeControllerUnit = unit({
   id: 'shell/theme-controller-unit',
@@ -99,7 +135,6 @@ export const defaultShellPresetUnit = shellPresetUnit(expandedPreset);
 export const shellUnits = [
   workspaceManagerUnit,
   commandRegistryUnit,
-  shortcutRegistryUnit,
   themeControllerUnit,
   defaultShellPresetUnit,
 ] as const;

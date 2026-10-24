@@ -145,7 +145,9 @@ export function createFocusManager(options: FocusManagerOptions): FocusManager {
     if (!(el instanceof HTMLElement) || doc === undefined) return false;
     if (!isFocusable(el)) el.setAttribute('tabindex', '-1');
     el.focus({ preventScroll });
-    return doc.activeElement === el;
+    // Inside a shadow root, document.activeElement is the host; compare against the element's own root.
+    const root = el.getRootNode() as Document | ShadowRoot;
+    return (root.activeElement ?? doc.activeElement) === el;
   };
 
   const apply = (el: Element, record: InertRecord): void => {

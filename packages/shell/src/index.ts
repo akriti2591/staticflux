@@ -8,6 +8,7 @@ export * from './commands.js';
 export * from './shortcuts.js';
 export * from './transitions.js';
 export * from './boundary.js';
+export * from './skip-links.js';
 export * from './shell-element.js';
 export * from './palette.js';
 export * from './units.js';

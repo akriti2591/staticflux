@@ -17,19 +17,8 @@ export const WorkspaceDeniedError = defineError(
   'Expected for premium/expert workspaces. Check the gate decision; offer the upsell instead of switching.',
 );
 
-export const ShortcutConflictError = defineError(
-  'SF-SHELL-003',
-  'conflict',
-  'Another shortcut is already registered for this key combination in an overlapping context.',
-  'Pick a different combination, or register it under a `when` context that cannot be active at the same time.',
-);
-
-export const InvalidShortcutError = defineError(
-  'SF-SHELL-004',
-  'validation',
-  'The shortcut string could not be parsed.',
-  'Use `Mod+Shift+K` style: modifiers (Mod, Ctrl, Meta, Alt, Shift) joined by `+`, then exactly one key.',
-);
+// SF-SHELL-003 / SF-SHELL-004 are retired: shortcut conflicts and invalid combos are
+// `SF-A11Y-002` / `SF-A11Y-003` from @staticflux/a11y's registry.
 
 export const UnknownCommandError = defineError(
   'SF-SHELL-005',

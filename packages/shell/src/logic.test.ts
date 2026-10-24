@@ -1,22 +1,29 @@
+import { checkShortcuts, createShortcutRegistry, defineShortcutScope } from '@staticflux/a11y';
 import { createScope, err, defineError, ok } from '@staticflux/core';
 import { createMemoryKeyValue } from '@staticflux/messaging';
 import { gateResource, type DecidePort } from '@staticflux/ui';
 import { describe, expect, it, vi } from 'vitest';
 import {
   arrangeSlots,
+  bindCommandShortcut,
   bindCommandShortcuts,
   builtInThemes,
+  CommandPaletteShortcut,
+  commandShortcut,
+  commandShortcutDefs,
+  commandShortcutLabels,
   createCommandRegistry,
-  createShortcutRegistry,
   createThemeController,
   createWorkspaceManager,
   cssVar,
   defineCommand,
   defineWorkspace,
-  formatShortcut,
+  DEFAULT_SKIP_TARGETS,
+  defaultShellMessages,
   fuzzyMatch,
+  landmarkOf,
   type MediaPort,
-  parseShortcut,
+  skipLinksFor,
   type SlotContribution,
   themeToCss,
   tokenVar,
@@ -212,57 +219,96 @@ describe('commands (R13.3)', () => {
   });
 });
 
-describe('shortcuts', () => {
-  it('parses Mod per platform and formats labels', () => {
-    const mac = parseShortcut('Mod+Shift+K', 'apple');
-    expect(mac.ok && mac.value).toMatchObject({ key: 'k', meta: true, ctrl: false, shift: true });
-    const pc = parseShortcut('Mod+K', 'other');
-    expect(pc.ok && pc.value.ctrl).toBe(true);
-    expect(mac.ok && formatShortcut(mac.value, 'apple')).toBe('⇧⌘K');
-    expect(pc.ok && formatShortcut(pc.value, 'other')).toBe('Ctrl+K');
-    const bad = parseShortcut('Ctrl+Shift', 'other');
-    expect(!bad.ok && bad.error.code).toBe('SF-SHELL-004');
+describe('command shortcuts (a11y registry glue)', () => {
+  const key = (init: KeyboardEventInit): KeyboardEvent => new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });
+
+  it('declares commands as typed a11y shortcuts and labels them per platform', () => {
+    const editor = defineShortcutScope('studio/editor');
+    const exportPdf = defineCommand({ id: 'studio/export-pdf', title: 'Export as PDF', shortcut: 'Mod+Shift+E', run: () => undefined });
+    const bold = defineCommand({ id: 'studio/bold', title: 'Bold', shortcut: 'Mod+B', shortcutScope: editor, run: () => undefined });
+    const plain = defineCommand({ id: 'studio/plain', title: 'No shortcut', run: () => undefined });
+    expect(commandShortcut(plain)).toBeUndefined();
+    const def = commandShortcut(exportPdf);
+    expect(def).toMatchObject({ kind: 'shortcut', id: 'studio/export-pdf', keys: ['Mod+Shift+E'], description: 'Export as PDF', scope: { id: 'a11y/global' } });
+    expect(commandShortcut(bold)?.scope).toBe(editor);
+    expect(commandShortcutDefs([exportPdf, bold, plain]).map((d) => d.id)).toEqual(['studio/export-pdf', 'studio/bold']);
+    expect(commandShortcutLabels(createShortcutRegistry({ isMac: true }), exportPdf)).toEqual(['⇧⌘E']);
+    expect(commandShortcutLabels(createShortcutRegistry({ isMac: false }), exportPdf)).toEqual(['Ctrl+Shift+E']);
+    expect(commandShortcutLabels(createShortcutRegistry({ isMac: false }), plain)).toEqual([]);
   });
 
-  it('dispatches keydown, detects conflicts, respects inputs, contexts and scopes', () => {
-    const scope = createScope('app');
-    const target = document.createElement('div');
-    document.body.append(target);
-    const registry = createShortcutRegistry({ target, scope, platform: 'other' });
-    const palette = vi.fn();
-    const contextual = vi.fn();
-    expect(registry.register({ id: 'shell/palette', keys: 'Mod+K', run: palette }).ok).toBe(true);
-    const conflict = registry.register({ id: 'other/k', keys: 'Ctrl+K', run: vi.fn() });
-    expect(!conflict.ok && conflict.error.code).toBe('SF-SHELL-003');
-    let editorActive = true;
-    expect(registry.register({ id: 'studio/bold', keys: 'Ctrl+B', context: 'studio/editor', when: () => editorActive, run: contextual }).ok).toBe(true);
-    expect(registry.register({ id: 'chat/bold', keys: 'Ctrl+B', context: 'agent/chat', run: vi.fn() }).ok).toBe(true);
-    target.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true }));
-    expect(palette).toHaveBeenCalledTimes(1);
-    target.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, bubbles: true }));
-    expect(contextual).toHaveBeenCalledTimes(1);
-    editorActive = false;
-    const input = document.createElement('input');
-    target.append(input);
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
-    expect(palette).toHaveBeenCalledTimes(1);
-    expect(registry.list()).toHaveLength(3);
-    target.remove();
+  it('CI check catches a command colliding with the palette shortcut', () => {
+    const clash = defineCommand({ id: 'studio/link', title: 'Insert link', shortcut: 'Mod+K', run: () => undefined });
+    const issues = checkShortcuts([CommandPaletteShortcut, ...commandShortcutDefs([clash])]);
+    expect(issues.filter((i) => i.code === 'conflict' && i.severity === 'error')).toHaveLength(2); // mac + other
   });
 
-  it('binds command shortcuts', async () => {
+  it('binds command shortcuts: runs with source "shortcut", respects availability, unbinds with the scope', async () => {
     const scope = createScope('app');
     const run = vi.fn();
-    const created = createCommandRegistry({ commands: [defineCommand({ id: 'a/b', title: 'A', shortcut: 'Alt+N', run })] });
+    let enabled = true;
+    const created = createCommandRegistry({
+      commands: [
+        defineCommand({ id: 'a/b', title: 'A', shortcut: 'Alt+N', when: () => enabled, run }),
+        defineCommand({ id: 'a/none', title: 'None', run: vi.fn() }),
+      ],
+    });
     if (!created.ok) throw created.error;
-    const shortcuts = createShortcutRegistry({ target: document, scope, platform: 'other' });
+    const shortcuts = createShortcutRegistry({ isMac: false });
     const bound = bindCommandShortcuts(shortcuts, created.value, scope);
+    expect(bound).toHaveLength(1);
     expect(bound.every((b) => b.ok)).toBe(true);
-    shortcuts.handle(new KeyboardEvent('keydown', { key: 'n', altKey: true, cancelable: true }));
+    expect(shortcuts.handle(key({ key: 'n', code: 'KeyN', altKey: true }))).toBe(true);
     await Promise.resolve();
-    expect(run).toHaveBeenCalled();
+    expect(run).toHaveBeenCalledWith(expect.objectContaining({ source: 'shortcut' }));
+    enabled = false;
+    expect(shortcuts.handle(key({ key: 'n', code: 'KeyN', altKey: true }))).toBe(false);
     await scope.dispose();
     expect(shortcuts.list()).toHaveLength(0);
+  });
+
+  it('conflicts are SF-A11Y-002 errors; a command in a child scope shadows instead', () => {
+    const scope = createScope('app');
+    const created = createCommandRegistry({
+      commands: [
+        defineCommand({ id: 'a/one', title: 'One', shortcut: 'Mod+J', run: vi.fn() }),
+        defineCommand({ id: 'a/two', title: 'Two', shortcut: 'Mod+J', run: vi.fn() }),
+      ],
+    });
+    if (!created.ok) throw created.error;
+    const shortcuts = createShortcutRegistry({ isMac: false });
+    const [first, second] = bindCommandShortcuts(shortcuts, created.value, scope);
+    expect(first?.ok).toBe(true);
+    expect(second !== undefined && !second.ok && second.error.code).toBe('SF-A11Y-002');
+    const panel = defineShortcutScope('studio/panel');
+    const shadowing = defineCommand({ id: 'a/three', title: 'Three', shortcut: 'Mod+J', shortcutScope: panel, run: vi.fn() });
+    expect(created.value.register(shadowing).ok).toBe(true);
+    expect(bindCommandShortcut(shortcuts, created.value, shadowing, scope)?.ok).toBe(true);
+    expect(shortcuts.conflicts().map((i) => i.code)).toEqual(['shadow']);
+    const plain = defineCommand({ id: 'a/plain', title: 'Plain', run: vi.fn() });
+    expect(bindCommandShortcut(shortcuts, created.value, plain, scope)).toBeUndefined();
+  });
+});
+
+describe('skip links and landmarks (pure)', () => {
+  it('maps built-in slots to landmarks; custom slots are regions', () => {
+    expect(['header', 'sidebar', 'main', 'panel'].map((s) => landmarkOf(s as SlotContribution['slot']))).toEqual([
+      'banner',
+      'navigation',
+      'main',
+      'complementary',
+    ]);
+    expect(landmarkOf('status-bar' as SlotContribution['slot'])).toBe('region');
+  });
+
+  it('offers links only for rendered targets with a label, in target order', () => {
+    expect(DEFAULT_SKIP_TARGETS).toEqual(['main', 'sidebar', 'panel']);
+    expect(skipLinksFor(['header', 'sidebar', 'main'])).toEqual([
+      { slot: 'main', label: 'Skip to main content' },
+      { slot: 'sidebar', label: 'Skip to navigation' },
+    ]);
+    const messages = { ...defaultShellMessages, skipTo: { main: 'Zum Inhalt', panel: '' } };
+    expect(skipLinksFor(['main', 'panel', 'sidebar'], ['panel', 'main', 'sidebar'], messages)).toEqual([{ slot: 'main', label: 'Zum Inhalt' }]);
   });
 });
 

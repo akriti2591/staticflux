@@ -1,13 +1,15 @@
 /**
  * Command palette (R13.3): a dialog surface (via the surface manager — one focus/a11y
  * model) rendering `<sf-command-palette>`: a combobox input with a listbox of fuzzy
- * matched, available commands. ↑/↓ move, Enter runs, Escape closes (surface host).
+ * matched, available commands with their platform-aware shortcut labels (from the
+ * a11y shortcut registry). ↑/↓ move, Enter runs, Escape closes (surface host).
  */
+import type { ShortcutDef, ShortcutRegistry } from '@staticflux/a11y';
 import type { Result, Scope } from '@staticflux/core';
 import { defineSurface, type SurfaceHandle, type SurfaceManager, type SurfaceOwner } from '@staticflux/messaging';
 import { css, html, LitElement, type PropertyValues } from 'lit';
 import type { CommandRegistry, CommandSearchResult } from './commands.js';
-import type { ShortcutRegistry } from './shortcuts.js';
+import { CommandPaletteShortcut, commandShortcutLabels } from './shortcuts.js';
 
 export class CommandRanEvent extends Event {
   static readonly type = 'sf-command-ran' as const;
@@ -24,6 +26,7 @@ let paletteCounter = 0;
 export class SfCommandPaletteElement extends LitElement {
   static override properties = {
     registry: { attribute: false },
+    shortcuts: { attribute: false },
     query: { state: true },
     active: { state: true },
   };
@@ -59,14 +62,21 @@ export class SfCommandPaletteElement extends LitElement {
       color: inherit;
       font-weight: 700;
     }
-    .group {
+    .meta {
       float: inline-end;
+      display: inline-flex;
+      gap: var(--sf-space-2, 8px);
       opacity: 0.7;
       font-size: 0.85em;
+    }
+    kbd {
+      font: inherit;
     }
   `;
 
   declare registry: CommandRegistry | undefined;
+  /** a11y shortcut registry; when set, each command shows its shortcut label. */
+  declare shortcuts: ShortcutRegistry | undefined;
   declare query: string;
   declare active: number;
   private readonly listId: string;
@@ -76,6 +86,7 @@ export class SfCommandPaletteElement extends LitElement {
     paletteCounter += 1;
     this.listId = `sf-palette-list-${paletteCounter}`;
     this.registry = undefined;
+    this.shortcuts = undefined;
     this.query = '';
     this.active = 0;
   }
@@ -115,10 +126,20 @@ export class SfCommandPaletteElement extends LitElement {
             data-command=${r.command.id}
             @click=${() => void this.run(r)}
           >
-            ${highlight(r.command.title, r.indices)}${r.command.group === undefined ? null : html`<span class="group">${r.command.group}</span>`}
+            ${highlight(r.command.title, r.indices)}${this.renderMeta(r)}
           </li>`,
         )}
       </ul>`;
+  }
+
+  private renderMeta(result: CommandSearchResult): unknown {
+    const labels = this.shortcuts === undefined ? [] : commandShortcutLabels(this.shortcuts, result.command);
+    if (labels.length === 0 && result.command.group === undefined) return null;
+    return html`<span class="meta"
+      >${result.command.group === undefined ? null : html`<span class="group">${result.command.group}</span>`}${labels.map(
+        (label) => html`<kbd class="shortcut">${label}</kbd>`,
+      )}</span
+    >`;
   }
 
   private onKey(event: KeyboardEvent, results: readonly CommandSearchResult[]): void {
@@ -155,44 +176,52 @@ export function defineCommandPalette(registry: CustomElementRegistry = customEle
   if (registry.get(COMMAND_PALETTE_TAG) === undefined) registry.define(COMMAND_PALETTE_TAG, SfCommandPaletteElement);
 }
 
-export const commandPaletteSurface = defineSurface<{ readonly registry: CommandRegistry }>({
+export interface CommandPaletteProps {
+  readonly registry: CommandRegistry;
+  readonly shortcuts?: ShortcutRegistry;
+}
+
+export const commandPaletteSurface = defineSurface<CommandPaletteProps>({
   id: 'shell/command-palette',
   kind: 'dialog',
   scope: 'app',
   priority: 'high',
   label: 'Command palette',
   render: ({ props, dismiss }) =>
-    html`<sf-command-palette .registry=${props.registry} @sf-command-ran=${() => dismiss('action')}></sf-command-palette>`,
+    html`<sf-command-palette .registry=${props.registry} .shortcuts=${props.shortcuts} @sf-command-ran=${() => dismiss('action')}></sf-command-palette>`,
 });
 
 export function openCommandPalette(options: {
   readonly manager: SurfaceManager;
   readonly registry: CommandRegistry;
   readonly owner: SurfaceOwner;
+  /** Shows shortcut labels next to commands. */
+  readonly shortcuts?: ShortcutRegistry;
 }): SurfaceHandle {
   defineCommandPalette();
-  return options.manager.request(commandPaletteSurface, { owner: options.owner, props: { registry: options.registry } });
+  const props: CommandPaletteProps =
+    options.shortcuts === undefined ? { registry: options.registry } : { registry: options.registry, shortcuts: options.shortcuts };
+  return options.manager.request(commandPaletteSurface, { owner: options.owner, props });
 }
 
-/** Bind the palette to a shortcut (default `Mod+K`). */
+/**
+ * Bind the palette to an a11y shortcut (default `CommandPaletteShortcut`, `Mod+K`).
+ * A conflict with another shortcut in the same a11y scope is an `SF-A11Y-002` error.
+ */
 export function bindCommandPalette(options: {
   readonly shortcuts: ShortcutRegistry;
   readonly manager: SurfaceManager;
   readonly registry: CommandRegistry;
   readonly owner: SurfaceOwner;
   readonly scope: Scope;
-  readonly keys?: string;
+  readonly shortcut?: ShortcutDef;
 }): Result<() => void> {
   return options.shortcuts.register(
-    {
-      id: 'shell/command-palette',
-      keys: options.keys ?? 'Mod+K',
-      allowInInputs: true,
-      run: () => {
-        if (options.manager.showing('dialog').some((h) => h.def.id === commandPaletteSurface.id)) return;
-        openCommandPalette(options);
-      },
+    options.shortcut ?? CommandPaletteShortcut,
+    () => {
+      if (options.manager.showing('dialog').some((h) => h.def.id === commandPaletteSurface.id)) return;
+      openCommandPalette(options);
     },
-    options.scope,
+    { scope: options.scope },
   );
 }
