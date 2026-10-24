@@ -1,15 +1,15 @@
 {
   "name": "s5-media",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Instaflow Phase 0 spike S5: Mediabunny + WebCodecs + WebGPU + AudioWorklet clock + export",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "media": "bash scripts/gen-media.sh",
+    "all": "bash scripts/run-all.sh",
+    "serve": "node scripts/run.cjs . web/index.html --serve-only"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "mediabunny": "^1.62.1"
+    "mediabunny": "1.62.1"
   }
 }

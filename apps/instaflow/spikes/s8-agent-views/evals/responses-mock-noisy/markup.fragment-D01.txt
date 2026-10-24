@@ -1,4 +1,4 @@
 ```xml
-<text id="n14" name="title slide 3" role="title" x="160" y="120" w="1600" h="83" font="@display" size="72" weight="700" fill="@ink">New editor</text>
+<text id="n14" name="title slide 3" role="title" x="173" y="120" w="1600" h="83" font="@display" size="72" weight="700" fill="@ink">New editor</text>
 <text id="n25" name="title slide 5" role="title" x="160" y="120" w="1600" h="104" font="@display" size="72" weight="700" fill="@ink">Team</text>
 ```

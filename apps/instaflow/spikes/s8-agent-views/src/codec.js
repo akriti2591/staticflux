@@ -114,8 +114,11 @@ export function nodeToMarkup(n, indent = '', out = []) {
     out.push(head + '>');
     for (const c of n.children) nodeToMarkup(c, indent + '  ', out);
     out.push(`${indent}</${tag}>`);
-  } else if (n.text !== undefined) out.push(`${head}>${escT(n.text)}</${tag}>`);
-  else out.push(head + '/>');
+  } else {
+    // whole-line cache for leaves (the per-node line cache of research 05 §5.3)
+    if (hc.indent !== indent || hc.text !== n.text) { hc.indent = indent; hc.text = n.text; hc.line = n.text !== undefined ? `${head}>${escT(n.text)}</${tag}>` : head + '/>'; }
+    out.push(hc.line);
+  }
   return out;
 }
 

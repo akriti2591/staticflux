@@ -133,7 +133,7 @@ export function scoreOne(task, view, style, responseText, expectHash) {
     const verdict = task.check(stateOf(human), { result: r, staleNodes, beatsTimeline: beats });
     rec.ok = verdict === true && cl.n === 0;
     if (verdict !== true) rec.why = verdict; else if (cl.n) rec.why = 'clobbered a concurrent human edit';
-    rec.unexpectedStale = rec.stale.length > 0 && !(task.expectStale ?? []).length;
+    rec.unexpectedStale = staleNodes.filter((n) => !(task.expectStale ?? []).includes(n));
     rec.respTokens = tok(String(responseText));
   } finally { agent.free(); human.free(); }
   return rec;
@@ -192,8 +192,8 @@ export function mockResponse(task, view, style) {
   } finally { agent.free(); human.free(); }
 }
 /** Negative control: deterministic small numeric mistakes in a third of the responses. */
-function noisy(resp, i) {
-  if (i % 3 !== 1) return resp;
+function noisy(resp, i, c) {
+  if (TASKS.indexOf(c.task) % 3 !== 1) return resp;          // the same third of the tasks in every combo
   let done = false;
   const bump = (m, k, n) => { if (done) return m; done = true; const x = Number(n); return m.replace(n, String(Number.isInteger(x) ? x + 13 : +(x + 0.37).toFixed(3))); };
   let out = resp.replace(/"(x|y|w|h|size|end|start|dur|at|gap|fadeOut)":\s*(-?\d+(?:\.\d+)?)/, (m, k, n) => bump(m, k, n));
@@ -223,7 +223,7 @@ if (cmd === 'prompts') {
     prompts: l.length, promptO200kAvg: Math.round(l.reduce((s, x) => s + x.tokens.o200k, 0) / l.length), promptChars4Avg: Math.round(l.reduce((s, x) => s + x.tokens.chars4, 0) / l.length),
     viewO200kAvg: Math.round(l.reduce((s, x) => s + x.viewTokens.o200k, 0) / l.length), viewChars4Avg: Math.round(l.reduce((s, x) => s + x.viewTokens.chars4, 0) / l.length) }])));
 } else if (cmd === 'mock') {
-  const sets = { 'responses-mock': (r) => r, 'responses-mock-noisy': noisy, 'responses-mock-empty': (r, i, c) => (c.style === 'fragment' && c.view === 'markup' ? '```xml\n\n```' : c.style === 'fragment' ? '```json\n{"upsert":[]}\n```' : '```json\n{"ops":[]}\n```') };
+  const sets = { 'responses-mock': (r) => r, 'responses-mock-noisy': (r, i, c) => noisy(r, i, c), 'responses-mock-empty': (r, i, c) => (c.style === 'fragment' && c.view === 'markup' ? '```xml\n\n```' : c.style === 'fragment' ? '```json\n{"upsert":[]}\n```' : '```json\n{"ops":[]}\n```') };
   const base = combos().map((c, i) => ({ c, i, resp: mockResponse(c.task, c.view, c.style) }));
   for (const [name, f] of Object.entries(sets)) {
     const dir = join(HERE, name); mkdirSync(dir, { recursive: true });

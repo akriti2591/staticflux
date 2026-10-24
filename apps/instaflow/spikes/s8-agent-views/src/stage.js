@@ -8,16 +8,26 @@ import { TEXT_PATH } from './schema.js';
 const SKIP = new Set(['id', 'kind', TEXT_PATH]);
 
 export class PartStage {
-  constructor(doc, partId) {
+  constructor(doc, partId, { cache } = {}) {
     this.doc = doc; this.partId = partId;
     this.nodes = new Map();      // NodeId → { id, tid, kind, parent, children: NodeId[], props, text, ver }
     this.byTid = new Map();      // TreeID → NodeId
     this.textCid = new Map();    // Text ContainerID → NodeId (lazy)
     this.rootId = null; this.frontiers = null; this.version = 0;
-    this.build();
+    if (cache) this.restore(cache); else this.build();
+  }
+
+  /** World cache (S4 recommendation): the mirror as JSON stored beside the part snapshot, stamped with its frontier. */
+  toCache() { return JSON.stringify({ frontiers: this.frontiers, rootId: this.rootId, nodes: [...this.nodes.values()].map(({ ver, ...r }) => r) }); }
+  restore(json) {
+    const c = JSON.parse(json);
+    for (const r of c.nodes) { r.ver = ++this.version; this.nodes.set(r.id, r); this.byTid.set(r.tid, r.id); }
+    this.rootId = c.rootId; this.frontiers = c.frontiers;
+    this.refresh();                // catch up with any ops after the cache's frontier
   }
 
   build() {
+    this.rebuilds = (this.rebuilds ?? -1) + 1;     // 0 after construction; > 0 = the incremental path gave up
     this.nodes.clear(); this.byTid.clear();
     const tree = this.doc.getTree(TREE);
     const json = tree.toJSON();      // one page tree only (≈ 200 nodes), not the whole document
@@ -43,15 +53,18 @@ export class PartStage {
     if (sameFrontiers(now, this.frontiers)) return new Set();
     const spans = this.doc.findIdSpansBetween(this.frontiers, now);
     if (spans.retreat.length) { this.build(); return 'all'; }
-    const dirty = new Set(); let structural = false;
+    const dirty = new Set(); const treeOps = []; const containers = [];
     for (const sp of spans.forward) for (const ch of this.doc.exportJsonInIdSpan(sp)) for (const op of ch.ops) {
-      const c = op.container;
-      if (c.endsWith(':Tree')) { structural = true; continue; }
-      const nid = this.nodeOfContainer(c);
-      if (nid) dirty.add(nid); else structural = true;   // a container we do not know yet (created in this span)
+      if (op.container.endsWith(':Tree')) treeOps.push(op.content); else containers.push(op.container);
     }
-    if (structural) { this.build(); return 'all'; }
     const tree = this.doc.getTree(TREE);
+    // structural ops are applied to the mirror incrementally (create / move / delete), not by a rebuild
+    if (treeOps.length && !this.applyTreeOps(tree, treeOps, dirty)) { this.build(); return 'all'; }
+    for (const c of containers) {
+      const nid = this.nodeOfContainer(c);
+      if (nid) dirty.add(nid);
+      else if (!c.endsWith(':Map') || !this.deletedTids?.has(c.slice(4, -4))) { this.build(); return 'all'; }   // unknown container
+    }
     for (const nid of dirty) {
       const rec = this.nodes.get(nid); if (!rec) continue;
       const h = tree.getNodeByID(rec.tid); const d = h.data;
@@ -63,6 +76,50 @@ export class PartStage {
     }
     this.frontiers = now;
     return dirty;
+  }
+
+  /** Apply tree ops (in op order) to the mirror. Returns false when the mirror cannot follow (→ rebuild). */
+  applyTreeOps(tree, ops, dirty) {
+    const touched = new Set();
+    this.deletedTids ??= new Set();
+    const readRec = (tid, parent) => {
+      const h = tree.getNodeByID(tid); const d = h.data;
+      try {
+        const m = d.toJSON(); const props = {};
+        for (const k in m) if (!SKIP.has(k)) props[k] = m[k];
+        return { id: m.id, tid, kind: m.kind, parent, children: [], props, text: m[TEXT_PATH], ver: ++this.version };
+      } finally { d.free?.(); h.free?.(); }
+    };
+    const drop = (nid) => { const r = this.nodes.get(nid); if (!r) return; for (const c of r.children) if (this.nodes.get(c)?.parent === nid) drop(c); this.nodes.delete(nid); this.byTid.delete(r.tid); this.deletedTids.add(r.tid); };
+    for (const t of ops) {
+      const parentNid = t.parent == null ? null : this.byTid.get(t.parent);
+      if (t.type === 'create') {
+        if (tree.isNodeDeleted(t.target)) { this.deletedTids.add(t.target); continue; }
+        if (t.parent != null && !parentNid) return false;
+        const rec = readRec(t.target, parentNid);
+        if (rec.id === undefined) return false;
+        this.nodes.set(rec.id, rec); this.byTid.set(t.target, rec.id); dirty.add(rec.id); touched.add(parentNid);
+        if (parentNid) this.nodes.get(parentNid).children.push(rec.id);
+      } else if (t.type === 'move') {
+        const nid = this.byTid.get(t.target); if (!nid) { if (tree.isNodeDeleted(t.target)) continue; return false; }
+        const rec = this.nodes.get(nid);
+        if (t.parent != null && !parentNid) return false;
+        const old = this.nodes.get(rec.parent); if (old) old.children = old.children.filter((c) => c !== nid);
+        touched.add(rec.parent); rec.parent = parentNid; touched.add(parentNid); dirty.add(nid);
+        if (parentNid) this.nodes.get(parentNid).children.push(nid);
+      } else if (t.type === 'delete') {
+        const nid = this.byTid.get(t.target); if (!nid) continue;
+        const rec = this.nodes.get(nid); touched.add(rec.parent); drop(nid); dirty.add(nid);
+      } else return false;
+    }
+    for (const p of touched) {
+      const rec = p && this.nodes.get(p); if (!rec) continue;
+      const h = tree.getNodeByID(rec.tid);
+      try { const ks = h.children() ?? []; rec.children = ks.map((k) => this.byTid.get(k.id)).filter(Boolean); ks.forEach((k) => k.free?.()); }
+      finally { h.free?.(); }
+      dirty.add(p);
+    }
+    return true;
   }
 
   nodeOfContainer(cid) {
@@ -119,11 +176,13 @@ export class Stage {
   constructor(replica) { this.replica = replica; this.parts = new Map(); this.nodeIndex = new Map(); }
   part(partId) {
     let s = this.parts.get(partId);
-    if (!s) { s = new PartStage(this.replica.part(partId), partId); this.parts.set(partId, s); }
-    else { const d = s.refresh(); if (d === 'all' || d.size) this.nodeIndex.clear(); }
+    if (!s) { s = new PartStage(this.replica.part(partId), partId); this.parts.set(partId, s); this.nodeIndex.clear(); }
+    else if (!this.frozen) { const d = s.refresh(); if (d === 'all' || d.size) this.nodeIndex.clear(); }
     if (!this.nodeIndex.size) this.reindex();
     return s;
   }
+  /** run fn with mirrors frozen (no refresh per lookup): the document cannot change during one compile */
+  frozenDuring(fn) { for (const s of this.parts.values()) { const d = s.refresh(); if (d === 'all' || d.size) this.nodeIndex.clear(); } this.frozen = true; try { return fn(); } finally { this.frozen = false; } }
   reindex() { for (const [pid, s] of this.parts) for (const id of s.nodes.keys()) this.nodeIndex.set(id, pid); }
   /** which part holds a node (loads all parts on a miss; fine for the spike's documents) */
   partOf(nid) {

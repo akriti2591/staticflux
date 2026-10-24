@@ -95,14 +95,15 @@ export class ForwardSession {
     this.dur = await this.m.video.computeDuration();
     this.pump();
   }
-  async pump() {
+  async pump(startPacket, gen = this.gen = (this.gen ?? 0) + 1) {
     try {
       for (;;) {
-        for await (const p of this.m.vsink.packets()) {
-          while (this.dec.decodeQueueSize > 3 || this.queue.length >= this.maxQueue) { if (this.closed) return; await this.n.wait(); }
-          if (this.closed) return;
+        for await (const p of this.m.vsink.packets(startPacket)) {
+          while (this.dec.decodeQueueSize > 3 || this.queue.length >= this.maxQueue) { if (this.closed || gen !== this.gen) return; await this.n.wait(); }
+          if (this.closed || gen !== this.gen) return;
           this.dec.decode(p.toEncodedVideoChunk());
         }
+        startPacket = undefined;
         await this.dec.flush();
         if (!this.loop) { this.done = true; this.n.notify(); return; }
         // loop: subsequent frames get timestamps offset by the clip duration (monotonic media time)
@@ -116,5 +117,22 @@ export class ForwardSession {
     const f = this.queue.shift(); this.n.notify(); return f;
   }
   peek() { return this.queue[0] ?? null; }
+  /**
+   * Catch-up when video has fallen behind the master clock by more than a GOP: abandon the backlog, reset, and
+   * restart decoding at the first keyframe after tSec (skipping whole GOPs instead of decoding them).
+   */
+  async resync(tSec) {
+    this.resyncs = (this.resyncs ?? 0) + 1;
+    const gen = this.gen = (this.gen ?? 0) + 1;
+    this.n.notify();
+    for (const f of this.queue) f.close();
+    this.queue = [];
+    this.dec.reset();
+    this.dec.configure({ ...this.m.vconfig, optimizeForLatency: true });
+    const k = await this.m.vsink.getKeyPacket(tSec);
+    const next = k && (await this.m.vsink.getNextKeyPacket(k));
+    if (gen !== this.gen || this.closed) return;
+    if (next) this.pump(next, gen); else { this.done = true; this.n.notify(); }
+  }
   close() { this.closed = true; for (const f of this.queue) f.close(); this.queue = []; try { this.dec.close(); } catch {} this.n.notify(); }
 }

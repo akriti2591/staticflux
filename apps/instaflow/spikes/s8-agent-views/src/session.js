@@ -4,7 +4,7 @@
 //   accept(proposal)       → re-check stale at accept time, apply to Latest as ONE commit per part, one undo step
 //   undo()                 → reverts the last accepted change set (all parts it touched) via the agent peer's UndoManagers
 import { L, TREE, writeNode } from './store.js';
-import { Stage, PartStage } from './stage.js';
+import { Stage, PartStage, sameFrontiers as sameFrontierList } from './stage.js';
 import { TEXT_PATH, vocabulary } from './schema.js';
 import { layoutScopeModel, layoutMarkup, layoutJson, timelineModel, timelineJson, graphModel, graphJson } from './views.js';
 import { Compiler } from './compile.js';
@@ -35,6 +35,24 @@ export class AgentSession {
 
   /** Project a view. kind: markup | json (layout) | timeline | graph. scope: 'page:<id>' | 'doc' | 'flow:<id>'. */
   readView(kind, scope, { changedSince = true } = {}) {
+    // memo by (kind, scope, frontier): an unchanged document returns the identical view (same base, same hash),
+    // which also keeps provider prompt caching effective (research 05 §5.3)
+    const memoKey = kind + '|' + scope;
+    const memo = this.memo?.get(memoKey);
+    if (memo) {
+      for (const pid of memo.parts) this.stage.part(pid);            // refresh mirrors (cheap when unchanged)
+      if (memo.parts.every((pid) => sameFrontierList(this.replica.part(pid).frontiers(), memo.frontiers[pid]))) {
+        if (!this.views.has(memo.result.base)) this.views.set(memo.result.base, memo.view);   // evicted from the LRU
+        return memo.result;
+      }
+    }
+    const result = this.project(kind, scope, { changedSince });
+    const view = this.views.get(result.base);
+    (this.memo ??= new Map()).set(memoKey, { parts: result.model.parts, frontiers: view.frontiers, view, result });
+    return result;
+  }
+
+  project(kind, scope, { changedSince }) {
     let m, body;
     if (kind === 'markup' || kind === 'json') { m = layoutScopeModel(this.stage, this.handles, scope); body = kind === 'markup' ? layoutMarkup(m) : layoutJson(m); }
     else if (kind === 'timeline') { m = timelineModel(this.stage, this.handles, scope); body = timelineJson(m); }
@@ -46,7 +64,9 @@ export class AgentSession {
     let since = '';
     const prev = changedSince && this.lastBase.get(kind + scope);
     if (prev && prev !== base) since = this.changedSinceSection(kind, this.views.get(prev));
+    this.views.delete(base);
     this.views.set(base, { kind, scope, frontiers, index: m.index, flowHandle: m.flow?.id });
+    if (this.views.size > 64) this.views.delete(this.views.keys().next().value);   // LRU: older bases → IF-CS-007
     this.lastBase.set(kind + scope, base);
     const head = { base, hash, scope };
     const text = kind === 'markup'
@@ -91,7 +111,7 @@ export class AgentSession {
     const ops = Array.isArray(edit.ops) ? edit.ops : [];
     if (ops.length > 2000) return { status: 'invalid', errors: [sfError('IF-CS-008', 'more than 2,000 ops', 'split the change')], results: [] };
     const csId = `cs${String(++this.seq).padStart(3, '0')}${this.peer.slice(-3)}`;
-    const compiled = this.compile(view, ops, csId);
+    const compiled = this.stage.frozenDuring(() => this.compile(view, ops, csId));
     const proposal = { id: csId, base: edit.base, view, intent: edit.intent ?? '', mode: edit.mode ?? 'partial', ops, ...compiled, compileMs: performance.now() - t0 };
     if (proposal.mode === 'atomic' && proposal.results.some((r) => r.status !== 'ok')) {
       proposal.status = 'rejected-atomic'; proposal.canon = []; return summarize(proposal);
@@ -100,10 +120,12 @@ export class AgentSession {
     proposal.forks = new Map();
     for (const pid of new Set(proposal.canon.map((c) => c.part))) {
       const f = this.replica.part(pid).fork(); f.setPeerId(this.peer);
-      applyCanon(f, new PartStage(this.replica.part(pid), pid), proposal.canon.filter((c) => c.part === pid));
+      const ps = this.stage.part(pid);
+      applyCanon(f, ps, proposal.canon.filter((c) => c.part === pid));
       f.commit({ message: JSON.stringify({ actor: 'agent:' + this.name, cs: csId, proposal: true }) });
       proposal.forks.set(pid, f);
-      const inv = invariants(new PartStage(f, pid));
+      // preview stage of the fork: restored from the mirror's cache + the one proposal commit (no per-node Wasm reads)
+      const inv = invariants(new PartStage(f, pid, { cache: ps.toCache() }));
       if (inv.length) {
         proposal.status = 'invalid';
         proposal.errors = inv.map((i) => sfError('IF-CS-011', i, 'keep items on one track from overlapping'));
@@ -125,9 +147,8 @@ export class AgentSession {
     const C = new Compiler({ session: this, stage: this.stage, base: view, changeSetId: csId, changed });
     const canon = []; const results = [];
     ops.forEach((op, i) => {
-      const tempsBefore = new Set(C.temps.keys());
-      const pendingBefore = new Map([...C.pending].map(([k, v]) => [k, { ...v }]));
-      const drop = () => { for (const k of C.temps.keys()) if (!tempsBefore.has(k)) { C.temps.delete(k); C.dropped.add(k); } C.pending = pendingBefore; };
+      C.beginOp();
+      const drop = () => C.dropOp();
       try {
         const c = C.compileOp(op);
         const stale = C.staleOf(c);
@@ -151,7 +172,7 @@ export class AgentSession {
     if (p.status !== 'proposed') return p;
     const view = p.view;
     // accept-time re-check: humans may have edited while the proposal waited
-    const recheck = this.compile(view, p.ops, p.id);
+    const recheck = this.stage.frozenDuring(() => this.compile(view, p.ops, p.id));
     const canon = recheck.canon;
     const parts = [...new Set(canon.map((c) => c.part))];
     for (const pid of parts) {
@@ -224,11 +245,12 @@ export function applyCanon(doc, ps, ops) {
         tree.move(tid, ptid, indexFor(ptid, op.after, tid));
         break;
       }
-      case 'text.set': case 'text.replace': {
+      case 'text.set': case 'text.replace': case 'text.splice': {
         const tid = tidOf(op.node); const h = tree.getNodeByID(tid); const d = h.data; const t = d.get(TEXT_PATH);
         try {
           const cur = t.toString();
-          if (op.op === 'text.replace') { const at = cur.indexOf(op.find); if (at >= 0) { t.delete(at, op.find.length); t.insert(at, op.replace); } }
+          if (op.op === 'text.splice') { if (op.del) t.delete(op.at, op.del); if (op.ins) t.insert(op.at, op.ins); }
+          else if (op.op === 'text.replace') { const at = cur.indexOf(op.find); if (at >= 0) { t.delete(at, op.find.length); t.insert(at, op.replace); } }
           else {
             // minimal splice (common prefix/suffix) so concurrent edits elsewhere in the string merge
             let a = 0; while (a < cur.length && a < op.value.length && cur[a] === op.value[a]) a++;

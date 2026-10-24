@@ -85,15 +85,17 @@ export const CAPABILITIES = {
 
 /** Generated vocabulary reference (IF-6.4): from the tables above, never hand-maintained. */
 export function vocabulary(kinds = Object.keys(KINDS)) {
-  const lines = [];
+  const used = [...new Set(kinds.flatMap((k) => KINDS[k].attrs))];
+  const type = (A) => (A.type === 'enum' ? A.values.join('|') : A.type === 'px' ? 'px int' : A.type === 's' ? 'seconds' : A.type === 'color' ? '#hex|@token' : A.type);
+  const lines = ['Elements:'];
   for (const k of kinds) {
     const d = KINDS[k];
-    const attrs = d.attrs.map((a) => {
-      const A = ATTRS[a];
-      const t = A.type === 'enum' ? A.values.join('|') : A.type === 'px' ? 'px int' : A.type === 's' ? 'seconds' : A.type === 'color' ? '#hex|@token' : A.type;
-      return `${a}(${t}${A.def !== undefined ? `, default ${JSON.stringify(A.def)}` : ''}${A.readonly ? ', read-only' : ''})`;
-    });
-    lines.push(`- <${d.tag}>${d.container ? ' (container)' : ''}${d.text ? ' (text content = element body)' : ''}: ${attrs.join(', ')}`);
+    lines.push(`- <${d.tag}>${d.container ? ' container' : ''}${d.text ? ' (text = element body)' : ''}: ${d.attrs.join(' ')}`);
+  }
+  lines.push('Attributes:');
+  for (const a of used) {
+    const A = ATTRS[a];
+    lines.push(`- ${a}: ${type(A)}${A.def !== undefined ? `, default ${JSON.stringify(A.def)}` : ''}${A.readonly ? ', read-only' : ''}`);
   }
   return lines.join('\n');
 }

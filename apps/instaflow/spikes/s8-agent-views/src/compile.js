@@ -19,6 +19,17 @@ export class Compiler {
     this.pending = new Map();         // nid → { path: value } written by earlier ops of this change set (for chained relational ops)
   }
 
+  /** record writes of this change set (journaled per agent op so a dropped op can be rolled back cheaply) */
+  pend(nid, set) {
+    if (this.journal && !this.journal.has(nid)) this.journal.set(nid, this.pending.has(nid) ? { ...this.pending.get(nid) } : undefined);
+    const p = this.pending.get(nid) ?? {}; Object.assign(p, set); this.pending.set(nid, p);
+  }
+  beginOp() { this.journal = new Map(); this.tempsBefore = new Set(this.temps.keys()); }
+  dropOp() {
+    for (const k of this.temps.keys()) if (!this.tempsBefore.has(k)) { this.temps.delete(k); this.dropped.add(k); }
+    for (const [nid, prev] of this.journal) prev === undefined ? this.pending.delete(nid) : this.pending.set(nid, prev);
+  }
+
   // ---------------------------------------------------------------------------------------------- resolution
   ref(r) {
     if (typeof r !== 'string') throw sfError('IF-CS-001', `expected a handle string, got ${JSON.stringify(r)}`, 'use an id from the view, e.g. "n4"');
@@ -113,7 +124,7 @@ export class Compiler {
     if (Object.keys(timeEdit).length) Object.assign(set, this.mediaTimes(t, timeEdit));
     if (Object.keys(set).length) {
       out.unshift({ op: 'update', part: t.partId, node: t.nid, set });
-      const p = this.pending.get(t.nid) ?? {}; Object.assign(p, set); this.pending.set(t.nid, p);
+      this.pend(t.nid, set);
       if (t.temp) Object.assign(t.props, set);
     }
     return out;
@@ -139,10 +150,37 @@ export class Compiler {
       if (typeof value !== 'string') throw sfError('IF-CS-001', 'text value must be a string', 'send {op:"text", id, value:"..."}');
       const bv = t.temp ? undefined : this.base.index.get(t.handle)?.node.text;
       if (bv === value) return [];
-      return [{ op: 'text.set', part: t.partId, node: t.nid, value, baseText: bv }];
+      const cur = t.temp ? undefined : t.rec.text;
+      if (bv === undefined || cur === bv) return [{ op: 'text.set', part: t.partId, node: t.nid, value, baseText: bv }];
+      return [this.rebaseText(t, bv, value, cur)];
     }
     if (typeof find !== 'string' || typeof replace !== 'string' || !find) throw sfError('IF-CS-001', 'text find/replace must be non-empty strings', 'send {op:"text", id, find, replace}');
     return [{ op: 'text.replace', part: t.partId, node: t.nid, find, replace }];
+  }
+  /**
+   * Three-way text merge: the agent's change is a splice of the BASE text (common prefix/suffix). Loro cursors taken
+   * on a fork at `base` map that range into the current text, so concurrent edits elsewhere in the string survive.
+   * Only an overlapping concurrent edit (inside the replaced range) is a stale field.
+   */
+  rebaseText(t, bv, value, cur) {
+    let a = 0; while (a < bv.length && a < value.length && bv[a] === value[a]) a++;
+    let b = 0; while (b < bv.length - a && b < value.length - a && bv[bv.length - 1 - b] === value[value.length - 1 - b]) b++;
+    const del = bv.length - a - b, ins = value.slice(a, value.length - b);
+    const doc = this.stage.replica.part(t.partId);
+    const fork = doc.forkAt(this.base.frontiers[t.partId]);
+    let p1, p2;
+    try {
+      const n = fork.getTree('nodes').getNodeByID(t.rec.tid); const d = n.data; const tx = d.get(TEXT_PATH);
+      // start cursor sticks to the char before the range, end cursor to the char after it
+      const c1 = a > 0 ? tx.getCursor(a - 1, 1) : null, c2 = a + del < bv.length ? tx.getCursor(a + del, -1) : null;
+      p1 = c1 ? doc.getCursorPos(c1).offset + 1 : 0;
+      p2 = c2 ? doc.getCursorPos(c2).offset : cur.length;
+      c1?.free?.(); c2?.free?.(); tx.free?.(); d.free?.(); n.free?.();
+    } finally { fork.free(); }
+    if (cur.slice(p1, p2) !== bv.slice(a, a + del)) {
+      throw sfError('IF-CS-010', `${t.handle}.text was edited in the same place after your view`, 're-read the view or resend with expect=theirs', { stale: [{ id: t.handle, field: 'text', theirs: cur, yours: value }] });
+    }
+    return { op: 'text.splice', part: t.partId, node: t.nid, at: p1, del: p2 - p1, ins, rebased: true };
   }
 
   // ---------------------------------------------------------------------------------------------- structure
@@ -262,7 +300,7 @@ export class Compiler {
     if (abs.x !== undefined) { this.guardWrite(t, 'x'); if (Math.abs(abs.x - o.x - (this.prop(t, 'spatial.x') ?? 0)) > EPS) set['spatial.x'] = abs.x - o.x; }
     if (abs.y !== undefined) { this.guardWrite(t, 'y'); if (Math.abs(abs.y - o.y - (this.prop(t, 'spatial.y') ?? 0)) > EPS) set['spatial.y'] = abs.y - o.y; }
     if (!Object.keys(set).length) return [];
-    const p = this.pending.get(t.nid) ?? {}; Object.assign(p, set); this.pending.set(t.nid, p);
+    this.pend(t.nid, set);
     if (t.temp) Object.assign(t.props, set);
     return [{ op: 'update', part: t.partId, node: t.nid, set }];
   }
@@ -361,7 +399,7 @@ export class Compiler {
       const st = this.prop(it, 'temporal.start');
       if (st >= at - 1) {
         const set = { 'temporal.start': Math.max(0, st + delta) };
-        const p = this.pending.get(it.nid) ?? {}; Object.assign(p, set); this.pending.set(it.nid, p);
+        this.pend(it.nid, set);
         ops.push({ op: 'update', part: it.partId, node: it.nid, set, implied: true });
       }
     }
@@ -384,7 +422,7 @@ export class Compiler {
     if (MEDIA_KINDS.has(t.kind)) {
       this.guardWrite(t, 'dur');
       const set = this.mediaTimes(t, e);
-      const p = this.pending.get(t.nid) ?? {}; Object.assign(p, set); this.pending.set(t.nid, p);
+      this.pend(t.nid, set);
       ops = [{ op: 'update', part: t.partId, node: t.nid, set }];
     } else ops = this.setAttrs(t, { dur: e.dur }, { exact: true });
     if (op.ripple) {
@@ -404,7 +442,7 @@ export class Compiler {
     }
     this.guardWrite(t, 'start');
     const set = { 'temporal.start': secToTicks(op.start) };
-    const p = this.pending.get(t.nid) ?? {}; Object.assign(p, set); this.pending.set(t.nid, p);
+    this.pend(t.nid, set);
     ops.push({ op: 'update', part: t.partId, node: t.nid, set });
     return ops;
   }
@@ -428,7 +466,7 @@ export class Compiler {
     if (np.name) np.name = np.name + ' (b)';
     this.temps.set(tempId, { nid, partId: t.partId, kind: t.kind, parent: parent.nid, props: np, temp: true, handle: tempId });
     ops.push({ op: 'create', part: t.partId, node: nid, temp: tempId, kind: t.kind, parent: parent.nid, after: t.nid, props: np, text: t.kind === 'text' ? (t.rec?.text ?? '') : undefined });
-    const p = this.pending.get(t.nid) ?? {}; Object.assign(p, set); this.pending.set(t.nid, p);
+    this.pend(t.nid, set);
     return ops;
   }
 

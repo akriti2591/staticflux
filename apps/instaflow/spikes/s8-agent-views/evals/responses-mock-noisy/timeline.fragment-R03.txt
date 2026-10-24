@@ -1,3 +1,3 @@
 ```json
-{"upsert":[{"id":"n7","kind":"video","name":"clip 5 night lights","role":"broll","src":"as_night","start":13.7,"dur":3.3,"in":0.5,"out":3.8}],"delete":["n6"]}
+{"upsert":[{"id":"n7","kind":"video","name":"clip 5 night lights","role":"broll","src":"as_night","start":14.07,"dur":3.3,"in":0.5,"out":3.8}],"delete":["n6"]}
 ```

@@ -33,7 +33,7 @@ const all = (...cs) => cs.find((c) => c !== true) ?? true;
 const FLYER = 'page:fl-page';
 const sp = ['fl-sp1', 'fl-sp2', 'fl-sp3'];
 const BASE = { // seed geometry the predicates compare against (absolute page px)
-  sp: { 'fl-sp1': { x: 120.4, y: 1200.2 }, 'fl-sp2': { x: 440.1, y: 1212.85 }, 'fl-sp3': { x: 760.7, y: 1193.6 } },
+  sp: { 'fl-sp1': { x: 120.4, y: 1200.2 }, 'fl-sp2': { x: 470.1, y: 1212.85 }, 'fl-sp3': { x: 760.7, y: 1193.6 } },
 };
 
 export const TASKS = [
@@ -61,7 +61,7 @@ export const TASKS = [
   { id: 'F05', doc: 'flyer', scope: FLYER, prompt: 'The market moved to Sunday 15 November. Update the date line; keep the time.',
     human: (h) => h.set('fl-date', 'spatial.y', 450),
     gold: (H) => [{ op: 'text', id: H('date'), find: 'Sat 14 Nov', replace: 'Sun 15 Nov' }],
-    check: (S) => { const t = S.n('fl-date').text; return all(why(/Sun(day)? 15 Nov/.test(t), `text="${t}"`), why(t.includes('6–11 pm'), 'time lost'), why(!t.includes('Sat'), 'still says Sat')); } },
+    check: (S) => { const t = S.n('fl-date').text; return why(/^Sun(day)?,? 15 Nov(ember)?\s*·\s*6–11 pm$/.test(t), `text="${t}"`); } },
   { id: 'F06', doc: 'flyer', scope: FLYER, prompt: 'Make the subhead use the brand accent color.',
     human: (h) => h.insertText('fl-subhead', -1, ' · DJs'),
     gold: (H) => [{ op: 'set', id: H('subhead'), attrs: { fill: '@accent' } }],

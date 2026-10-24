@@ -1,0 +1,302 @@
+{
+  "node": "v22.22.0",
+  "procs": 5,
+  "iters": 300,
+  "page": "200 elements (bigPageSeed)",
+  "stats": {
+    "cold": {
+      "n": 1500,
+      "median": 14.35,
+      "p95": 39.381,
+      "perProcessMedian": [
+        13.711,
+        14.692,
+        13.831,
+        13.248,
+        16.393
+      ]
+    },
+    "coldWorldCache": {
+      "n": 1500,
+      "median": 4.842,
+      "p95": 14.51,
+      "perProcessMedian": [
+        4.632,
+        4.883,
+        4.849,
+        4.664,
+        5.45
+      ]
+    },
+    "coldModel": {
+      "n": 1500,
+      "median": 0.518,
+      "p95": 1.019,
+      "perProcessMedian": [
+        0.481,
+        0.495,
+        0.524,
+        0.538,
+        0.585
+      ]
+    },
+    "warm": {
+      "n": 1500,
+      "median": 0.068,
+      "p95": 0.15,
+      "perProcessMedian": [
+        0.06,
+        0.061,
+        0.068,
+        0.071,
+        0.083
+      ]
+    },
+    "warmNoMemo": {
+      "n": 1500,
+      "median": 1.113,
+      "p95": 2.12,
+      "perProcessMedian": [
+        1.113,
+        1.024,
+        1.134,
+        1.092,
+        1.19
+      ]
+    },
+    "oneChange": {
+      "n": 1500,
+      "median": 1.656,
+      "p95": 3.685,
+      "perProcessMedian": [
+        1.618,
+        1.552,
+        1.737,
+        1.615,
+        1.779
+      ]
+    },
+    "structural": {
+      "n": 1500,
+      "median": 1.618,
+      "p95": 4.266,
+      "perProcessMedian": [
+        1.576,
+        1.484,
+        1.674,
+        1.625,
+        1.769
+      ]
+    },
+    "serializeOnly": {
+      "n": 1500,
+      "median": 0.4,
+      "p95": 0.723,
+      "perProcessMedian": [
+        0.378,
+        0.37,
+        0.402,
+        0.405,
+        0.428
+      ]
+    },
+    "hashOnly": {
+      "n": 1500,
+      "median": 0.135,
+      "p95": 0.277,
+      "perProcessMedian": [
+        0.13,
+        0.128,
+        0.137,
+        0.139,
+        0.152
+      ]
+    },
+    "jsonView": {
+      "n": 1500,
+      "median": 0.456,
+      "p95": 1.087,
+      "perProcessMedian": [
+        0.439,
+        0.442,
+        0.463,
+        0.45,
+        0.503
+      ]
+    },
+    "canonical": {
+      "n": 1500,
+      "median": 7.692,
+      "p95": 17.816,
+      "perProcessMedian": [
+        7.53,
+        7.368,
+        7.802,
+        7.477,
+        8.544
+      ]
+    },
+    "compile2": {
+      "n": 1500,
+      "median": 0.32,
+      "p95": 0.615,
+      "perProcessMedian": [
+        0.299,
+        0.306,
+        0.325,
+        0.324,
+        0.351
+      ]
+    },
+    "validate500": {
+      "n": 150,
+      "median": 15.835,
+      "p95": 34.119,
+      "perProcessMedian": [
+        16.197,
+        14.028,
+        15.835,
+        16.525,
+        16.949
+      ]
+    }
+  },
+  "tokens": [
+    {
+      "seed": "flyer",
+      "scope": "page:fl-page",
+      "view": "markup",
+      "chars": 2623,
+      "tokChars4": 656,
+      "tokO200k": 1002
+    },
+    {
+      "seed": "flyer",
+      "scope": "page:fl-page",
+      "view": "json",
+      "chars": 2971,
+      "tokChars4": 743,
+      "tokO200k": 1055
+    },
+    {
+      "seed": "flyer",
+      "scope": "page:fl-page",
+      "view": "canonical-json",
+      "chars": 5862,
+      "tokChars4": 1466,
+      "tokO200k": 1899
+    },
+    {
+      "seed": "deck",
+      "scope": "doc",
+      "view": "markup",
+      "chars": 3396,
+      "tokChars4": 849,
+      "tokO200k": 1319
+    },
+    {
+      "seed": "deck",
+      "scope": "doc",
+      "view": "json",
+      "chars": 3940,
+      "tokChars4": 985,
+      "tokO200k": 1411
+    },
+    {
+      "seed": "deck",
+      "scope": "doc",
+      "view": "canonical-json",
+      "chars": 8382,
+      "tokChars4": 2096,
+      "tokO200k": 2758
+    },
+    {
+      "seed": "deck",
+      "scope": "page:dk-s3",
+      "view": "markup",
+      "chars": 651,
+      "tokChars4": 163,
+      "tokO200k": 262
+    },
+    {
+      "seed": "deck",
+      "scope": "page:dk-s3",
+      "view": "json",
+      "chars": 738,
+      "tokChars4": 185,
+      "tokO200k": 271
+    },
+    {
+      "seed": "deck",
+      "scope": "page:dk-s3",
+      "view": "canonical-json",
+      "chars": 1740,
+      "tokChars4": 435,
+      "tokO200k": 588
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "timeline",
+      "chars": 2056,
+      "tokChars4": 514,
+      "tokO200k": 807
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "markup",
+      "chars": 2244,
+      "tokChars4": 561,
+      "tokO200k": 916
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "json",
+      "chars": 2529,
+      "tokChars4": 632,
+      "tokO200k": 969
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "canonical-json",
+      "chars": 6105,
+      "tokChars4": 1526,
+      "tokO200k": 2035
+    },
+    {
+      "seed": "reel",
+      "scope": "flow:fw-captions",
+      "view": "graph",
+      "chars": 1017,
+      "tokChars4": 254,
+      "tokO200k": 341
+    },
+    {
+      "seed": "big",
+      "scope": "page:bp-page",
+      "view": "markup",
+      "chars": 27262,
+      "tokChars4": 6816,
+      "tokO200k": 10304
+    },
+    {
+      "seed": "big",
+      "scope": "page:bp-page",
+      "view": "json",
+      "chars": 30651,
+      "tokChars4": 7663,
+      "tokO200k": 11058
+    },
+    {
+      "seed": "big",
+      "scope": "page:bp-page",
+      "view": "canonical-json",
+      "chars": 60640,
+      "tokChars4": 15160,
+      "tokO200k": 19718
+    }
+  ]
+}

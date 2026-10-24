@@ -1,3 +1,3 @@
 ```json
-{"ops":[{"op":"noop","id":"n5"}]}
+{"ops":[{"op":"delete","id":"n5"}]}
 ```

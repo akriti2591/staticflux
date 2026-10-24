@@ -1,4 +1,4 @@
 ```xml
-<ellipse id="new:n20" parent="n1" after="n16" name="free entry badge" role="badge" x="880" y="40" w="160" h="160" fill="@accent"/>
+<ellipse id="new:n20" parent="n1" after="n16" name="free entry badge" role="badge" x="893" y="40" w="160" h="160" fill="@accent"/>
 <text id="new:n21" parent="n1" after="new:n20" name="badge text" role="badge" x="880" y="100" w="160" h="40" size="28" weight="700" fill="#FFFFFF" align="center">Free entry</text>
 ```

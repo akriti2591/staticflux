@@ -1,5 +1,5 @@
 /**
- * S5 copy of ../_harness/serve-and-run.cjs, adding --autoplay-policy=no-user-gesture-required (AudioContext needs a gesture otherwise) and console.log passthrough.
+ * S5 copy of ../_harness/serve-and-run.cjs. Adds: --autoplay-policy=no-user-gesture-required (AudioContext needs a gesture otherwise), --verbose (page console passthrough), --chrome (Playwright channel "chrome" = installed Chrome stable).
  * Shared Phase 0 harness: serves a spike directory with cross-origin isolation
  * (COOP/COEP, so SharedArrayBuffer/OPFS/WebGPU/WebCodecs are available) and runs
  * a page in Chromium, printing the JSON result the page posts to window.__result.
@@ -45,7 +45,7 @@ if (flags.includes('--serve-only')) { console.log(`serving ${root} at ${url} (Ct
   const { chromium } = require('playwright');
   const swiftshader = ['--enable-unsafe-webgpu', '--enable-features=Vulkan', '--use-vulkan=swiftshader', '--use-webgpu-adapter=swiftshader', '--disable-vulkan-surface', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
   const args = [...(flags.includes('--real-gpu') ? ['--enable-unsafe-webgpu'] : swiftshader), '--autoplay-policy=no-user-gesture-required'];
-  const browser = await chromium.launch({ headless: !flags.includes('--headed'), args: [...args, '--js-flags=--expose-gc', '--enable-precise-memory-info'] });
+  const browser = await chromium.launch({ ...(flags.includes('--chrome') ? { channel: 'chrome' } : {}), headless: !flags.includes('--headed'), args: [...args, '--js-flags=--expose-gc', '--enable-precise-memory-info'] });
   const context = await browser.newContext();
   const pageHandle = await context.newPage();
   pageHandle.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning' || flags.includes('--verbose')) console.error(`[page ${m.type()}] ${m.text()}`); });

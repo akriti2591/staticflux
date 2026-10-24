@@ -155,3 +155,76 @@ test('property: a random set edit is reflected by the next projection and touche
     } finally { agent.free(); human.free(); }
   }), { numRuns: 150, seed: 7 });
 });
+
+test('world cache: a stage restored from its cache + later ops equals a fresh build', async () => {
+  const { PartStage } = await import('../src/stage.js');
+  const { humanEdit } = await import('../src/human.js');
+  const { human, agent } = fresh('flyer');
+  const doc = human.part('page:fl-page');
+  const cache = new PartStage(doc, 'page:fl-page').toCache();
+  humanEdit(human, (h) => { h.set('fl-headline', 'text.size', 99); h.insertText('fl-date', 0, 'NEW '); });
+  const a = new PartStage(doc, 'page:fl-page', { cache }), b = new PartStage(doc, 'page:fl-page');
+  const strip = (s) => JSON.stringify([...s.nodes.values()].map(({ ver, ...r }) => r).sort((x, y) => (x.id < y.id ? -1 : 1)));
+  assert.equal(strip(a), strip(b));
+  assert.equal(a.get('fl-headline').props['text.size'], 99);
+  agent.free(); human.free();
+});
+
+test('incremental mirror: inserts, moves, reorders and deletes (human and agent) match a fresh build', async () => {
+  const { PartStage } = await import('../src/stage.js');
+  const { humanEdit } = await import('../src/human.js');
+  const { human, agent } = fresh('flyer');
+  const pid = 'page:fl-page';
+  const inc = agent.stage.part(pid);          // the agent's long-lived mirror
+  const v = agent.readView('markup', pid);
+  const H = (n) => { for (const [h, e] of v.model.index) if (e.node.attrs.name === n) return h; };
+  agent.apply({ base: v.base, ops: [
+    { op: 'insert', tempId: 'new:g', parent: H('Night market flyer'), el: { kind: 'group', x: 10, y: 10, w: 100, h: 100, children: [{ kind: 'rect', attrs: { x: 10, y: 10, w: 5, h: 5 } }] } },
+    { op: 'move', id: H('sponsor logo 2'), parent: 'new:g' },
+    { op: 'reorder', id: H('headline'), to: 'back' },
+    { op: 'delete', id: H('sponsor bar') },
+  ] });
+  humanEdit(human, (h) => { h.del('fl-b2'); h.set('fl-b1', 'spatial.x', 1); });
+  agent.stage.part(pid);
+  const strip = (s) => JSON.stringify([...s.nodes.values()].map(({ ver, ...r }) => r).sort((x, y) => (x.id < y.id ? -1 : 1)));
+  assert.equal(strip(inc), strip(new PartStage(agent.replica.part(pid), pid)));
+  // and the view from the incremental mirror equals a fresh session's view text (modulo handles/base)
+  const v2 = agent.readView('markup', pid);
+  assert.ok(!v2.text.includes('sponsor bar') && v2.text.includes('sponsor logo 2'));
+  agent.free(); human.free();
+});
+
+test('incremental mirror fuzz: 100 rounds × 6 random structural/property edits (agent + human) == fresh build', async () => {
+  const { PartStage } = await import('../src/stage.js');
+  const { humanEdit } = await import('../src/human.js');
+  const { prng } = await import('../src/units.js');
+  const strip = (s) => JSON.stringify([...s.nodes.values()].map(({ ver, ...r }) => r).sort((x, y) => (x.id < y.id ? -1 : 1)));
+  const r = prng(99); const pick = (a) => a[Math.floor(r() * a.length)];
+  let rebuilds = 0;
+  for (let round = 0; round < 100; round++) {
+    const { human, agent } = fresh('flyer');
+    const pid = 'page:fl-page';
+    for (let step = 0; step < 6; step++) {
+      const v = agent.readView('markup', pid, { changedSince: false });
+      const all = [...v.model.index.entries()].filter(([, e]) => e.kind !== 'page' && !e.node.attrs.locked && !e.node.attrs.from);
+      const containers = [...v.model.index.entries()].filter(([, e]) => ['page', 'group', 'frame'].includes(e.kind)).map(([h]) => h);
+      if (!all.length) break;
+      const [h, e] = pick(all);
+      const k = r();
+      const op = k < 0.25 ? { op: 'delete', id: h }
+        : k < 0.5 ? { op: 'move', id: h, parent: pick(containers) }
+        : k < 0.7 ? { op: 'reorder', id: h, to: pick(['front', 'back', 'forward', 'backward']) }
+        : k < 0.85 ? { op: 'insert', tempId: 'new:x' + step, parent: pick(containers), el: { kind: 'rect', x: 1, y: 2, w: 3, h: 4 } }
+        : { op: 'set', id: h, attrs: { x: Math.round(r() * 500) } };
+      agent.apply({ base: v.base, ops: [op] });
+      if (r() < 0.4) {
+        const live = [...agent.stage.part(pid).nodes.values()].filter((n) => n.kind !== 'page' && !n.props['lock.scope'] && n.parent);
+        if (live.length) { const n = pick(live); humanEdit(human, (hh) => (r() < 0.5 ? hh.del(n.id) : hh.set(n.id, 'spatial.y', 7))); }
+      }
+      assert.equal(strip(agent.stage.part(pid)), strip(new PartStage(agent.replica.part(pid), pid)), `round ${round} step ${step} op ${JSON.stringify(op)}`);
+    }
+    rebuilds += agent.stage.part(pid).rebuilds;
+    agent.free(); human.free();
+  }
+  assert.equal(rebuilds, 0, 'every structural change was applied incrementally');
+});

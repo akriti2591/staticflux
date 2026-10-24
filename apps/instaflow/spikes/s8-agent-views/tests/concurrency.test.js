@@ -49,13 +49,31 @@ test('same field: agent op is flagged stale with theirs/yours, human value kept,
   assert.equal(P(human, 'fl-subhead').props['text.size'], 40);
 });
 
-test('text: find/replace merges with a concurrent insert; whole-value replace is flagged', () => {
+test('text: find/replace merges with a concurrent insert', () => {
   const { human, agent } = fresh('flyer');
   const v = agent.readView('markup', 'page:fl-page');
   humanEdit(human, (h) => h.insertText('fl-date', -1, ' (rain or shine)'));
-  const r = agent.apply({ base: v.base, ops: [{ op: 'text', id: byName(v, 'date'), find: 'Sat 14 Nov', replace: 'Sun 15 Nov' }, { op: 'text', id: byName(v, 'date'), value: 'Sunday' }] });
-  assert.deepEqual(r.results.map((x) => x.status), ['ok', 'stale']);
+  const r = agent.apply({ base: v.base, ops: [{ op: 'text', id: byName(v, 'date'), find: 'Sat 14 Nov', replace: 'Sun 15 Nov' }] });
+  assert.deepEqual(r.results.map((x) => x.status), ['ok']);
   assert.equal(P(human, 'fl-date').text, 'Sun 15 Nov · 6–11 pm (rain or shine)');
+});
+
+test('text: whole-value replace is rebased three-way (base → agent splice mapped by Loro cursors); overlap is flagged', () => {
+  for (const [humanAt, humanIns, agentValue, want] of [
+    [-1, ' (rain or shine)', 'Sun 15 Nov · 6–11 pm', 'Sun 15 Nov · 6–11 pm (rain or shine)'],   // human appends, agent edits the start
+    [0, 'NEW: ', 'Sat 14 Nov · 6–12 pm', 'NEW: Sat 14 Nov · 6–12 pm'],                          // human prepends, agent edits the end
+    [2, '&15 ', 'Sun 14 Nov · 6–11 pm', null],                                                  // human edits inside the agent's range ("at") → stale
+    [4, '&15 ', 'Sun 14 Nov · 6–11 pm', 'Sun &15 14 Nov · 6–11 pm'],                            // human edits right next to it → merges
+  ]) {
+    const { human, agent } = fresh('flyer');
+    const v = agent.readView('markup', 'page:fl-page');
+    humanEdit(human, (h) => h.insertText('fl-date', humanAt, humanIns));
+    const before = P(human, 'fl-date').text;
+    const r = agent.apply({ base: v.base, ops: [{ op: 'text', id: byName(v, 'date'), value: agentValue }] });
+    if (want) { assert.equal(r.results[0].status, 'ok'); assert.equal(P(human, 'fl-date').text, want); }
+    else { assert.equal(r.results[0].status, 'stale'); assert.equal(P(human, 'fl-date').text, before); }
+    agent.free(); human.free();
+  }
 });
 
 test('deletes: agent edit of a human-deleted node is flagged; agent delete of a human-edited node is refused', () => {

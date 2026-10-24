@@ -1,730 +1,730 @@
 {
  "markup.ops-F01": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1857,
-   "o200k": 2415
+   "chars4": 1479,
+   "o200k": 1959
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.rel-F01": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2084,
-   "o200k": 2698
+   "chars4": 1706,
+   "o200k": 2242
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.fragment-F01": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1810,
-   "o200k": 2307
+   "chars4": 1432,
+   "o200k": 1851
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "json.ops-F01": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1943,
-   "o200k": 2470
+   "chars4": 1565,
+   "o200k": 2010
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.rel-F01": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2170,
-   "o200k": 2753
+   "chars4": 1792,
+   "o200k": 2293
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.fragment-F01": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1860,
-   "o200k": 2330
+   "chars4": 1481,
+   "o200k": 1870
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "markup.ops-F02": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1856,
-   "o200k": 2413
+   "chars4": 1477,
+   "o200k": 1957
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.rel-F02": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2083,
-   "o200k": 2696
+   "chars4": 1704,
+   "o200k": 2240
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.fragment-F02": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1808,
-   "o200k": 2305
+   "chars4": 1430,
+   "o200k": 1849
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "json.ops-F02": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1941,
-   "o200k": 2468
+   "chars4": 1563,
+   "o200k": 2008
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.rel-F02": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2168,
-   "o200k": 2751
+   "chars4": 1790,
+   "o200k": 2291
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.fragment-F02": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1858,
-   "o200k": 2328
+   "chars4": 1480,
+   "o200k": 1868
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "markup.ops-F03": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1865,
-   "o200k": 2426
+   "chars4": 1487,
+   "o200k": 1970
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.rel-F03": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2092,
-   "o200k": 2709
+   "chars4": 1714,
+   "o200k": 2253
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.fragment-F03": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1818,
-   "o200k": 2318
+   "chars4": 1440,
+   "o200k": 1862
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "json.ops-F03": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1951,
-   "o200k": 2481
+   "chars4": 1573,
+   "o200k": 2021
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.rel-F03": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 2178,
-   "o200k": 2764
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "json.fragment-F03": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1868,
-   "o200k": 2341
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "markup.ops-F04": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1853,
-   "o200k": 2410
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "markup.rel-F04": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 2080,
-   "o200k": 2693
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "markup.fragment-F04": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1806,
-   "o200k": 2302
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "json.ops-F04": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1939,
-   "o200k": 2465
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "json.rel-F04": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 2166,
-   "o200k": 2748
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "json.fragment-F04": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1855,
-   "o200k": 2325
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "markup.ops-F05": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1850,
-   "o200k": 2410
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "markup.rel-F05": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 2077,
-   "o200k": 2693
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "markup.fragment-F05": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1803,
-   "o200k": 2302
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "json.ops-F05": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1936,
-   "o200k": 2465
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "json.rel-F05": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 2163,
-   "o200k": 2748
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "json.fragment-F05": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1853,
-   "o200k": 2325
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "markup.ops-F06": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1842,
-   "o200k": 2402
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "markup.rel-F06": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 2069,
-   "o200k": 2685
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "markup.fragment-F06": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1795,
-   "o200k": 2294
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "json.ops-F06": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1928,
-   "o200k": 2457
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "json.rel-F06": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 2155,
-   "o200k": 2740
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "json.fragment-F06": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1845,
-   "o200k": 2317
-  },
-  "viewTokens": {
-   "chars4": 743,
-   "o200k": 1057
-  }
- },
- "markup.ops-F07": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 1847,
-   "o200k": 2405
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "markup.rel-F07": {
-  "hash": "sha256:864eb98edce30698",
-  "base": "fr:5607257b",
-  "tokens": {
-   "chars4": 2074,
-   "o200k": 2688
-  },
-  "viewTokens": {
-   "chars4": 656,
-   "o200k": 1000
-  }
- },
- "markup.fragment-F07": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
    "chars4": 1800,
-   "o200k": 2297
+   "o200k": 2304
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "json.fragment-F03": {
+  "hash": "sha256:18d324d3d99905e4",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1489,
+   "o200k": 1881
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "markup.ops-F04": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1475,
+   "o200k": 1954
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
+  }
+ },
+ "markup.rel-F04": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1702,
+   "o200k": 2237
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
+  }
+ },
+ "markup.fragment-F04": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1428,
+   "o200k": 1846
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
+  }
+ },
+ "json.ops-F04": {
+  "hash": "sha256:18d324d3d99905e4",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1560,
+   "o200k": 2005
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "json.rel-F04": {
+  "hash": "sha256:18d324d3d99905e4",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1787,
+   "o200k": 2288
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "json.fragment-F04": {
+  "hash": "sha256:18d324d3d99905e4",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1477,
+   "o200k": 1865
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "markup.ops-F05": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1472,
+   "o200k": 1954
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
+  }
+ },
+ "markup.rel-F05": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1699,
+   "o200k": 2237
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
+  }
+ },
+ "markup.fragment-F05": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1425,
+   "o200k": 1846
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
+  }
+ },
+ "json.ops-F05": {
+  "hash": "sha256:18d324d3d99905e4",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1558,
+   "o200k": 2005
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "json.rel-F05": {
+  "hash": "sha256:18d324d3d99905e4",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1785,
+   "o200k": 2288
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "json.fragment-F05": {
+  "hash": "sha256:18d324d3d99905e4",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1474,
+   "o200k": 1865
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "markup.ops-F06": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1464,
+   "o200k": 1946
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
+  }
+ },
+ "markup.rel-F06": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1691,
+   "o200k": 2229
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
+  }
+ },
+ "markup.fragment-F06": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1417,
+   "o200k": 1838
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
+  }
+ },
+ "json.ops-F06": {
+  "hash": "sha256:18d324d3d99905e4",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1550,
+   "o200k": 1997
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "json.rel-F06": {
+  "hash": "sha256:18d324d3d99905e4",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1777,
+   "o200k": 2280
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "json.fragment-F06": {
+  "hash": "sha256:18d324d3d99905e4",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1466,
+   "o200k": 1857
+  },
+  "viewTokens": {
+   "chars4": 743,
+   "o200k": 1055
+  }
+ },
+ "markup.ops-F07": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1469,
+   "o200k": 1949
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
+  }
+ },
+ "markup.rel-F07": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1696,
+   "o200k": 2232
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
+  }
+ },
+ "markup.fragment-F07": {
+  "hash": "sha256:016b3dfdd638a38a",
+  "base": "fr:5607257b",
+  "tokens": {
+   "chars4": 1422,
+   "o200k": 1841
+  },
+  "viewTokens": {
+   "chars4": 656,
+   "o200k": 1002
   }
  },
  "json.ops-F07": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1933,
-   "o200k": 2460
+   "chars4": 1554,
+   "o200k": 2000
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.rel-F07": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2160,
-   "o200k": 2743
+   "chars4": 1781,
+   "o200k": 2283
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.fragment-F07": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1849,
-   "o200k": 2320
+   "chars4": 1471,
+   "o200k": 1860
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "markup.ops-F08": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1883,
-   "o200k": 2445
+   "chars4": 1505,
+   "o200k": 1989
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.rel-F08": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2110,
-   "o200k": 2728
+   "chars4": 1732,
+   "o200k": 2272
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.fragment-F08": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1836,
-   "o200k": 2337
+   "chars4": 1458,
+   "o200k": 1881
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "json.ops-F08": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1969,
-   "o200k": 2500
+   "chars4": 1591,
+   "o200k": 2040
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.rel-F08": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2196,
-   "o200k": 2783
+   "chars4": 1818,
+   "o200k": 2323
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.fragment-F08": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1886,
-   "o200k": 2360
+   "chars4": 1507,
+   "o200k": 1900
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "markup.ops-F09": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1846,
-   "o200k": 2404
+   "chars4": 1468,
+   "o200k": 1948
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.rel-F09": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2073,
-   "o200k": 2687
+   "chars4": 1695,
+   "o200k": 2231
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.fragment-F09": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1799,
-   "o200k": 2296
+   "chars4": 1421,
+   "o200k": 1840
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "json.ops-F09": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1932,
-   "o200k": 2459
+   "chars4": 1553,
+   "o200k": 1999
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.rel-F09": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2159,
-   "o200k": 2742
+   "chars4": 1780,
+   "o200k": 2282
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.fragment-F09": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1848,
-   "o200k": 2319
+   "chars4": 1470,
+   "o200k": 1859
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "markup.ops-F10": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1871,
-   "o200k": 2427
+   "chars4": 1493,
+   "o200k": 1971
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.rel-F10": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2098,
-   "o200k": 2710
+   "chars4": 1720,
+   "o200k": 2254
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "markup.fragment-F10": {
-  "hash": "sha256:864eb98edce30698",
+  "hash": "sha256:016b3dfdd638a38a",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1824,
-   "o200k": 2319
+   "chars4": 1446,
+   "o200k": 1863
   },
   "viewTokens": {
    "chars4": 656,
-   "o200k": 1000
+   "o200k": 1002
   }
  },
  "json.ops-F10": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1957,
-   "o200k": 2482
+   "chars4": 1579,
+   "o200k": 2022
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.rel-F10": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 2184,
-   "o200k": 2765
+   "chars4": 1806,
+   "o200k": 2305
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "json.fragment-F10": {
-  "hash": "sha256:b1ca7c60ce5b0f6a",
+  "hash": "sha256:18d324d3d99905e4",
   "base": "fr:5607257b",
   "tokens": {
-   "chars4": 1874,
-   "o200k": 2342
+   "chars4": 1495,
+   "o200k": 1882
   },
   "viewTokens": {
    "chars4": 743,
-   "o200k": 1057
+   "o200k": 1055
   }
  },
  "markup.ops-D01": {
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2050,
-   "o200k": 2737
+   "chars4": 1672,
+   "o200k": 2279
   },
   "viewTokens": {
    "chars4": 849,
@@ -735,8 +735,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2277,
-   "o200k": 3020
+   "chars4": 1899,
+   "o200k": 2562
   },
   "viewTokens": {
    "chars4": 849,
@@ -747,8 +747,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2003,
-   "o200k": 2629
+   "chars4": 1625,
+   "o200k": 2171
   },
   "viewTokens": {
    "chars4": 849,
@@ -759,8 +759,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2185,
-   "o200k": 2827
+   "chars4": 1806,
+   "o200k": 2369
   },
   "viewTokens": {
    "chars4": 985,
@@ -771,8 +771,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2412,
-   "o200k": 3110
+   "chars4": 2033,
+   "o200k": 2652
   },
   "viewTokens": {
    "chars4": 985,
@@ -783,8 +783,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2101,
-   "o200k": 2687
+   "chars4": 1723,
+   "o200k": 2229
   },
   "viewTokens": {
    "chars4": 985,
@@ -795,8 +795,8 @@
   "hash": "sha256:77d7bd4a0ca6307b",
   "base": "fr:c661031f",
   "tokens": {
-   "chars4": 1359,
-   "o200k": 1670
+   "chars4": 981,
+   "o200k": 1212
   },
   "viewTokens": {
    "chars4": 163,
@@ -807,8 +807,8 @@
   "hash": "sha256:77d7bd4a0ca6307b",
   "base": "fr:c661031f",
   "tokens": {
-   "chars4": 1586,
-   "o200k": 1953
+   "chars4": 1208,
+   "o200k": 1495
   },
   "viewTokens": {
    "chars4": 163,
@@ -819,8 +819,8 @@
   "hash": "sha256:77d7bd4a0ca6307b",
   "base": "fr:c661031f",
   "tokens": {
-   "chars4": 1312,
-   "o200k": 1562
+   "chars4": 933,
+   "o200k": 1104
   },
   "viewTokens": {
    "chars4": 163,
@@ -831,8 +831,8 @@
   "hash": "sha256:a7b0cbc68efa7430",
   "base": "fr:c661031f",
   "tokens": {
-   "chars4": 1379,
-   "o200k": 1677
+   "chars4": 1001,
+   "o200k": 1219
   },
   "viewTokens": {
    "chars4": 185,
@@ -843,8 +843,8 @@
   "hash": "sha256:a7b0cbc68efa7430",
   "base": "fr:c661031f",
   "tokens": {
-   "chars4": 1606,
-   "o200k": 1960
+   "chars4": 1228,
+   "o200k": 1502
   },
   "viewTokens": {
    "chars4": 185,
@@ -855,8 +855,8 @@
   "hash": "sha256:a7b0cbc68efa7430",
   "base": "fr:c661031f",
   "tokens": {
-   "chars4": 1296,
-   "o200k": 1537
+   "chars4": 918,
+   "o200k": 1079
   },
   "viewTokens": {
    "chars4": 185,
@@ -867,8 +867,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2053,
-   "o200k": 2740
+   "chars4": 1675,
+   "o200k": 2282
   },
   "viewTokens": {
    "chars4": 849,
@@ -879,8 +879,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2280,
-   "o200k": 3023
+   "chars4": 1902,
+   "o200k": 2565
   },
   "viewTokens": {
    "chars4": 849,
@@ -891,8 +891,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2006,
-   "o200k": 2632
+   "chars4": 1628,
+   "o200k": 2174
   },
   "viewTokens": {
    "chars4": 849,
@@ -903,8 +903,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2188,
-   "o200k": 2830
+   "chars4": 1809,
+   "o200k": 2372
   },
   "viewTokens": {
    "chars4": 985,
@@ -915,8 +915,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2415,
-   "o200k": 3113
+   "chars4": 2036,
+   "o200k": 2655
   },
   "viewTokens": {
    "chars4": 985,
@@ -927,8 +927,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2104,
-   "o200k": 2690
+   "chars4": 1726,
+   "o200k": 2232
   },
   "viewTokens": {
    "chars4": 985,
@@ -939,8 +939,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2044,
-   "o200k": 2733
+   "chars4": 1666,
+   "o200k": 2275
   },
   "viewTokens": {
    "chars4": 849,
@@ -951,8 +951,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2271,
-   "o200k": 3016
+   "chars4": 1893,
+   "o200k": 2558
   },
   "viewTokens": {
    "chars4": 849,
@@ -963,8 +963,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 1997,
-   "o200k": 2625
+   "chars4": 1619,
+   "o200k": 2167
   },
   "viewTokens": {
    "chars4": 849,
@@ -975,8 +975,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2179,
-   "o200k": 2823
+   "chars4": 1800,
+   "o200k": 2365
   },
   "viewTokens": {
    "chars4": 985,
@@ -987,8 +987,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2406,
-   "o200k": 3106
+   "chars4": 2027,
+   "o200k": 2648
   },
   "viewTokens": {
    "chars4": 985,
@@ -999,8 +999,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2095,
-   "o200k": 2683
+   "chars4": 1717,
+   "o200k": 2225
   },
   "viewTokens": {
    "chars4": 985,
@@ -1011,8 +1011,8 @@
   "hash": "sha256:cca50329179e47af",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1396,
-   "o200k": 1729
+   "chars4": 1018,
+   "o200k": 1271
   },
   "viewTokens": {
    "chars4": 215,
@@ -1023,8 +1023,8 @@
   "hash": "sha256:cca50329179e47af",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1623,
-   "o200k": 2012
+   "chars4": 1245,
+   "o200k": 1554
   },
   "viewTokens": {
    "chars4": 215,
@@ -1035,8 +1035,8 @@
   "hash": "sha256:cca50329179e47af",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1349,
-   "o200k": 1621
+   "chars4": 971,
+   "o200k": 1163
   },
   "viewTokens": {
    "chars4": 215,
@@ -1047,8 +1047,8 @@
   "hash": "sha256:cc15a9fddfcfde62",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1422,
-   "o200k": 1746
+   "chars4": 1044,
+   "o200k": 1288
   },
   "viewTokens": {
    "chars4": 243,
@@ -1059,8 +1059,8 @@
   "hash": "sha256:cc15a9fddfcfde62",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1649,
-   "o200k": 2029
+   "chars4": 1271,
+   "o200k": 1571
   },
   "viewTokens": {
    "chars4": 243,
@@ -1071,8 +1071,8 @@
   "hash": "sha256:cc15a9fddfcfde62",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1339,
-   "o200k": 1606
+   "chars4": 961,
+   "o200k": 1148
   },
   "viewTokens": {
    "chars4": 243,
@@ -1083,8 +1083,8 @@
   "hash": "sha256:1935949a69ca787c",
   "base": "fr:adbe8810",
   "tokens": {
-   "chars4": 1480,
-   "o200k": 1832
+   "chars4": 1101,
+   "o200k": 1374
   },
   "viewTokens": {
    "chars4": 262,
@@ -1095,8 +1095,8 @@
   "hash": "sha256:1935949a69ca787c",
   "base": "fr:adbe8810",
   "tokens": {
-   "chars4": 1707,
-   "o200k": 2115
+   "chars4": 1328,
+   "o200k": 1657
   },
   "viewTokens": {
    "chars4": 262,
@@ -1107,8 +1107,8 @@
   "hash": "sha256:1935949a69ca787c",
   "base": "fr:adbe8810",
   "tokens": {
-   "chars4": 1432,
-   "o200k": 1724
+   "chars4": 1054,
+   "o200k": 1266
   },
   "viewTokens": {
    "chars4": 262,
@@ -1119,8 +1119,8 @@
   "hash": "sha256:a013c040de4abe7b",
   "base": "fr:adbe8810",
   "tokens": {
-   "chars4": 1515,
-   "o200k": 1857
+   "chars4": 1137,
+   "o200k": 1399
   },
   "viewTokens": {
    "chars4": 299,
@@ -1131,8 +1131,8 @@
   "hash": "sha256:a013c040de4abe7b",
   "base": "fr:adbe8810",
   "tokens": {
-   "chars4": 1742,
-   "o200k": 2140
+   "chars4": 1364,
+   "o200k": 1682
   },
   "viewTokens": {
    "chars4": 299,
@@ -1143,8 +1143,8 @@
   "hash": "sha256:a013c040de4abe7b",
   "base": "fr:adbe8810",
   "tokens": {
-   "chars4": 1432,
-   "o200k": 1717
+   "chars4": 1054,
+   "o200k": 1259
   },
   "viewTokens": {
    "chars4": 299,
@@ -1155,8 +1155,8 @@
   "hash": "sha256:6f634c010b0bff8e",
   "base": "fr:99321536",
   "tokens": {
-   "chars4": 1381,
-   "o200k": 1708
+   "chars4": 1003,
+   "o200k": 1250
   },
   "viewTokens": {
    "chars4": 181,
@@ -1167,8 +1167,8 @@
   "hash": "sha256:6f634c010b0bff8e",
   "base": "fr:99321536",
   "tokens": {
-   "chars4": 1608,
-   "o200k": 1991
+   "chars4": 1230,
+   "o200k": 1533
   },
   "viewTokens": {
    "chars4": 181,
@@ -1179,8 +1179,8 @@
   "hash": "sha256:6f634c010b0bff8e",
   "base": "fr:99321536",
   "tokens": {
-   "chars4": 1334,
-   "o200k": 1600
+   "chars4": 955,
+   "o200k": 1142
   },
   "viewTokens": {
    "chars4": 181,
@@ -1191,8 +1191,8 @@
   "hash": "sha256:3227f41f6de7e0d7",
   "base": "fr:99321536",
   "tokens": {
-   "chars4": 1405,
-   "o200k": 1721
+   "chars4": 1027,
+   "o200k": 1263
   },
   "viewTokens": {
    "chars4": 207,
@@ -1203,8 +1203,8 @@
   "hash": "sha256:3227f41f6de7e0d7",
   "base": "fr:99321536",
   "tokens": {
-   "chars4": 1632,
-   "o200k": 2004
+   "chars4": 1254,
+   "o200k": 1546
   },
   "viewTokens": {
    "chars4": 207,
@@ -1215,8 +1215,8 @@
   "hash": "sha256:3227f41f6de7e0d7",
   "base": "fr:99321536",
   "tokens": {
-   "chars4": 1322,
-   "o200k": 1581
+   "chars4": 944,
+   "o200k": 1123
   },
   "viewTokens": {
    "chars4": 207,
@@ -1227,8 +1227,8 @@
   "hash": "sha256:25332c0496657ac0",
   "base": "fr:4ae3b0f0",
   "tokens": {
-   "chars4": 1342,
-   "o200k": 1645
+   "chars4": 964,
+   "o200k": 1187
   },
   "viewTokens": {
    "chars4": 150,
@@ -1239,8 +1239,8 @@
   "hash": "sha256:25332c0496657ac0",
   "base": "fr:4ae3b0f0",
   "tokens": {
-   "chars4": 1569,
-   "o200k": 1928
+   "chars4": 1191,
+   "o200k": 1470
   },
   "viewTokens": {
    "chars4": 150,
@@ -1251,8 +1251,8 @@
   "hash": "sha256:25332c0496657ac0",
   "base": "fr:4ae3b0f0",
   "tokens": {
-   "chars4": 1295,
-   "o200k": 1537
+   "chars4": 917,
+   "o200k": 1079
   },
   "viewTokens": {
    "chars4": 150,
@@ -1263,8 +1263,8 @@
   "hash": "sha256:3111198d1739cb24",
   "base": "fr:4ae3b0f0",
   "tokens": {
-   "chars4": 1359,
-   "o200k": 1654
+   "chars4": 981,
+   "o200k": 1196
   },
   "viewTokens": {
    "chars4": 168,
@@ -1275,8 +1275,8 @@
   "hash": "sha256:3111198d1739cb24",
   "base": "fr:4ae3b0f0",
   "tokens": {
-   "chars4": 1586,
-   "o200k": 1937
+   "chars4": 1208,
+   "o200k": 1479
   },
   "viewTokens": {
    "chars4": 168,
@@ -1287,8 +1287,8 @@
   "hash": "sha256:3111198d1739cb24",
   "base": "fr:4ae3b0f0",
   "tokens": {
-   "chars4": 1276,
-   "o200k": 1514
+   "chars4": 898,
+   "o200k": 1056
   },
   "viewTokens": {
    "chars4": 168,
@@ -1299,8 +1299,8 @@
   "hash": "sha256:cca50329179e47af",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1429,
-   "o200k": 1761
+   "chars4": 1051,
+   "o200k": 1303
   },
   "viewTokens": {
    "chars4": 215,
@@ -1311,8 +1311,8 @@
   "hash": "sha256:cca50329179e47af",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1656,
-   "o200k": 2044
+   "chars4": 1278,
+   "o200k": 1586
   },
   "viewTokens": {
    "chars4": 215,
@@ -1323,8 +1323,8 @@
   "hash": "sha256:cca50329179e47af",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1382,
-   "o200k": 1653
+   "chars4": 1003,
+   "o200k": 1195
   },
   "viewTokens": {
    "chars4": 215,
@@ -1335,8 +1335,8 @@
   "hash": "sha256:cc15a9fddfcfde62",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1455,
-   "o200k": 1778
+   "chars4": 1077,
+   "o200k": 1320
   },
   "viewTokens": {
    "chars4": 243,
@@ -1347,8 +1347,8 @@
   "hash": "sha256:cc15a9fddfcfde62",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1682,
-   "o200k": 2061
+   "chars4": 1304,
+   "o200k": 1603
   },
   "viewTokens": {
    "chars4": 243,
@@ -1359,8 +1359,8 @@
   "hash": "sha256:cc15a9fddfcfde62",
   "base": "fr:69860b5b",
   "tokens": {
-   "chars4": 1372,
-   "o200k": 1638
+   "chars4": 994,
+   "o200k": 1180
   },
   "viewTokens": {
    "chars4": 243,
@@ -1371,8 +1371,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2057,
-   "o200k": 2737
+   "chars4": 1678,
+   "o200k": 2279
   },
   "viewTokens": {
    "chars4": 849,
@@ -1383,8 +1383,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2284,
-   "o200k": 3020
+   "chars4": 1905,
+   "o200k": 2562
   },
   "viewTokens": {
    "chars4": 849,
@@ -1395,8 +1395,8 @@
   "hash": "sha256:11c6b9863ddfb49d",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2009,
-   "o200k": 2629
+   "chars4": 1631,
+   "o200k": 2171
   },
   "viewTokens": {
    "chars4": 849,
@@ -1407,8 +1407,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2191,
-   "o200k": 2827
+   "chars4": 1813,
+   "o200k": 2369
   },
   "viewTokens": {
    "chars4": 985,
@@ -1419,8 +1419,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2418,
-   "o200k": 3110
+   "chars4": 2040,
+   "o200k": 2652
   },
   "viewTokens": {
    "chars4": 985,
@@ -1431,8 +1431,8 @@
   "hash": "sha256:34394ddf6ac7cc95",
   "base": "fr:1d02bbed",
   "tokens": {
-   "chars4": 2108,
-   "o200k": 2687
+   "chars4": 1730,
+   "o200k": 2229
   },
   "viewTokens": {
    "chars4": 985,
@@ -1443,8 +1443,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1528,
-   "o200k": 2013
+   "chars4": 1314,
+   "o200k": 1785
   },
   "viewTokens": {
    "chars4": 514,
@@ -1455,8 +1455,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1421,
-   "o200k": 1833
+   "chars4": 1206,
+   "o200k": 1605
   },
   "viewTokens": {
    "chars4": 514,
@@ -1467,8 +1467,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1510,
-   "o200k": 1996
+   "chars4": 1295,
+   "o200k": 1768
   },
   "viewTokens": {
    "chars4": 514,
@@ -1479,8 +1479,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1402,
-   "o200k": 1816
+   "chars4": 1188,
+   "o200k": 1588
   },
   "viewTokens": {
    "chars4": 514,
@@ -1491,8 +1491,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1506,
-   "o200k": 1993
+   "chars4": 1292,
+   "o200k": 1765
   },
   "viewTokens": {
    "chars4": 514,
@@ -1503,8 +1503,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1398,
-   "o200k": 1813
+   "chars4": 1184,
+   "o200k": 1585
   },
   "viewTokens": {
    "chars4": 514,
@@ -1515,8 +1515,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1517,
-   "o200k": 2000
+   "chars4": 1303,
+   "o200k": 1772
   },
   "viewTokens": {
    "chars4": 514,
@@ -1527,8 +1527,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1409,
-   "o200k": 1820
+   "chars4": 1195,
+   "o200k": 1592
   },
   "viewTokens": {
    "chars4": 514,
@@ -1539,8 +1539,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1497,
-   "o200k": 1986
+   "chars4": 1283,
+   "o200k": 1758
   },
   "viewTokens": {
    "chars4": 514,
@@ -1551,8 +1551,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1390,
-   "o200k": 1806
+   "chars4": 1175,
+   "o200k": 1578
   },
   "viewTokens": {
    "chars4": 514,
@@ -1563,8 +1563,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1500,
-   "o200k": 1992
+   "chars4": 1286,
+   "o200k": 1764
   },
   "viewTokens": {
    "chars4": 514,
@@ -1575,8 +1575,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1393,
-   "o200k": 1812
+   "chars4": 1178,
+   "o200k": 1584
   },
   "viewTokens": {
    "chars4": 514,
@@ -1587,8 +1587,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1502,
-   "o200k": 1989
+   "chars4": 1287,
+   "o200k": 1761
   },
   "viewTokens": {
    "chars4": 514,
@@ -1599,8 +1599,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1394,
-   "o200k": 1809
+   "chars4": 1180,
+   "o200k": 1581
   },
   "viewTokens": {
    "chars4": 514,
@@ -1611,8 +1611,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1519,
-   "o200k": 2016
+   "chars4": 1305,
+   "o200k": 1788
   },
   "viewTokens": {
    "chars4": 514,
@@ -1623,8 +1623,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1412,
-   "o200k": 1836
+   "chars4": 1197,
+   "o200k": 1608
   },
   "viewTokens": {
    "chars4": 514,
@@ -1635,8 +1635,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1518,
-   "o200k": 2007
+   "chars4": 1304,
+   "o200k": 1779
   },
   "viewTokens": {
    "chars4": 514,
@@ -1647,8 +1647,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1410,
-   "o200k": 1827
+   "chars4": 1196,
+   "o200k": 1599
   },
   "viewTokens": {
    "chars4": 514,
@@ -1659,8 +1659,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1536,
-   "o200k": 2029
+   "chars4": 1321,
+   "o200k": 1801
   },
   "viewTokens": {
    "chars4": 514,
@@ -1671,8 +1671,8 @@
   "hash": "sha256:232dc8346ec2d431",
   "base": "fr:689ac465",
   "tokens": {
-   "chars4": 1428,
-   "o200k": 1849
+   "chars4": 1214,
+   "o200k": 1621
   },
   "viewTokens": {
    "chars4": 514,

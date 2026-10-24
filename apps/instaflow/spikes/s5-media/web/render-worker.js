@@ -208,7 +208,7 @@ let stopFlag = false;
  * predicted display moment → pick the frame on the 30 fps grid → present. Records offsets from the timeline's
  * point of view: (a) flash-frame onset vs beep second, (b) presented frame vs heard time, (c) audio vs wall skew.
  */
-async function drift({ blobs, ctl, clock, lead = 1000 / 60, sampleRate = 48000, canvasSize = [1920, 1080], present = 'gpu' }) {
+async function drift({ blobs, ctl, clock, lead = 1000 / 60, sampleRate = 48000, canvasSize = [1920, 1080], present = 'gpu', catchup = true }) {
   stopFlag = false;
   const C = new Int32Array(ctl); // [1]=mediaFrames consumed, [3]=ctx frame end, [4]=seq
   const K = new Float64Array(clock); // [0] seq, [1] contextTime, [2] performanceTime(abs epoch ms), [3] outputLatency, [4] baseLatency
@@ -233,7 +233,7 @@ async function drift({ blobs, ctl, clock, lead = 1000 / 60, sampleRate = 48000, 
     return mediaFrame * ST;
   }
 
-  const renderLag = []; const tickMs = []; let lastTick = 0; const flash = []; const offsets = []; const skew = []; let presentedCount = 0, dropped = 0, late = 0, wrong = 0, lastBc = -1;
+  let resyncing = false, lastPts = 0; const renderLag = []; const tickMs = []; let lastTick = 0; const flash = []; const offsets = []; const skew = []; let presentedCount = 0, dropped = 0, late = 0, wrong = 0, lastBc = -1;
   let wall0 = null, media0 = null, lastLog = 0, startedAt = 0, latencies = null;
   const raf = self.requestAnimationFrame ? (f) => self.requestAnimationFrame(f) : (f) => setTimeout(() => f(performance.now()), 16);
   await new Promise((resolve) => {
@@ -247,10 +247,16 @@ async function drift({ blobs, ctl, clock, lead = 1000 / 60, sampleRate = 48000, 
       if (t < 0) { raf(tick); return; }
       if (wall0 === null) { wall0 = W; media0 = t; startedAt = performance.now(); latencies = { outputLatency: c.outputLatency, baseLatency: c.baseLatency }; }
       const tUs = (t / TPS) * 1e6;
+      // catch-up policy: if the newest decoded frame is more than one GOP (0.5 s) behind the clock, skip ahead
+      const newest = s.queue[s.queue.length - 1];
+      if (catchup && !resyncing && (newest ? newest.timestamp < tUs - 500_000 : s.decoded > 0 && tUs - lastPts > 500_000)) {
+        resyncing = true; s.resync(tUs / 1e6).then(() => { resyncing = false; });
+      }
+      if (newest) lastPts = newest.timestamp;
       // drop frames whose successor is already due
       while (s.queue.length >= 2 && s.queue[1].timestamp <= tUs) { const f = s.queue.shift(); if (f.__shown !== true) dropped++; f.close(); s.n.notify(); }
       const f = s.queue[0];
-      if (f) {
+      if (f && f.timestamp <= tUs) { // never show a frame before its time
         if (f.timestamp + (f.duration || 33334) <= tUs) late++;
         if (!f.__shown) {
           f.__shown = true;
@@ -286,7 +292,7 @@ async function drift({ blobs, ctl, clock, lead = 1000 / 60, sampleRate = 48000, 
   const first = fo.slice(0, 30), last = fo.slice(-30);
   return {
     playedSec: Math.round((performance.now() - startedAt) / 100) / 10,
-    present, displayLeadMs: lead, latencies, tickMs: stats(tickMs),
+    present, catchup, resyncs: s.resyncs ?? 0, displayLeadMs: lead, latencies, tickMs: stats(tickMs),
     presented: presentedCount, dropped, late, wrongFrameForClock: wrong,
     flashOnsetOffsetMs: stats(fo), flashAbsMaxMs: Math.round(Math.max(...fo.map(Math.abs)) * 100) / 100,
     flashTrendMsPerMin: Math.round(slope * 60 * 1000) / 1000,

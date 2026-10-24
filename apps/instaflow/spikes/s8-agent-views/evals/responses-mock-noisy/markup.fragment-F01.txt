@@ -1,4 +1,4 @@
 ```xml
-<image id="n18" name="sponsor logo 2" role="logo" x="440" y="1200" w="200" h="100" src="as_logo_brew"/>
+<image id="n18" name="sponsor logo 2" role="logo" x="470" y="1200" w="200" h="100" src="as_logo_brew"/>
 <image id="n19" name="sponsor logo 3" role="logo" x="761" y="1200" w="200" h="100" src="as_logo_radio"/>
 ```

@@ -34,7 +34,7 @@ export function flyerSeed() {
         txt('fl-legal', 'legal line', 'legal', g(80, 1098, 920, 24), '© 2026 City Events. Terms apply.', { size: 18, fill: tok('muted'), props: { 'policy.from': 'template' } }),
         { id: 'fl-footer', kind: 'frame', props: { name: 'sponsor bar', ...g(0, 1150, 1080, 200), 'style.fill': tok('ink'), 'frame.clip': true }, children: [
           img('fl-sp1', 'sponsor logo 1', 'logo', g(120.4, 50.2, 200, 100), 'as_logo_city'),
-          img('fl-sp2', 'sponsor logo 2', 'logo', g(440.1, 62.85, 200, 100), 'as_logo_brew'),
+          img('fl-sp2', 'sponsor logo 2', 'logo', g(470.1, 62.85, 200, 100), 'as_logo_brew'),
           img('fl-sp3', 'sponsor logo 3', 'logo', g(760.7, 43.6, 200, 100), 'as_logo_radio'),
         ] },
       ],

@@ -96,7 +96,7 @@ const tests = {
     while (Atomics.load(C, 0) < 12000) await new Promise((r) => setTimeout(r, 10));
     const w = renderWorker(); const [m, t] = canvasMsg();
     const canvasSize = (q.get('canvas') ?? '1920x1080').split('x').map(Number);
-    const videoDone = rpc(w, { cmd: 'drift', blobs, ctl, clock, canvasSize, present: q.get('present') ?? 'gpu', lead: Number(q.get('lead') ?? 1000 / 60), ...m }, t);
+    const videoDone = rpc(w, { cmd: 'drift', blobs, ctl, clock, canvasSize, present: q.get('present') ?? 'gpu', catchup: q.get('catchup') !== '0', lead: Number(q.get('lead') ?? 1000 / 60), ...m }, t);
     await new Promise((r) => setTimeout(r, 500)); // let the render worker open the media and pre-roll
     const ctxStart = ctx.currentTime;
     Atomics.store(C, 6, 1);

@@ -6,7 +6,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Replica, TREE } from '../src/store.js';
 import { AgentSession, Handles } from '../src/session.js';
-import { Stage } from '../src/stage.js';
+import { Stage, PartStage } from '../src/stage.js';
 import { SEEDS } from '../src/seeds.js';
 import { layoutScopeModel, layoutMarkup, layoutJson, canonicalJson } from '../src/views.js';
 import { median, pct, sha256 } from '../src/units.js';
@@ -19,7 +19,7 @@ function worker() {
   const seed = SEEDS.big();
   const human = Replica.fromSeed(seed, 1);
   const scope = 'page:bp-page';
-  const out = { cold: [], coldModel: [], warm: [], oneChange: [], structural: [], serializeOnly: [], hashOnly: [], jsonView: [], canonical: [], compile2: [], validate500: [] };
+  const out = { cold: [], coldWorldCache: [], coldModel: [], warm: [], warmNoMemo: [], oneChange: [], structural: [], serializeOnly: [], hashOnly: [], jsonView: [], canonical: [], compile2: [], validate500: [] };
   const agent = new AgentSession(human, { peer: 2 });
   let v = agent.readView('markup', scope);
   const nodes = [...new Stage(human).part(scope).nodes.keys()].filter((n) => n.includes('-title'));
@@ -29,19 +29,26 @@ function worker() {
     const st = new Stage(agent.replica); const hs = new Handles();
     const m = layoutScopeModel(st, hs, scope); const text = layoutMarkup(m); sha256(text);
     out.cold.push(now() - t);
+    // cold from a world cache stored beside the snapshot (S4): JSON.parse + id-span catch-up, no per-node Wasm reads
+    const cache = st.part(scope).toCache();
+    t = now();
+    const st2 = new Stage(agent.replica); st2.parts.set(scope, new PartStage(agent.replica.part(scope), scope, { cache })); const hs2 = new Handles();
+    const m2 = layoutScopeModel(st2, hs2, scope); sha256(layoutMarkup(m2));
+    out.coldWorldCache.push(now() - t);
     t = now(); layoutScopeModel(st, hs, scope); out.coldModel.push(now() - t);
     t = now(); layoutMarkup(m); out.serializeOnly.push(now() - t);
     t = now(); sha256(text); out.hashOnly.push(now() - t);
     t = now(); layoutJson(m); out.jsonView.push(now() - t);
     // warm: full readView (header, base token, hash) with nothing changed
     t = now(); v = agent.readView('markup', scope, { changedSince: false }); out.warm.push(now() - t);
+    t = now(); agent.project('markup', scope, { changedSince: false }); out.warmNoMemo.push(now() - t);
     // one property change by the human, then re-project (incremental mirror refresh from the ops since)
     const nid = nodes[i % nodes.length];
     const pd = human.part(scope); const tr = pd.getTree(TREE); const st0 = new Stage(human).part(scope);
     const nh = tr.getNodeByID(st0.get(nid).tid); const d = nh.data; d.set('spatial.y', 240 + (i % 7)); d.free(); nh.free(); pd.commit();
     t = now(); v = agent.readView('markup', scope, { changedSince: false }); out.oneChange.push(now() - t);
     // structural change (reorder) → mirror rebuild path
-    const pageTid = st0.get(st0.rootId).tid; tr.move(st0.get(nid).tid, st0.get(st0.get(nid).parent).tid, 0); pd.commit();
+    const pageTid = st0.get(st0.rootId).tid; const sibs = st0.get(st0.get(nid).parent).children; tr.move(st0.get(nid).tid, st0.get(st0.get(nid).parent).tid, sibs.indexOf(nid) === 0 ? sibs.length - 1 : 0); pd.commit();
     t = now(); v = agent.readView('markup', scope, { changedSince: false }); out.structural.push(now() - t);
     void pageTid;
     t = now(); canonicalJson(agent.stage, scope); out.canonical.push(now() - t);
