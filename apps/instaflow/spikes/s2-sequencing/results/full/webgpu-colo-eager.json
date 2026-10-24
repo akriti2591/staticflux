@@ -14,6 +14,7 @@
     "present": "eager",
     "eagerCap": 0,
     "eagerDelay": 1,
+    "rafDraw": 1,
     "latch": 0
   },
   "gestures": {
@@ -33,7 +34,7 @@
     "missedTargets": 72
   },
   "correctness": {
-    "framesDrawn": 890,
+    "framesDrawn": 1297,
     "framesNotEqualOracle": 0,
     "snapBackFrames": 0,
     "doubleDrawFrames": 0,
@@ -90,10 +91,10 @@
       "snapshotsApplied": 0,
       "staleEpochSkipped": 0,
       "waitFrames": 0,
-      "eagerWakes": 1581,
+      "eagerWakes": 2279,
       "eagerCapped": 0,
-      "ticks": 606,
-      "draws": 890,
+      "ticks": 1192,
+      "draws": 1297,
       "orderViolations": 0,
       "overlayAfterCommit": 0,
       "latchHits": 0,
@@ -101,128 +102,128 @@
       "seqlockRetries": 0,
       "tornAccepted": 0,
       "tornSamples": [],
-      "frameReads": 2187
+      "frameReads": 3471
     },
     "editor": {
-      "viewFrames": 890,
+      "viewFrames": 1297,
       "deltasWritten": 10237,
       "deltasDroppedByFault": 0,
       "snapshots": 0,
-      "batches": 889,
-      "maxBatch": 330
+      "batches": 1296,
+      "maxBatch": 195
     },
     "pass": true
   },
   "latency": {
     "rafIntervalMs": {
-      "n": 605,
-      "median": 349.98,
-      "p95": 916.63,
-      "p99": 1399.94,
-      "max": 1999.92
+      "n": 1191,
+      "median": 116.67,
+      "p95": 549.98,
+      "p99": 699.97,
+      "max": 933.3
     },
-    "budgetMs": 353.98,
+    "budgetMs": 120.67,
     "inputToPresentEst": {
       "all": {
         "n": 50760,
-        "median": 9.09,
-        "p95": 748.52,
-        "p99": 1245.19,
-        "max": 1993.14
+        "median": 12.31,
+        "p95": 449.11,
+        "p99": 683.52,
+        "max": 935.58
       },
       "wheelPan": {
         "n": 8562,
-        "median": 9,
-        "p95": 750.82,
-        "p99": 1245.19,
-        "max": 1498.94
+        "median": 12.35,
+        "p95": 446.15,
+        "p99": 683.5,
+        "max": 935.48
       },
       "wheelZoom": {
         "n": 4331,
-        "median": 8.84,
-        "p95": 743.22,
-        "p99": 1169.54,
-        "max": 1782.64
+        "median": 12.2,
+        "p95": 432.04,
+        "p99": 683.64,
+        "max": 935.38
       },
       "pointer": {
         "n": 33839,
-        "median": 9.15,
-        "p95": 745.99,
-        "p99": 1258.71,
-        "max": 1993.14
+        "median": 12.28,
+        "p95": 449.34,
+        "p99": 683.45,
+        "max": 935.58
       },
       "key": {
         "n": 4028,
-        "median": 9.17,
-        "p95": 765.93,
-        "p99": 1258.8,
-        "max": 1353.73
+        "median": 12.5,
+        "p95": 451.11,
+        "p99": 683.6,
+        "max": 935.55
       }
     },
     "inputToSubmit": {
       "all": {
         "n": 50760,
-        "median": 2.81,
-        "p95": 8.16,
-        "p99": 13.76,
-        "max": 35.61
+        "median": 2.71,
+        "p95": 7.31,
+        "p99": 9.07,
+        "max": 14.76
       },
       "wheelPan": {
         "n": 8562,
-        "median": 2.8,
-        "p95": 8.13,
-        "p99": 14.06,
-        "max": 31.24
+        "median": 2.72,
+        "p95": 7.27,
+        "p99": 8.8,
+        "max": 12.38
       },
       "wheelZoom": {
         "n": 4331,
-        "median": 2.83,
-        "p95": 8,
-        "p99": 14.12,
-        "max": 34.86
+        "median": 2.78,
+        "p95": 7.11,
+        "p99": 9.01,
+        "max": 14.58
       },
       "pointer": {
         "n": 33839,
-        "median": 2.81,
-        "p95": 8.16,
-        "p99": 13.52,
-        "max": 35.61
+        "median": 2.7,
+        "p95": 7.35,
+        "p99": 9.19,
+        "max": 14.76
       }
     },
     "inputToViewFrameWritten": {
       "n": 50760,
       "median": 1.96,
-      "p95": 6.5,
-      "p99": 10.82,
-      "max": 34.59
+      "p95": 6.66,
+      "p99": 8.24,
+      "max": 13.75
     },
     "inputToGpuDone": {
-      "n": 49334,
-      "median": 863.73,
-      "p95": 1358.47,
-      "p99": 1576.08,
-      "max": 1711.71
+      "n": 50038,
+      "median": 557.14,
+      "p95": 863.11,
+      "p99": 966.28,
+      "max": 1195.86
     },
     "drawCpuMs": {
-      "n": 890,
-      "median": 0.73,
-      "p95": 2.61,
-      "p99": 6.33,
-      "max": 17.49
+      "n": 1297,
+      "median": 0.53,
+      "p95": 1.54,
+      "p99": 4.71,
+      "max": 8.69
     },
     "rafToDrawStartMs": {
-      "n": 890,
-      "median": 17.42,
-      "p95": 827.24,
-      "p99": 1490.21,
-      "max": 1792870471713.11
+      "n": 1297,
+      "median": 10.57,
+      "p95": 293.37,
+      "p99": 592.68,
+      "max": 1792878771574.08
     },
     "workerRafAfterMainRafMs": {
-      "n": 468,
+      "n": 1109,
       "median": 0,
-      "p95": 16.67,
+      "p95": 16.66,
       "p99": 16.67,
-      "max": 33.33
+      "max": 16.67
     },
     "latchWaitMs": {
       "n": 0,
@@ -233,29 +234,29 @@
     },
     "callbackAfterFrameTs": {
       "main": {
-        "n": 872,
-        "median": 5.79,
-        "p95": 19.26,
-        "p99": 24.82,
-        "max": 91.09
+        "n": 1342,
+        "median": 3.56,
+        "p95": 16.92,
+        "p99": 20.93,
+        "max": 23.99
       },
       "worker": {
-        "n": 606,
-        "median": 4.42,
-        "p95": 14.8,
-        "p99": 16.33,
-        "max": 16.71
+        "n": 1192,
+        "median": 3.94,
+        "p95": 14.99,
+        "p99": 16.15,
+        "max": 16.94
       }
     },
     "inputToPresentFrames": {
-      "median": 0.03,
-      "p95": 2.14
+      "median": 0.11,
+      "p95": 3.85
     },
     "p95WithinBudget": false
   },
   "e4": {
     "pointerdowns": 4695,
-    "displayedCameraStaleAtDown": 3903
+    "displayedCameraStaleAtDown": 3889
   },
   "gfx": {
     "kind": "webgpu",
@@ -265,11 +266,11 @@
       "reason": null
     },
     "errors": [],
-    "skippedGpuDone": 131
+    "skippedGpuDone": 140
   },
   "extra": {
-    "genMs": 322.070000000298,
-    "driveMs": 216641.58999999985,
+    "genMs": 216.54499999806285,
+    "driveMs": 216724.49500000104,
     "maxInputPending": 0
   },
   "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36"
