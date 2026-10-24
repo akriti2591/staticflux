@@ -209,3 +209,7 @@ Every `SfError` carries: `code` (stable), `message` (one line), `units` involved
 | `loader/chunk` | unloaded → gated? → loading → loaded \| failed (retry with cache-bust) \| denied | `packages/loader/src` |
 | `loader/warmup` | idle → scheduled → warming → warmed \| skipped (backoff facts) | `packages/loader/src` |
 | `perf/journey` | open → (phases accumulate) → complete \| abandoned | `packages/perf/src` |
+| `capabilities/invocation` | validating → authorizing → confirming → activating → reserving → running → committing → done; any → denied \| cancelled \| failed (reservation released) | `packages/capabilities/AGENTS.md` |
+| `advisors/consultation` | idle → asking → answered \| timed-out (default used) \| failed | `packages/advisors/AGENTS.md` |
+| `ai/model-availability` | unknown → unavailable \| downloadable → downloading → available | `packages/ai/AGENTS.md` |
+| `webmcp/publisher` | unsupported \| idle → publishing → published → unpublished | `packages/webmcp/AGENTS.md` |

@@ -1,0 +1,34 @@
+# @staticflux/webmcp — AGENTS.md
+
+**Layer:** vertical (depends on `@staticflux/core` and `@staticflux/capabilities`). Adapter package: the WebMCP API is a Chrome flag / origin trial and W3C CG draft, so its shape is isolated in `adapter.ts` (R19.15).
+**Budget (proposed):** ≤ 2.5 KB brotli minified; lazy.
+
+> ## ⚠ CLIENT GATING IS UX, NOT SECURITY (R6.16)
+> Tool calls are gated client-side as subject `agent`; the backend re-checks every request.
+
+## Purpose
+Publish registered capabilities as WebMCP tools automatically (R19.16). Every tool call goes through
+`capabilities.invoke(id, input, { subject: 'agent' })` — validation, gating with the agent subject,
+confirmation for destructive actions, meter reservation and tracing. No per-feature WebMCP code.
+
+## Public API (by file)
+- `adapter.ts` — `detectModelContext({ navigator, document, prefer })` (navigator- or document-scoped `modelContext`), `adapterFor(kind, context)` handling both `registerTool`/`unregisterTool` (or returned `{ unregister }`) and `provideContext({ tools })`/`clearContext` styles; `WebMcpToolDescriptor`, `WebMcpToolResult`, `WebMcpClientLike`.
+- `publisher.ts` — `createWebMcpPublisher({ registry, adapter, filter, toolName, scope, telemetry })` → `start`, `tools`, `state`, `dispose`; `defaultToolName` (`agent/insert-image` → `agent.insert-image`), `toToolResult` (errors carry `code`, `kind`, `message`, `fix`), `publisherMachine`, `WebMcpMetrics`, `WEBMCP_CHANNEL`, `WebMcpOriginDetails`.
+- `confirm.ts` — `webMcpConfirmPort(inner)`: runs the app's confirm dialog inside the agent client's `requestUserInteraction` for WebMCP calls.
+- `units.ts` — `ModelContextAdapterToken`, `WebMcpPublisherToken`, `modelContextAdapterUnit`, `webMcpPublisherUnit` (registers in `init`, unregisters on app scope disposal), `webMcpUnits`.
+- `errors.ts` — `SF-MCP-001` unsupported, `SF-MCP-002` registration rejected, `SF-MCP-003` disposed.
+
+## Semantics
+- Tools follow the registry: declared (and `exposeToAgents`) → registered; undeclared (feature scope ended) → unregistered. Publisher scope end → all unregistered, in-flight calls aborted.
+- JSON Schemas come from the capability schemas (`inputSchema`, `outputSchema`); `annotations.destructiveHint` mirrors `destructive`.
+- Unsupported browsers get a no-op adapter (`state: 'unsupported'`).
+
+## Lifecycle (mirror into docs/LIFECYCLES.md §14)
+`webmcp/publisher`: idle → publishing | unsupported → disposed; idle → disposed.
+
+## Rules
+- Only `adapter.ts` may touch `navigator.modelContext` / `document.modelContext`.
+- Never call capability implementations directly from a tool — always `registry.invoke` with subject `agent`.
+
+## Test
+`npx vitest run packages/webmcp` · `npx tsc -p packages/webmcp --noEmit` (needs `packages/capabilities/dist`: `npx tsc -b packages/capabilities`)

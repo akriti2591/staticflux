@@ -152,5 +152,45 @@
       "@staticflux/core"
     ],
     "limit": "9.5 KB"
+  },
+  {
+    "name": "@staticflux/capabilities (full)",
+    "path": "packages/capabilities/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/capabilities"
+    ],
+    "limit": "6.5 KB"
+  },
+  {
+    "name": "@staticflux/advisors (full)",
+    "path": "packages/advisors/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/capabilities"
+    ],
+    "limit": "6.5 KB"
+  },
+  {
+    "name": "@staticflux/ai (full)",
+    "path": "packages/ai/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/capabilities"
+    ],
+    "limit": "6.5 KB"
+  },
+  {
+    "name": "@staticflux/webmcp (full)",
+    "path": "packages/webmcp/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/capabilities"
+    ],
+    "limit": "2.5 KB"
   }
 ]
