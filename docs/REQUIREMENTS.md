@@ -324,6 +324,8 @@
 - **R17.3** Devtools panel built on the fabric: boot waterfall, dependency graph, lifecycle states, decision traces, store inspector, overrides, budget violations.
 - **R17.4** Zero-config default (console/devtools sink) on opt-in.
 
+- **R17.22** **Conformance stream**: every runtime rule violation (COEP/CORP, forced layout, budget overrun, invalid transition, leaked listener/subscription, surface outliving scope, a11y failure, render storm, auto-executing intent, …) is emitted as one typed `violation` event with a stable catalog code, attributed feature/unit, and fix. Consumers: devtools overlay (dev), CI e2e/lab runs fail on new violations, sampled reporting in production.
+
 ### 17.1 Journey tracing (boot → navigation → feature)
 - **R17.5** One **journey trace** per navigation, from first input to feature complete, with nested phase spans; parallel work is sibling spans; each phase reports total time **and critical path**.
 - **R17.6** Phases: `app.boot` (`boot.core`, `boot.critical` per unit, `boot.shell-frame`) → `nav.pipeline` (one span per stage; chunk loads and prefetches inside) → `feature` (activation, render) → `view` (sub-route transitions).

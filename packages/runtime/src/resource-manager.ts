@@ -133,6 +133,7 @@ export function createResourceManager(options: ResourceManagerOptions): Resource
     info.state === 'hidden' ||
     info.state === 'unmounting' ||
     info.refCount > 0 ||
+    info.busy ||
     (info.headless && info.explicit);
 
   const isWarm = (info: FeatureInfo): boolean => info.state === 'activated' && !inUse(info);
@@ -314,6 +315,8 @@ export function createResourceManager(options: ResourceManagerOptions): Resource
     schedule();
   });
 
+  const unsubscribeSettled = host.onSettled(() => schedule());
+
   const stopWatching = watch(
     () => pressureInput.get(),
     (pressure) => {
@@ -339,6 +342,7 @@ export function createResourceManager(options: ResourceManagerOptions): Resource
       if (disposed) return;
       disposed = true;
       unsubscribe();
+      unsubscribeSettled();
       stopWatching();
       for (const id of [...keepAlive.keys()]) clearKeepAlive(id);
     },

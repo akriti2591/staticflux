@@ -93,8 +93,10 @@ export interface FeatureInfo {
   readonly refCount: number;
   /** Dependents whose UI is mounted (I-6 blockers). */
   readonly mountedDependents: readonly FeatureId[];
-  /** Last mount/show/touch time (LRU). */
+  /** Last activate/mount/show/touch time (LRU). */
   readonly lastUsed: number;
+  /** An activate/mount operation is in flight (never a demotion candidate). */
+  readonly busy: boolean;
   readonly error: SfError | undefined;
 }
 
@@ -154,6 +156,8 @@ export interface FeatureHost {
   /** Report a readiness mark (R17.7/R17.20); recorded once per mount. */
   mark(id: FeatureId, mark: ReadinessMark): void;
   onTransition(listener: (transition: FeatureTransition) => void): () => void;
+  /** Called when the last in-flight activate/mount of a feature settles (it is no longer `busy`). */
+  onSettled(listener: (id: FeatureId) => void): () => void;
   /** Tear everything down (dependents first). Bypasses the I-1 gate. */
   dispose(): Promise<void>;
 }
@@ -176,6 +180,8 @@ interface FeatureRecord {
   activationStart: number;
   marks: Set<ReadinessMark>;
   queue: Promise<unknown>;
+  /** In-flight activate/mount operations (protects against demotion between steps). */
+  claims: number;
 }
 
 const defaultLoader: FeatureLoader = async (manifest, signal) => {
@@ -196,6 +202,12 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
   const hostScope = createScope('feature-host');
   const records = new Map<FeatureId, FeatureRecord>();
   const listeners = new Set<(transition: FeatureTransition) => void>();
+  const settledListeners = new Set<(id: FeatureId) => void>();
+
+  const release = (record: FeatureRecord): void => {
+    record.claims -= 1;
+    if (record.claims === 0) for (const listener of [...settledListeners]) listener(record.manifest.id);
+  };
   let disposed = false;
 
   const unknown = (id: FeatureId): SfError => UnknownFeatureError({ units: [id], message: `Unknown feature "${id}".` });
@@ -434,6 +446,7 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
       });
     }
     span.end('ok');
+    record.lastUsed = now();
     send(record, 'activated');
     return ok(injector);
   };
@@ -632,22 +645,27 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
     const found = lookup(id, 'activate');
     if (!found.ok) return err(found.error);
     const record = found.value;
-    for (const ref of record.manifest.requires?.features ?? []) {
-      if (!records.has(ref.id)) {
-        return err(
-          FeatureDependencyError({ units: [id, ref.id], message: `Feature "${id}" requires unregistered feature "${ref.id}".` }),
-        );
+    record.claims += 1;
+    try {
+      for (const ref of record.manifest.requires?.features ?? []) {
+        if (!records.has(ref.id)) {
+          return err(
+            FeatureDependencyError({ units: [id, ref.id], message: `Feature "${id}" requires unregistered feature "${ref.id}".` }),
+          );
+        }
+        const dep = await activateInternal(ref.id, signal, false);
+        if (!dep.ok) {
+          return err(
+            FeatureDependencyError({ units: [id, ref.id], cause: dep.error, message: `Required feature "${ref.id}" could not activate.` }),
+          );
+        }
       }
-      const dep = await activateInternal(ref.id, signal, false);
-      if (!dep.ok) {
-        return err(
-          FeatureDependencyError({ units: [id, ref.id], cause: dep.error, message: `Required feature "${ref.id}" could not activate.` }),
-        );
-      }
+      const result = await enqueue(record, () => doActivate(record, signal));
+      if (result.ok && explicit) record.explicit = true;
+      return result;
+    } finally {
+      release(record);
     }
-    const result = await enqueue(record, () => doActivate(record, signal));
-    if (result.ok && explicit) record.explicit = true;
-    return result;
   };
 
   /** Deactivate alive-but-unmounted dependents first (cascade); fail if any dependent is mounted. */
@@ -704,6 +722,7 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
           activationStart: 0,
           marks: new Set(),
           queue: Promise.resolve(),
+          claims: 0,
         };
         traceMachine(machine, telemetry, SUB, { attrs: { feature: manifest.id }, criticalStates: ['failed'] });
         machine.onTransition(({ from, to, event }) => {
@@ -759,6 +778,7 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
         refCount: refCount(id),
         mountedDependents: mountedDependents(id),
         lastUsed: record.lastUsed,
+        busy: record.claims > 0,
         error: record.error,
       };
     },
@@ -773,10 +793,15 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
     },
     activate: (id, signal = hostScope.signal) => activateInternal(id, signal, true),
     async mount(id, mountOptions = {}) {
-      const activated = await activateInternal(id, mountOptions.signal ?? hostScope.signal, true);
-      if (!activated.ok) return err(activated.error);
-      const record = records.get(id) as FeatureRecord;
-      return enqueue(record, () => doMount(record, mountOptions));
+      const record = records.get(id);
+      if (record !== undefined) record.claims += 1;
+      try {
+        const activated = await activateInternal(id, mountOptions.signal ?? hostScope.signal, true);
+        if (!activated.ok || record === undefined) return activated.ok ? ok() : err(activated.error);
+        return await enqueue(record, () => doMount(record, mountOptions));
+      } finally {
+        if (record !== undefined) release(record);
+      }
     },
     async hide(id) {
       const found = lookup(id, 'hide');
@@ -838,6 +863,12 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
         listeners.delete(listener);
       };
     },
+    onSettled(listener) {
+      settledListeners.add(listener);
+      return () => {
+        settledListeners.delete(listener);
+      };
+    },
     async dispose() {
       if (disposed) return;
       disposed = true;
@@ -851,6 +882,7 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
       }
       await hostScope.dispose();
       listeners.clear();
+      settledListeners.clear();
     },
   };
 

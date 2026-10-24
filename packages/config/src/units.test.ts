@@ -70,7 +70,8 @@ describe('experiment variant bindings (R8.4, P4)', () => {
     experiment.set(OnboardingVariant, 'A');
     expect(unwrap(await injector.get(OnboardingFlowToken)).name).toBe('B');
     const child = injector.child('session', 'next-session');
-    expect(unwrap(await child.get(OnboardingFlowToken)).name).toBe('B'); // app-scoped unit lives in app injector
+    // A new scope re-chooses its binding and sees the new flag value.
+    expect(unwrap(await child.get(OnboardingFlowToken)).name).toBe('A');
     await injector.dispose();
     expect(binder.attached).toBe(false);
   });

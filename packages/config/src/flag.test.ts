@@ -75,9 +75,9 @@ describe('defineFlag', () => {
   });
 
   it('type-checks registered keys and defaults', () => {
+    // @ts-expect-error registered as boolean, declared as string
     defineFlag({
       key: 'test/registered',
-      // @ts-expect-error registered as boolean, declared as string
       type: flagType.string(),
       default: 'x',
       owner: 'o',

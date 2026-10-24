@@ -20,7 +20,7 @@ import {
   type Result,
   type Telemetry,
 } from '@staticflux/core';
-import { createEnvelope, parseEnvelope, type SnapshotEnvelope } from './envelope.js';
+import { createEnvelope, isEnvelope, parseEnvelope, type SnapshotEnvelope } from './envelope.js';
 import { type AnyHandoffSlot, effectiveTtl, type HandoffScope, type HandoffSlot, type LifetimeKind, lifetimeKind } from './slot.js';
 import type { HandoffStorage, HandoffStorages } from './storage.js';
 
@@ -257,12 +257,30 @@ export function createHandoffStore(options: HandoffStoreOptions): HandoffStore {
     },
     async sweep() {
       let removed = 0;
-      for (const slot of slots.values()) {
-        const before = tracked.get(slot.key)?.machine.state;
-        const result = await store.peekEnvelope(slot);
-        const after = tracked.get(slot.key)?.machine.state;
-        if ((result.ok && result.value === undefined && after === 'expired' && before !== 'expired') || !result.ok) removed += 1;
+      const at = now();
+      const seen = new Set<HandoffStorage>();
+      for (const scope of ['memory', 'tab', 'origin'] as const) {
+        const storage = storageFor(scope);
+        if (seen.has(storage)) continue;
+        seen.add(storage);
+        const keys = await storage.keys();
+        if (!keys.ok) return keys;
+        for (const key of keys.value) {
+          const gone = await withLock(key, async () => {
+            const raw = await storage.read(key);
+            if (!raw.ok || raw.value === undefined) return false;
+            const expired = isEnvelope(raw.value) && raw.value.expiresAt !== undefined && raw.value.expiresAt <= at;
+            if (isEnvelope(raw.value) && !expired) return false;
+            const r = await storage.remove(key);
+            if (!r.ok) return false;
+            const slot = slots.get(key);
+            if (slot !== undefined) transition(slot, expired ? 'expire' : 'invalidate');
+            return true;
+          });
+          if (gone) removed += 1;
+        }
       }
+      if (removed > 0) telemetry.event('handoff.swept', { subsystem: SUBSYSTEM, attrs: { removed } });
       return ok(removed);
     },
     isDegraded(scope) {
