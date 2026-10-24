@@ -60,6 +60,12 @@ source. StaticFlux facts come from this repo (`packages/*/AGENTS.md` and `src`).
    contains a manifest, the asset records and CRDT snapshots in the closure, and blobs, either embedded or
    linked. **Publishing** produces an immutable *release*: a pinned, flattened stage plus renditions, optionally
    end-to-end encrypted with an Excalidraw-style key in the URL fragment.
+8. **Chromium desktop first (owner decision).** The format assumes File System Access (real folders on disk),
+   OPFS, WebGPU and WebCodecs.
+   - A real folder chosen by the user is a first-class home for the workspace store. OPFS is the zero-setup
+     default and the cache.
+   - Other browsers degrade by *capability*: OPFS-only storage, download/upload bundles, a WebGL/Canvas2D
+     renderer, server-made proxies. The format itself never changes for them (§2.0).
 
 ---
 
@@ -221,13 +227,44 @@ model*. It breaks in six ways:
 6. **Atomicity is missing.** A multi-file save without a head pointer is not atomic. The Git pattern is: write the
    objects, then swing one ref.
 
-A folder is still useful as one view of the store. In "linked folder" mode, a directory picked with File System
-Access holds exactly the workspace-store layout. It is git-friendly and inspectable. A single `.iflow` file
-remains the *export/interchange* format (§2.8).
+A folder is still useful, as a place where the store lives, not as a per-design format. On the Chromium-desktop
+target, File System Access gives real folders. A directory the user picks ("My Instaflow workspace") holds exactly
+the workspace-store layout. It is backed up by the user's own tools, git-friendly and inspectable, and it is a
+first-class local home next to OPFS (§2.0, §2.8). A single `.iflow` file remains the *export/interchange* format
+(§2.8).
 
 ---
 
 ## 2. Recommended Instaflow document model
+
+### 2.0 Platform target: Chromium desktop first
+
+The owner decided that Instaflow targets **Chrome and Edge on desktop**. Safari, Firefox and mobile are
+best-effort. Consequences for the format and the runtime:
+
+| Capability (assumed on Chromium desktop) | Used for | Degradation elsewhere (runtime only, same format) |
+|---|---|---|
+| **File System Access** (real folders, `showDirectoryPicker`, handles persisted in IndexedDB; Chrome's persistent-permission prompt is UNVERIFIED in this pass) | Workspace store in a user folder; open and save `.iflow` in place; drag-in import without copying | OPFS-only workspace; `.iflow` via download / upload |
+| **OPFS** + `createSyncAccessHandle` (dedicated workers) | Default store and cache; catalog (`sqlite-wasm` `opfs-sahpool`); fast range I/O | IndexedDB blob store through `fallback([...])` |
+| **WebCodecs** (+ `VideoFrame` → WebGPU) | Timeline decode / encode in workers, scrubbing, frame-accurate preview, local export | Server-rendered proxies and exports; preview at lower fidelity |
+| **WebGPU** | Page / canvas / timeline compositing, effects, transitions | WebGL2 / Canvas2D surface (`@staticflux/surface` already has variants) |
+| Wasm SIMD + threads (when cross-origin isolated) | Hashing, keyframe evaluation, CRDT engine | Scalar builds (R11.16) |
+
+Rules:
+
+1. **Other browsers never constrain the format.** Every format choice is made for the target. Missing
+   capabilities affect only *where* data lives and *how* it renders, chosen through platform facts + variant
+   bindings (StaticFlux rule 4), never through format branches.
+2. **Folder writes stay simple.** On real folders, `createSyncAccessHandle` does not exist; it is OPFS-only. So
+   the store only ever *creates new immutable files* (objects, log segments) through `createWritable()`, and
+   swaps the small `heads/*.json` atomically (`createWritable` writes a swap file that replaces the original on
+   close). This is exactly the immutable-objects + mutable-heads design in §2.1, so real folders need no special
+   cases.
+3. **Hot data stays in OPFS.** In folder mode, OPFS still holds caches (the catalog, composed-stage caches,
+   decoded proxies), so heavy random I/O never goes through the slower FSA path. These caches can be rebuilt.
+4. **Desktop budgets apply.** The worker-side cost of a ~1.19 MB gzip CRDT wasm, WebCodecs pipelines and larger
+   composed-stage caches is acceptable on desktop, as long as it stays off the main-thread boot path. Mobile
+   memory is a best-effort concern, not a design constraint.
 
 ### 2.1 Three storage classes and one rule
 
@@ -439,7 +476,9 @@ Hashing note:
 
 ### 2.8 Storage packaging
 
-**Workspace store** (canonical; the same layout in OPFS, a linked folder, and the cloud bucket prefix):
+**Workspace store** (canonical; the same layout in OPFS, a linked folder, and the cloud bucket prefix). On the
+Chromium-desktop target, users choose either OPFS (zero setup) or a real folder through File System Access. Both
+use this layout, and a workspace can move between them by copying objects (§2.0):
 
 ```
 instaflow/ws_01JB…/                         OPFS root | user-picked dir | s3://instaflow-prod/ws_01JB…/
@@ -533,7 +572,7 @@ This is the automerge-repo shape: many small documents over a KV store with rang
 
 | Option | Pros | Cons |
 |---|---|---|
-| **A. Loro 1.17 adapter** behind `DocumentCRDT` | Movable tree / list, Eg-walker rich text, shallow snapshots, fork / checkout, commit messages; active (1.17.1 on 2026-10-22) | ~3.6 MB raw / 1.19 MB gzip wasm (measured), worker-only and service-worker-cached; a younger ecosystem |
+| **A. Loro 1.17 adapter** behind `DocumentCRDT` | Movable tree / list, Eg-walker rich text, shallow snapshots, fork / checkout, commit messages; active (1.17.1 on 2026-10-22) | ~3.6 MB raw / 1.19 MB gzip wasm (measured), worker-only and service-worker-cached; acceptable for the Chromium-desktop target (§2.0); a younger ecosystem |
 | **B. Extend the StaticFlux LWW engine** | Tiny; matches Figma's proven model; already in the repo | Needs a Kleppmann tree move, a binary or columnar LWW encoding (today the LWW state is JSON inside every update, and every field is a string key), fork / versions, and rich text (Yjs `Y.Text` + format attributes) |
 | C. Automerge 3.5 / Yjs 14 | Mature (Automerge), already integrated (Yjs) | No native movable tree; Yjs 14 still prerelease (npm `beta` 14.0.0-16) |
 
@@ -774,7 +813,7 @@ Example: a 3-page Instagram carousel with a video page, built from a brand templ
 | # | Change | Package | Why |
 |---|---|---|---|
 | 1 | **`BlobStore` port**: `put(stream, {signal}) → Result<BlobRef>` (streaming hash), `get(digest, {range, signal})`, `has`, `stat`, chunk manifests, `verify`, `pin` / `unpin` roots + `gc()`, tiering (OPFS → remote), upload / download progress | **new `@staticflux/blob`** (vertical; core + storage) | `AsyncStore` is a structured-value KV, and its OPFS adapter is string-codec, file per key, no ranges, no binary streaming. Media needs content addressing and range reads |
-| 2 | **OPFS binary adapter** using `createSyncAccessHandle` in workers (range read / write), plus a **File System Access linked-folder** backend and a **zip-bundle reader** (central directory + stored entries via `File.slice`) | `@staticflux/blob` | One store layout over OPFS, a user folder, and an `.iflow` bundle |
+| 2 | **OPFS binary adapter** using `createSyncAccessHandle` in workers (range read / write); a **File System Access folder** backend as a first-class primary on Chromium desktop (create-only objects via `createWritable`, atomic head swap, handle persistence + permission re-request flow); a **zip-bundle reader** (central directory + stored entries via `File.slice`); an IndexedDB fallback for best-effort browsers | `@staticflux/blob` + `@staticflux/platform` facts (`fsAccess`, `opfsSyncHandle`, `webcodecs`, `webgpu`) | One store layout over OPFS, a real user folder, and an `.iflow` bundle |
 | 3 | **`DocumentRepo`**: open / close many docs by id lazily, per-doc log + snapshot persistence (append segments, compaction, `DocHead` CAS), per-doc sync sessions, eviction under the runtime resource manager | `@staticflux/document` | Today one engine = one doc, and `snapshot()` is a full-state archive. Granular docs and incremental persistence are required at scale |
 | 4 | **`DocumentCRDT` v2** ops and features: `node.move` (cycle-safe), list insert / move, rich-text marks, per-transaction `meta` (actor, capability, invocation, traceparent), `version()` / `checkout()` / `fork()` / `merge()`, shallow snapshot, undo manager hooks, a server-side decode helper | `@staticflux/document` | Hierarchy, ordering, rich text, attribution, proposals, history |
 | 5 | **Loro adapter** (`loro-crdt.ts`, the only file importing Loro), benchmarked against an **LWW v2** (binary or columnar encoding; Kleppmann move) | `@staticflux/document` | §2.9. The Loro wasm (~1.19 MB gzip) goes in the worker chunk with its own budget category (R11.14-style) |
@@ -813,8 +852,8 @@ handoff (open doc,                     BlobStore (OPFS sync handles, hashing)   
    - a single fixed strength order;
    - `explain()` in devtools and in the agent-facing API ("why is this text blue?").
 2. **CRDT engine cost.**
-   - Loro adds ~1.19 MB gzip of worker wasm (cached by the service worker, but first load and mobile memory
-     matter).
+   - Loro adds ~1.19 MB gzip of worker wasm. It is cached by the service worker, and the Chromium-desktop target
+     makes that acceptable, but the first load still matters.
    - The LWW route means owning tree-move correctness.
    - The decision needs the benchmark spike, not taste.
 3. **Doc-per-payload fragmentation.** Cross-doc atomic edits (moving a node from page 2 to page 3) are not atomic
@@ -824,11 +863,16 @@ handoff (open doc,                     BlobStore (OPFS sync handles, hashing)   
 4. **Hashing and ingest cost.** Streaming SHA-256 of multi-GB video in Wasm takes seconds; BLAKE3 with SIMD is
    faster. Ingest must be a cancellable background task with progress (rule 5), and the asset is usable via a
    provisional id before hashing finishes.
-5. **Browser storage limits.**
-   - OPFS quotas and eviction: request `navigator.storage.persist()` and keep a quota-aware blob GC.
-   - Safari specifics (OPFS write APIs arrived late; `createWritable` only from Safari 17 per the storage
-     package's notes).
+5. **Browser storage limits (Chromium desktop).**
+   - OPFS quotas and eviction: request `navigator.storage.persist()` and keep a quota-aware blob GC. The
+     real-folder mode avoids quota entirely, which is one reason to recommend it for heavy video users.
+   - File System Access permissions can lapse between sessions. Folder mode needs a clean re-grant flow, and the
+     app must stay usable read-only from OPFS caches until access is granted again.
+   - External tools (sync clients, git, the user) can change the folder underneath the app. Objects are
+     verified by digest, and heads are re-read on focus.
    - Sync access handles take exclusive locks. One workspace owner (the tab coordinator) is mandatory.
+   - Best-effort browsers (Safari: `createWritable` only from 17; no FSA folders; Firefox: no FSA folders) run
+     OPFS/IndexedDB-only. This is a degradation, never a format constraint.
 6. **GC correctness.** Blobs are shared across docs, versions, releases and the cloud. Mark from roots (heads,
    named versions, releases, pins) and give deletions a grace period. A wrong GC deletes user media.
 7. **Locks in a local-first world.** Policy locks cannot be enforced offline. Make that explicit in the UX, and
@@ -848,6 +892,9 @@ handoff (open doc,                     BlobStore (OPFS sync handles, hashing)   
 - Does the composed-stage cache live per device only, or is it shared in the cloud? It is a big win for
   first-open on new devices, and a cache-invalidation risk.
 - Granularity default: one doc per page always, or split on size? A benchmark is needed.
+- Default local home on Chromium desktop: OPFS (zero friction, quota-bound) or prompt for a real folder at first
+  run (durable, user-owned, no quota, but adds permission friction)? One option: start in OPFS and offer "move
+  workspace to a folder" once media passes a size threshold.
 - Time precision edge cases: flicks divide every common frame rate and audio rate evenly (including 192 kHz,
   which is 3,675 ticks per sample). Variable-frame-rate phone video and odd rates from generated media do not fit.
   Should ingest conform them, through proxies, or should `Source` keep a per-asset timestamp map?
