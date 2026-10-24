@@ -258,7 +258,8 @@ describe('createPluginHost — capability calls', () => {
     const denied = await link.request('sandbox/invoke', { capability: 'test/echo', input: { text: 'a' } });
     expect(!denied.ok && denied.error.code).toBe('SF-SBX-002');
     expect(h.violations.map((v) => v.kind)).toEqual(['not-granted']);
-    expect(h.events('violation')[0]?.type === 'event' && h.events('violation')[0]?.level).toBe('critical');
+    const first = h.events('violation')[0];
+    expect(first?.type === 'event' && first.level).toBe('critical');
 
     const grantsSeen: unknown[] = [];
     link.on('sandbox/grants', (payload) => grantsSeen.push(payload));

@@ -29,8 +29,8 @@ import {
 } from './protocol.js';
 
 export interface ConnectTarget {
-  addEventListener(type: 'message', listener: (event: MessageEvent) => void, options?: AddEventListenerOptions): void;
-  removeEventListener(type: 'message', listener: (event: MessageEvent) => void): void;
+  addEventListener(type: 'message', listener: (event: Event) => void, options?: AddEventListenerOptions): void;
+  removeEventListener(type: 'message', listener: (event: Event) => void): void;
   /** Window realms: only messages from `parent` are accepted. */
   readonly parent?: unknown;
 }
@@ -83,7 +83,8 @@ function waitForPort(target: ConnectTarget, pluginId: string, signal: AbortSigna
     const checkSource = parent !== undefined && parent !== null && parent !== target;
     target.addEventListener(
       'message',
-      (event) => {
+      (raw) => {
+        const event = raw as MessageEvent;
         if (checkSource && event.source !== parent) return;
         const data: unknown = event.data;
         const port = event.ports?.[0];

@@ -15,7 +15,7 @@ export const PluginHostToken = token('sandbox/plugin-host').type<PluginHost>();
 
 export interface PluginHostUnitOptions {
   readonly id?: TokenId;
-  /** Everything but the registry (from `CapabilityRegistryToken`) and telemetry (the unit's). */
+  /** Everything but the registry (from `CapabilityRegistryToken`); telemetry defaults to the unit's. */
   readonly options: (context: UnitContext) => Omit<PluginHostOptions, 'registry'>;
 }
 

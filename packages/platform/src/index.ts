@@ -8,3 +8,6 @@ export * from './platform-facts.js';
 export * from './profile.js';
 export * from './fake-env.js';
 export * from './units.js';
+export * from './isolation.js';
+export * from './isolation-reporting.js';
+export * from './isolation-units.js';

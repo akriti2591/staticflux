@@ -67,6 +67,7 @@ export function createMemoryLocks(): MemoryLocks {
               reject(signal.reason);
               return;
             }
+            // sf-lint-disable-next-line no-bare-listener -- once-only abort listener on a test fake; the request settles exactly once
             signal?.addEventListener(
               'abort',
               () => {

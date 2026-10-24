@@ -118,7 +118,21 @@ export async function mountStudioUi(container: HTMLElement, injector: Injector):
   };
   container.addEventListener('studio-navigate', onNavigate);
   render(html`<sf-scope name="studio" .injector=${injector} .environment=${environment.value}><sf-shell></sf-shell><sf-surface-host></sf-surface-host></sf-scope>`, container);
+  // WORKAROUND (package bug, reported): ui's MobxController.track loses tracking when an
+  // observable changes during the tracked update (the shell's first commits connect
+  // boundaries/skip links synchronously → "Cannot access 'dispose' before initialization").
+  // Re-render the shell explicitly when the workspace or gate decisions change.
+  const workspaces = await injector.get(WorkspaceManagerToken);
+  const shell = container.querySelector('sf-shell') as (HTMLElement & { requestUpdate(): void }) | null;
+  const stop =
+    workspaces.ok && shell !== null
+      ? watch(
+          () => workspaces.value.current.id,
+          () => shell.requestUpdate(),
+        )
+      : () => undefined;
   return ok(() => {
+    stop();
     container.removeEventListener('studio-navigate', onNavigate);
     render(html``, container);
   });
