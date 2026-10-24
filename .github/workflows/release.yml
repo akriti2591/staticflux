@@ -1,18 +1,16 @@
 name: Release
 
-# On every push to main:
-# - if there are pending changesets, open/refresh the "Version packages" PR;
-# - otherwise publish any @staticflux/* version not yet on npm (e.g. the first 0.1.0).
+# Publishing is ON DEMAND only: Actions → Release → Run workflow.
+# It runs every check, then publishes any @staticflux/* version not yet on npm
+# (one at a time, rate-limit aware — see `sf publish`). Merging to main never publishes.
+# Version bumps + changelogs are prepared by the Version workflow (version.yml).
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency: release-${{ github.ref }}
 
 permissions:
   contents: write        # version commits / tags
-  pull-requests: write   # "Version packages" PR
   id-token: write        # npm trusted publishing (OIDC) + provenance
 
 jobs:
@@ -40,15 +38,13 @@ jobs:
       - run: pnpm lint:sf
       - run: pnpm errors:check
       - run: pnpm size
-      - uses: changesets/action@v1
-        with:
-          version: pnpm version-packages
-          publish: pnpm release
-          title: 'chore: version packages'
-          commit: 'chore: version packages'
+      - name: Publish (sequential, rate-limit aware)
+        run: node tooling/sf/dist/cli.js publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Only needed for the very first publish (before trusted publishers are configured).
           # Remove the NPM_TOKEN secret afterwards; OIDC is used when it is absent.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
+      - name: Push release tags
+        if: always()
+        run: git push origin --tags
