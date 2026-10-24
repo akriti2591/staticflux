@@ -76,8 +76,35 @@ The readiness lifecycle (§4) applies to **every unit** — stores, services, cl
 | lazy | `DepHandle<T>`: `pending \| ready \| refreshing \| failed` | arrives any time; reactive | `lazy`: reactive |
 | functional | `(…args) => Promise<Result<R>>` | resolved + initialized on first call | `functional` |
 
-Hooks for every unit (scope-bound, auto-disposed): `onInjected`, `onReady`, `onRefresh`, `onFailed`.
 Units without `init()` are `ready` on creation (zero overhead).
+
+### 5.1 Init timing (per dependency, overridable)
+
+`init: 'eager' | 'on-arrival' | 'idle' | 'on-visible' | 'on-intent' | 'on-demand'`
+
+| Kind | Default |
+|---|---|
+| required / render | eager |
+| lazy | on-arrival |
+| functional | on-demand |
+
+E.g. a heavy functional dep (export PDF) can pre-warm `on-intent` (hover/focus of its trigger); a heavy lazy panel dep can wait for `on-visible`. Init is always single-flight and cached regardless of timing.
+
+### 5.2 Dependency hooks (per dependency, per consumer)
+
+Hooks are for what the **consumer** does *with* a dependency (subscribe, register, seed state, start streams, wire to another dep) — not the dependency's own init.
+
+```ts
+onInjected(deps.presence, (presence, scope) => …)
+onReady(deps.presence, async (presence, scope) => { scope.defer(presence.subscribe(...)) }, { blocking: true })
+onRefresh(deps.presence, (fresh, scope) => …)
+onFailed(deps.presence, (error) => …)
+```
+
+- Available to **every unit** (stores, services, utilities, components).
+- Scope-bound: resources go into the provided `scope` (or a returned cleanup fn); disposed when the consumer is disposed **or the dependency refreshes** (the hook re-runs against the fresh instance).
+- `blocking: true` makes the hook part of the consumer's readiness (component keeps its placeholder until it settles). Non-blocking hook failures are reported, not fatal.
+- Each hook run is a span inside the consumer's readiness span.
 
 ## 6. Feature lifecycle
 
