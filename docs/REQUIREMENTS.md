@@ -214,6 +214,15 @@
 
 - **R11.16a** **Isolation is a per-app choice**: apps declare `isolation: 'required' | 'preferred' | 'off'`. `crossOriginIsolated` is a platform fact; channels, Wasm builds and features select shared vs transfer paths automatically with no feature-code changes. `required` but not isolated → boot error with a stable code and fix (add COOP/COEP), and isolation-dependent features gated off with a reason. Embedded modes always fall back. Optional plugin: service-worker-injected COOP/COEP for static hosts (costs one reload on first visit).
 
+- **R11.16b** **`IsolationPolicy` unit** (from isolation mode, platform facts, and COEP flavour `require-corp | credentialless`) consumed via DI by every layer — no feature code involvement:
+  - ui: templates/directives add `crossorigin` (`anonymous` / `use-credentials` per policy) to cross-origin `img`, `video`, `audio`, `script`, `link`;
+  - loader: `modulepreload`/script/dynamic chunk URLs get matching `crossorigin`; worker and Wasm script headers checked in dev;
+  - data: `mode: 'cors'` + declared credentials policy; missing CORS/CORP → typed error explaining the cause;
+  - embeds: third-party iframes get `credentialless` where supported;
+  - surfaces: CORS-clean image/texture loads (no tainted canvas);
+  - workers/Wasm: shared channels only when actually isolated.
+  Dev-mode `ReportingObserver` (where supported) reports COEP/CORP violations with element/request attribution and a fix. When isolation is off the policy is a no-op binding.
+
 ### Channels between threads
 - **R11.17** Three channel classes: **control** (structured-clone envelopes: lifecycle, intents, patches), **data** (transferable ArrayBuffers: snapshots, images, meshes), **frame** (SharedArrayBuffer ring buffers + Atomics when isolated; double-buffered transfer otherwise).
 - **R11.18** **Declared binary layouts**: one schema generates typed-array views (TS) and a matching struct layout for Wasm — zero-decode per frame. Protobuf/FlatBuffers only as transport/persistence codecs (plugins), never in the render loop.
