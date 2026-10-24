@@ -48,14 +48,11 @@ export function fallback<V>(candidates: readonly StoreCandidate<V>[]): Result<Fa
   let active: AsyncStore<V> | undefined;
   let disposed = false;
 
+  let pendingReport: FallbackReport | undefined;
   const advance = (phase: FallbackReport['phase'], cause?: SfError): boolean => {
     if (cause !== undefined && active !== undefined) {
       const report: FallbackReport = { index, id: active.id, error: cause, phase };
       reports.push(report);
-      for (let i = index + 1; i < candidates.length; i += 1) {
-        // announce after the next store is chosen (below)
-        void i;
-      }
       pendingReport = report;
     }
     for (index += 1; index < candidates.length; index += 1) {
@@ -73,7 +70,6 @@ export function fallback<V>(candidates: readonly StoreCandidate<V>[]): Result<Fa
     }
     return false;
   };
-  let pendingReport: FallbackReport | undefined;
   const announce = (): void => {
     if (pendingReport === undefined || active === undefined) return;
     const report = pendingReport;

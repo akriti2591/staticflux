@@ -7,6 +7,7 @@
 import { err, ok, type Result } from '@staticflux/core';
 import { SurfaceContextError } from './errors.js';
 import type { FrameInfo } from './frame-loop.js';
+import type { HtmlInCanvasAdapter } from './html-in-canvas.js';
 import type { CompactInputEvent } from './input.js';
 
 export const SURFACE_KINDS = ['dom', 'canvas2d', 'webgl', 'webgpu', 'html-in-canvas'] as const;
@@ -57,6 +58,8 @@ export interface RenderContext<K extends CanvasSurfaceKind = CanvasSurfaceKind> 
   readonly thread: 'main' | 'worker';
   /** Aborted when the surface detaches. */
   readonly signal: AbortSignal;
+  /** `html-in-canvas` surfaces (main thread): the drawable-DOM adapter. */
+  readonly htmlInCanvas?: HtmlInCanvasAdapter;
 }
 
 export interface RenderEngine<State = unknown, K extends CanvasSurfaceKind = CanvasSurfaceKind> {
