@@ -173,8 +173,8 @@ export interface Injector {
   functional<T>(token: Token<T>, init?: InitTiming): FunctionalDep<T>;
   /** Readiness state of the instance providing `token` from this injector's perspective. */
   stateOf(token: AnyToken): UnitState;
-  /** Resolve every critical unit visible from this injector. */
-  resolveCritical(signal?: AbortSignal): Promise<Result<void>>;
+  /** Resolve every critical unit visible from this injector. `parent` nests the `boot.critical` span. */
+  resolveCritical(signal?: AbortSignal, parent?: Span): Promise<Result<void>>;
   /** Refresh units providing `tokens` (and units that `refreshOn` them), or bump the epoch. */
   refresh(target: readonly AnyToken[] | 'epoch'): Promise<Result<void>>;
   /** Snapshot for devtools. Includes descendants. */
@@ -336,8 +336,13 @@ class InjectorImpl implements Injector {
     return host?.instances.get(binding.unit)?.state ?? 'unresolved';
   }
 
-  async resolveCritical(signal?: AbortSignal): Promise<Result<void>> {
-    const span = this.telemetry.span('boot.critical', { subsystem: SUBSYSTEM, level: 'critical', attrs: { injector: this.name } });
+  async resolveCritical(signal?: AbortSignal, parent?: Span): Promise<Result<void>> {
+    const span = this.telemetry.span('di.critical', {
+      subsystem: SUBSYSTEM,
+      level: 'critical',
+      parent,
+      attrs: { injector: this.name },
+    });
     const critical: Binding[] = [];
     const seen = new Set<TokenId>();
     for (let injector: InjectorImpl | undefined = this; injector !== undefined; injector = injector.parent) {

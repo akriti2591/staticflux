@@ -20,5 +20,24 @@
     "name": "@staticflux/platform detect-mode (inline boot detector)",
     "path": "packages/platform/dist/detect-mode.js",
     "limit": "1.1 KB"
+  },
+  {
+    "name": "@staticflux/runtime (boot: bootApp + supervisor + scheduler)",
+    "path": "packages/runtime/dist/index.js",
+    "import": "{ bootApp, createSupervisor, createFrameScheduler }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "8.5 KB"
+  },
+  {
+    "name": "@staticflux/runtime (full)",
+    "path": "packages/runtime/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "14.5 KB"
   }
 ]

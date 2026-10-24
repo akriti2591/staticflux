@@ -3,6 +3,7 @@ import { analyzeGraph } from './graph.js';
 import {
   bind,
   composeUnits,
+  contribution,
   createDeferred,
   createInjector,
   createMemorySink,
@@ -350,8 +351,8 @@ describe('injector: bindings', () => {
   });
 
   it('multi tokens collect ordered contributions', async () => {
-    const m1 = unit({ id: 'test/menu-2', provides: MenuToken, scope: 'app', order: 2, create: () => 'second' as never });
-    const m2 = unit({ id: 'test/menu-1', provides: MenuToken, scope: 'app', order: 1, create: () => 'first' as never });
+    const m1 = contribution({ id: 'test/menu-2', provides: MenuToken, scope: 'app', order: 2, create: () => 'second' });
+    const m2 = contribution({ id: 'test/menu-1', provides: MenuToken, scope: 'app', order: 1, create: () => 'first' });
     const injector = createInjector({ units: [m1, m2] });
     expect(await injector.get(MenuToken)).toEqual(ok(['first', 'second']));
   });
@@ -366,7 +367,7 @@ describe('injector: telemetry', () => {
     const injector = createInjector({ units: [critical], telemetry });
     expect((await injector.resolveCritical()).ok).toBe(true);
     const names = sink.records.filter((r) => r.type === 'span').map((r) => (r.type === 'span' ? r.name : ''));
-    expect(names).toContain('boot.critical');
+    expect(names).toContain('di.critical');
     expect(names).toContain('di.resolve');
   });
 });

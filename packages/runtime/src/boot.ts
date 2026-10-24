@@ -79,7 +79,7 @@ export async function bootApp(options: BootOptions = {}): Promise<Result<App>> {
     ...(options.random === undefined ? {} : { random: options.random }),
     core: async ({ reason, signal }) => {
       const span = telemetry.span('boot.critical', { subsystem: SUB, level: 'critical', parent: bootSpan, attrs: { reason } });
-      const critical = await injector.resolveCritical(signal);
+      const critical = await injector.resolveCritical(signal, span);
       if (!critical.ok) {
         span.end('error', critical.error);
         return critical;

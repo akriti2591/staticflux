@@ -2,7 +2,7 @@
  * DI units for the runtime services. Apps register them (e.g. `...runtimeUnits`)
  * and override any of them with `bind(..., { precedence: 'app' })`.
  */
-import { box, ok, unit, type UnitDefinition } from '@staticflux/core';
+import { box, contribution, ok, unit, type UnitDefinition } from '@staticflux/core';
 import { createMemoryArchiveStore } from './archive.js';
 import { createFeatureHost } from './feature-host.js';
 import type { MemoryPressure, ReactiveInput, ResourceBudgets, ResourceManager } from './resource-manager.js';
@@ -47,13 +47,12 @@ export function frameSchedulerSubsystem(scheduler: FrameScheduler): Subsystem {
   });
 }
 
-export const frameSchedulerSubsystemUnit = unit({
+export const frameSchedulerSubsystemUnit = contribution({
   id: 'runtime/frame-scheduler-subsystem-unit',
   provides: SubsystemsToken,
   scope: 'app',
   deps: { required: { scheduler: FrameSchedulerToken } },
-  // Multi-token contribution: each unit contributes one item (core types the value as the list).
-  create: ({ scheduler }) => frameSchedulerSubsystem(scheduler) as never,
+  create: ({ scheduler }) => frameSchedulerSubsystem(scheduler),
 });
 
 export const memoryArchiveStoreUnit = unit({

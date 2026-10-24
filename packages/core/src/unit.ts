@@ -13,7 +13,7 @@ import type { Scope } from './disposal.js';
 import type { SfError } from './errors.js';
 import type { Result } from './result.js';
 import type { MetricDefinition, Span, Telemetry } from './telemetry.js';
-import type { AnyToken, Token, TokenId, TokenValue } from './token.js';
+import type { AnyToken, MultiToken, Token, TokenId, TokenValue } from './token.js';
 
 /** Scope levels from longest- to shortest-lived. */
 export const SCOPE_LEVELS = ['app', 'session', 'workspace', 'route', 'feature', 'view', 'component'] as const;
@@ -197,4 +197,19 @@ export function dependencyEdges(definition: AnyUnit): readonly DependencyEdge[] 
   add('lazy', deps.lazy, 'on-arrival');
   add('functional', deps.functional, 'on-demand');
   return edges;
+}
+
+/**
+ * Declare a unit that contributes ONE item to a multi token (menu items, routes,
+ * telemetry sinks, …). `create` returns the item; the token's value is the ordered list.
+ *
+ * @example
+ * export const helpItem = contribution({ id: 'help/menu-item', provides: MenuItems, scope: 'app', order: 90,
+ *   create: () => ({ label: 'Help' }) });
+ */
+export function contribution<E, const D extends DepsDeclaration = Record<never, never>, const P extends TokenId = TokenId>(
+  definition: Omit<UnitDefinition<E, D, P>, 'provides'> & { readonly provides: MultiToken<E, P> } &
+    ([DuplicateDepKeys<D>] extends [never] ? unknown : { __duplicateDepKeys: DuplicateDepKeys<D> }),
+): UnitDefinition<readonly E[], D, P> {
+  return definition as unknown as UnitDefinition<readonly E[], D, P>;
 }
