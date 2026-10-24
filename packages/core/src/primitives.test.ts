@@ -132,6 +132,19 @@ describe('async primitives', () => {
     expect(calls).toBe(1); // unknown errors are not retried by default
   });
 
+  it('retry honours a server retryAfterMs hint (capped at maxDelayMs)', async () => {
+    const Rate = defineError('SF-TEST-RATE', 'rate', 'slow down', 'wait');
+    let calls = 0;
+    const delays: number[] = [];
+    const limited: Task<string> = async () => {
+      calls += 1;
+      return calls < 2 ? err(Rate({ details: { retryAfterMs: 7 } })) : ok('done');
+    };
+    const result = await retry(limited, { attempts: 3, maxDelayMs: 50, onRetry: (_e, _a, d) => delays.push(d) })(signal);
+    expect(result).toEqual(ok('done'));
+    expect(delays).toEqual([7]);
+  });
+
   it('timeout aborts the inner task', async () => {
     let innerSignal: AbortSignal | undefined;
     const slow = task(async (s) => {

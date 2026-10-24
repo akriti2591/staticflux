@@ -100,6 +100,18 @@ export interface RetryPolicy {
   /** Injectable randomness for deterministic tests. */
   readonly random?: () => number;
   readonly onRetry?: (error: SfError, attempt: number, delayMs: number) => void;
+  /**
+   * Honour a server-provided delay (`error.details.retryAfterMs`, e.g. from a
+   * `Retry-After` header) instead of backoff. Default true; capped at `maxDelayMs`.
+   */
+  readonly honorRetryAfter?: boolean;
+}
+
+function serverRetryHint(error: SfError, policy: RetryPolicy): number | undefined {
+  if (policy.honorRetryAfter === false) return undefined;
+  const hint = error.details['retryAfterMs'];
+  if (typeof hint !== 'number' || !Number.isFinite(hint) || hint < 0) return undefined;
+  return Math.min(hint, policy.maxDelayMs ?? 10_000);
 }
 
 const RETRYABLE_KINDS = new Set(['network', 'timeout', 'unavailable', 'rate']);
@@ -134,7 +146,8 @@ export function retry<T>(inner: Task<T>, policy: RetryPolicy): Task<T> {
       const error = last.error;
       if (error.kind === 'aborted' || signal.aborted) return last;
       if (attempt === policy.attempts || !retryIf(error, attempt)) return last;
-      const delay = backoffDelay(attempt, base, max, jitter, policy.random);
+      const hint = serverRetryHint(error, policy);
+      const delay = hint ?? backoffDelay(attempt, base, max, jitter, policy.random);
       policy.onRetry?.(error, attempt, delay);
       const slept = await sleep(delay, signal);
       if (!slept.ok) return err(slept.error);

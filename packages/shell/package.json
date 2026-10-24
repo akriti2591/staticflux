@@ -20,6 +20,7 @@
     "@staticflux/core": "workspace:*",
     "@staticflux/ui": "workspace:*",
     "@staticflux/messaging": "workspace:*",
-    "lit": "3.3.3"
+    "lit": "3.3.3",
+    "@staticflux/a11y": "workspace:*"
   }
 }
