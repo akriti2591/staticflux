@@ -12,14 +12,47 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/test-helpers.ts",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
   ],
   "staticflux": {
     "layer": "ui"
   },
   "dependencies": {
     "@staticflux/core": "workspace:*",
-    "@staticflux/ui": "workspace:*",
+    "@staticflux/ui": "workspace:*"
+  },
+  "peerDependencies": {
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
     "lit": "3.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akriti2591/staticflux.git",
+    "directory": "packages/messaging"
+  },
+  "homepage": "https://akriti2591.github.io/staticflux/",
+  "bugs": {
+    "url": "https://github.com/akriti2591/staticflux/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [
+    "staticflux",
+    "typescript",
+    "framework",
+    "client-side"
+  ],
+  "engines": {
+    "node": ">=22"
   }
 }

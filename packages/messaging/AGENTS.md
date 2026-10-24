@@ -65,7 +65,6 @@ Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a r
 **Layer:** ui
 
 - Internal: `@staticflux/core`, `@staticflux/ui`
-- External: `lit` (3.3.3)
 
 Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.
 <!-- sf:generated:end -->

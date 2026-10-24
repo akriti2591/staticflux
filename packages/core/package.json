@@ -16,12 +16,44 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/test-helpers.ts",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
   ],
   "staticflux": {
     "layer": "core"
   },
-  "dependencies": {
+  "dependencies": {},
+  "peerDependencies": {
+    "mobx": "^7.1.0"
+  },
+  "devDependencies": {
     "mobx": "7.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akriti2591/staticflux.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://akriti2591.github.io/staticflux/",
+  "bugs": {
+    "url": "https://github.com/akriti2591/staticflux/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [
+    "staticflux",
+    "typescript",
+    "framework",
+    "client-side"
+  ],
+  "engines": {
+    "node": ">=22"
   }
 }

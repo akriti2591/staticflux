@@ -16,7 +16,13 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/test-helpers.ts",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
   ],
   "staticflux": {
     "layer": "shell"
@@ -26,7 +32,34 @@
     "@staticflux/ui": "workspace:*",
     "@staticflux/perf": "workspace:*",
     "@staticflux/gate": "workspace:*",
-    "@staticflux/runtime": "workspace:*",
+    "@staticflux/runtime": "workspace:*"
+  },
+  "peerDependencies": {
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
     "lit": "3.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akriti2591/staticflux.git",
+    "directory": "packages/devtools"
+  },
+  "homepage": "https://akriti2591.github.io/staticflux/",
+  "bugs": {
+    "url": "https://github.com/akriti2591/staticflux/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [
+    "staticflux",
+    "typescript",
+    "framework",
+    "client-side"
+  ],
+  "engines": {
+    "node": ">=22"
   }
 }

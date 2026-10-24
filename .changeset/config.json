@@ -1,0 +1,52 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@4.0.1/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "@staticflux/a11y",
+      "@staticflux/advisors",
+      "@staticflux/ai",
+      "@staticflux/auth",
+      "@staticflux/capabilities",
+      "@staticflux/config",
+      "@staticflux/core",
+      "@staticflux/data",
+      "@staticflux/devtools",
+      "@staticflux/document",
+      "@staticflux/gate",
+      "@staticflux/handoff",
+      "@staticflux/hydrate",
+      "@staticflux/i18n",
+      "@staticflux/loader",
+      "@staticflux/messaging",
+      "@staticflux/perf",
+      "@staticflux/platform",
+      "@staticflux/pwa",
+      "@staticflux/router",
+      "@staticflux/runtime",
+      "@staticflux/sandbox",
+      "@staticflux/shell",
+      "@staticflux/storage",
+      "@staticflux/surface",
+      "@staticflux/testkit",
+      "@staticflux/ui",
+      "@staticflux/urlstate",
+      "@staticflux/wasm",
+      "@staticflux/webmcp",
+      "@staticflux/worker",
+      "@staticflux/rspack-plugin",
+      "@staticflux/sf",
+      "@staticflux/vite-plugin"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": [],
+  "privatePackages": {
+    "version": false,
+    "tag": false
+  }
+}

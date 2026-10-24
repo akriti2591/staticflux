@@ -1,0 +1,52 @@
+name: Release
+
+# On every push to main:
+# - if there are pending changesets, open/refresh the "Version packages" PR;
+# - otherwise publish any @staticflux/* version not yet on npm (e.g. the first 0.1.0).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency: release-${{ github.ref }}
+
+permissions:
+  contents: write        # version commits / tags
+  pull-requests: write   # "Version packages" PR
+  id-token: write        # npm trusted publishing (OIDC) + provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs a recent npm CLI (pnpm hands the tarball to npm).
+      - run: npm install -g npm@latest
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm lint:boundaries
+      - run: pnpm lint:sf
+      - run: pnpm errors:check
+      - run: pnpm size
+      - uses: changesets/action@v1
+        with:
+          version: pnpm version-packages
+          publish: pnpm release
+          title: 'chore: version packages'
+          commit: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Only needed for the very first publish (before trusted publishers are configured).
+          # Remove the NPM_TOKEN secret afterwards; OIDC is used when it is absent.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
