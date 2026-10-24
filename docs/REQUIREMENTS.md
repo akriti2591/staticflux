@@ -110,6 +110,7 @@
 - **R6.14** Revocation via refresh, server push, or 403 — all feed the same fact update.
 - **R6.15** Offline: previously granted entitlements honoured until a grace expiry; new grants fail closed.
 - **R6.16** **Client gating is UX, not security.** Server re-checks everything. Documented in every relevant AGENTS.md.
+- **R6.18** **Metered entitlements** (credits, tokens, requests, price): meters with unit, window, balance (server-authoritative, optimistic client view). Policies may reference meters; decisions may be `allow` with a cost. **Reserve → commit | release** for actions of unknown cost (AI calls). Denial reasons `quota | rate`. Low-balance and exhaustion surface through messaging. Credit models are plugins; only the primitives are in the framework.
 - **R6.17** **Agents** are distinct policy subjects with narrower delegated permissions; destructive agent actions require user confirmation policy.
 
 ## 7. Router & navigation
@@ -166,6 +167,19 @@
 - **R9.6** UI stores are distinct from domain/client services; both are DI units.
 - **R9.7** Mock backends in the example app follow the same contracts.
 
+### 9.1 Persistent user data
+- **R9.8** A user-data document with **typed per-feature slices** (key, schema, version, migrations, default). Features never collide and never read each other's slices directly.
+- **R9.9** Slice scopes: `device | user | workspace | session`. Pluggable backends: memory → IndexedDB → remote sync contract (mocked). Offline-first, batched writes, per-slice conflict policy (LWW default or merge fn).
+- **R9.10** Mandatory versioning + migrations on read; failed migration → defaults + report, never a crash.
+- **R9.11** Logout flushes and (by default) wipes local `user`-scoped slices; per-app policy override. Guest slices may migrate on login via handoff.
+- **R9.12** Per-slice storage budgets.
+
+### 9.2 Unit readiness
+- **R9.13** Resolution (instance exists) and readiness (initialized) are distinct states (see `LIFECYCLES.md` §4).
+- **R9.14** `init()` runs once per scope instance; promise cached and shared; typed failure with retry policy.
+- **R9.15** `refreshOn` declarations + app epoch drive automatic refresh; consumers keep last value during refresh.
+- **R9.16** Component hooks `onInjected / onReady / onRefresh / onFailed`, scope-bound.
+
 ## 10. Async & error primitives
 
 - **R10.1** Own `Result<T, E>` type with typed error kinds (`network | timeout | aborted | auth | forbidden | not-found | validation | conflict | unavailable | unknown`).
@@ -184,6 +198,11 @@
 - **R11.8** Long-lived **document workers**: ECS document model + CRDT (Yjs behind a `DocumentCRDT` interface) for co-editing; main-thread UI and optional OffscreenCanvas renderer are projections.
 - **R11.9** SharedWorker coordinator across tabs where available; Web Locks for leader election.
 - **R11.10** Collaboration transport: client contract only, mocked.
+- **R11.11** **Worker lifecycle** (`LIFECYCLES.md` §3): heartbeat-based health, respawn with backoff and intensity limit, state restoration after respawn, declared fallback on give-up; full visibility in app lifecycle and devtools.
+
+## 11.1 Feature-needs-driven API design
+- **R11.12** Before each package is built, the example features' manifests are written against it (`docs/FEATURE-NEEDS.md`); every API must trace to a feature need.
+- **R11.13** All lifecycles are typed state machines with explicit valid transitions and cross-lifecycle invariants (`LIFECYCLES.md`); errors carry stable codes, suggested fixes, and live in a machine-readable catalog.
 
 ## 12. Performance, boot, loading & hydration
 
