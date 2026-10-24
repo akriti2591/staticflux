@@ -138,9 +138,13 @@ export function installDevtools(options: InstallDevtoolsOptions): Result<Devtool
       element.devtools = devtools;
       const host = options.container?.() ?? document.body;
       host.appendChild(element);
-      element.addEventListener('sf-devtools-close', () => {
-        isOpen = false;
-      });
+      element.addEventListener(
+        'sf-devtools-close',
+        () => {
+          isOpen = false;
+        },
+        { signal: devtools.scope.signal },
+      );
       devtools.scope.defer(() => element.remove());
       panel = element;
       return ok(element);

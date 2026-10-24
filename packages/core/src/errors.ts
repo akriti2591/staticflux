@@ -103,7 +103,13 @@ const catalog = new Map<ErrorCode, ErrorDefinition>();
  */
 export function defineError(code: ErrorCode, kind: ErrorKind, summary: string, fix: string): ErrorDefinition {
   const existing = catalog.get(code);
-  if (existing !== undefined) return existing;
+  if (existing !== undefined) {
+    // Same definition loaded twice (e.g. duplicated package copies) is fine; a different meaning is a bug.
+    if (existing.kind === kind && existing.summary === summary && existing.fix === fix) return existing;
+    throw new Error(
+      `defineError: code ${code} is already defined with a different meaning ("${existing.summary}"). Pick an unused code (see docs/errors.json).`,
+    );
+  }
   const factory = (extra: Partial<Omit<SfErrorInit, 'code' | 'kind'>> = {}): SfError =>
     new SfError({ ...extra, code, kind, message: extra.message ?? summary, fix: extra.fix ?? fix });
   const definition = Object.assign(factory, { code, kind, summary, fix }) as ErrorDefinition;

@@ -36,6 +36,12 @@ describe('errors & result', () => {
     expect(listErrorDefinitions().some((d) => d.code === 'SF-TEST-001')).toBe(true);
   });
 
+  it('defineError allows identical re-definition but rejects a clashing one', () => {
+    const a = defineError('SF-TEST-DUP', 'conflict', 'Dup.', 'Fix.');
+    expect(defineError('SF-TEST-DUP', 'conflict', 'Dup.', 'Fix.')).toBe(a);
+    expect(() => defineError('SF-TEST-DUP', 'network', 'Other.', 'Fix.')).toThrow(/already defined/);
+  });
+
   it('toSfError maps AbortError and unknown values', () => {
     expect(toSfError(new DOMException('x', 'AbortError')).kind).toBe('aborted');
     expect(toSfError('nope').code).toBe('SF-CORE-000');
