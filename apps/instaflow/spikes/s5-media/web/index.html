@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>S5 Media spike</title>
+<style>
+  body { font: 13px/1.4 ui-monospace, monospace; margin: 16px; background: #111; color: #ddd; }
+  canvas { width: 640px; height: 360px; background: #000; display: block; margin: 8px 0; }
+  a { color: #8cf; margin-right: 10px; }
+  button { font: inherit; }
+</style>
+</head>
+<body>
+<div>
+  Tests:
+  <a href="?test=probe">probe</a>
+  <a href="?test=decode">decode</a>
+  <a href="?test=composite">composite</a>
+  <a href="?test=seek">seek</a>
+  <a href="?test=drift&dur=60">drift (60 s)</a>
+  <a href="?test=drift&dur=600">drift (10 min)</a>
+  <a href="?test=export">export</a>
+</div>
+<div id="gesture" hidden><button id="go">Click to start (audio needs a user gesture)</button></div>
+<canvas id="c" width="1920" height="1080"></canvas>
+<pre id="out">running…</pre>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

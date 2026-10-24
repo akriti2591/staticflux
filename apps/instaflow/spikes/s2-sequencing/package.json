@@ -1,0 +1,9 @@
+{
+  "name": "instaflow-spike-s2-sequencing",
+  "private": true,
+  "description": "Phase 0 spike S2: main → editor worker → render worker sequencing over SAB input ring + seqlock view-state frames",
+  "scripts": {
+    "run": "bash scripts/run.sh",
+    "serve": "node ../_harness/serve-and-run.cjs web index.html --serve-only"
+  }
+}

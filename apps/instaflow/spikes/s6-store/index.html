@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>S6 store bench</title>
+<style>body{font:13px ui-monospace,monospace;margin:16px}pre{white-space:pre-wrap}</style>
+<h3>S6 — workspace store: CAS, fault injection, milestones, GC, .iflow</h3>
+<p>Params: <code>?tests=probe,cas,fault,milestone,zip,gc&amp;backends=sync,async&amp;iters=20&amp;gcRuns=5&amp;bundle=1</code>.
+Folder backend on a real folder: <button id="pick">Pick a folder and run the folder checks</button> (needs a click; see README).</p>
+<pre id="log"></pre><pre id="out"></pre>
+<script type="module">
+const q = new URLSearchParams(location.search);
+const cfg = {
+  tests: (q.get('tests') ?? 'probe,cas,fault,milestone,zip,gc').split(','),
+  backends: (q.get('backends') ?? 'sync,async').split(','),
+  iters: Number(q.get('iters') ?? 20), gcRuns: Number(q.get('gcRuns') ?? 5),
+  wantBundle: q.get('bundle') === '1', cleanup: q.get('keep') !== '1',
+};
+const logEl = document.getElementById('log');
+const page = { showDirectoryPicker: typeof window.showDirectoryPicker, crossOriginIsolated, persisted: await navigator.storage.persisted?.() };
+const w = new Worker('web/bench-worker.js', { type: 'module' });
+w.onmessage = (e) => {
+  if (e.data.type === 'log') { logEl.textContent += e.data.msg + '\n'; return; }
+  const r = e.data.result; r.page = page;
+  window.__bundle = r.bundleB64; delete r.bundleB64;
+  document.getElementById('out').textContent = JSON.stringify(r, null, 2);
+  window.__result = r;
+};
+w.postMessage(cfg);
+
+// Human step: real-folder head swap via File System Access (the picker needs a user gesture).
+document.getElementById('pick').onclick = async () => {
+  const { folderCheck } = await import('./web/folder-check.js');
+  const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+  const res = await folderCheck(dir, (m) => { logEl.textContent += m + '\n'; });
+  document.getElementById('out').textContent = JSON.stringify(res, null, 2);
+  window.__folderResult = res;
+};
+</script>

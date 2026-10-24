@@ -32,6 +32,13 @@ for (const name of ['node', 'browser']) {
   const gy = (R.gestures ?? []).map((x) => x.gesturesYjs ?? x.out?.gesturesYjs).filter(Boolean);
   if (gy.length) row('gestures yjs', JSON.stringify(gy[0]));
   for (const h of R.history ?? []) { const o = h.out ?? h; for (const row2 of o.historyGrowth ?? []) console.log('| history | ' + JSON.stringify(row2) + ' |'); if (o.milestoneFork) console.log('| milestoneFork | ' + JSON.stringify(o.milestoneFork) + ' |'); }
+  for (const m of [R.milestone].flat().filter(Boolean)) console.log('| milestone | ' + JSON.stringify(m.out ?? m) + ' |');
   if (R.boot) console.log('| boot | ' + JSON.stringify(R.boot) + ' |');
   if (R.build) console.log('| build | ' + JSON.stringify(R.build) + ' |');
+}
+const memf = path.join(root, 'results/browser-mem.jsonl');
+if (fs.existsSync(memf)) {
+  console.log('\n## browser main-thread heap probe');
+  const objs = fs.readFileSync(memf, 'utf8').split(/\n(?=\{)/).map((t) => t.trim()).filter(Boolean).map((t) => JSON.parse(t));
+  for (const o of objs) { const x = o.out; if (!x) { console.log(JSON.stringify(o)); continue; } console.log(`| ${o.engine} | first ${JSON.stringify(x.first)} | mem ${JSON.stringify(x.mem)} |`); }
 }

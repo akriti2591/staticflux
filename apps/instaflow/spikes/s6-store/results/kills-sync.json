@@ -1,0 +1,187 @@
+{
+  "config": {
+    "kills": 10,
+    "pages": 4,
+    "backend": "sync",
+    "rateMs": 10,
+    "compactEveryMs": 150,
+    "slowHead": false,
+    "chromium": "153.0.8010.12"
+  },
+  "kills": {
+    "close": 5,
+    "crash": 5
+  },
+  "collateralCrashes": 0,
+  "ackedCommits": 3330,
+  "recoveredCommits": 3358,
+  "missingAcked": 0,
+  "missingSample": [],
+  "drained": true,
+  "recoveries": {
+    "count": 10,
+    "headTorn": 0,
+    "headMissing": 0,
+    "partsMissing": 0,
+    "partsBadDigest": 0,
+    "tornLogTails": 0,
+    "staleSegmentsCleaned": 0,
+    "tmpHeadsCleaned": 1,
+    "generationMonotonic": true,
+    "finalGeneration": 6
+  },
+  "finalVerify": {
+    "headStatus": "ok",
+    "tornTails": 0,
+    "partsMissing": 0,
+    "partsBadDigest": 0
+  },
+  "headProbe": {
+    "reads": 841,
+    "ok": 833,
+    "torn": 0,
+    "regress": 0,
+    "missing": 8
+  },
+  "failoverMs": {
+    "median": 389,
+    "p95": 985,
+    "max": 985
+  },
+  "recoveryMs": {
+    "median": 255.7949999999255,
+    "p95": 566.3849999997765,
+    "max": 566.3849999997765
+  },
+  "commitAckLatencyMs": {
+    "medianOfPerSecondMedians": 17.59,
+    "p95OfPerSecondP95": 561.88
+  },
+  "leaderDutyCycle": 1.036071538335386,
+  "compactionsPerLeader": 1,
+  "errors": [],
+  "errorCount": 0,
+  "pass": true,
+  "recoveriesDetail": [
+    {
+      "i": 0,
+      "mode": "close",
+      "headStatus": "ok",
+      "gen": 2,
+      "tornTails": 0,
+      "staleSegments": 0,
+      "partsMissing": 0,
+      "partsBadDigest": 0,
+      "recovered": 245,
+      "tmpCleaned": 1
+    },
+    {
+      "i": 1,
+      "mode": "crash",
+      "headStatus": "ok",
+      "gen": 4,
+      "tornTails": 0,
+      "staleSegments": 0,
+      "partsMissing": 0,
+      "partsBadDigest": 0,
+      "recovered": 586,
+      "tmpCleaned": 0
+    },
+    {
+      "i": 2,
+      "mode": "close",
+      "headStatus": "ok",
+      "gen": 4,
+      "tornTails": 0,
+      "staleSegments": 0,
+      "partsMissing": 0,
+      "partsBadDigest": 0,
+      "recovered": 785,
+      "tmpCleaned": 0
+    },
+    {
+      "i": 3,
+      "mode": "crash",
+      "headStatus": "ok",
+      "gen": 4,
+      "tornTails": 0,
+      "staleSegments": 0,
+      "partsMissing": 0,
+      "partsBadDigest": 0,
+      "recovered": 1007,
+      "tmpCleaned": 0
+    },
+    {
+      "i": 4,
+      "mode": "close",
+      "headStatus": "ok",
+      "gen": 4,
+      "tornTails": 0,
+      "staleSegments": 0,
+      "partsMissing": 0,
+      "partsBadDigest": 0,
+      "recovered": 1212,
+      "tmpCleaned": 0
+    },
+    {
+      "i": 5,
+      "mode": "crash",
+      "headStatus": "ok",
+      "gen": 4,
+      "tornTails": 0,
+      "staleSegments": 0,
+      "partsMissing": 0,
+      "partsBadDigest": 0,
+      "recovered": 1421,
+      "tmpCleaned": 0
+    },
+    {
+      "i": 6,
+      "mode": "close",
+      "headStatus": "ok",
+      "gen": 4,
+      "tornTails": 0,
+      "staleSegments": 0,
+      "partsMissing": 0,
+      "partsBadDigest": 0,
+      "recovered": 1688,
+      "tmpCleaned": 0
+    },
+    {
+      "i": 7,
+      "mode": "crash",
+      "headStatus": "ok",
+      "gen": 5,
+      "tornTails": 0,
+      "staleSegments": 0,
+      "partsMissing": 0,
+      "partsBadDigest": 0,
+      "recovered": 2261,
+      "tmpCleaned": 0
+    },
+    {
+      "i": 8,
+      "mode": "close",
+      "headStatus": "ok",
+      "gen": 5,
+      "tornTails": 0,
+      "staleSegments": 0,
+      "partsMissing": 0,
+      "partsBadDigest": 0,
+      "recovered": 2656,
+      "tmpCleaned": 0
+    },
+    {
+      "i": 9,
+      "mode": "crash",
+      "headStatus": "ok",
+      "gen": 5,
+      "tornTails": 0,
+      "staleSegments": 0,
+      "partsMissing": 0,
+      "partsBadDigest": 0,
+      "recovered": 2935,
+      "tmpCleaned": 0
+    }
+  ]
+}
