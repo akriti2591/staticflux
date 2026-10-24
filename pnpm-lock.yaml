@@ -30,6 +30,106 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(@types/node@22.20.5)(happy-dom@21.0.4)(vite@8.3.5(@types/node@22.20.5))
 
+  apps/studio:
+    dependencies:
+      '@lit/context':
+        specifier: 1.1.6
+        version: 1.1.6
+      '@staticflux/a11y':
+        specifier: workspace:*
+        version: link:../../packages/a11y
+      '@staticflux/advisors':
+        specifier: workspace:*
+        version: link:../../packages/advisors
+      '@staticflux/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
+      '@staticflux/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@staticflux/capabilities':
+        specifier: workspace:*
+        version: link:../../packages/capabilities
+      '@staticflux/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@staticflux/data':
+        specifier: workspace:*
+        version: link:../../packages/data
+      '@staticflux/document':
+        specifier: workspace:*
+        version: link:../../packages/document
+      '@staticflux/gate':
+        specifier: workspace:*
+        version: link:../../packages/gate
+      '@staticflux/handoff':
+        specifier: workspace:*
+        version: link:../../packages/handoff
+      '@staticflux/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@staticflux/loader':
+        specifier: workspace:*
+        version: link:../../packages/loader
+      '@staticflux/messaging':
+        specifier: workspace:*
+        version: link:../../packages/messaging
+      '@staticflux/perf':
+        specifier: workspace:*
+        version: link:../../packages/perf
+      '@staticflux/platform':
+        specifier: workspace:*
+        version: link:../../packages/platform
+      '@staticflux/router':
+        specifier: workspace:*
+        version: link:../../packages/router
+      '@staticflux/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@staticflux/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
+      '@staticflux/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      '@staticflux/surface':
+        specifier: workspace:*
+        version: link:../../packages/surface
+      '@staticflux/testkit':
+        specifier: workspace:*
+        version: link:../../packages/testkit
+      '@staticflux/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@staticflux/urlstate':
+        specifier: workspace:*
+        version: link:../../packages/urlstate
+      '@staticflux/wasm':
+        specifier: workspace:*
+        version: link:../../packages/wasm
+      '@staticflux/webmcp':
+        specifier: workspace:*
+        version: link:../../packages/webmcp
+      '@staticflux/worker':
+        specifier: workspace:*
+        version: link:../../packages/worker
+      lit:
+        specifier: 3.3.3
+        version: 3.3.3
+      mobx:
+        specifier: 7.1.0
+        version: 7.1.0
+      yjs:
+        specifier: 13.6.33
+        version: 13.6.33
+    devDependencies:
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(@types/node@22.20.5)
+
   packages/a11y:
     dependencies:
       '@staticflux/core':

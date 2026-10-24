@@ -1,0 +1,52 @@
+{
+  "name": "@staticflux/example-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Example app 'Studio': an AI-assisted mixed-media document editor exercising every StaticFlux vertical against mock services.",
+  "staticflux": {
+    "layer": "app"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@staticflux/a11y": "workspace:*",
+    "@staticflux/advisors": "workspace:*",
+    "@staticflux/ai": "workspace:*",
+    "@staticflux/auth": "workspace:*",
+    "@staticflux/capabilities": "workspace:*",
+    "@staticflux/config": "workspace:*",
+    "@staticflux/core": "workspace:*",
+    "@staticflux/data": "workspace:*",
+    "@staticflux/document": "workspace:*",
+    "@staticflux/gate": "workspace:*",
+    "@staticflux/handoff": "workspace:*",
+    "@staticflux/i18n": "workspace:*",
+    "@staticflux/loader": "workspace:*",
+    "@staticflux/messaging": "workspace:*",
+    "@staticflux/perf": "workspace:*",
+    "@staticflux/platform": "workspace:*",
+    "@staticflux/router": "workspace:*",
+    "@staticflux/runtime": "workspace:*",
+    "@staticflux/shell": "workspace:*",
+    "@staticflux/storage": "workspace:*",
+    "@staticflux/surface": "workspace:*",
+    "@staticflux/testkit": "workspace:*",
+    "@staticflux/ui": "workspace:*",
+    "@staticflux/urlstate": "workspace:*",
+    "@staticflux/wasm": "workspace:*",
+    "@staticflux/webmcp": "workspace:*",
+    "@staticflux/worker": "workspace:*",
+    "lit": "3.3.3",
+    "@lit/context": "1.1.6",
+    "mobx": "7.1.0",
+    "yjs": "13.6.33"
+  },
+  "devDependencies": {
+    "vite": "8.3.5"
+  }
+}
