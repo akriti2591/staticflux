@@ -205,6 +205,26 @@
 - **R11.12** Before each package is built, the example features' manifests are written against it (`docs/FEATURE-NEEDS.md`); every API must trace to a feature need.
 - **R11.13** All lifecycles are typed state machines with explicit valid transitions and cross-lifecycle invariants (`LIFECYCLES.md`); errors carry stable codes, suggested fixes, and live in a machine-readable catalog.
 
+## 11.2 Wasm, binary channels & rich surfaces
+
+### Wasm
+- **R11.14** A Wasm module is a **worker-scoped unit** (`init` = instantiate) and a **chunk** (logical id, manifest, warmup tiers, gating, own budget category); compiled with `compileStreaming`.
+- **R11.15** Wasm runs in workers by default; main-thread Wasm only by explicit declaration for tiny synchronous work, with a budget.
+- **R11.16** Wasm feature facts (SIMD, threads, memory64, exceptions, GC) and **cross-origin isolation** are platform facts; variants pick builds (e.g. SIMD vs scalar). Everything needing `SharedArrayBuffer` has a non-shared fallback (embedded hosts cannot set COOP/COEP).
+
+### Channels between threads
+- **R11.17** Three channel classes: **control** (structured-clone envelopes: lifecycle, intents, patches), **data** (transferable ArrayBuffers: snapshots, images, meshes), **frame** (SharedArrayBuffer ring buffers + Atomics when isolated; double-buffered transfer otherwise).
+- **R11.18** **Declared binary layouts**: one schema generates typed-array views (TS) and a matching struct layout for Wasm — zero-decode per frame. Protobuf/FlatBuffers only as transport/persistence codecs (plugins), never in the render loop.
+- **R11.19** ECS component columns (SoA) may live in Wasm or shared memory, read in place by document worker, Wasm engine and renderer.
+
+### Rich surfaces (all are projections of the document)
+- **R11.20** Surface kinds: DOM (Lit), Canvas2D, WebGL, WebGPU, and **HTML-in-Canvas** (DOM drawn into canvas/GPU textures with hit testing and accessibility preserved).
+- **R11.21** GPU/canvas surfaces render in a **render worker** via transferred `OffscreenCanvas` with its own frame loop; the main thread forwards timestamped input → intents. Engine-agnostic: StaticFlux hosts any engine (Wasm, Three.js, Babylon, wgpu…).
+- **R11.22** HTML-in-Canvas adapter: feature-detected, isolates API churn (origin-trial renames such as `layoutsubtree` → `content="drawable"`, `drawElementImageToTexture`), main-thread only; fallback = positioned DOM overlays. Hybrid composition: DOM-rich layers on main, heavy 3D in the render worker.
+- **R11.23** Pure-canvas content gets a parallel accessible DOM layer generated from the projection unless HTML-in-Canvas provides it.
+- **R11.24** Per-surface frame metrics (frame time, dropped frames, input-to-frame latency) via declared metrics and budgets.
+- **R11.25** Packages: `@staticflux/wasm` (loading, facts, worker hosting, memory views), `@staticflux/surface` (surfaces, frame loop, OffscreenCanvas transfer, input forwarding, HTML-in-Canvas adapter); binary layouts and ring buffers live in `@staticflux/worker` as channels.
+
 ## 12. Performance, boot, loading & hydration
 
 - **R12.1** **Boot scheduler** with priorities (critical → visible → idle → interaction) and fallbacks where `scheduler.postTask/yield` are missing.
