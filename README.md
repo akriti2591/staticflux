@@ -1,3 +1,5 @@
+<p align="center"><img src="site/public/brand/avatar-512.png" alt="StaticFlux logo" width="120"></p>
+
 # StaticFlux
 
 **Static core, flux implementations.** StaticFlux is a client-side TypeScript framework for large
