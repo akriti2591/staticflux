@@ -13,6 +13,30 @@
   "references": [
     {
       "path": "../core"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../auth"
+    },
+    {
+      "path": "../data"
+    },
+    {
+      "path": "../platform"
+    },
+    {
+      "path": "../storage"
+    },
+    {
+      "path": "../worker"
+    },
+    {
+      "path": "../router"
+    },
+    {
+      "path": "../urlstate"
     }
   ]
 }
