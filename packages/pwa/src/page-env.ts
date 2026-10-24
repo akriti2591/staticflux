@@ -26,7 +26,7 @@ export interface ServiceWorkerRegistrationLike extends MessageListenable {
   readonly scope?: string;
   update(): Promise<unknown>;
   /** Background Sync (Chromium). */
-  readonly sync?: SyncManagerLike;
+  readonly sync?: SyncManagerLike | undefined;
 }
 
 export interface ServiceWorkerContainerLike extends MessageListenable {

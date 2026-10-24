@@ -18,7 +18,7 @@ import {
   type Token,
   unit,
 } from '@staticflux/core';
-import { a11yEnvironmentUnit, type A11yEnvironment, announcerUnit, focusManagerUnit, preferenceFactsUnit } from '@staticflux/a11y';
+import { a11yEnvironmentUnit, type A11yEnvironment, announcerUnit, focusManagerUnit, preferenceFactsUnit, shortcutRegistryUnit } from '@staticflux/a11y';
 import { advisorServiceUnit, browserAdvisorEnvironmentUnit } from '@staticflux/advisors';
 import { browserAiProviderUnit, mockModelProviderUnit, modelRouterUnit } from '@staticflux/ai';
 import {
@@ -67,7 +67,7 @@ import {
   registryArchiveStoreUnit,
   resourceManagerUnit,
 } from '@staticflux/runtime';
-import { commandRegistryUnit, shellPresets, ShellPresetToken, shortcutRegistryUnit, themeControllerUnit, workspaceManagerUnit } from '@staticflux/shell';
+import { commandRegistryUnit, shellKeyboardUnits, shellPresets, ShellPresetToken, themeControllerUnit, workspaceManagerUnit } from '@staticflux/shell';
 import { storeFactoryUnit, storeRegistryUnit, type StoreFactory } from '@staticflux/storage';
 import { htmlInCanvasSupportUnit, surfaceEnvironmentUnit } from '@staticflux/surface';
 import { noIsolationPolicyUnit, renderSchedulerUnit, uiEnvironmentUnit, visibilityObserverUnit } from '@staticflux/ui';
@@ -300,7 +300,7 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     localeUrlSubsystemUnit,
   ];
 
-  const a11y: readonly Registration[] = [a11yEnvironmentUnit(env.a11yEnv), focusManagerUnit, announcerUnit(), preferenceFactsUnit];
+  const a11y: readonly Registration[] = [a11yEnvironmentUnit(env.a11yEnv), focusManagerUnit, announcerUnit(), preferenceFactsUnit, shortcutRegistryUnit];
 
   const handoff: readonly Registration[] = [registryHandoffStoragesUnit, handoffStoreUnit, heldIntentsSlotUnit, guestDraftSlotUnit, guestDraftUnit];
 
@@ -311,7 +311,7 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
   const shell: readonly Registration[] = [
     workspaceManagerUnit,
     commandRegistryUnit,
-    shortcutRegistryUnit,
+    ...shellKeyboardUnits,
     themeControllerUnit,
     themePreferenceStoreUnit,
     workspacePreferenceStoreUnit,

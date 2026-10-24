@@ -7,7 +7,7 @@
  * - Module Federation 2.0: `federation` maps remotes' exposed modules to logical chunk ids
  *   (manifest `remote` entries) and validates host shared singletons/versions.
  * - `html.plugin` (HtmlRspackPlugin): boot-plan `modulepreload` tags via `alterAssetTags`.
- * Dev isolation headers: `devServer: { headers: isolationHeaders(...) }` (see AGENTS.md).
+ * Dev isolation headers: `devServer: { headers: plugin.headers }` (see AGENTS.md).
  */
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
@@ -27,7 +27,7 @@ import { type CompilationLike, type CompilerLike, fromCompilation, resolveDeclar
 import { RspackBudgetExceededError, RspackOptionsError } from './errors.js';
 import { type FederationOptions, type FederationPlan, planFederation } from './federation.js';
 import { type HtmlPluginLike, preloadTags, referencedUrls } from './html.js';
-import { type CoepMode, type CorpMode, crossOriginFor, type IsolationMode } from './isolation.js';
+import { type CoepMode, type CorpMode, crossOriginFor, type IsolationMode, isolationHeaders } from './isolation.js';
 
 export const PLUGIN_NAME = 'StaticfluxRspackPlugin' as const;
 export const PRELOADS_FILE_NAME = 'sf-preloads.json' as const;
@@ -39,7 +39,7 @@ export interface StaticfluxRspackOptions {
   readonly bootPlans?: readonly BootPlan[];
   readonly profiles?: readonly ProfileLike[];
   readonly budgets?: BudgetOptions;
-  /** Default `off`; decides the `crossorigin` of injected tags (headers: `isolationHeaders`). */
+  /** Default `off`; decides the `crossorigin` of injected tags and the plugin's `headers` for `devServer`. */
   readonly isolation?: IsolationMode;
   readonly coep?: CoepMode;
   readonly corp?: CorpMode;
@@ -61,6 +61,8 @@ export interface StaticfluxRspackOptions {
 
 export interface RspackPluginLike {
   readonly name: string;
+  /** COOP/COEP/CORP for `devServer.headers` (empty when isolation is off). */
+  readonly headers: Readonly<Record<string, string>>;
   apply(compiler: CompilerLike): void;
 }
 
@@ -141,6 +143,7 @@ export function staticfluxRspack(options: StaticfluxRspackOptions): RspackPlugin
 
   return {
     name: PLUGIN_NAME,
+    headers: isolationHeaders({ isolation, coep: options.coep ?? 'require-corp', corp: options.corp ?? 'same-origin' }),
     apply(compiler) {
       compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
         let federation: FederationPlan | undefined;

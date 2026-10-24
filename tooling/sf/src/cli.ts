@@ -11,9 +11,11 @@ import { updateAgentsFiles } from './agents.js';
 import { analyzeBudgets, applyRatchet, formatBudgetTable, readBudgetConfig, readBudgetResults, writeBudgetConfig } from './budgets.js';
 import { collectErrorCatalog, isErrorCatalogCurrent, serializeErrorCatalog, writeErrorCatalog } from './error-catalog.js';
 import { UsageError } from './errors.js';
-import { formatError, type ModuleImporter } from './files.js';
+import { formatError, type ModuleImporter, readJson } from './files.js';
 import { checkGraph, formatGraphDot, formatGraphJson, formatGraphText, loadGraphModule } from './graph.js';
 import { formatLintText, LINT_RULES, type LintConfig, type LintRule, lintPaths } from './lint.js';
+import { checkManifest, formatManifestText } from './manifest-check.js';
+import { checkRoutes, formatRoutesJson, formatRoutesText, loadRoutesModule } from './routes.js';
 
 export interface CliIo {
   readonly cwd: string;
@@ -29,7 +31,7 @@ export interface ParsedArgs {
 }
 
 /** Flags that take a value (`--out x` or `--out=x`); every other `--flag` is boolean. */
-const VALUE_FLAGS = new Set(['out', 'rules', 'flag-names', 'config', 'results', 'threshold', 'headroom', 'packages', 'size-limit', 'max-fan-out', 'max-fan-in', 'external']);
+const VALUE_FLAGS = new Set(['out', 'rules', 'flag-names', 'config', 'results', 'threshold', 'headroom', 'packages', 'size-limit', 'max-fan-out', 'max-fan-in', 'external', 'max-eager-kb']);
 
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const positionals: string[] = [];
@@ -94,6 +96,11 @@ Usage: sf <command> [options]
       --threshold 0.1      --headroom 0.05     --write (apply tightenings only)   --json
   agents                 Regenerate Budgets / Allowed dependencies in packages/*/AGENTS.md
       --packages glob,…    --size-limit FILE   --check (exit 1 if stale, no write)
+  routes <entry-module>  Route × profile completeness (R18.7): module exports \`routes\`,
+                         \`features\` and \`profiles\` (or \`hostModes\` + \`formFactors\`)
+      --json
+  manifest <file>        Validate an sf-manifest.json: schema, dangling deps, budgets
+      --max-eager-kb N     fail when the eager boot cost exceeds N KB   --json
   help
 
 Exit codes: 0 ok · 1 check failed · 2 usage or input error.`;
@@ -219,6 +226,43 @@ function agentsCommand(args: ParsedArgs, io: CliIo): number {
   return check && stale > 0 ? 1 : 0;
 }
 
+async function routesCommand(args: ParsedArgs, io: CliIo): Promise<number> {
+  const entry = args.positionals[0];
+  if (entry === undefined) {
+    io.stderr(formatError(UsageError({ message: '`sf routes` needs an entry module path.' })));
+    return 2;
+  }
+  const loaded = await loadRoutesModule(entry, io.cwd, io.importer);
+  if (!loaded.ok) {
+    io.stderr(formatError(loaded.error));
+    return 2;
+  }
+  const result = checkRoutes(loaded.value);
+  io.stdout(args.flags.has('json') ? formatRoutesJson(result) : formatRoutesText(result));
+  return result.errorCount > 0 ? 1 : 0;
+}
+
+function manifestCommand(args: ParsedArgs, io: CliIo): number {
+  const file = args.positionals[0];
+  if (file === undefined) {
+    io.stderr(formatError(UsageError({ message: '`sf manifest` needs the path of an sf-manifest.json.' })));
+    return 2;
+  }
+  const maxEagerKb = numberFlag(args, 'max-eager-kb');
+  if (typeof maxEagerKb === 'object') {
+    io.stderr(formatError(maxEagerKb));
+    return 2;
+  }
+  const json = readJson(resolve(io.cwd, file));
+  if (!json.ok) {
+    io.stderr(formatError(json.error));
+    return 2;
+  }
+  const result = checkManifest(json.value, typeof maxEagerKb === 'number' ? { maxEagerKb } : {});
+  io.stdout(args.flags.has('json') ? JSON.stringify(result, null, 2) : formatManifestText(result));
+  return result.errorCount > 0 ? 1 : 0;
+}
+
 /** Run the CLI; resolves to the process exit code. */
 export async function runCli(argv: readonly string[], io: CliIo): Promise<number> {
   const args = parseArgs(argv);
@@ -233,6 +277,10 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
       return budgetsCommand(args, io);
     case 'agents':
       return agentsCommand(args, io);
+    case 'routes':
+      return routesCommand(args, io);
+    case 'manifest':
+      return manifestCommand(args, io);
     case undefined:
     case 'help':
       io.stdout(HELP);

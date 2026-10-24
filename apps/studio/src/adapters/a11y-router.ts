@@ -5,7 +5,7 @@
  */
 import { contribution } from '@staticflux/core';
 import { AnnouncerToken, FocusManagerToken } from '@staticflux/a11y';
-import { NavigationHooksToken } from '@staticflux/router';
+import { type NavigationHooks, NavigationHooksToken } from '@staticflux/router';
 import { OutletsToken } from '../app/contracts.js';
 
 export const routeFocusHookUnit = contribution({
@@ -13,7 +13,7 @@ export const routeFocusHookUnit = contribution({
   provides: NavigationHooksToken,
   scope: 'app',
   deps: { required: { focus: FocusManagerToken, announcer: AnnouncerToken, outlets: OutletsToken } },
-  create: ({ focus, announcer, outlets }, ctx) => {
+  create: ({ focus, announcer, outlets }, ctx): NavigationHooks => {
     outlets.main.tabIndex = -1;
     ctx.scope.defer(focus.registerRouteTarget(outlets.main, ctx.scope));
     return {

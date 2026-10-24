@@ -44,7 +44,7 @@ export const coreContextHubUnit = unit({
           }),
         ),
         provideContext(CoreContexts.platform, reactiveSource(() => JSON.parse(JSON.stringify(platform.current)) as Record<string, unknown>)),
-        provideContext(CoreContexts.observability, staticSource({ defaultLevel: 'standard', ...(parent === undefined ? {} : { traceparent: formatTraceparent(parent) }) })),
+        provideContext(CoreContexts.observability, staticSource({ defaultLevel: 'standard' as const, ...(parent === undefined ? {} : { traceparent: formatTraceparent(parent) }) })),
       ],
     });
     ctx.scope.defer(() => hub.dispose());

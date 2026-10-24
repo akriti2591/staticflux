@@ -119,7 +119,7 @@ function validateEntry(value: unknown, issues: string[]): PluginEntry | undefine
   }
   if ((v['kind'] === 'iframe' || v['kind'] === 'worker') && typeof v['url'] === 'string') {
     if (!isAllowedEntryUrl(v['url'])) issues.push('entry.url: must be https, blob: or app-relative');
-    return { kind: v['kind'], url: v['url'] };
+    return v['kind'] === 'iframe' ? { kind: 'iframe', url: v['url'] } : { kind: 'worker', url: v['url'] };
   }
   issues.push("entry: expected { kind: 'iframe', url | code } or { kind: 'worker', url }");
   return undefined;

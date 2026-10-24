@@ -174,7 +174,7 @@ export interface ServiceWorkerRuntime {
   /** Fetch event entry; returns true when the runtime responded. */
   handleFetch(event: FetchEventLike): boolean;
   /** Resolve a request like the fetch handler would (undefined = not handled). */
-  respond(request: RequestLike, event?: Partial<Pick<FetchEventLike, 'preloadResponse' | 'waitUntil'>>): Promise<ResponseLike | undefined> | undefined;
+  respond(request: RequestLike, event?: Partial<Pick<FetchEventLike, 'preloadResponse' | 'waitUntil'>>): Promise<ResponseLike> | undefined;
   handleMessage(event: MessageEventLike): boolean;
   warm(urls: readonly string[], options?: WarmOptions): Promise<WarmReport>;
   /** Warm cache (undefined when disabled). */

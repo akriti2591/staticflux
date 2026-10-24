@@ -5,7 +5,7 @@
  * only, I-13). The chat intent (`?panel=chat`) also opens the assistant panel.
  */
 import { contribution } from '@staticflux/core';
-import { NavigationHooksToken } from '@staticflux/router';
+import { type NavigationHooks, NavigationHooksToken } from '@staticflux/router';
 import { FeatureHostToken, type FeatureId } from '@staticflux/runtime';
 import { IntentServiceToken } from '@staticflux/urlstate';
 import { ChatPromptIntent, PanelControllerToken } from '../app/contracts.js';
@@ -15,7 +15,7 @@ export const intentActivationHookUnit = contribution({
   provides: NavigationHooksToken,
   scope: 'app',
   deps: { required: { intents: IntentServiceToken, host: FeatureHostToken, panel: PanelControllerToken } },
-  create: ({ intents, host, panel }) => ({
+  create: ({ intents, host, panel }): NavigationHooks => ({
     id: 'studio/intent-activation',
     afterNavigate(result) {
       if (result.outcome !== 'committed') return;

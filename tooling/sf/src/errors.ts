@@ -45,3 +45,10 @@ export const ErrorCatalogConflict = defineError(
   'Two error definitions share a code but differ in kind, summary or fix.',
   'Give each `defineError` call a unique `SF-<AREA>-NNN` code; codes are stable identifiers and must never be reused.',
 );
+
+export const InvalidRoutesModule = defineError(
+  'SF-TOOL-007',
+  'validation',
+  'The `sf routes` entry module does not export valid `routes`, `features` and profiles.',
+  'Export `routes` (defineRoute results), `features` (defineFeature manifests) and `profiles` ("web:expanded" strings or AppProfile-like objects) — or `hostModes` + `formFactors` arrays.',
+);
