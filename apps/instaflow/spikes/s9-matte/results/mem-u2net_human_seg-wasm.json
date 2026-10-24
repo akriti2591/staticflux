@@ -1,0 +1,99 @@
+{
+  "spike": "S9 matte",
+  "env": {
+    "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "crossOriginIsolated": true,
+    "cores": 4,
+    "deviceMemoryGB": 16,
+    "webgpu": true,
+    "smooth": {
+      "ema": 0.3,
+      "motion": 0.04,
+      "gfR": 6,
+      "gfEps": 0.001,
+      "guided": true
+    },
+    "seqs": [
+      "static",
+      "bgmotion",
+      "moving"
+    ],
+    "frameSize": "1280x720",
+    "date": "2026-10-24T20:55:04.933Z",
+    "adapter": {
+      "vendor": "google",
+      "architecture": "swiftshader",
+      "description": "",
+      "f16": false,
+      "maxBufferMB": 1024,
+      "maxStorageBufferMB": 1024,
+      "maxStorageBuffersPerShaderStage": 10
+    }
+  },
+  "results": [
+    {
+      "model": "u2net_human_seg",
+      "ep": "wasm",
+      "licence": "Apache-2.0 (code); weights: no explicit licence statement",
+      "commercial": null,
+      "note": "rembg mirror; weights from U-2-Net repo",
+      "input": "320x320",
+      "frames": 3,
+      "sizeMB": 176,
+      "fetchMs": 1230,
+      "sessionCreateMs": 2716,
+      "firstRunMs": 16715,
+      "loadTotalMs": 20660,
+      "adapter": null,
+      "memAfterLoad": {
+        "jsHeapUsedMB": 1.39,
+        "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
+      },
+      "memBefore": {
+        "jsHeapUsedMB": 0.79,
+        "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
+      },
+      "seqs": {
+        "static": {
+          "fpsEndToEndMedian": 0.19,
+          "totalMsMedian": 5261,
+          "totalMsP95": 6132,
+          "inferMsMedian": 4992,
+          "inferMsP95": 5794,
+          "fpsInferOnly": 0.2,
+          "smoothMsMedian": 257,
+          "flickerRaw": 0.0003,
+          "flickerSmoothed": 0.0003,
+          "flickerRawEdge": 0.0071,
+          "flickerSmoothedEdge": 0.0053,
+          "flickerEmaOnly": 0.0001,
+          "flickerEmaOnlyEdge": 0.0032,
+          "maeEmaOnlyEdge": 0.2366,
+          "flickerRawEdgeSteady": 0,
+          "flickerSmoothedEdgeSteady": 0,
+          "maeRaw": 0.0099,
+          "maeSmoothed": 0.0109,
+          "maeRawEdge": 0.2363,
+          "maeSmoothedEdge": 0.2414,
+          "iouRaw": 0.967,
+          "iouSmoothed": 0.9718
+        }
+      },
+      "memAfterRun": {
+        "jsHeapUsedMB": 16.36,
+        "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
+      }
+    }
+  ],
+  "processMemory": {
+    "peakTotalMB": 1350,
+    "peakByProcessTypeMB": {
+      "browser": 93,
+      "zygote": 79,
+      "gpu-process": 156,
+      "renderer": 951,
+      "utility": 71
+    },
+    "note": "Chromium tree RSS from /proc (Linux); with SwiftShader the GPU process RSS includes \"GPU\" memory"
+  }
+}

@@ -1,0 +1,17 @@
+open http://localhost:5315/web/index.html?runs=mediapipe_selfie:wasm:3:static
+[page log] env: {"ua":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36","crossOriginIsolated":true,"cores":4,"deviceMemoryGB":16,"webgpu":true,"smooth":{"ema":0.3,"motion":0.04,"gfR":6,"gfEps":0.001,"guided":true},"seqs":["static","bgmotion","moving"],"frameSize":"1280x720","date":"2026-10-24T20:54:37.057Z","adapter":{"vendor":"google","architecture":"swiftshader","description":"","f16":false,"maxBufferMB":1024,"maxStorageBufferMB":1024,"maxStorageBuffersPerShaderStage":10}}
+[page log] run mediapipe_selfie on wasm, 3 frames x static
+[page log] I1024 20:54:37.656000 2191552 gl_context.cc:408] GL version: 3.0 (OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))), renderer: WebKit WebGL
+[page warning] W1024 20:54:37.665999 2191552 gl_context.cc:1135] OpenGL error checking is disabled
+[page log] Graph successfully started running.
+[page log]   loaded mediapipe_selfie/wasm: 0.25 MB, create 511 ms, first run 0 ms
+[page error] INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+[page warning] W1024 20:54:37.964000 2191552 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+[page log]   static: {"fpsEndToEndMedian":2.16,"totalMsMedian":463,"totalMsP95":793,"inferMsMedian":52,"inferMsP95":54,"fpsInferOnly":19.32,"smoothMsMedian":368,"flickerRaw":0.0005,"flickerSmoothed":0.0003,"flickerRawEdge":0.0093,"flickerSmoothedEdge":0.0053,"flickerEmaOnly":0.0002,"flickerEmaOnlyEdge":0.0046,"maeEmaOnlyEdge":0.2749,"flickerRawEdgeSteady":0,"flickerSmoothedEdgeSteady":0,"maeRaw":0.0119,"maeSmoothed":0.0124,"maeRawEdge":0.275,"maeSmoothedEdge":0.2605,"iouRaw":0.9576,"iouSmoothed":0.9665}
+[page log] Graph finished closing successfully.
+[page log] I1024 20:54:40.796000 2191552 gl_context_webgl.cc:149] Successfully destroyed WebGL context with handle 1
+[page log] done
+[page warning] [.WebGL-0x29fc038d1200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[page warning] [.WebGL-0x29fc038d1200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[page warning] [.WebGL-0x29fc038d1200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+wrote /home/user/staticflux/apps/instaflow/spikes/s9-matte/results/mem-mediapipe_selfie-wasm.json

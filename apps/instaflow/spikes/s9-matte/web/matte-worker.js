@@ -17,7 +17,7 @@ let frameW = 0, frameH = 0;
 
 const now = () => performance.now();
 
-async function load({ model, ep, threads }) {
+async function load({ model, ep, threads, warm = true }) {
   ort.env.wasm.numThreads = threads ?? Math.min(4, navigator.hardwareConcurrency || 4);
   const t0 = now();
   const res = await fetch(model.url);
@@ -27,6 +27,9 @@ async function load({ model, ep, threads }) {
   const opts = {
     executionProviders: ep === 'webgpu' ? ['webgpu'] : ['wasm'],
     graphOptimizationLevel: 'all',
+    // BiRefNet @1024² overflows the 4 GB wasm32 heap with the default arena + memory-pattern planner
+    enableCpuMemArena: model.lowMem ? false : true,
+    enableMemPattern: model.lowMem ? false : true,
     // keep fp32 I/O on CPU for simplicity; M1 should bind GPU buffers (preferredOutputLocation:'gpu-buffer')
   };
   session = await ort.InferenceSession.create(bytes, opts);
@@ -40,8 +43,7 @@ async function load({ model, ep, threads }) {
   // First inference = shader compilation / kernel warmup; reported separately.
   const dummy = new ort.Tensor('float32', new Float32Array(3 * spec.inW * spec.inH), [1, 3, spec.inH, spec.inW]);
   const t3 = now();
-  const out = await session.run({ [spec.inName]: dummy });
-  for (const k in out) out[k].dispose?.();
+  if (warm) { const out = await session.run({ [spec.inName]: dummy }); for (const k in out) out[k].dispose?.(); }
   const t4 = now();
   let adapterInfo = null;
   if (ep === 'webgpu') {
@@ -87,12 +89,12 @@ async function frame({ bitmap, index, smooth }) {
   input.dispose?.();
   const raw = upsample(data, ow, oh, frameW, frameH, spec.sigmoid, spec.minmax);
   const t3 = now();
-  const smoothed = smooth ? smoother.step(raw, rgba, smooth) : raw;
+  const sm = smooth ? smoother.step(raw, rgba, smooth) : { out: raw, emaOnly: raw };
   const t4 = now();
-  const rawU8 = toU8(raw), smU8 = toU8(smoothed);
+  const rawU8 = toU8(raw), smU8 = toU8(sm.out), emaU8 = toU8(sm.emaOnly);
   return {
-    msg: { type: 'matte', index, raw: rawU8, smoothed: smU8, w: frameW, h: frameH, timings: { preMs: t1 - t0, inferMs: t2 - t1, postMs: t3 - t2, smoothMs: t4 - t3, totalMs: t4 - t0 } },
-    transfer: [rawU8.buffer, smU8.buffer],
+    msg: { type: 'matte', index, raw: rawU8, smoothed: smU8, emaOnly: emaU8, w: frameW, h: frameH, timings: { preMs: t1 - t0, inferMs: t2 - t1, postMs: t3 - t2, smoothMs: t4 - t3, totalMs: t4 - t0 } },
+    transfer: [rawU8.buffer, smU8.buffer, emaU8.buffer],
   };
 }
 

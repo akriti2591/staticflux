@@ -1,0 +1,75 @@
+{
+  "spike": "S9 matte",
+  "env": {
+    "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "crossOriginIsolated": true,
+    "cores": 4,
+    "deviceMemoryGB": 16,
+    "webgpu": true,
+    "smooth": {
+      "ema": 0.3,
+      "motion": 0.04,
+      "gfR": 6,
+      "gfEps": 0.001,
+      "guided": true
+    },
+    "seqs": [
+      "static",
+      "bgmotion",
+      "moving"
+    ],
+    "frameSize": "1280x720",
+    "date": "2026-10-24T20:48:27.494Z",
+    "adapter": {
+      "vendor": "google",
+      "architecture": "swiftshader",
+      "description": "",
+      "f16": false,
+      "maxBufferMB": 1024,
+      "maxStorageBufferMB": 1024
+    }
+  },
+  "results": [
+    {
+      "model": "birefnet_lite",
+      "ep": "webgpu",
+      "licence": "MIT",
+      "commercial": true,
+      "note": "BiRefNet general, Swin-T backbone (official GitHub release v1)",
+      "input": "1024x1024",
+      "frames": 1,
+      "sizeMB": 224.01,
+      "fetchMs": 1131,
+      "sessionCreateMs": 10354,
+      "firstRunMs": 0,
+      "loadTotalMs": 11485,
+      "adapter": {
+        "vendor": "google",
+        "architecture": "swiftshader",
+        "description": "",
+        "f16": false
+      },
+      "memAfterLoad": {
+        "jsHeapUsedMB": 1.45,
+        "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
+      },
+      "memBefore": {
+        "jsHeapUsedMB": 0.85,
+        "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
+      },
+      "seqs": {},
+      "error": "failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: /mnt/azure_nvme_temp/_work/1/s/onnxruntime/core/providers/webgpu/shader_helper.cc:308 ShaderVariableHelper &onnxruntime::webgpu::ShaderHelper::AddVariableImpl(bool, const std::string &, ShaderUsage, const TensorShape &, uint32_t) numbers_storage_buffers_ <= limits_.maxStorageBuffersPerShaderStage was false. Too many storage buffers in shader. Current: 11, Max is 10\n"
+    }
+  ],
+  "processMemory": {
+    "peakTotalMB": 2477,
+    "peakByProcessTypeMB": {
+      "browser": 86,
+      "zygote": 74,
+      "gpu-process": 944,
+      "renderer": 1306,
+      "utility": 68
+    },
+    "note": "Chromium tree RSS from /proc (Linux); with SwiftShader the GPU process RSS includes \"GPU\" memory"
+  }
+}

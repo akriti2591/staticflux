@@ -19,6 +19,7 @@ const P = {
   present: q.get('present') ?? 'raf',        // raf = render draws in its rAF | eager = draws on wake-up (Atomics.waitAsync)
   eagerCap: +(q.get('eagerCap') ?? 0),       // eager: max draws per vsync interval (0 = unlimited)
   eagerDelay: +(q.get('eagerDelay') ?? 0),   // eager: ms to wait after a wake-up before drawing (burst coalescing)
+  rafDraw: +(q.get('rafDraw') ?? 1),         // 0 (with eager) = never draw from rAF, to prove eager frames reach the screen
   latch: +(q.get('latch') ?? 0),             // ms the render worker may wait in rAF for the editor to catch up
 };
 const out = document.getElementById('out');

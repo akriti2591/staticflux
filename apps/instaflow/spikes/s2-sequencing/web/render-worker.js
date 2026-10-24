@@ -18,7 +18,7 @@ self.onmessage = async (e) => {
         if (self.__stopped) return;
         const abs = performance.timeOrigin + ts;
         if (editor) editor.step();
-        rc.tick(abs);
+        if (m.params.rafDraw === 0 && m.params.present === 'eager') rc.onRaf(abs); else rc.tick(abs); // rafDraw=0: only eager draws (screenshot proof)
         requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);

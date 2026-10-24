@@ -1,7 +1,8 @@
 // Temporal matte stabilisation (CPU reference; M1 port = WGSL compute shader).
-//   1. motion-gated EMA: per-pixel blend weight k = ema + (1-ema) * clamp(|ΔY|_box / motion, 0, 1)
+//   1. guided filter (He et al. 2010) with the frame luma as guide → edges snap to colour edges.
+//   2. motion-gated EMA: per-pixel blend weight k = ema + (1-ema) * clamp(max(|ΔRGB|max_box / motion, |Δα| / jump), 0, 1)
 //      → static pixels average over time (kills flicker), moving pixels follow the new matte (no ghosting).
-//   2. guided filter (He et al. 2010) with the frame luma as guide → edges snap to colour edges.
+//      The colour gate alone ghosts where fg/bg have similar colour (skin vs beige wall), hence the α-jump term.
 // State kept between frames: previous luma and previous EMA alpha.
 
 /** O(N) separable box mean with clamped borders. src/dst Float32Array(w*h); tmp scratch. */
@@ -52,31 +53,42 @@ export function lumaOf(rgba, n) {
 }
 
 /**
- * @param {number} w @param {number} h
- * step(raw, rgba, {ema=0.3, motion=0.04, motionR=2, gfR=6, gfEps=1e-3, guided=true})
+ * Order: guided filter first (edge refinement against the colour frame), THEN motion-gated EMA, so the
+ * per-frame sensor noise that the guide re-injects into edges is also averaged out. State = previous output.
+ * step(raw, rgba, {ema=0.3, motion=0.04, jump=0.5, motionR=2, gfR=6, gfEps=1e-3, guided=true})
+ *   -> { out (GF+EMA), emaOnly (EMA on the raw matte, no GF) }
  */
 export function createSmoother(w, h) {
   const n = w * h;
-  let prevY = null, prevA = null;
-  const d = new Float32Array(n), db = new Float32Array(n), tmp = new Float32Array(n);
+  let prevRgb = null, prevY = null, prevOut = null, prevEma = null;
+  const d = new Float32Array(n), gate = new Float32Array(n), tmp = new Float32Array(n);
+  const blend = (cur, prev, ema, jump) => {
+    if (!prev || ema >= 1) return cur.slice();
+    const o = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      let g = gate[i]; const a = Math.abs(cur[i] - prev[i]) / jump; if (a > g) g = a;
+      const k = ema + (1 - ema) * (g > 1 ? 1 : g); o[i] = k * cur[i] + (1 - k) * prev[i];
+    }
+    return o;
+  };
   return {
-    reset() { prevY = null; prevA = null; },
+    reset() { prevRgb = null; prevY = null; prevOut = null; prevEma = null; },
     step(raw, rgba, o) {
       const ema = o.ema ?? 0.3, motion = o.motion ?? 0.04;
       const Y = lumaOf(rgba, n);
-      let A;
-      if (!prevA || ema >= 1) A = raw.slice();
-      else {
-        for (let i = 0; i < n; i++) d[i] = Math.abs(Y[i] - prevY[i]);
-        boxMean(d, db, tmp, w, h, o.motionR ?? 2);
-        A = new Float32Array(n);
-        for (let i = 0; i < n; i++) {
-          const g = db[i] / motion, k = ema + (1 - ema) * (g > 1 ? 1 : g);
-          A[i] = k * raw[i] + (1 - k) * prevA[i];
+      if (prevRgb) {
+        for (let i = 0, j = 0; i < n; i++, j += 4) {
+          const r = Math.abs(rgba[j] - prevRgb[j]), g = Math.abs(rgba[j + 1] - prevRgb[j + 1]), b = Math.abs(rgba[j + 2] - prevRgb[j + 2]);
+          d[i] = (r > g ? (r > b ? r : b) : g > b ? g : b) / 255;
         }
+        boxMean(d, gate, tmp, w, h, o.motionR ?? 2);
+        for (let i = 0; i < n; i++) gate[i] /= motion;
       }
-      prevY = Y; prevA = A;
-      return o.guided === false ? A : guidedFilter(Y, A, w, h, o.gfR ?? 6, o.gfEps ?? 1e-3);
+      const refined = o.guided === false ? raw : guidedFilter(Y, raw, w, h, o.gfR ?? 6, o.gfEps ?? 1e-3);
+      const jump = o.jump ?? 0.5;
+      const out = blend(refined, prevOut, ema, jump), emaOnly = blend(raw, prevEma, ema, jump);
+      prevRgb = rgba.slice(); prevY = Y; prevOut = out; prevEma = emaOnly;
+      return { out, emaOnly };
     },
   };
 }

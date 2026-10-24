@@ -74,8 +74,8 @@ export class RenderCore {
     this.c.ticks++;
     if (this.lastTick) this.tickDt.push(rafAbs - this.lastTick);
     this.lastTick = rafAbs; this.tickAbs.push(rafAbs); this.cbLag.push(absNow() - rafAbs);
-    for (const i of this.pendingPresent) this.L.tPresent[i] = rafAbs;
-    this.pendingPresent.length = 0; this.drawsSinceRaf = 0;
+    // A frame submitted after this vsync's timestamp cannot be on screen at it: it presents at the first vsync ≥ submit.
+    this.pendingPresent = this.pendingPresent.filter((i) => { if (this.L.tSubmit[i] <= rafAbs) { this.L.tPresent[i] = rafAbs; return false; } return true; }); this.drawsSinceRaf = 0;
   }
   /** One rAF-driven draw. */
   tick(rafAbs) { this.onRaf(rafAbs); return this.update(true); }
