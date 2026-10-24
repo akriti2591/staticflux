@@ -44,9 +44,13 @@
     "lit": "3.3.3",
     "@lit/context": "1.1.6",
     "mobx": "7.1.0",
-    "yjs": "13.6.33"
+    "yjs": "13.6.33",
+    "@staticflux/pwa": "workspace:*",
+    "@staticflux/hydrate": "workspace:*",
+    "@staticflux/sandbox": "workspace:*"
   },
   "devDependencies": {
-    "vite": "8.3.5"
+    "vite": "8.3.5",
+    "@staticflux/vite-plugin": "workspace:*"
   }
 }

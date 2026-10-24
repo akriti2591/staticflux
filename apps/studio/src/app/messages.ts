@@ -3,25 +3,12 @@
  * catalog chunk (`locales/ar.ts`), loaded only when the locale switches.
  */
 import { catalogLoader, defineMessages } from '@staticflux/i18n';
+import { appMessageSource } from './messages-source.js';
 
 export const appMessages = defineMessages(
   'studio/app',
-  {
-    title: 'Studio',
-    home: 'Documents',
-    welcome: 'Welcome to Studio',
-    guestIntro: 'Sign in to open your documents, or start the tour.',
-    signIn: 'Sign in',
-    signOut: 'Sign out',
-    startTour: 'Start the tour',
-    settings: 'Settings',
-    credits: '{count, plural, =0 {No credits} one {# credit} other {# credits}}',
-    saved: 'Saved',
-    openChat: 'Assistant',
-    notFound: 'Page not found',
-    loadMore: 'Load more',
-    signInAs: 'Continue as {name}',
-  },
+  appMessageSource,
+
   { sourceLocale: 'en' },
 );
 

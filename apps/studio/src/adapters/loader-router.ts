@@ -4,16 +4,19 @@
  * user is on, and the `likely` tier warms in idle time in advisor-ranked order
  * (never on the navigation critical path).
  */
-import { contribution } from '@staticflux/core';
+import { token, unit } from '@staticflux/core';
 import { WarmupToken } from '@staticflux/loader';
 import { RouterToken } from '@staticflux/router';
-import { defineSubsystem, SubsystemsToken } from '@staticflux/runtime';
+import { defineSubsystem, type Subsystem } from '@staticflux/runtime';
 import { featureChunks } from '../app/features.js';
 import { ChunkCursorToken, NextChunkModelToken, NO_FEATURE } from './advisors-loader.js';
 
-export const navigationWarmupSubsystemUnit = contribution({
+/** Registered late (post-boot) with the supervisor; warmup is never on the boot path. */
+export const NavigationWarmupToken = token('studio/navigation-warmup').type<Subsystem>();
+
+export const navigationWarmupSubsystemUnit = unit({
   id: 'studio/navigation-warmup-subsystem-unit',
-  provides: SubsystemsToken,
+  provides: NavigationWarmupToken,
   scope: 'app',
   deps: { required: { router: RouterToken, warmup: WarmupToken, cursor: ChunkCursorToken, model: NextChunkModelToken } },
   create: ({ router, warmup, cursor, model }) =>

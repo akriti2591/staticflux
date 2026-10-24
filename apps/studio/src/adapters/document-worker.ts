@@ -8,13 +8,17 @@
  *
  * The supervised worker respawns with the last archive (rehydrate); when it gives up
  * the declared fallback makes the store read-only and the app goes `degraded`.
+ *
+ * This module is the lazy half of the document runtime (`app/document.ts` imports it on
+ * first use), so the worker/replication/document code stays out of the boot chunk.
  */
-import { batch, box, contribution, derived, err, ok, type Result, token, unit, untracked } from '@staticflux/core';
-import { DataClientToken } from '@staticflux/data';
+import { batch, box, derived, err, ok, type Result, type Scope, type Telemetry, untracked } from '@staticflux/core';
+import type { DataClient } from '@staticflux/data';
 import { createViewProjection, type DocumentArchive, keyBetween, PresenceReplica, projectReplica } from '@staticflux/document';
-import { defineSubsystem, SubsystemsToken } from '@staticflux/runtime';
-import { ContextHubToken, createReplica, createSupervisedWorker, type Spawner, type SupervisedWorker } from '@staticflux/worker';
-import { type BlockView, type DocumentStore, DocumentStoreToken, type PresenceFeed, PresenceToken } from '../app/contracts.js';
+import { defineSubsystem, type Subsystem } from '@staticflux/runtime';
+import { type ContextHub, createReplica, createSupervisedWorker, type Spawner, type SupervisedWorker } from '@staticflux/worker';
+import type { DocumentRuntime } from '../app/document.js';
+import type { BlockView, DocumentStore, PresenceFeed } from '../app/contracts.js';
 import { type BlockRecord, DocGetEndpoint, DocSaveEndpoint } from '../app/endpoints.js';
 import { DocumentWorkerGaveUpError, ReadOnlyDocumentError } from '../app/errors.js';
 import { BlockComponent, BodyComponent, DocumentReplica, DocumentWorkerProtocol } from '../worker/protocol.js';
@@ -28,15 +32,9 @@ export interface DocumentWorkerHandle {
   readonly readOnly: { get(): boolean };
   lastArchive(): DocumentArchive | undefined;
 }
-export const DocumentWorkerToken = token('studio/document-worker').type<DocumentWorkerHandle>();
 
-export function documentWorkerUnit(spawn: Spawner) {
-  return unit({
-    id: 'studio/document-worker-unit',
-    provides: DocumentWorkerToken,
-    scope: 'app',
-    deps: { required: { contexts: ContextHubToken } },
-    create: ({ contexts }, ctx): DocumentWorkerHandle => {
+function createWorkerHandle(spawn: Spawner, contexts: ContextHub, telemetry: Telemetry, scope: Scope): DocumentWorkerHandle {
+    {
       const replica = createReplica(DocumentReplica, { initial: { entities: {} } });
       const presence = createReplica(PresenceReplica, { initial: { participants: {} } });
       const readOnly = box(false);
@@ -48,7 +46,7 @@ export function documentWorkerUnit(spawn: Spawner) {
         contexts,
         replicas: [replica, presence],
         rehydrate: () => archive,
-        telemetry: ctx.telemetry,
+        telemetry,
         heartbeat: { intervalMs: 5_000, timeoutMs: 4_000, maxMissed: 3 },
         restart: { intensity: 3, periodMs: 60_000, baseDelayMs: 50 },
         fallback: {
@@ -57,26 +55,19 @@ export function documentWorkerUnit(spawn: Spawner) {
           deactivate: () => readOnly.set(false),
         },
       });
-      ctx.scope.defer(
+      scope.defer(
         worker.on('archived', (payload) => {
           archive = payload.archive;
         }),
       );
-      ctx.scope.defer(() => worker.stop('shutdown'));
+      scope.defer(() => worker.stop('shutdown'));
       return { worker, replica, presence, readOnly, lastArchive: () => archive };
-    },
-    description: 'Supervised document worker with document + presence replicas.',
-  });
+    }
 }
 
 /** The worker as a runtime subsystem: give-up → app `degraded` (R4.4). */
-export const documentWorkerSubsystemUnit = contribution({
-  id: 'studio/document-worker-subsystem-unit',
-  provides: SubsystemsToken,
-  scope: 'app',
-  deps: { required: { handle: DocumentWorkerToken } },
-  create: ({ handle }) =>
-    defineSubsystem({
+function workerSubsystem(handle: DocumentWorkerHandle): Subsystem {
+  return defineSubsystem({
       id: 'worker/document',
       critical: false,
       restart: { mode: 'temporary', maxRestarts: 0, windowMs: 60_000 },
@@ -97,8 +88,8 @@ export const documentWorkerSubsystemUnit = contribution({
         await handle.worker.stop('shutdown');
       },
       description: 'Document worker (engine owner).',
-    }),
-});
+    });
+}
 
 const SAVE_DELAY_MS = 300;
 
@@ -106,12 +97,9 @@ function toRecord(block: BlockView): BlockRecord {
   return block.kind === 'image' ? { kind: 'image', src: block.src, text: block.text } : { kind: 'text', text: block.text };
 }
 
-export const documentStoreUnit = unit({
-  id: 'studio/document-store-unit',
-  provides: DocumentStoreToken,
-  scope: 'app',
-  deps: { required: { handle: DocumentWorkerToken, client: DataClientToken } },
-  create: ({ handle, client }, ctx): DocumentStore => {
+function createDocumentStore(handle: DocumentWorkerHandle, client: DataClient, scope: Scope): DocumentStore {
+  {
+    const ctx = { scope, signal: scope.signal };
     const projection = createViewProjection();
     ctx.scope.defer(projectReplica(handle.replica, projection));
     const docId = box<string | undefined>(undefined);
@@ -269,16 +257,11 @@ export const documentStoreUnit = unit({
       },
     };
     return store;
-  },
-  description: 'Main-thread document store: replica projection + intents + debounced save.',
-});
+  }
+}
 
-export const presenceFeedUnit = unit({
-  id: 'studio/presence-feed-unit',
-  provides: PresenceToken,
-  scope: 'app',
-  deps: { required: { handle: DocumentWorkerToken } },
-  create: ({ handle }): PresenceFeed => ({
+function createPresenceFeed(handle: DocumentWorkerHandle): PresenceFeed {
+  return {
     get view() {
       return handle.presence.state as PresenceFeed['view'];
     },
@@ -286,6 +269,25 @@ export const presenceFeedUnit = unit({
       const result = await handle.presence.intent('setLocal', { name, cursor });
       return result.ok ? ok() : err(result.error);
     },
-  }),
-  description: 'Co-editor presence (lazy dependency of the editors).',
-});
+  };
+}
+
+export interface DocumentRuntimeDeps {
+  readonly spawn: Spawner;
+  readonly contexts: ContextHub;
+  readonly client: DataClient;
+  readonly telemetry: Telemetry;
+  readonly scope: Scope;
+}
+
+/** Build the document runtime (worker + replicas + store + presence) and its subsystem. */
+export function createDocumentRuntime(deps: DocumentRuntimeDeps): DocumentRuntime & { readonly subsystem: Subsystem } {
+  const handle = createWorkerHandle(deps.spawn, deps.contexts, deps.telemetry, deps.scope);
+  return {
+    store: createDocumentStore(handle, deps.client, deps.scope),
+    presence: createPresenceFeed(handle),
+    lastArchive: () => handle.lastArchive(),
+    workerState: () => handle.worker.state,
+    subsystem: workerSubsystem(handle),
+  };
+}

@@ -1,8 +1,9 @@
 /** Arabic catalog for the app shell (lazy chunk; RTL locale). */
-import { defineTranslations } from '@staticflux/i18n';
-import { appMessages } from '../app/messages.js';
+import type { TranslationBundle } from '@staticflux/i18n';
+import type { AppMessageKey } from '../app/messages-source.js';
 
-export default defineTranslations(appMessages, 'ar', {
+// No runtime import of the catalog module (it imports this chunk lazily): keys are checked by type.
+const messages: Readonly<Record<AppMessageKey, string>> = {
   title: 'ستوديو',
   home: 'المستندات',
   welcome: 'مرحبًا بك في ستوديو',
@@ -17,4 +18,7 @@ export default defineTranslations(appMessages, 'ar', {
   notFound: 'الصفحة غير موجودة',
   loadMore: 'تحميل المزيد',
   signInAs: 'المتابعة باسم {name}',
-});
+};
+
+const bundle: TranslationBundle<'studio/app'> = { kind: 'translations', namespace: 'studio/app', locale: 'ar', messages };
+export default bundle;

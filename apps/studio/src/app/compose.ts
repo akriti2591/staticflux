@@ -19,8 +19,6 @@ import {
   unit,
 } from '@staticflux/core';
 import { a11yEnvironmentUnit, type A11yEnvironment, announcerUnit, focusManagerUnit, preferenceFactsUnit, shortcutRegistryUnit } from '@staticflux/a11y';
-import { advisorServiceUnit, browserAdvisorEnvironmentUnit } from '@staticflux/advisors';
-import { browserAiProviderUnit, mockModelProviderUnit, modelRouterUnit } from '@staticflux/ai';
 import {
   AuthEnvironmentToken,
   type AuthEnvironment,
@@ -45,7 +43,7 @@ import { DataTransportToken, dataClientUnitWith, resourcesUnit, userDataUnit } f
 import { gateUnits, meterDefinitionUnit, policySetUnit } from '@staticflux/gate';
 import { handoffStoreUnit, registryHandoffStoragesUnit } from '@staticflux/handoff';
 import { catalogLoaderUnit, i18nConfigUnit, i18nUnit } from '@staticflux/i18n';
-import { chunkLoaderUnit, manifestUnit, noIsolationPolicyUnit as loaderNoIsolationUnit, speculationEngineUnit, speculationRuleUnit, defineSpeculationRule, warmupUnit } from '@staticflux/loader';
+import { chunkLoaderUnit, manifestUnit, noIsolationPolicyUnit as loaderNoIsolationUnit } from '@staticflux/loader';
 import { routableDialogBridgeUnit, surfaceManagerUnit } from '@staticflux/messaging';
 import {
   conformanceUnit,
@@ -69,13 +67,10 @@ import {
 } from '@staticflux/runtime';
 import { commandRegistryUnit, shellKeyboardUnits, shellPresets, ShellPresetToken, themeControllerUnit, workspaceManagerUnit } from '@staticflux/shell';
 import { storeFactoryUnit, storeRegistryUnit, type StoreFactory } from '@staticflux/storage';
-import { htmlInCanvasSupportUnit, surfaceEnvironmentUnit } from '@staticflux/surface';
 import { noIsolationPolicyUnit, renderSchedulerUnit, uiEnvironmentUnit, visibilityObserverUnit } from '@staticflux/ui';
 import { intentServiceUnit, intentUnit, urlDeclarationRegistryUnit, urlDeclarationUnit, urlSyncUnit } from '@staticflux/urlstate';
-import { modelContextAdapterUnit, webMcpPublisherUnit } from '@staticflux/webmcp';
 import type { Spawner } from '@staticflux/worker';
 import { routeFocusHookUnit } from '../adapters/a11y-router.js';
-import { advisorStorageUnit, advisorWarmupRankerUnit, chunkCursorUnit, nextChunkAdvisorUnits } from '../adapters/advisors-loader.js';
 import { sessionEvaluationContextUnit } from '../adapters/auth-config.js';
 import { userDataConfigUnit, userDataIdentityListenerUnit } from '../adapters/auth-data.js';
 import { claimFactsUnit, sessionFactsUnit } from '../adapters/auth-gate.js';
@@ -86,7 +81,6 @@ import { confirmPortUnit } from '../adapters/capabilities-messaging.js';
 import { featureActivationPortUnit } from '../adapters/capabilities-runtime.js';
 import { flagFactsUnit } from '../adapters/config-gate.js';
 import { remoteFlagLayerUnit } from '../adapters/data-config.js';
-import { documentStoreUnit, documentWorkerSubsystemUnit, documentWorkerUnit, presenceFeedUnit } from '../adapters/document-worker.js';
 import { dataMeterBackendUnit, meterSyncSubsystemUnit } from '../adapters/gate-data.js';
 import { gateChunkGateUnit } from '../adapters/gate-loader.js';
 import { gateAuthorizePluginUnit } from '../adapters/gate-router.js';
@@ -95,7 +89,6 @@ import { guestDraftSlotUnit, guestDraftUnit, guestDraftUpgradeHookUnit } from '.
 import { heldIntentsSlotUnit, intentHoldUnit, intentRestorePluginUnit, loginReturnPortUnit } from '../adapters/handoff-urlstate.js';
 import { localeUrlSubsystemUnit } from '../adapters/i18n-urlstate.js';
 import { chunkScriptAttributionUnit } from '../adapters/loader-perf.js';
-import { navigationWarmupSubsystemUnit } from '../adapters/loader-router.js';
 import { buildDevManifest, loaderFeatureHostUnit, staticImportStrategyUnit, studioLoaderEnvUnit } from '../adapters/loader-runtime.js';
 import { routableDialogPortUnit } from '../adapters/messaging-router.js';
 import { upsellInvokerUnit } from '../adapters/capabilities-router.js';
@@ -111,12 +104,12 @@ import { outletFeatureDriverUnit } from '../adapters/runtime-router.js';
 import { runtimeUrlFrameSchedulerUnit } from '../adapters/runtime-urlstate.js';
 import { seenStoreUnit, themePreferenceStoreUnit, workspacePreferenceStoreUnit } from '../adapters/storage-shell.js';
 import { intentAuthorizePluginUnit, intentCapturePluginUnit, sharedHistoryUnits, urlSyncFlushHookUnit } from '../adapters/urlstate-router.js';
-import { coreContextHubUnit } from '../adapters/worker-core.js';
+import { documentRuntimeUnit, documentStoreUnit, presenceFeedUnit } from './document.js';
 import { BFF_ENDPOINTS, CSRF_HEADER, createMockBffTransport } from '../mocks/auth-endpoints.js';
 import { createStudioMockTransport } from '../mocks/data-routes.js';
 import type { MockServer } from '../mocks/server.js';
 import { clearDocumentImplementationUnit, documentCapabilityDeclarations, insertImageImplementationUnit, insertTextImplementationUnit } from './capabilities.js';
-import { AiSuggestionsFlag, ChatPromptIntent, Chunks, CreditsMeter, DebugBinding, LangBinding, OnboardingCopyToken, OnboardingVariantFlag, TabBinding, WorkspaceBinding } from './contracts.js';
+import { AiSuggestionsFlag, ChatPromptIntent, CreditsMeter, DebugBinding, LangBinding, OnboardingCopyToken, OnboardingVariantFlag, TabBinding, WorkspaceBinding } from './contracts.js';
 import { featureManifests } from './features.js';
 import { homeDocsUnit } from './home.js';
 import { appCatalogLoader, AVAILABLE_LOCALES } from './messages.js';
@@ -125,7 +118,7 @@ import { NotFoundRoute, studioDialogs, studioRoutes } from './routes.js';
 import { outletsUnit, panelControllerUnit, shellContributionUnits, workspaceSwitchSubsystemUnit } from './shell.js';
 import { shareDialogUnit, upgradeDialogUnit } from './surfaces.js';
 import { createStudioTelemetry, type StudioTelemetry } from './telemetry.js';
-import { postBootSubsystemUnit } from './post-boot.js';
+import { lateServicesUnit, postBootSubsystemUnit } from './post-boot.js';
 
 /** Everything environment-specific, injected (browser entry vs headless tests). */
 export interface StudioEnvironment {
@@ -267,17 +260,6 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     platformLoaderProfileUnit,
     staticImportStrategyUnit,
     chunkLoaderUnit,
-    warmupUnit,
-    speculationEngineUnit,
-    // Billing is speculative: warmed on hover of an upgrade CTA (FEATURE-NEEDS loader).
-    speculationRuleUnit(defineSpeculationRule({ id: 'studio/upgrade-cta', chunks: [Chunks.billing], eagerness: 'moderate', action: 'load', dwellMs: 150 })),
-    chunkCursorUnit,
-    advisorStorageUnit,
-    browserAdvisorEnvironmentUnit,
-    advisorServiceUnit,
-    ...nextChunkAdvisorUnits,
-    advisorWarmupRankerUnit,
-    navigationWarmupSubsystemUnit,
   ];
 
   const perfUnits: readonly Registration[] = [
@@ -343,19 +325,10 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     upsellInvokerUnit,
   ];
 
-  const agents: readonly Registration[] = [
-    mockModelProviderUnit({ summarize: (text) => `Summary: ${text.split(/\s+/).slice(0, 12).join(' ')}…`, generate: (prompt) => `Draft: ${prompt}` }),
-    browserAiProviderUnit,
-    modelRouterUnit,
-    modelContextAdapterUnit,
-    webMcpPublisherUnit,
-  ];
 
-  const documents: readonly Registration[] = [coreContextHubUnit, documentWorkerUnit(env.spawnWorker), documentWorkerSubsystemUnit, documentStoreUnit, presenceFeedUnit];
+  const documents: readonly Registration[] = [documentRuntimeUnit(env.spawnWorker), documentStoreUnit, presenceFeedUnit];
 
-  const surfaces: readonly Registration[] = [surfaceEnvironmentUnit(), htmlInCanvasSupportUnit()];
-
-  const app: readonly Registration[] = [homeDocsUnit, postBootSubsystemUnit];
+  const app: readonly Registration[] = [homeDocsUnit, lateServicesUnit, postBootSubsystemUnit];
 
   return [
     ...platform,
@@ -376,9 +349,7 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     ...messaging,
     ...shell,
     ...capabilities,
-    ...agents,
     ...documents,
-    ...surfaces,
     ...app,
   ];
 }

@@ -8,10 +8,12 @@ import { ModelProviderToken } from '@staticflux/ai';
 import { CapabilityRegistryToken, implementCapability, provideCapabilities } from '@staticflux/capabilities';
 import { DataClientToken } from '@staticflux/data';
 import { defineFeatureModule, type FeatureLogicContext } from '@staticflux/runtime';
+import { defaultSurfaceEnvironment, SurfaceEnvironmentToken } from '@staticflux/surface';
 import { html } from 'lit';
 import { type DocumentStore, DocumentStoreToken, SummarizeCapability } from '../../app/contracts.js';
 import { ExportPdfEndpoint } from '../../app/endpoints.js';
 import { NoDocumentOpenError } from '../../app/errors.js';
+import { LateServicesToken } from '../../app/post-boot.js';
 import { activateStudioLogic, guardPendingSave, isStudioSnapshot, snapshotStudio } from '../../lib/studio-logic.js';
 import { mountFeatureRoot } from '../../ui/feature-root.js';
 import { defineDesktopEditor } from './editor.js';
@@ -33,14 +35,26 @@ const exportPdfUnit = unit({
   description: 'PDF export (functional dependency, pre-warmed on hover).',
 });
 
+/** Surface environment for the minimap (feature-scoped: the surface package stays out of boot). */
+const surfaceEnvUnit = unit({
+  id: 'studio/surface-environment-unit',
+  provides: SurfaceEnvironmentToken,
+  scope: 'feature',
+  create: () => defaultSurfaceEnvironment(),
+});
+
 let store: DocumentStore | undefined;
 
 async function provideSummarize(context: FeatureLogicContext, doc: DocumentStore) {
-  const [registry, models] = await Promise.all([context.injector.get(CapabilityRegistryToken), context.injector.get(ModelProviderToken)]);
+  const registry = await context.injector.get(CapabilityRegistryToken);
   if (!registry.ok) return registry;
   const summarize = implementCapability(SummarizeCapability, async (_input, run) => {
     const text = doc.plainText();
-    if (!models.ok) return ok({ summary: text.slice(0, 140) }); // non-AI fallback (R19.15)
+    // The model router is a late unit (post-boot chunk): wait for it, fall back to plain text (R19.15).
+    const late = await context.injector.get(LateServicesToken, run.signal);
+    if (late.ok) await late.value.ready;
+    const models = await context.injector.get(ModelProviderToken, run.signal);
+    if (!models.ok) return ok({ summary: text.slice(0, 140) });
     const result = await models.value.summarize({ text, signal: run.signal });
     return ok({ summary: result.ok ? result.value.text : text.slice(0, 140) });
   });
@@ -49,7 +63,7 @@ async function provideSummarize(context: FeatureLogicContext, doc: DocumentStore
 }
 
 export default defineFeatureModule({
-  units: [exportPdfUnit],
+  units: [exportPdfUnit, surfaceEnvUnit],
   async activate(context) {
     const logic = await activateStudioLogic(context);
     if (!logic.ok) return logic;
