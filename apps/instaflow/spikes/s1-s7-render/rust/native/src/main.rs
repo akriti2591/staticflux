@@ -102,7 +102,7 @@ fn main() {
     json.push(format!("\"corpus_pdf_poppler_vs_resvg_ssim\":{}", stats(&mut s_resvg_pdf)));
     json.push(format!("\"corpus_resvg_vs_cpu_ssim_blur3\":{}", stats(&mut b_resvg)));
     json.push(format!("\"corpus_pdf_poppler_vs_cpu_ssim_blur3\":{}", stats(&mut b_pdf)));
-    json.push(format!("\"corpus_pdf_worst\":{:?}", &worst[..5.min(worst.len())]));
+    json.push(format!("\"corpus_pdf_worst\":[{}]", worst.iter().take(5).map(|(v, i)| format!("{{\"i\":{i},\"ssim\":{v:.5}}}")).collect::<Vec<_>>().join(",")));
     json.push(format!("\"corpus_pdf_mean_bytes\":{}", pdf_bytes / 200));
 
     // big page frame A (same camera as the browser run)
