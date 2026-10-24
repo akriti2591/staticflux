@@ -1341,6 +1341,36 @@
       "fix": "Call `attach(host)` first and wait for it; check `surface.state` before starting the frame loop."
     },
     {
+      "code": "SF-TEST-001",
+      "kind": "invariant",
+      "summary": "`bootTestApp` could not boot the app.",
+      "fix": "Inspect `cause` (usually a missing provider or a failing critical unit) and add the unit or an override."
+    },
+    {
+      "code": "SF-TEST-002",
+      "kind": "invariant",
+      "summary": "A token requested through a testkit helper did not resolve.",
+      "fix": "Register a unit (or an override) that provides the token; see `cause` for the injector error."
+    },
+    {
+      "code": "SF-TEST-003",
+      "kind": "invariant",
+      "summary": "The code under test emitted conformance `violation` events.",
+      "fix": "Fix the reported violations (each carries a code and a fix), or assert them explicitly with `violations()`."
+    },
+    {
+      "code": "SF-TEST-004",
+      "kind": "invariant",
+      "summary": "`runAll` exceeded its iteration limit (a timer keeps rescheduling itself).",
+      "fix": "Use `advance(ms)` for intervals and self-rescheduling timers, or raise `limit` with a reason."
+    },
+    {
+      "code": "SF-TEST-005",
+      "kind": "invariant",
+      "summary": "A span structure assertion failed.",
+      "fix": "Compare against `formatSpanTree()` output; check the `parent` option where the child span is started."
+    },
+    {
       "code": "SF-TOOL-001",
       "kind": "not-found",
       "summary": "A module given to `sf` could not be imported.",
@@ -1621,6 +1651,30 @@
       "kind": "invariant",
       "summary": "The worker speaks a different protocol (id or version) than the supervisor.",
       "fix": "Deploy the worker bundle together with the main bundle; bump protocol versions on breaking changes."
+    },
+    {
+      "code": "SF-WK-027",
+      "kind": "aborted",
+      "summary": "The tab coordinator was stopped (disposed) before the operation completed.",
+      "fix": "Expected during shutdown. Create calls from a scope that outlives the coordinator, or check `coordinator.role !== \"stopped\"`."
+    },
+    {
+      "code": "SF-WK-028",
+      "kind": "not-found",
+      "summary": "The tab coordinator does not own a resource with this replica definition.",
+      "fix": "Add an `ownedResource(definition, create)` for it to `createTabCoordinator({ owned })` (and to the SharedWorker host)."
+    },
+    {
+      "code": "SF-WK-029",
+      "kind": "unavailable",
+      "summary": "The requested coordinator transport is not available (no SharedWorker, or it failed to connect).",
+      "fix": "Use `transport: 'auto'` so the coordinator falls back to Web Locks leader election over BroadcastChannel."
+    },
+    {
+      "code": "SF-WK-030",
+      "kind": "conflict",
+      "summary": "A cross-tab message from an older leadership term was dropped.",
+      "fix": "Usually self-healing (the sender learns the new term and re-handshakes). If it repeats, check that every tab runs the same coordinator id."
     }
   ]
 }

@@ -66,7 +66,7 @@ describe('createTestInjector', () => {
   it('get throws SF-TEST-002 with the injector error as cause', async () => {
     const t = createTestInjector({ units: [consumer] });
     await expect(t.get(ConsumerToken)).rejects.toMatchObject({ code: 'SF-TEST-002' });
-    const failure = await t.get(ConsumerToken).catch((e: unknown) => e as { cause: { code: string } });
+    const failure = (await t.get(ConsumerToken).catch((e: unknown) => e)) as { cause: { code: string } };
     expect(failure.cause.code).toBe('SF-DI-001');
     expect(t.spans({ status: 'error' }).length).toBeGreaterThan(0);
     await t.dispose();

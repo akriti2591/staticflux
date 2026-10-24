@@ -84,6 +84,23 @@ export interface TestApp extends TestTelemetry {
   shutdown(): Promise<void>;
 }
 
+/**
+ * Wait for background subsystem starts. On fake time a start that sleeps (restart
+ * back-off, start timeout) would never settle, so drain work that needs no time
+ * to pass and return; the test then moves time with `time.advance()`.
+ */
+async function waitForStarts(app: App, time: FakeTime | undefined): Promise<void> {
+  if (time === undefined) {
+    await app.supervisor.settled();
+    return;
+  }
+  let settled = false;
+  void app.supervisor.settled().then(() => {
+    settled = true;
+  });
+  for (let round = 0; round < 100 && !settled; round += 1) await time.flush();
+}
+
 function isFakeSession(value: FakeSession | FakeSessionOptions): value is FakeSession {
   return 'units' in value && 'provider' in value;
 }
@@ -139,7 +156,7 @@ export async function bootTestApp(options: BootTestAppOptions = {}): Promise<Tes
     throw TestBootFailedError({ message: `bootTestApp: ${booted.error.code} ${booted.error.message}`, cause: booted.error });
   }
   const app = booted.value;
-  await app.supervisor.settled();
+  await waitForStarts(app, time);
 
   let router: Router | undefined;
   if (options.routes !== undefined) {
