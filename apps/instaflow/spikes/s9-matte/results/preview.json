@@ -20,7 +20,7 @@
       "moving"
     ],
     "frameSize": "1280x720",
-    "date": "2026-10-24T21:00:51.667Z",
+    "date": "2026-10-24T21:33:36.391Z",
     "adapter": {
       "vendor": "google",
       "architecture": "swiftshader",
@@ -41,21 +41,51 @@
       "input": "256x256 (internal)",
       "frames": 8,
       "sizeMB": 0.25,
-      "fetchMs": 120,
-      "sessionCreateMs": 474,
+      "fetchMs": 87,
+      "sessionCreateMs": 576,
       "firstRunMs": 0,
-      "loadTotalMs": 594,
+      "loadTotalMs": 663,
       "loadNote": "CPU delegate (wasm/XNNPACK)",
       "memAfterLoad": {
-        "jsHeapUsedMB": 5.51,
+        "jsHeapUsedMB": 5.49,
         "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
       },
       "memBefore": {
         "jsHeapUsedMB": 0.78,
         "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
       },
-      "seqs": {},
-      "error": "Cannot read properties of undefined (reading 'personX')"
+      "seqs": {
+        "moving": {
+          "fpsEndToEndMedian": 2.58,
+          "totalMsMedian": 388,
+          "totalMsP95": 538,
+          "inferMsMedian": 43,
+          "inferMsP95": 59,
+          "fpsInferOnly": 23.08,
+          "smoothMsMedian": 283,
+          "flickerRaw": 0,
+          "flickerSmoothed": 0,
+          "flickerRawEdge": 0,
+          "flickerSmoothedEdge": 0,
+          "flickerEmaOnly": 0,
+          "flickerEmaOnlyEdge": 0,
+          "maeEmaOnlyEdge": 0.256,
+          "flickerRawEdgeSteady": 0,
+          "flickerSmoothedEdgeSteady": 0,
+          "maeRaw": 0.0113,
+          "maeSmoothed": 0.0116,
+          "maeRawEdge": 0.2605,
+          "maeSmoothedEdge": 0.2391,
+          "iouRaw": 0.9607,
+          "iouSmoothed": 0.9692,
+          "ghostSmoothed": 0.0019,
+          "ghostEmaOnly": 0.0003
+        }
+      },
+      "memAfterRun": {
+        "jsHeapUsedMB": 97.38,
+        "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
+      }
     },
     {
       "model": "u2netp",
@@ -66,28 +96,28 @@
       "input": "320x320",
       "frames": 6,
       "sizeMB": 4.57,
-      "fetchMs": 52,
-      "sessionCreateMs": 2433,
-      "firstRunMs": 5243,
-      "loadTotalMs": 7728,
+      "fetchMs": 67,
+      "sessionCreateMs": 2512,
+      "firstRunMs": 5465,
+      "loadTotalMs": 8044,
       "adapter": null,
       "memAfterLoad": {
-        "jsHeapUsedMB": 5.7,
+        "jsHeapUsedMB": 97.48,
         "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
       },
       "memBefore": {
-        "jsHeapUsedMB": 5.67,
+        "jsHeapUsedMB": 97.47,
         "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
       },
       "seqs": {
         "moving": {
-          "fpsEndToEndMedian": 0.37,
-          "totalMsMedian": 2694,
-          "totalMsP95": 3327,
-          "inferMsMedian": 2247,
-          "inferMsP95": 2851,
-          "fpsInferOnly": 0.45,
-          "smoothMsMedian": 288,
+          "fpsEndToEndMedian": 0.36,
+          "totalMsMedian": 2771,
+          "totalMsP95": 3702,
+          "inferMsMedian": 2360,
+          "inferMsP95": 3268,
+          "fpsInferOnly": 0.42,
+          "smoothMsMedian": 315,
           "flickerRaw": 0,
           "flickerSmoothed": 0,
           "flickerRawEdge": 0,
@@ -108,19 +138,19 @@
         }
       },
       "memAfterRun": {
-        "jsHeapUsedMB": 36.82,
+        "jsHeapUsedMB": 36.93,
         "uaSpecificErr": "Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."
       }
     }
   ],
   "processMemory": {
-    "peakTotalMB": 1106,
+    "peakTotalMB": 1324,
     "peakByProcessTypeMB": {
       "browser": 98,
       "zygote": 80,
-      "gpu-process": 118,
-      "renderer": 737,
-      "utility": 74
+      "gpu-process": 189,
+      "renderer": 883,
+      "utility": 73
     },
     "note": "Chromium tree RSS from /proc (Linux); with SwiftShader the GPU process RSS includes \"GPU\" memory"
   }
