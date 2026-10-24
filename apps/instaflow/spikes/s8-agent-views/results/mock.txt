@@ -14,3 +14,104 @@
 └─────────┴─────────────────────┴───────┴─────────┴──────┴─────────────┴──────────┴──────────────┴───────────┴───────────────────┴────────────────────┴─────────────────┘
 failures: markup.fragment-D04: Q3 still present
   json.fragment-D04: Q3 still present
+
+== responses-mock-noisy: 140 responses scored ==
+┌─────────┬─────────────────────┬───────┬─────────┬──────┬─────────────┬──────────┬──────────────┬───────────┬───────────────────┬────────────────────┬─────────────────┐
+│ (index) │ combo               │ tasks │ success │ rate │ parseErrors │ opErrors │ staleFlagged │ clobbered │ promptTokO200kAvg │ promptTokChars4Avg │ respTokO200kAvg │
+├─────────┼─────────────────────┼───────┼─────────┼──────┼─────────────┼──────────┼──────────────┼───────────┼───────────────────┼────────────────────┼─────────────────┤
+│ 0       │ 'markup.ops'        │ 20    │ 20      │ 100  │ 0           │ 0        │ 2            │ 0         │ 2272              │ 1758               │ 51              │
+│ 1       │ 'markup.rel'        │ 20    │ 7       │ 35   │ 0           │ 6        │ 2            │ 0         │ 2555              │ 1985               │ 52              │
+│ 2       │ 'markup.fragment'   │ 20    │ 19      │ 95   │ 0           │ 0        │ 3            │ 0         │ 2164              │ 1711               │ 104             │
+│ 3       │ 'json.ops'          │ 20    │ 20      │ 100  │ 0           │ 0        │ 2            │ 0         │ 2322              │ 1835               │ 51              │
+│ 4       │ 'json.rel'          │ 20    │ 7       │ 35   │ 0           │ 6        │ 2            │ 0         │ 2605              │ 2062               │ 52              │
+│ 5       │ 'json.fragment'     │ 20    │ 19      │ 95   │ 0           │ 0        │ 3            │ 0         │ 2182              │ 1752               │ 116             │
+│ 6       │ 'timeline.ops'      │ 10    │ 7       │ 70   │ 0           │ 4        │ 1            │ 0         │ 2002              │ 1513               │ 36              │
+│ 7       │ 'timeline.fragment' │ 10    │ 8       │ 80   │ 0           │ 1        │ 1            │ 0         │ 1822              │ 1406               │ 93              │
+└─────────┴─────────────────────┴───────┴─────────┴──────┴─────────────┴──────────┴──────────────┴───────────┴───────────────────┴────────────────────┴─────────────────┘
+failures: markup.rel-F02: still overflows at size 84
+  json.rel-F02: still overflows at size 84
+  markup.rel-F03: gaps 37, 37
+  json.rel-F03: gaps 37, 37
+  markup.rel-F04: y=1023.33
+  json.rel-F04: y=1023.33
+  markup.rel-F07: placeholder still there
+  json.rel-F07: placeholder still there
+  markup.rel-F08: no 160×160 circle at (880,40)
+  json.rel-F08: no 160×160 circle at (880,40)
+  markup.rel-F09: headline is not front-most
+  json.rel-F09: headline is not front-most
+  markup.rel-D01: slide 3 title size 85
+  json.rel-D01: slide 3 title size 85
+  markup.rel-D03: slide 1 logo at 1707,967
+  json.rel-D03: slide 1 logo at 1707,967
+  markup.rel-D04: Q4 missing
+  markup.fragment-D04: Q3 still present
+  json.rel-D04: Q4 missing
+  json.fragment-D04: Q3 still present
+  markup.rel-D05: note still there
+  json.rel-D05: note still there
+  markup.rel-D06: ys 313,380,460,540
+  json.rel-D06: ys 313,380,460,540
+  markup.rel-D08: y=593.4
+  json.rel-D08: y=593.4
+  markup.rel-D09: chart 1053,80 800×920
+  json.rel-D09: chart 1053,80 800×920
+  timeline.fragment-R01: clip 2 ends at 9.300, beat 8.812
+  timeline.ops-R03: clip 4 still there
+  timeline.ops-R06: 1 pieces of clip 1
+  timeline.ops-R09: starts 19.17
+  timeline.fragment-R10: reel is not 15 s
+
+== responses-mock-empty: 140 responses scored ==
+┌─────────┬─────────────────────┬───────┬─────────┬──────┬─────────────┬──────────┬──────────────┬───────────┬───────────────────┬────────────────────┬─────────────────┐
+│ (index) │ combo               │ tasks │ success │ rate │ parseErrors │ opErrors │ staleFlagged │ clobbered │ promptTokO200kAvg │ promptTokChars4Avg │ respTokO200kAvg │
+├─────────┼─────────────────────┼───────┼─────────┼──────┼─────────────┼──────────┼──────────────┼───────────┼───────────────────┼────────────────────┼─────────────────┤
+│ 0       │ 'markup.ops'        │ 20    │ 1       │ 5    │ 0           │ 0        │ 0            │ 0         │ 2272              │ 1758               │ 8               │
+│ 1       │ 'markup.rel'        │ 20    │ 1       │ 5    │ 0           │ 0        │ 0            │ 0         │ 2555              │ 1985               │ 8               │
+│ 2       │ 'markup.fragment'   │ 20    │ 1       │ 5    │ 0           │ 0        │ 0            │ 0         │ 2164              │ 1711               │ 4               │
+│ 3       │ 'json.ops'          │ 20    │ 1       │ 5    │ 0           │ 0        │ 0            │ 0         │ 2322              │ 1835               │ 8               │
+│ 4       │ 'json.rel'          │ 20    │ 1       │ 5    │ 0           │ 0        │ 0            │ 0         │ 2605              │ 2062               │ 8               │
+│ 5       │ 'json.fragment'     │ 20    │ 1       │ 5    │ 0           │ 0        │ 0            │ 0         │ 2182              │ 1752               │ 9               │
+│ 6       │ 'timeline.ops'      │ 10    │ 0       │ 0    │ 0           │ 0        │ 0            │ 0         │ 2002              │ 1513               │ 8               │
+│ 7       │ 'timeline.fragment' │ 10    │ 0       │ 0    │ 0           │ 0        │ 0            │ 0         │ 1822              │ 1406               │ 9               │
+└─────────┴─────────────────────┴───────┴─────────┴──────┴─────────────┴──────────┴──────────────┴───────────┴───────────────────┴────────────────────┴─────────────────┘
+failures: markup.ops-F01: fl-sp2 top=1212.85
+  markup.rel-F01: fl-sp2 top=1212.85
+  markup.fragment-F01: fl-sp2 top=1212.85
+  json.ops-F01: fl-sp2 top=1212.85
+  json.rel-F01: fl-sp2 top=1212.85
+  json.fragment-F01: fl-sp2 top=1212.85
+  markup.ops-F02: still overflows at size 140
+  markup.rel-F02: still overflows at size 140
+  markup.fragment-F02: still overflows at size 140
+  json.ops-F02: still overflows at size 140
+  json.rel-F02: still overflows at size 140
+  json.fragment-F02: still overflows at size 140
+  markup.ops-F03: gaps 31.66999999999996, 16.629999999999995
+  markup.rel-F03: gaps 31.66999999999996, 16.629999999999995
+  markup.fragment-F03: gaps 31.66999999999996, 16.629999999999995
+  json.ops-F03: gaps 31.66999999999996, 16.629999999999995
+  json.rel-F03: gaps 31.66999999999996, 16.629999999999995
+  json.fragment-F03: gaps 31.66999999999996, 16.629999999999995
+  markup.ops-F04: y=780.25
+  markup.rel-F04: y=780.25
+  markup.fragment-F04: y=780.25
+  json.ops-F04: y=780.25
+  json.rel-F04: y=780.25
+  json.fragment-F04: y=780.25
+  markup.ops-F05: text="Sat 14 Nov · 6–11 pm"
+  markup.rel-F05: text="Sat 14 Nov · 6–11 pm"
+  markup.fragment-F05: text="Sat 14 Nov · 6–11 pm"
+  json.ops-F05: text="Sat 14 Nov · 6–11 pm"
+  json.rel-F05: text="Sat 14 Nov · 6–11 pm"
+  json.fragment-F05: text="Sat 14 Nov · 6–11 pm"
+  markup.ops-F06: fill is not @accent
+  markup.rel-F06: fill is not @accent
+  markup.fragment-F06: fill is not @accent
+  json.ops-F06: fill is not @accent
+  json.rel-F06: fill is not @accent
+  json.fragment-F06: fill is not @accent
+  markup.ops-F07: placeholder still there
+  markup.rel-F07: placeholder still there
+  markup.fragment-F07: placeholder still there
+  json.ops-F07: placeholder still there
