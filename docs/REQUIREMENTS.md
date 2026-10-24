@@ -227,6 +227,21 @@
   | Locale catalog per feature | ≤ 10 KB |
 
   Timing (mid-tier mobile, 4G-class, lab): core-ready ≤ 300 ms cold / 100 ms warm; app loading state ≤ 1.0 s / 300 ms; `feature.first-render` ≤ 1.8 s / 500 ms; `feature.interactive` ≤ 2.5 s / 700 ms; sub-route transition ≤ 150 ms / 100 ms.
+### 12.1 Per-mode boot plans & lazy-by-default
+- **R12.9** A tiny inline **mode detector** (< 1 KB) runs first and selects a **boot plan** for the app profile (host mode × form factor).
+- **R12.10** Boot plans are declarative per profile: critical units, eager units, host bridge, history strategy, shell preset. The build emits **per-profile entry/preload manifests**; code for other modes is never fetched.
+- **R12.11** Mode is configurable/forceable (config, dev URL flag, devtools); runtime mode changes follow R18.6.
+- **R12.12** **Everything lazy by default**, framework packages included. `load: 'eager'` is an explicit declaration, optionally profile-scoped, with a mandatory reason, counted against the boot budget and shown in the boot waterfall.
+
+### 12.2 Rendering & responsiveness ("snappy by construction")
+- **R12.13** One render pass per frame: reactive changes, store patches and URL syncs coalesce through the framework scheduler.
+- **R12.14** Fine-grained reactivity: components re-render only for values they read.
+- **R12.15** **No layout thrashing:** read (measure) and write (mutate) DOM phases are separated by the scheduler; a dev-mode detector reports forced synchronous layouts with component attribution.
+- **R12.16** CSS containment / `content-visibility` for offscreen and hidden surfaces; hidden features cost zero render work.
+- **R12.17** Virtualization primitive for long lists/grids.
+- **R12.18** Input-first priority; long work chunked with `scheduler.yield` (+ fallback); heavy compute to workers by default; "idle until urgent" for deferred work; intent-based pre-warming of functional deps.
+- **R12.19** Size-stable placeholders (no layout shift on load); View Transitions for route/view/mode changes where supported; animations restricted to compositor properties; reduced motion respected.
+- **R12.20** Continuous measurement of long tasks, forced layouts, per-component render counts, per-feature layout shift, and input-to-next-paint latency — fed into journey traces and budgets; CI lab runs fail on regressions.
 - **R12.8** Budgets **ratchet**: CI proposes tightening when actuals beat them; loosening needs a reviewed change. Exemptions are declared in manifests with a reason.
 
 ## 13. Shell
