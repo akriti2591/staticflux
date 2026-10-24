@@ -37,6 +37,11 @@
 
 One owner per kind of state (R11.2):
 
+> **Topology (D15, from S2).** "Editor worker" and "render worker" below are **modules** with fixed ports, not
+> necessarily separate threads. One worker or two is a boot-time setting; the default is **one worker hosting both
+> modules**, because it met the latency budget on real hardware (S2 owner run). Ownership rules hold either way:
+> the editor module never touches the GPU, the render module never decides anything about the document.
+
 | Thread | Owns | Never does |
 |---|---|---|
 | **Main** | DOM chrome, focus, IME (EditContext), accessibility tree, capability registry and its ports, agent runtime and model calls, WebMCP publisher, AudioContext | Renders content, decodes media, holds the document |
@@ -68,7 +73,7 @@ Decisions:
 ```
 pointer → main input forwarder (lossless, SF-Δ22) → binary input ring → editor worker
   tool state machine: hit test (rbush → kurbo) → gesture g, overlay Δ (no CRDT write)
-  → view-state frame {viewSeq, g, Δ, guides} → render worker draws a lifted layer at Δ on the next rAF
+  → view-state frame {viewSeq, g, Δ, guides} → render module draws a lifted layer at Δ as soon as the frame arrives (draw on arrival, S2)
 pointerup → editor worker: one CRDT transaction (actor, via, label) → docVersion v
   → scene delta {v, commits:[g]} → render worker swaps "overlay off, committed on" in ONE frame (E-2)
   → commit record → store worker → append to log → ack → (no ack in 2 s → "Not saved yet")
