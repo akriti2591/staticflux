@@ -27,8 +27,8 @@ Implements R13.4–R13.10, R7.16–R7.21 (surface side), LIFECYCLES §8, I-7.
 - `focus.ts` — `deepActiveElement`, `focusableWithin`, `focusFirst`, `trapTab`, `inertSiblings`.
 - `ports.ts` — `KeyValuePort<V>` (async get/set/delete; structural subset of storage's AsyncStore),
   `createMemoryKeyValue`, `MessagingClock` (`systemClock`, `createManualClock`).
-- `units.ts` — `SurfaceManagerToken`, `RoutableDialogBridgeToken`, `RoutableSurfacesToken` (multi), `SeenStoreToken`;
-  `messagingUnits`, `surfaceManagerUnit`, `routableDialogBridgeUnit`, `memorySeenStoreUnit`, `routableSurface(def)`.
+- `tokens.ts` — `SurfaceManagerToken`, `RoutableDialogBridgeToken`, `RoutableSurfacesToken` (multi), `SeenStoreToken` (token-only).
+- `units.ts` — `messagingUnits`, `surfaceManagerUnit`, `routableDialogBridgeUnit`, `memorySeenStoreUnit`, `routableSurface(def)`.
 - `telemetry.ts` — `MESSAGING_SUBSYSTEM` (`messaging/surfaces`), `messagingMetrics` (shown, dismissed, rejected, dwell, deduped).
 - `errors.ts` — `SF-MSG-001…007`.
 

@@ -35,7 +35,10 @@ part), R19.7/R19.8 (advisor clamp + time box).
 - `advisor.ts` — `WarmupAdvisor { id, rank(candidates) }`, `rankCandidates` (time-boxed, default 5 ms), `clampOrder`.
 - `boot-plan.ts` — `defineBootPlan({ id, match, critical, eager: [{ chunk, reason }], preload, hostBridge,
   historyStrategy, shellPreset })`, `selectBootPlan`, `emitProfilePreloads` (build), `eagerReport`, `runBootPlan`.
-- `tokens.ts` / `units.ts` — `loaderUnits` + `manifestUnit(manifest)`, `speculationRuleUnit`, `bootPlanUnit`;
+- `defaults.ts` — `defaultTimer`, `defaultIdleScheduler`, `defaultIntersectionObserver`, `NOMINAL_WARMUP_FACTS` (feature-detected
+  env defaults, re-exported from `advisor.ts` / `warmup.ts` / `speculation.ts`; a boot-time `LoaderEnv` does not bundle the engines).
+- `warmup-units.ts` — `warmupUnit`, `speculationEngineUnit`, `speculationRuleUnit(rule)` (post-boot module, apart from `units.ts`).
+- `tokens.ts` / `units.ts` — `loaderUnits` + `manifestUnit(manifest)`, `bootPlanUnit`;
   ports `ChunkGateToken`, `LoaderIsolationPolicyToken`, `WarmupFactsToken`, `LoaderProfileToken`, `LoaderEnvToken`,
   `LoadStrategyToken`, `RemoteStrategyToken` (multi), `WarmupAdvisorsToken` (multi); services `ChunkLoaderToken`,
   `WarmupToken`, `SpeculationEngineToken`, `BootPlannerToken`.

@@ -52,7 +52,7 @@ interface Run {
   readonly stage: number | undefined;
 }
 
-function fakeCompiler(options: { publicPath?: unknown; webpack?: boolean; groups?: ChunkGroupLike[] } = {}): { compiler: CompilerLike; run(html?: AlterAssetTagsData): Promise<Run>; htmlPlugin: HtmlPluginLike } {
+function fakeCompiler(options: { publicPath?: unknown; webpack?: boolean; groups?: ChunkGroupLike[]; entrypoints?: ChunkGroupLike[] } = {}): { compiler: CompilerLike; run(html?: AlterAssetTagsData): Promise<Run>; htmlPlugin: HtmlPluginLike } {
   const thisCompilation: ((c: CompilationLike) => void)[] = [];
   let htmlTap: ((data: AlterAssetTagsData) => Promise<AlterAssetTagsData>) | undefined;
   const compiler: CompilerLike = {
@@ -82,6 +82,7 @@ function fakeCompiler(options: { publicPath?: unknown; webpack?: boolean; groups
           },
         },
         chunkGroups: options.groups ?? groups,
+        ...(options.entrypoints === undefined ? {} : { entrypoints: new Map(options.entrypoints.map((g) => [g.name ?? '', g])) }),
         getAsset: (name) => (name in sizes ? { name, source: new FakeRawSource('x'.repeat(sizes[name] ?? 0)) } : undefined),
         emitAsset: (name, source) => emitted.set(name, source),
         errors: { push: (...e) => errors.push(...e) },
@@ -276,6 +277,40 @@ describe('staticfluxRspack()', () => {
     const r2 = await override.run();
     expect((read(r2, 'sf-manifest.json') as SfManifest).base).toBe('https://cdn.example/app/');
     expect((read(r2, 'sw.json') as unknown[]).length).toBeGreaterThan(1);
+  });
+
+  it('regression: without boot plans the boot set is the entrypoint closure + critical/eager chunks (not 0 KB)', async () => {
+    const sf = staticfluxRspack({ chunks, sizeOf, buildId: 'b1', budgets: { bootKb: 40 } });
+    const fake = fakeCompiler({ entrypoints: [groups[0] as ChunkGroupLike, groups[1] as ChunkGroupLike] });
+    sf.apply(fake.compiler);
+    const run = await fake.run();
+    const report = read(run, 'sf-build-report.json') as { boot: { profile: string; bootKb: number }[]; chunks: { chunk: string; sizeKb: number; incrementalKb: number }[] };
+    // main 5 + vendors 30 (entrypoint `main`) + lib.shell 10 (critical, eager); `lib.shell` is a logical chunk, not an app entry.
+    expect(report.boot).toEqual([{ profile: '*', bootKb: 45, eagerKb: 10 }]);
+    // feature:studio = own 40 + split 20 (nothing of it is boot code).
+    expect(report.chunks.find((c) => c.chunk === 'feature:studio')).toEqual({ chunk: 'feature:studio', sizeKb: 60, incrementalKb: 60, budgetKb: 50 });
+    expect(run.warnings.map((w) => w.message.split('\n')[0])).toEqual([
+      'SF-RSPACK-002: Chunk "lib:shell" is 10 KB gzip, budget 5 KB.', // boot code: its whole closure counts
+      'SF-RSPACK-002: Chunk "feature:studio" is 60 KB gzip, budget 50 KB.',
+      'SF-RSPACK-002: Boot JS for profile "*" is 45 KB gzip, budget 40 KB.',
+    ]);
+  });
+
+  it('bootEntries: an import()ed boot module joins the boot set; chunks count only bytes beyond it', async () => {
+    const shared: ChunkGroupLike[] = [
+      { name: 'main', chunks: [{ name: 'main', files: ['js/main.22222222.js'] }], origins: [{ request: './src/main.ts' }] },
+      { name: null, chunks: [{ name: null, files: ['js/vendors.11111111.js'] }, { name: null, files: ['js/88888888.js'] }], origins: [{ request: './boot-browser' }] },
+      { name: 'feature.studio', chunks: [{ name: null, files: ['js/vendors.11111111.js'] }, { name: 'feature.studio', files: ['js/feature.studio.66666666.js'] }], origins: [{ request: './features/studio' }] },
+    ];
+    const studio = chunk('feature:studio', { budget: { category: 'feature' } });
+    const sf = staticfluxRspack({ chunks: [studio], sizeOf, buildId: 'b1', bootEntries: ['src/boot-browser.ts'] });
+    const fake = fakeCompiler({ groups: shared, entrypoints: [shared[0] as ChunkGroupLike] });
+    sf.apply(fake.compiler);
+    const run = await fake.run();
+    const report = read(run, 'sf-build-report.json') as { boot: { bootKb: number }[]; chunks: { chunk: string; incrementalKb: number }[] };
+    expect(report.boot[0]?.bootKb).toBe(50); // main 5 + boot group: 88888888 15 + vendors 30
+    expect(report.chunks).toEqual([{ chunk: 'feature:studio', sizeKb: 70, incrementalKb: 40, budgetKb: 50 }]);
+    expect(run.warnings).toEqual([]);
   });
 
   it('exposes isolation headers for devServer', () => {

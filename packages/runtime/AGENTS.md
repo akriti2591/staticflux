@@ -43,7 +43,9 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
   loader package's chunk loader — else `manifest.load`), `ResourceManagerToken`, `ArchiveStoreToken`, `MemoryPressureToken`, `CommandPolicyToken`,
   `PausedRequestPolicyToken`, `FeatureManifestsToken` (multi), `SubsystemsToken` (multi), `BOOT_PROVIDED_TOKENS`.
 - `units.ts` — `runtimeUnits` (all defaults), `frameSchedulerUnit`, `frameSchedulerSubsystemUnit`, `memoryArchiveStoreUnit`, `registryArchiveStoreUnit` (storage registry, device scope, namespace `runtime/archive`),
-  `nominalMemoryPressureUnit`, `featureHostUnit`, `resourceManagerUnit`, `resourceManagerUnitWith(budgets)`, `frameSchedulerSubsystem`.
+  `featureHostUnit`, `frameSchedulerSubsystem`.
+- `resource-units.ts` — `nominalMemoryPressureUnit`, `resourceManagerUnit`, `resourceManagerUnitWith(budgets)` (own module: not
+  needed for the first frame, deferrable).
 - `errors.ts` — `SF-APP-001…007`, `SF-FT-001…009`, `SF-SCHED-001`.
 - `telemetry.ts` — `RUNTIME_SUBSYSTEMS` (`runtime/app|feature|resources|scheduler`), `runtimeMetrics`, `traceMachine`.
 

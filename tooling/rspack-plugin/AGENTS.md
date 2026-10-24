@@ -73,16 +73,19 @@ in several groups gets the union of their imports.
 ## Public API (by file)
 - `plugin.ts` — `staticfluxRspack(options)` → `{ name, headers, apply(compiler) }` (throws the `SF-RSPACK-004`
   SfError on invalid options); `StaticfluxRspackOptions` (as the Vite plugin, plus `base` (default `output.publicPath`
-  unless `auto`), `federation`, `html: { plugin, profile }`); `chunkNameFor`, `validateOptions`, `toBuildError`,
+  unless `auto`), `federation`, `html: { plugin, profile }`, `bootEntries` (module paths matched to `import()`/entry
+  requests)); `chunkNameFor`, `validateOptions`, `toBuildError`,
   `gzipKb`, `sha384`, file-name constants.
 - `compilation.ts` — structural `CompilerLike`/`CompilationLike`/`ChunkGroupLike`/`ChunkLike`/`SourceLike`,
-  `fromCompilation`, `resolveDeclarations`, `normalizeRequest`, `assetText`, `STAGE_REPORT`.
+  `fromCompilation`, `resolveDeclarations`, `groupForModule`, `entrypointFiles` (from `compilation.entrypoints`),
+  `normalizeRequest`, `assetText`, `STAGE_REPORT`.
 - `federation.ts` — `planFederation(options, declared, context)` → `{ remotes, shared }`, `FederationOptions`,
   `MfManifestLike`, `MfRemoteConfig`, `MfSharedConfig`, `remoteUrlOf`, `remoteEntryUrl`, `parseExpose`,
   `normalizeShared`, `packageVersionResolver`.
 - `html.ts` — `HtmlPluginLike` (HtmlRspackPlugin / html-webpack-plugin `getCompilationHooks().alterAssetTags`),
   `preloadTags`, `referencedUrls`.
-- `artifacts.ts` — mirror of the Vite plugin's pure step (`computeArtifacts`, `buildReportJson`, budgets).
+- `artifacts.ts` — mirror of the Vite plugin's pure step (`computeArtifacts` (`entries`, `bootEntries`), `ChunkCost`
+  (`sizeKb` closure, `incrementalKb`), `buildReportJson`, budgets).
 - `isolation.ts` — `isolationHeaders`, `crossOriginFor`.
 - `errors.ts` — `SF-RSPACK-001` manifest build · `002` budget · `003` boot plan · `004` options · `005` shared
   singleton/version mismatch · `006` unknown remote/exposed module · `007` remote entry unresolvable.
@@ -92,6 +95,11 @@ in several groups gets the union of their imports.
   `PROCESS_ASSETS_STAGE_REPORT` (after minification and real content hash) → emits the four JSON files with the
   bundler's own `RawSource` (fallback: a minimal source object). Violations go to `compilation.warnings`, or
   `compilation.errors` with `budgets.onViolation: 'error'`. Every error message is `CODE: message\n  fix: …`.
+- Boot set (same as the Vite plugin): app entrypoints' static closure (`compilation.entrypoints` that are not logical
+  chunks) + `bootEntries` closures + the boot plan's `modulepreload` list per profile; without plans one set (`*`) also
+  holding critical-tier + eager chunks — never 0 KB just because no plans exist. Chunk budgets apply to
+  `incrementalKb` (closure bytes not in the boot set of the profiles the chunk serves; a chunk in the boot set counts its
+  whole closure); `sizeKb` in the manifest stays the full closure; the build report lists both.
 - HTML tags are computed in `alterAssetTags` (before minification; sizes are not needed there) and pushed into
   `assetTags.styles` (head), skipping URLs already referenced.
 

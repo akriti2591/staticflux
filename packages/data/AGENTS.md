@@ -32,9 +32,12 @@ Requirements: R9.1–R9.12, R4.3/R4.6/R4.7 (epoch, pause, SWR on refresh), R10.1
   (local `SliceBackend` over any `@staticflux/storage` `AsyncStore`; one flush = one `batch`; failures `SF-DATA-054` with `details.code`;
   non-record/undecodable entries read as absent), `remoteSyncFromStore(asyncStore)` (`RemoteSyncPort`; failures `SF-DATA-056`), `isSliceRecord`. `user-data.ts` — `createUserData` (slice handles, flush, sync,
   `setIdentity`, `logout`, `document()`).
-- `units.ts` — tokens `DataTransportToken`, `EpochSourceToken`, `PauseControlToken`, `DataClientToken`, `ResourcesToken`
-  (session scope), `UserDataConfigToken`, `UserDataToken`; units `epochSourceUnit`, `pauseControlUnit`, `dataClientUnit`/`dataClientUnitWith`,
-  `resourcesUnit`, `userDataUnit`, `mockTransportUnit(configure)`, `storeUnit({ store, provides, scope })`.
+- `tokens.ts` — `DataTransportToken`, `EpochSourceToken`, `PauseControlToken`, `DataClientToken`, `ResourcesToken`
+  (session scope), `UserDataConfigToken`, `UserDataToken` (token-only module).
+- `units.ts` — `epochSourceUnit`, `pauseControlUnit`, `dataClientUnit`/`dataClientUnitWith`, `mockTransportUnit(configure)`,
+  `storeUnit({ store, provides, scope })`.
+- `resources-unit.ts` — `resourcesUnit`; `user-data-unit.ts` — `userDataUnit` (own modules: apps may load the resource cache /
+  user data after first paint, e.g. with core `deferredUnits`).
 - `metrics.ts` — `DATA_SUBSYSTEMS` (`data/request|cache|store|slice|transport`), `DataMetrics` (request duration/failure,
   cache hit/stale-hit/miss, stale-epoch discards, breaker state, batch size, store patches, slice bytes).
 

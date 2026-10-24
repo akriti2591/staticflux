@@ -143,7 +143,7 @@ export interface DeferredUnitsOptions {
   readonly id: TokenId;
   /** Tokens whose first resolution (get, required/lazy/functional dep) loads the group. */
   readonly provides: readonly AnyToken[];
-  /** Scope of the placeholders (default `app`); the loaded units register where the placeholders are. */
+  /** Scope of the placeholders (default `app`); the loaded units register in that scope's injector. */
   readonly scope?: ScopeLevel;
   /** Import the chunk and return its registrations. Runs at most once per injector (retried after a failure). */
   load(signal: AbortSignal): Promise<readonly Registration[]>;
@@ -154,13 +154,19 @@ export interface DeferredUnitsOptions {
  * Lazy units (R12.12 "everything lazy by default"): placeholders for `provides` whose code is
  * not in the boot bundle. The first resolution of any of these tokens runs `load()` (typically
  * `() => import('./x.js').then((m) => m.units)`), registers the returned units in the injector
- * that holds the placeholders, and resolves the real provider. Consumers do not change: a
- * required dep, `injector.get` or a lazy handle simply waits for the chunk.
+ * of the placeholders' scope and resolves the real provider (span `di.deferred`). Consumers do
+ * not change: a required dep, `injector.get` or a lazy/functional handle waits for the chunk
+ * (a lazy dep with the default `on-arrival` timing triggers the load right away).
  *
  * Multi tokens: listing one makes its next resolution load the group first. Units of the group
  * that contribute to multi tokens not listed here only join later resolutions (e.g. contribute
  * subsystems with `supervisor.register`, not via `SubsystemsToken`, which resolves at boot).
  */
+// Never called: resolving a placeholder resolves the loaded provider instead.
+const neverCreated = (): never => {
+  throw new Error('deferred');
+};
+
 /* @__NO_SIDE_EFFECTS__ */
 export function deferredUnits(options: DeferredUnitsOptions): readonly AnyUnit[] {
   const source: DeferredSource = { id: options.id, load: options.load };
@@ -170,10 +176,8 @@ export function deferredUnits(options: DeferredUnitsOptions): readonly AnyUnit[]
       provides,
       scope: options.scope ?? 'app',
       deferred: source,
-      create: () => {
-        throw new Error(`deferredUnits("${options.id}"): placeholder for "${provides.id}" is never created.`);
-      },
-      description: options.description ?? `Deferred: loads "${options.id}" on first resolution of "${provides.id}".`,
+      create: neverCreated,
+      description: options.description ?? options.id,
     }),
   );
 }
@@ -501,7 +505,8 @@ class InjectorImpl implements Injector {
         }
       }
     }
-    if (best !== undefined) this.chosen.set(tokenId, best);
+    // A deferred placeholder is not cached: once its group loads, the real provider wins.
+    if (best?.unit.deferred === undefined && best !== undefined) this.chosen.set(tokenId, best);
     return best;
   }
 
@@ -543,9 +548,9 @@ class InjectorImpl implements Injector {
     if (this.disposed) return err(InjectorDisposedError({ scope: this.name }));
     if (token.multi) {
       let bindings = this.chooseAll(token.id);
-      if (bindings.some((b) => b.unit.deferred !== undefined)) {
-        const loads = await Promise.all(bindings.filter((b) => b.unit.deferred !== undefined).map((b) => this.loadDeferred(b, parentSpan)));
-        const failed = loads.find((r) => !r.ok);
+      const deferred = bindings.filter((b) => b.unit.deferred !== undefined);
+      if (deferred.length > 0) {
+        const failed = (await Promise.all(deferred.map((b) => this.loadDeferred(b, parentSpan)))).find((r) => !r.ok);
         if (failed !== undefined) return failed;
         bindings = this.chooseAll(token.id).filter((b) => b.unit.deferred === undefined);
       }
@@ -579,7 +584,16 @@ class InjectorImpl implements Injector {
     consumer: AnyUnit | undefined,
   ): Promise<{ result: Result<unknown>; instance: Instance | undefined }> {
     const definition = binding.unit;
-    if (definition.deferred !== undefined) return this.resolveDeferred(binding, stack, parentSpan, consumer);
+    if (definition.deferred !== undefined) {
+      // A deferredUnits() placeholder: load its group, then resolve the real provider.
+      const loaded = await this.loadDeferred(binding, parentSpan);
+      const next = this.choose(definition.provides.id);
+      if (!loaded.ok) return { instance: undefined, result: loaded };
+      if (next === undefined || next.unit.deferred !== undefined) {
+        return { instance: undefined, result: err(NoProviderError({ details: { token: definition.provides.id, injector: this.name } })) };
+      }
+      return this.resolveBinding(next, stack, parentSpan, consumer);
+    }
     if (consumer !== undefined && scopeRank(definition.scope) > scopeRank(consumer.scope)) {
       return {
         instance: undefined,
@@ -624,83 +638,31 @@ class InjectorImpl implements Injector {
     return { instance, result: this.diagnose(result, definition) };
   }
 
-  /** Load a placeholder's group, then resolve the real provider of its token. */
-  async resolveDeferred(
-    binding: Binding,
-    stack: readonly string[],
-    parentSpan: Span | undefined,
-    consumer: AnyUnit | undefined,
-  ): Promise<{ result: Result<unknown>; instance: Instance | undefined }> {
-    const loaded = await this.loadDeferred(binding, parentSpan);
-    if (!loaded.ok) return { instance: undefined, result: loaded };
-    const tokenId = binding.unit.provides.id;
-    const next = this.choose(tokenId);
-    if (next === undefined || next.unit.deferred !== undefined) {
-      return {
-        instance: undefined,
-        result: err(
-          NoProviderError({
-            message: `Deferred units "${binding.unit.deferred?.id ?? '?'}" loaded but registered no provider for "${tokenId}".`,
-            details: { token: tokenId, injector: this.name },
-            units: consumer === undefined ? [] : [consumer.id],
-          }),
-        ),
-      };
-    }
-    return this.resolveBinding(next, stack, parentSpan, consumer);
-  }
-
-  /** Single-flight load of a placeholder's group into the injector that holds the placeholder. */
+  /** Single-flight load of a placeholder's group into its scope's injector (retried after a failure). */
   loadDeferred(binding: Binding, parentSpan: Span | undefined): Promise<Result<void>> {
     const source = binding.unit.deferred as DeferredSource;
-    let owner: InjectorImpl = this;
-    for (let injector: InjectorImpl | undefined = this; injector !== undefined; injector = injector.parent) {
-      if (injector.bindings.get(binding.unit.provides.id)?.includes(binding) === true) {
-        owner = injector;
-        break;
-      }
-    }
+    // The loaded units register at the placeholders' scope level (app, session, …).
+    const owner = this.findHost(binding.unit.scope) ?? this;
     let pending = owner.deferredLoads.get(source);
     if (pending === undefined) {
-      pending = owner.runDeferred(source, parentSpan);
+      const span = this.telemetry.span('di.deferred', { subsystem: SUBSYSTEM, parent: parentSpan, attrs: { units: source.id } });
+      pending = source
+        .load(owner.scope.signal)
+        .then(
+          (entries) => owner.register(...(entries as readonly Registration[])),
+          (error: unknown) => err(InitFailedError({ units: [source.id], cause: error })),
+        )
+        .then((result) => {
+          if (result.ok) span.end();
+          else {
+            owner.deferredLoads.delete(source);
+            span.end('error', result.error);
+          }
+          return result;
+        });
       owner.deferredLoads.set(source, pending);
     }
     return pending;
-  }
-
-  async runDeferred(source: DeferredSource, parentSpan: Span | undefined): Promise<Result<void>> {
-    const span = this.telemetry.span('di.deferred', {
-      subsystem: SUBSYSTEM,
-      level: 'standard',
-      parent: parentSpan,
-      attrs: { units: source.id, injector: this.name },
-    });
-    const fail = (error: SfError): Result<void> => {
-      this.deferredLoads.delete(source); // the next resolution retries (e.g. a chunk failed offline)
-      span.end('error', error);
-      return err(error);
-    };
-    let entries: readonly unknown[];
-    try {
-      entries = await source.load(this.scope.signal);
-    } catch (error) {
-      return fail(InitFailedError({ units: [source.id], cause: error, message: `Deferred units "${source.id}" failed to load: ${toSfError(error).message}` }));
-    }
-    if (this.disposed) return fail(InjectorDisposedError({ units: [source.id] }));
-    const registered = this.register(...(entries as readonly Registration[]));
-    if (!registered.ok) return fail(registered.error);
-    // Cached choices may name a placeholder; the real providers win now (latest registration).
-    let root: InjectorImpl = this;
-    while (root.parent !== undefined) root = root.parent;
-    root.forgetChoices();
-    span.set('count', entries.length);
-    span.end('ok');
-    return ok();
-  }
-
-  forgetChoices(): void {
-    this.chosen.clear();
-    for (const child of this.children) child.forgetChoices();
   }
 
   /**

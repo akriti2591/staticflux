@@ -107,7 +107,7 @@
       "mobx",
       "@staticflux/core"
     ],
-    "limit": "7.5 KB"
+    "limit": "6.7 KB"
   },
   {
     "name": "@staticflux/handoff (full)",

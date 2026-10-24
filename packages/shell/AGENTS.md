@@ -38,9 +38,13 @@ Implements R13.1–R13.3, R12.19 (view transitions, placeholders), R15.2/R15.3 (
   gated contributions hidden until allowed, theme applied, `switchWorkspace(id)` in a View Transition; skip links first,
   landmarks (header→banner, sidebar→`nav`, `main`, panel→`aside` complementary, other slots→named region); lazy deps
   a11y `FocusManagerToken`, `ShellMessagesToken`, `CommandShortcutBindingsToken` (idle).
-- `units.ts` — `shellUnits`, `workspaceManagerUnit`, `commandRegistryUnit`, `themeControllerUnit`, `defaultShellPresetUnit`;
-  `commandShortcutsUnit` / `shellKeyboardUnits` (binds palette + command shortcuts into a11y `ShortcutRegistryToken`;
-  needs a11y units + `SurfaceManagerToken`; conflicts land in `bindings.errors` as `SF-A11Y-002`, telemetry `shell.shortcut-error`).
+- `tokens.ts` — `CommandsToken` (multi), `CommandRegistryToken`, `CommandShortcutBindingsToken` (token-only: `<sf-shell>` names
+  the bindings at boot while apps may defer their implementation).
+- `units.ts` — `shellUnits`, `workspaceManagerUnit`, `themeControllerUnit`, `defaultShellPresetUnit`.
+- `keyboard-units.ts` — `commandRegistryUnit`, `commandShortcutsUnit` / `shellKeyboardUnits` (binds palette + command shortcuts
+  into a11y `ShortcutRegistryToken`; needs a11y units + `SurfaceManagerToken`; conflicts land in `bindings.errors` as
+  `SF-A11Y-002`, telemetry `shell.shortcut-error`). Separate module: deferrable after first paint (`<sf-shell>` resolves
+  the bindings when idle).
 - `telemetry.ts` — `SHELL_SUBSYSTEM` (`shell/layout`), `shellMetrics`. `errors.ts` — `SF-SHELL-001, 002, 005…008`
   (003/004 retired → `SF-A11Y-002`/`SF-A11Y-003`).
 

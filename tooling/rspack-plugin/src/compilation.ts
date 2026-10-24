@@ -47,6 +47,8 @@ export interface TapHook<Args extends unknown[]> {
 export interface CompilationLike {
   readonly hooks: { readonly processAssets: TapHook<[assets: Readonly<Record<string, unknown>>]> };
   readonly chunkGroups: readonly ChunkGroupLike[];
+  /** Entrypoint chunk groups by name (`compilation.entrypoints`); the app entries' closure is boot code. */
+  readonly entrypoints?: { values(): Iterable<ChunkGroupLike> };
   getAsset(name: string): AssetLike | undefined | void;
   emitAsset(name: string, source: SourceLike): void;
   readonly errors: { push(...errors: Error[]): unknown };
@@ -110,6 +112,29 @@ export interface CompilationOutput extends BundlerOutput {
   readonly requests: ReadonlyMap<string, string>;
 }
 
+/** Entry JS file of each entrypoint group (its main chunk's first JS file). */
+export function entrypointFiles(compilation: Pick<CompilationLike, 'entrypoints'>, exclude: ReadonlySet<string> = new Set()): string[] {
+  const out: string[] = [];
+  for (const group of compilation.entrypoints?.values() ?? []) {
+    if (group.name !== undefined && group.name !== null && exclude.has(group.name)) continue;
+    const main = mainChunkOf(group);
+    const file = main === undefined ? undefined : [...main.files].find(isJs);
+    if (file !== undefined) out.push(file);
+  }
+  return out;
+}
+
+/** Group name for a module path (`src/boot.ts` matches the `import('./boot')` / entry request), else undefined. */
+export function groupForModule(path: string, requests: ReadonlyMap<string, string>): string | undefined {
+  const wanted = normalizeRequest(path);
+  let best: { request: string; name: string } | undefined;
+  for (const [request, name] of requests) {
+    const hit = wanted === request || wanted.endsWith(`/${request}`);
+    if (hit && (best === undefined || request.length > best.request.length)) best = { request, name };
+  }
+  return best?.name;
+}
+
 /** Adapt chunk groups to the loader's `BundlerOutput`. */
 export function fromCompilation(compilation: Pick<CompilationLike, 'chunkGroups' | 'getAsset'>, options: FromCompilationOptions = {}): CompilationOutput {
   const byFile = new Map<string, BundlerChunk>();
@@ -166,12 +191,7 @@ export function resolveDeclarations(
 ): readonly ChunkDeclaration[] {
   return declarations.map((d) => {
     if (d.entry === undefined) return { ...d, entry: defaultName(d.id) };
-    const wanted = normalizeRequest(d.entry);
-    let best: { request: string; name: string } | undefined;
-    for (const [request, name] of requests) {
-      const hit = wanted === request || wanted.endsWith(`/${request}`);
-      if (hit && (best === undefined || request.length > best.request.length)) best = { request, name };
-    }
-    return best === undefined ? d : { ...d, entry: best.name };
+    const name = groupForModule(d.entry, requests);
+    return name === undefined ? d : { ...d, entry: name };
   });
 }

@@ -78,14 +78,54 @@ describe('checkManifest', () => {
     const result = checkManifest(m, { maxEagerKb: 20 });
     expect(result.issues.map((i) => [i.severity, i.code])).toEqual([
       ['error', MANIFEST_ISSUES.eagerReason],
-      ['error', MANIFEST_ISSUES.overBudget],
       ['error', MANIFEST_ISSUES.danglingDep],
       ['error', MANIFEST_ISSUES.eagerBudget],
+      // No build report: the full closure is only an upper bound of the budgeted cost.
+      ['warning', MANIFEST_ISSUES.overBudget],
       ['warning', MANIFEST_ISSUES.cycle],
       ['info', MANIFEST_ISSUES.unmeasured],
     ]);
+    expect(result.issues.find((i) => i.code === MANIFEST_ISSUES.overBudget)?.message).toContain('pass the build report');
     expect(result.issues.find((i) => i.code === MANIFEST_ISSUES.cycle)?.message).toBe('Dependency cycle: feature:studio → lib:shell → feature:studio.');
     expect(result.issues.find((i) => i.code === MANIFEST_ISSUES.danglingDep)?.message).toContain('"lib:ghost"');
+  });
+
+  it('regression: with the build report, chunk budgets apply to bytes beyond the boot set (not the shared closure)', () => {
+    const m = realManifest() as Mutable;
+    (m.chunks['feature:studio'] as Record<string, unknown>)['sizeKb'] = 80; // closure incl. boot/shared code
+    const report = {
+      format: 'sf-build-report/1',
+      chunks: [
+        { chunk: 'lib:shell', sizeKb: 12, incrementalKb: 12, budgetKb: 20 },
+        { chunk: 'feature:studio', sizeKb: 80, incrementalKb: 18, budgetKb: 50 },
+      ],
+      boot: [{ profile: '*', bootKb: 140, eagerKb: 12 }],
+    };
+    const fine = checkManifest(m, { report, maxBootKb: 150 });
+    expect(fine.issues).toEqual([]);
+    expect(fine.boot).toEqual([{ profile: '*', bootKb: 140 }]);
+    expect(fine.chunks.find((c) => c.id === 'feature:studio')?.incrementalKb).toBe(18);
+    expect(formatManifestText(fine)).toContain('boot * 140 KB');
+
+    const heavy = { ...report, chunks: [{ chunk: 'feature:studio', sizeKb: 80, incrementalKb: 51, budgetKb: 50 }] };
+    const over = checkManifest(m, { report: heavy, maxBootKb: 120 });
+    expect(over.issues.map((i) => [i.severity, i.code, i.message])).toEqual([
+      ['error', MANIFEST_ISSUES.overBudget, 'Chunk "feature:studio" adds 51 KB gzip beyond the boot set, budget 50 KB.'],
+      ['error', MANIFEST_ISSUES.bootBudget, 'Boot JS for profile "*" is 140 KB gzip, budget 120 KB (R12.7).'],
+    ]);
+
+    // A chunk missing from the report falls back to its closure, as an error (report given).
+    const shellOver = realManifest() as Mutable;
+    (shellOver.chunks['lib:shell'] as Record<string, unknown>)['sizeKb'] = 25;
+    expect(checkManifest(shellOver, { report: { format: 'sf-build-report/1', chunks: [], boot: [] } }).issues.map((i) => [i.severity, i.code])).toEqual([
+      ['error', MANIFEST_ISSUES.overBudget],
+    ]);
+    // A malformed report is an error; the check then falls back to closure warnings.
+    expect(checkManifest(m, { report: { format: 'nope' } }).issues.map((i) => [i.severity, i.code])).toEqual([
+      ['error', MANIFEST_ISSUES.report],
+      ['warning', MANIFEST_ISSUES.overBudget],
+    ]);
+    expect(checkManifest(realManifest(), { maxBootKb: 1 }).issues.map((i) => [i.severity, i.code])).toEqual([['warning', MANIFEST_ISSUES.bootBudget]]);
   });
 
   it('rejects non-objects and missing chunks', () => {
@@ -98,8 +138,8 @@ describe('checkManifest', () => {
   it('formats a readable table', () => {
     const text = formatManifestText(checkManifest(realManifest()));
     expect(text).toContain('Manifest b1: 3 chunks · eager 12 KB · errors: 0');
-    expect(text).toMatch(/feature:remote\s+on-demand\s+lazy\s+1\s+remote\s+50/);
-    expect(text).toMatch(/lib:shell\s+critical\s+eager\s+1\s+12\s+20/);
+    expect(text).toMatch(/feature:remote\s+on-demand\s+lazy\s+1\s+remote\s+-\s+50/);
+    expect(text).toMatch(/lib:shell\s+critical\s+eager\s+1\s+12\s+-\s+20/);
     const bad = formatManifestText(checkManifest({ format: 'x' }));
     expect(bad).toContain('Manifest (no buildId)');
     expect(bad).toContain('ERRORS');
@@ -123,9 +163,22 @@ describe('sf manifest', () => {
     const eager = captureIo(dir.root);
     expect(await runCli(['manifest', 'ok.json', '--max-eager-kb', '10', '--json'], eager)).toBe(1);
     expect((JSON.parse(eager.out.join('')) as { issues: { code: string }[] }).issues.map((i) => i.code)).toEqual([MANIFEST_ISSUES.eagerBudget]);
+    // Without a report the closure overrun is a warning (exit 0) …
+    const closure = captureIo(dir.root);
+    expect(await runCli(['manifest', 'over.json'], closure)).toBe(0);
+    expect(closure.out.join('\n')).toContain('SF-MANIFEST-OVER-BUDGET');
+    // … the report (explicit, or sf-build-report.json next to the manifest) decides.
+    dir.write('heavy-report.json', JSON.stringify({ format: 'sf-build-report/1', chunks: [{ chunk: 'feature:studio', sizeKb: 99, incrementalKb: 60, budgetKb: 50 }], boot: [] }));
     const bad = captureIo(dir.root);
-    expect(await runCli(['manifest', 'over.json'], bad)).toBe(1);
-    expect(bad.out.join('\n')).toContain('SF-MANIFEST-OVER-BUDGET');
+    expect(await runCli(['manifest', 'over.json', '--report', 'heavy-report.json'], bad)).toBe(1);
+    expect(bad.out.join('\n')).toContain('adds 60 KB gzip beyond the boot set');
+    dir.write('dist/sf-manifest.json', JSON.stringify(over));
+    dir.write('dist/sf-build-report.json', JSON.stringify({ format: 'sf-build-report/1', chunks: [{ chunk: 'feature:studio', sizeKb: 99, incrementalKb: 9, budgetKb: 50 }], boot: [{ profile: '*', bootKb: 140, eagerKb: 12 }] }));
+    const sibling = captureIo(dir.root);
+    expect(await runCli(['manifest', 'dist/sf-manifest.json', '--max-boot-kb', '150'], sibling)).toBe(0);
+    expect(sibling.out.join('\n')).toContain('boot * 140 KB');
+    expect(await runCli(['manifest', 'dist/sf-manifest.json', '--max-boot-kb', '100'], captureIo(dir.root))).toBe(1);
+    expect(await runCli(['manifest', 'dist/sf-manifest.json', '--no-report', '--max-boot-kb', '100'], captureIo(dir.root))).toBe(0);
     const usage = captureIo(dir.root);
     expect(await runCli(['manifest'], usage)).toBe(2);
     expect(await runCli(['manifest', 'missing.json'], usage)).toBe(2);

@@ -20,8 +20,9 @@ typed declarations, scopes and conflict detection, platform preference facts, an
   `checkShortcuts(defs)` (CI), `parseCombo`, `comboId`, `eventComboId`, `comboLabel`, `RESERVED_COMBOS`; `SF-A11Y-002` conflict, `SF-A11Y-003` invalid combo.
 - `preferences.ts` — `createPreferenceFacts({ matchMedia, scope })` → reactive `reducedMotion`, `contrast`, `forcedColors`, `colorScheme`, `reducedTransparency`, `snapshot()`; `PREFERENCE_DEFAULTS`.
 - `busy.ts` — `markBusy(el, scope?)` (ref-counted), `bindBusy(el, () => boolean, scope?)`, `busyAttributes(busy)`, `busyCount`.
-- `units.ts` — tokens `A11yEnvironmentToken`, `FocusManagerToken`, `AnnouncerToken`, `ShortcutRegistryToken`, `PreferenceFactsToken`;
-  units `browserA11yEnvironmentUnit`, `a11yEnvironmentUnit(env)`, `focusManagerUnit`, `announcerUnit(options?)`, `shortcutRegistryUnit` (attaches to the document), `preferenceFactsUnit`.
+- `tokens.ts` — `A11yEnvironmentToken`, `FocusManagerToken`, `AnnouncerToken`, `ShortcutRegistryToken`, `PreferenceFactsToken` (token-only module).
+- `units.ts` — `browserA11yEnvironmentUnit`, `a11yEnvironmentUnit(env)`, `focusManagerUnit`, `announcerUnit(options?)`, `preferenceFactsUnit`.
+- `shortcuts-unit.ts` — `shortcutRegistryUnit` (attaches to the document); own module so apps can defer the keyboard stack.
 
 ## Rules
 - Inject the environment; never read `document`/`matchMedia` globals inside services (embedded/worker hosts have none).
@@ -41,7 +42,7 @@ typed declarations, scopes and conflict detection, platform preference facts, an
 
 | Check | Limit | Measures |
 |---|---|---|
-| @staticflux/a11y (full) | 7.5 KB | packages/a11y/dist/index.js |
+| @staticflux/a11y (full) | 6.7 KB | packages/a11y/dist/index.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

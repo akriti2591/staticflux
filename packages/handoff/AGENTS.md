@@ -23,7 +23,8 @@ host↔embed, sub-route/view and mode changes — with declared lifetimes
 - `redirect.ts` — `prepareLoginRedirect(store, { returnTo, carry: [carry(slot, data)], nonce? })` / `completeLoginRedirect(store, { nonce, slots })`, `LoginReturnSlot`, `isSafeReturnPath`;
   guest migration `GuestMigrationSlot`, `stageGuestMigration`, `takeGuestMigration`; `createSlotHold(store, slot)` (implements urlstate's `IntentHoldPort`); `SF-HANDOFF-008…010`.
 - `view.ts` — `createViewStateHandoff(store, { key, version, scope?, schema? })` → `remember/recall/forget` (per view) and `pass/receive` (one-shot to the next view/variant); `persistOnHide({ document, window }, scope, save)`.
-- `units.ts` — tokens `HandoffStoragesToken`, `HandoffSlotsToken` (multi), `HandoffStoreToken`; units `browserHandoffStoragesUnit`, `memoryHandoffStoragesUnit`, `registryHandoffStoragesUnit` (storage registry: session scope → tab, device scope → origin, namespace `handoff`), `handoffSlotUnit(slot)`, `handoffStoreUnit` (sweeps on init).
+- `tokens.ts` — `HandoffStoragesToken`, `HandoffSlotsToken` (multi), `HandoffStoreToken` (token-only).
+- `units.ts` — `browserHandoffStoragesUnit`, `memoryHandoffStoragesUnit`, `registryHandoffStoragesUnit` (storage registry: session scope → tab, device scope → origin, namespace `handoff`), `handoffSlotUnit(slot)`, `handoffStoreUnit` (sweeps on init).
 
 ## Rules
 - Payloads are small and serializable (ids, drafts, scroll) — documents go to an IndexedDB-backed storage.

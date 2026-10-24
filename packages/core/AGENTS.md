@@ -12,7 +12,10 @@ Graph analysis lives at `@staticflux/core/graph` (tooling/devtools; not in the b
 ## Public API (by file)
 - `token.ts` — `token('pkg/name').type<T>()`, `.multi<T>()`, `Registry` (declaration merging).
 - `unit.ts` — `unit({ id, provides, scope, deps: { required, lazy, functional }, create, init, refreshOn, retry, critical })`, `DepHandle`, `FunctionalDep`, `ScopeLevel`, `InitTiming`.
-- `injector.ts` — `createInjector`, `injector.child(level, name, units)`, `get`, `handle`, `functional`, `refresh(tokens | 'epoch')`, `resolveCritical`, `inspect`, `bind`, `variant`.
+- `injector.ts` — `createInjector`, `injector.child(level, name, units)`, `get`, `handle`, `functional`, `refresh(tokens | 'epoch')`, `resolveCritical`, `inspect`, `bind`, `variant`;
+  `deferredUnits({ id, provides, scope, load })` — lazy units: placeholders whose first resolution `import()`s the group's
+  chunk, registers its units (in the placeholders' scope injector, once per injector, retried after a failure; span
+  `di.deferred`) and resolves the real provider. `UnitBase.deferred` (`DeferredSource`) marks the placeholders.
 - `compose.ts` — `composeUnits([...])`, `defineModule({ units, external })` (compile-time completeness).
 - `disposal.ts` — `createScope`, `scope.defer/use/listen/child/dispose`, `scope.signal`.
 - `async.ts` — `Task<T>`, `task`, `retry`, `timeout`, `sleep`, `anySignal`, `createSingleFlight`, `createLimiter`, `createCircuitBreaker`, `createDeferred`, `settleAll`.
@@ -53,6 +56,17 @@ export const docRuntimeUnit = unit({
 ```
 Keep `create` synchronous and cheap (no I/O); put awaited work in `init` so readiness, retries
 (`retry`) and the `di.resolve` span cover it. Never stash deps in module-level variables.
+
+## Tree-shaking (all packages)
+Packages are `sideEffects: false`, but a module's top-level calls still count as side effects. Declaration factories
+(`token`, `unit`, `contribution`, `defineError`, `defineMachine`, `define*`, `*Unit(...)` builders) carry
+`/* @__NO_SIDE_EFFECTS__ */` on their declaration, and `token(...).type()` / `metric.*(...)` call sites carry
+`/* @__PURE__ */` (a method call on a pure call is not pure by itself), so bundlers (Rolldown, esbuild) drop unused
+declarations. Only annotate functions without global effects (`defineComponent` in ui registers custom elements: no
+annotation). `defineError` registers in the catalog: unused definitions are dropped from app bundles (the catalog
+lists what is loaded; `sf errors` imports the dist modules unbundled, so the catalog file stays complete).
+Bundlers place whole modules into chunks: keep tokens in token-only modules (`tokens.ts`) and units that an app may
+defer in their own modules, so naming a token at boot never bundles an implementation.
 
 ## Rules
 - Do not import from other `@staticflux/*` packages.

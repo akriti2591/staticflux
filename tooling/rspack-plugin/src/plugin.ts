@@ -23,7 +23,16 @@ import {
   type WarmupTier,
 } from '@staticflux/loader';
 import { type BudgetOptions, type BuildArtifacts, buildReportJson, computeArtifacts, htmlPreloadsFor } from './artifacts.js';
-import { type CompilationLike, type CompilerLike, fromCompilation, resolveDeclarations, type SourceLike, STAGE_REPORT } from './compilation.js';
+import {
+  type CompilationLike,
+  type CompilerLike,
+  entrypointFiles,
+  fromCompilation,
+  groupForModule,
+  resolveDeclarations,
+  type SourceLike,
+  STAGE_REPORT,
+} from './compilation.js';
 import { RspackBudgetExceededError, RspackOptionsError } from './errors.js';
 import { type FederationOptions, type FederationPlan, planFederation } from './federation.js';
 import { type HtmlPluginLike, preloadTags, referencedUrls } from './html.js';
@@ -57,6 +66,12 @@ export interface StaticfluxRspackOptions {
   readonly federation?: FederationOptions;
   readonly sri?: boolean;
   readonly sizeOf?: (fileName: string, code: string) => number;
+  /**
+   * Source modules fetched at boot that the entry `import()`s instead of importing statically
+   * (e.g. `['src/boot-browser.ts']` after the inline mode detector). Their chunk group's static
+   * closure joins the boot set (boot cost; chunk budgets count only bytes beyond it).
+   */
+  readonly bootEntries?: readonly string[];
 }
 
 export interface RspackPluginLike {
@@ -129,9 +144,15 @@ export function staticfluxRspack(options: StaticfluxRspackOptions): RspackPlugin
   ): Result<BuildArtifacts> => {
     const output = fromCompilation(compilation, measure ? { sizeOf, ...(options.sri === true ? { integrityOf: sha384 } : {}) } : {});
     const remotes: Readonly<Record<string, ManifestRemote>> | undefined = federation?.remotes;
+    const declarations = resolveDeclarations(options.chunks, output.requests, chunkNameFor);
+    // App entrypoints (not logical chunks) and declared boot modules: their closure is always boot.
+    const logicalNames = new Set(declarations.flatMap((d) => (d.entry === undefined ? [] : [d.entry])));
+    const bootEntries = (options.bootEntries ?? []).map((path) => groupForModule(path, output.requests) ?? path);
     return computeArtifacts(output, {
       base: baseOf(compiler, compilation, options.base),
-      declarations: resolveDeclarations(options.chunks, output.requests, chunkNameFor),
+      declarations,
+      entries: entrypointFiles(compilation, logicalNames),
+      ...(bootEntries.length === 0 ? {} : { bootEntries }),
       ...(options.buildId === undefined ? {} : { buildId: options.buildId }),
       ...(options.bootPlans === undefined ? {} : { bootPlans: options.bootPlans }),
       ...(options.profiles === undefined ? {} : { profiles: options.profiles }),

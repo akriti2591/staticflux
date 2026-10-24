@@ -3,8 +3,8 @@
  * `sf` — the StaticFlux CLI (R20.6). Thin argv layer over the command
  * functions; `runCli` is pure enough to test (injected cwd/output/importer).
  */
-import { realpathSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, realpathSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { SfError, TokenId } from '@staticflux/core';
 import { updateAgentsFiles } from './agents.js';
@@ -31,7 +31,7 @@ export interface ParsedArgs {
 }
 
 /** Flags that take a value (`--out x` or `--out=x`); every other `--flag` is boolean. */
-const VALUE_FLAGS = new Set(['out', 'rules', 'flag-names', 'config', 'results', 'threshold', 'headroom', 'packages', 'size-limit', 'max-fan-out', 'max-fan-in', 'external', 'max-eager-kb']);
+const VALUE_FLAGS = new Set(['out', 'rules', 'flag-names', 'config', 'results', 'threshold', 'headroom', 'packages', 'size-limit', 'max-fan-out', 'max-fan-in', 'external', 'max-eager-kb', 'max-boot-kb', 'report']);
 
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const positionals: string[] = [];
@@ -100,7 +100,12 @@ Usage: sf <command> [options]
                          \`features\` and \`profiles\` (or \`hostModes\` + \`formFactors\`)
       --json
   manifest <file>        Validate an sf-manifest.json: schema, dangling deps, budgets
+                         (chunk budgets on bytes beyond the boot set, from sf-build-report.json
+                         next to the manifest)
       --max-eager-kb N     fail when the eager boot cost exceeds N KB   --json
+      --max-boot-kb N      fail when a profile's boot JS exceeds N KB (needs the report)
+      --report FILE        build report path (default: <manifest dir>/sf-build-report.json)
+      --no-report          check the manifest alone (closure overruns are warnings)
   help
 
 Exit codes: 0 ok · 1 check failed · 2 usage or input error.`;
@@ -253,12 +258,34 @@ function manifestCommand(args: ParsedArgs, io: CliIo): number {
     io.stderr(formatError(maxEagerKb));
     return 2;
   }
-  const json = readJson(resolve(io.cwd, file));
+  const maxBootKb = numberFlag(args, 'max-boot-kb');
+  if (typeof maxBootKb === 'object') {
+    io.stderr(formatError(maxBootKb));
+    return 2;
+  }
+  const manifestPath = resolve(io.cwd, file);
+  const json = readJson(manifestPath);
   if (!json.ok) {
     io.stderr(formatError(json.error));
     return 2;
   }
-  const result = checkManifest(json.value, typeof maxEagerKb === 'number' ? { maxEagerKb } : {});
+  // The build report next to the manifest (both plugins emit it) unless `--report <file>` / `--no-report`.
+  const reportFlag = stringFlag(args, 'report');
+  const reportPath = reportFlag !== undefined ? resolve(io.cwd, reportFlag) : join(dirname(manifestPath), 'sf-build-report.json');
+  let report: unknown;
+  if (!args.flags.has('no-report') && (reportFlag !== undefined || existsSync(reportPath))) {
+    const read = readJson(reportPath);
+    if (!read.ok) {
+      io.stderr(formatError(read.error));
+      return 2;
+    }
+    report = read.value;
+  }
+  const result = checkManifest(json.value, {
+    ...(typeof maxEagerKb === 'number' ? { maxEagerKb } : {}),
+    ...(typeof maxBootKb === 'number' ? { maxBootKb } : {}),
+    ...(report === undefined ? {} : { report }),
+  });
   io.stdout(args.flags.has('json') ? JSON.stringify(result, null, 2) : formatManifestText(result));
   return result.errorCount > 0 ? 1 : 0;
 }

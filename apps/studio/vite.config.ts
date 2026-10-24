@@ -18,7 +18,8 @@ export default defineConfig({
   // Logical chunk names, sf-manifest.json, SW precache list, build report + budget check (R12.7).
   // `bootEntries`: main.ts import()s the boot module right after the inline mode detector, so its
   // closure is boot code (boot cost, and feature chunk budgets count only bytes beyond it).
-  plugins: [staticflux({ chunks: chunkDeclarations, bootEntries: ['src/boot-browser.ts'], budgets: { onViolation: 'warn', bootKb: 150 } }), boot.plugin],
+  // Boot is under budget (R12.7, see README "Bundle budget"): CI fails on any regression.
+  plugins: [staticflux({ chunks: chunkDeclarations, bootEntries: ['src/boot-browser.ts'], budgets: { onViolation: process.env['CI'] === undefined ? 'warn' : 'error', bootKb: 150 } }), boot.plugin],
   resolve: {
     alias: [
       { find: /^@staticflux\/([^/]+)\/(.+)$/, replacement: `${packagesDir}/$1/src/$2.ts` },

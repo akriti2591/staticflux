@@ -82,6 +82,8 @@ The readiness lifecycle (§4) applies to **every unit** — stores, services, cl
 
 Units without `init()` are `ready` on creation (zero overhead).
 
+**Deferred units** (`deferredUnits({ id, provides, load })`): a placeholder binding whose first resolution imports a chunk, registers its units and resolves the real provider (once per injector; retried after failure; `di.deferred` span). Boot code should reach deferred units only through `lazy`/`functional` deps.
+
 ### 5.1 Init timing (per dependency, overridable)
 
 `init: 'eager' | 'on-arrival' | 'idle' | 'on-visible' | 'on-intent' | 'on-demand'`
