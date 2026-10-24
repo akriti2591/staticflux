@@ -59,23 +59,30 @@ export function checkType(attr, v, tokens) {
  * (canonical x/y are parent-relative; the codec adds parent offsets). Defaults omitted.
  * Also fills `index`: handle → { nid, partId, kind, parent: handle|null, ox, oy (parent absolute origin, full precision) }.
  */
-export function layoutModel(partStage, handles, index, { attrFilter } = {}) {
+export function layoutModel(partStage, handles, index) {
+  // per-node cache keyed by (composed version, parent offset): unchanged nodes reuse their attrs object, and the
+  // serializers/lints cache their output per attrs object (WeakMaps below) — research 05 §5.3 "per-node line cache"
+  const cache = partStage.viewCache ??= new Map();
   const build = (nid, parentH, ox, oy) => {
     const rec = partStage.get(nid);
     const K = KINDS[rec.kind];
     const h = handles.of(nid);
-    const attrs = {};
-    for (const a of K.attrs) {
-      if (attrFilter && !attrFilter(a, rec.kind)) continue;
-      const path = ATTRS[a].path;
-      let v = rec.props[path];
-      if (v === undefined) continue;
-      if (a === 'x') v += ox; else if (a === 'y') v += oy;
-      const vv = toView(a, v);
-      if (isDefault(a, vv)) continue;
-      attrs[a] = vv;
+    const key = rec.ver + ':' + ox + ':' + oy;
+    let c = cache.get(nid);
+    if (!c || c.key !== key) {
+      const attrs = {};
+      for (const a of K.attrs) {
+        const path = ATTRS[a].path;
+        let v = rec.props[path];
+        if (v === undefined) continue;
+        if (a === 'x') v += ox; else if (a === 'y') v += oy;
+        const vv = toView(a, v);
+        if (isDefault(a, vv)) continue;
+        attrs[a] = vv;
+      }
+      c = { key, attrs }; cache.set(nid, c);
     }
-    const node = { id: h, kind: rec.kind, attrs };
+    const node = { id: h, kind: rec.kind, attrs: c.attrs };
     if (K.text) node.text = rec.text ?? '';
     index?.set(h, { nid, partId: partStage.partId, kind: rec.kind, parent: parentH, ox, oy, node });
     if (K.container) {
@@ -97,9 +104,12 @@ function attrStr(attrs) {
   for (const k in attrs) { const v = attrs[k]; s += ` ${k}="${escA(typeof v === 'object' ? JSON.stringify(v) : v)}"`; }
   return s;
 }
+const HEAD = new WeakMap();   // attrs object → { id, s }: the element's opening tag, reused while the node is unchanged
 export function nodeToMarkup(n, indent = '', out = []) {
   const tag = KINDS[n.kind].tag;
-  const head = `${indent}<${tag} id="${n.id}"${attrStr(n.attrs)}`;
+  let hc = HEAD.get(n.attrs);
+  if (!hc || hc.id !== n.id) { hc = { id: n.id, s: `<${tag} id="${n.id}"${attrStr(n.attrs)}` }; HEAD.set(n.attrs, hc); }
+  const head = indent + hc.s;
   if (n.children && n.children.length) {
     out.push(head + '>');
     for (const c of n.children) nodeToMarkup(c, indent + '  ', out);

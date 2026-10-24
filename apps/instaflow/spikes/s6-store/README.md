@@ -39,7 +39,7 @@ samples, with the worst p95 from 3 fresh-browser runs (`results/bench-run{1,2,3}
 | Milestone of a 200-page doc ≤ 1 s, writing only changed parts | **PASS** | Doc: 201 parts, 3.85 MB canonical JSON (60 nodes/page). 5 pages changed: **254 ms median / 347 ms p95** (sync), 226 / 306 ms (async). It writes exactly 5 new blobs plus the record and head: **56 KB** written, against 776 KB for a full write. 1 page changed: 223 ms, 42.5 KB. 0 changed: 235 ms, 39 KB. 20 changed: 403 / 631 ms, 113 KB. Breakdown at k=5: canonicalize 121 ms, SHA-256 of 3.85 MB 13 ms, exists checks + writes 87 ms, record + head CAS 21 ms. Outside the criterion: a first milestone, or one where all 200 pages changed, takes 1.2–2.4 s, because each small-file create costs 3–6 ms in OPFS. |
 | GC over 10k blobs ≤ 2 s | **PASS at median, FAIL at p95 (here)** | 10,000 blobs = 7,000 live (5 heads × 7 milestone records × 200 parts) + 3,000 garbage, across 256 shard dirs. Directory-listing sweep with 16 in flight: **1.42 s median / 2.37 s worst p95** (sync), 1.91 / 2.48 s (async). Split: mark 150 ms, list 10k names 570 ms, delete 3,000 files 700 ms. A sequential sweep takes 3.7–5.2 s. Sweeping from a catalog inventory, with no listing: **0.86 s / 1.47 s**. Every run checked: 0 live blobs lost, 0 garbage left. The grace path (blobs newer than mark start survive, via `lastModified`) works: 3,000 young blobs kept. |
 | 100 forced leader kills lose no acknowledged commit | **PASS** | 4 tabs in one Playwright context, each committing every ~10 ms (≈400 commits/s in total). Compaction runs every 50 ms. 100 leader kills: 50 `page.close()` and 50 renderer crashes via CDP `Page.crash`, at a random 100–600 ms into each leadership. A fresh verifier tab then recovered the store. **sync: 36,979 commits acked, 0 missing. async (folder API): 36,721 acked, 0 missing.** The head was never torn or regressed: **0 torn and 0 regressed in 10,328 / 10,341 unlocked concurrent head reads**, and 0 torn heads, missing parts or bad digests in all 200 recoveries. Generation increased monotonically to 85 / 112. The kills landed mid-write: 6 (sync) and 3 (async) kills left a written-but-unmoved head temp file, which recovery cleaned up. 30 / 728 stale segments were cleared after kills between the head swap and segment deletion. Unit fault injection (crash after blobs, before the move, after the head; a torn log tail; a torn in-place head) passes on both backends in all 3 runs. |
-| Folder head swap is atomic | **INCONCLUSIVE (needs human, real folder)** | The logic passes on an OPFS handle through the identical async API: CAS, fault injection and 100 kills, above. The real-folder picker cannot run headless. Steps are below. |
+| Folder head swap is atomic | **PASS (owner run, real folder)** | Chrome 155, macOS local folder, `kill -9` 15 s into the swap loop: `previousLoopHead: {status: "ok", generation: 152}`. Only orphan: one `as_loop.json.tmp-*` written ~1 s before the kill and never moved (the safe outcome; recovery deletes it). `as_doc.json`/`as_bench.json` in `leftovers` are normal heads miscounted by the check. `move()` overwrites on a real folder. See "Owner real-folder run" below. |
 
 Failover in the stress run: **lock handoff after a kill 47 ms median / 127 ms p95.** Total kill-to-new-leader-ready
 is 654 / 1,035 ms. Almost all of that is the new leader reading 200 part snapshots (525 ms), which a real leader
@@ -121,3 +121,23 @@ node ../_harness/serve-and-run.cjs . "index.html?iters=10&gcRuns=3" --timeout=12
 On your machine, add `--headed` to any runner, or use `--serve-only` and open `index.html` or several
 `leader.html?ws=x` tabs in Chrome. Kill a leader tab and watch another tab report `leader`. No GPU is involved, so
 `--real-gpu` is irrelevant here.
+
+## Owner real-folder run (2026-10-24, Chrome 155, macOS, local folder)
+Crash safety **PASS** (see the criteria table). Speed on a real disk folder, ms:
+
+| Operation | median | p95 | max |
+|---|---|---|---|
+| Head CAS swap (49 runs) | 112.6 | 158.2 | 298.5 |
+| Milestone, 5 of 200 pages changed (10 runs) | 230.1 | 295.4 | 295.4 |
+| First milestone (37.8 KB written) | 244.5 | – | – |
+
+The 60 s loop managed 577 swaps (≈104 ms each). The same 4 KB atomic write in OPFS is 0.78 ms median (1.41 ms with
+sync handles): **a real folder is ≈100× slower per head swap.** API support: sync handles, `createWritable`,
+`FileSystemObserver`, Web Locks, BroadcastChannel and deflate-raw all present; `move()` only on file handles.
+`persisted: false` in the throwaway profile (the app must call `navigator.storage.persist()`, D8).
+
+**Implication for M1.** The folder must never sit on the per-keystroke commit path. In folder mode, commits ack from
+an OPFS journal (sub-ms) and a flusher writes log segments and swaps the folder head in batches (on idle, at most
+about once per second, and always on milestone/close). Milestones on a folder are fine as is (≈230 ms). This is the
+plan's fallback shape ("OPFS primary with the folder as a continuously synced mirror"), adopted by default rather
+than as a fallback. Fix the check's `leftovers` filter to report only `*.tmp-*` and `.crswap` files.

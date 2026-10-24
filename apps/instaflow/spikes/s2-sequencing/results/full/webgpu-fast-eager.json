@@ -1,0 +1,276 @@
+{
+  "params": {
+    "mode": "fast",
+    "gfx": "webgpu",
+    "gestures": 10000,
+    "pace": 4,
+    "burst": 20,
+    "seed": 1,
+    "naive": 0,
+    "seqlock": 1,
+    "gapEvery": 0,
+    "editorLoad": 0,
+    "align": "raf",
+    "present": "eager",
+    "eagerCap": 0,
+    "eagerDelay": 1,
+    "latch": 0
+  },
+  "gestures": {
+    "G1-pan": 1876,
+    "G2-zoom": 1432,
+    "G3-drag1": 2579,
+    "G4-drag100": 976,
+    "G5-marquee": 1212,
+    "G6-nudge": 1925
+  },
+  "records": 54133,
+  "scriptStats": {
+    "remoteMoves": 3222,
+    "remoteDels": 151,
+    "remoteMidDrag": 810,
+    "escCancels": 186,
+    "missedTargets": 72
+  },
+  "correctness": {
+    "framesDrawn": 951,
+    "framesNotEqualOracle": 0,
+    "snapBackFrames": 0,
+    "doubleDrawFrames": 0,
+    "otherMismatch": 0,
+    "framesRenderHashNotEqualEditorHash": 0,
+    "cameraMismatchFrames": 0,
+    "generationNonMonotonic": 0,
+    "firstBad": [],
+    "overlayAfterCommit": 0,
+    "finalEditorEqualsOracle": true,
+    "finalRenderEqualsOracle": true,
+    "finalHash": {
+      "oracle": 71470226,
+      "editor": 71470226,
+      "render": 71470226
+    },
+    "lastFrame": {
+      "inSeq": 54133,
+      "camSeq": 54133,
+      "equalsOracleFinalDisplay": true
+    },
+    "docVersion": {
+      "oracle": 10237,
+      "editor": 10237,
+      "render": 10237
+    },
+    "commits": {
+      "oracle": 6864,
+      "editor": 6864
+    },
+    "cancels": {
+      "oracle": {
+        "esc": 186,
+        "targetGone": 71
+      },
+      "editor": {
+        "esc": 186,
+        "targetGone": 71
+      }
+    },
+    "typedErrors": {
+      "oracle": 71,
+      "editor": 71,
+      "sample": {
+        "code": "IF-ENG-001",
+        "gesture": 54,
+        "target": 3135,
+        "fix": "Target was deleted by a collaborator; gesture cancelled."
+      }
+    },
+    "render": {
+      "gaps": 0,
+      "resnapRequests": 0,
+      "snapshotsApplied": 0,
+      "staleEpochSkipped": 0,
+      "waitFrames": 0,
+      "eagerWakes": 1451,
+      "eagerCapped": 0,
+      "ticks": 620,
+      "draws": 951,
+      "orderViolations": 0,
+      "overlayAfterCommit": 0,
+      "latchHits": 0,
+      "latchMisses": 0,
+      "seqlockRetries": 2010454,
+      "tornAccepted": 0,
+      "tornSamples": [],
+      "frameReads": 2071
+    },
+    "editor": {
+      "viewFrames": 7871,
+      "deltasWritten": 10237,
+      "deltasDroppedByFault": 0,
+      "snapshots": 0,
+      "batches": 7870,
+      "maxBatch": 476
+    },
+    "pass": true
+  },
+  "latency": {
+    "rafIntervalMs": {
+      "n": 619,
+      "median": 166.66,
+      "p95": 1183.28,
+      "p99": 1749.93,
+      "max": 2983.21
+    },
+    "budgetMs": 170.66,
+    "inputToPresentEst": {
+      "all": {
+        "n": 50760,
+        "median": 8.43,
+        "p95": 882.76,
+        "p99": 1362.66,
+        "max": 2982.85
+      },
+      "wheelPan": {
+        "n": 8562,
+        "median": 7.75,
+        "p95": 764.18,
+        "p99": 1410.69,
+        "max": 1448.54
+      },
+      "wheelZoom": {
+        "n": 4331,
+        "median": 8.32,
+        "p95": 745.22,
+        "p99": 1362.53,
+        "max": 1447.54
+      },
+      "pointer": {
+        "n": 33839,
+        "median": 8.57,
+        "p95": 886.22,
+        "p99": 1362.51,
+        "max": 2982.85
+      },
+      "key": {
+        "n": 4028,
+        "median": 9.35,
+        "p95": 919.75,
+        "p99": 1362.76,
+        "max": 1447.61
+      }
+    },
+    "inputToSubmit": {
+      "all": {
+        "n": 50760,
+        "median": 2.8,
+        "p95": 12.06,
+        "p99": 18.73,
+        "max": 42.64
+      },
+      "wheelPan": {
+        "n": 8562,
+        "median": 2.15,
+        "p95": 6.42,
+        "p99": 10.46,
+        "max": 41.79
+      },
+      "wheelZoom": {
+        "n": 4331,
+        "median": 2.11,
+        "p95": 6.99,
+        "p99": 10.83,
+        "max": 41.4
+      },
+      "pointer": {
+        "n": 33839,
+        "median": 3.02,
+        "p95": 12.98,
+        "p99": 19.11,
+        "max": 42.59
+      }
+    },
+    "inputToViewFrameWritten": {
+      "n": 37867,
+      "median": 1.57,
+      "p95": 9.51,
+      "p99": 16.79,
+      "max": 40.83
+    },
+    "inputToGpuDone": {
+      "n": 38541,
+      "median": 1078.73,
+      "p95": 2008.35,
+      "p99": 2837.67,
+      "max": 3650.88
+    },
+    "drawCpuMs": {
+      "n": 951,
+      "median": 0.6,
+      "p95": 1.78,
+      "p99": 4.55,
+      "max": 11.79
+    },
+    "rafToDrawStartMs": {
+      "n": 951,
+      "median": 13.91,
+      "p95": 675.71,
+      "p99": 2538.69,
+      "max": 1792870031587.97
+    },
+    "workerRafAfterMainRafMs": {
+      "n": 586,
+      "median": 0,
+      "p95": 16.67,
+      "p99": 16.67,
+      "max": 33.33
+    },
+    "latchWaitMs": {
+      "n": 0,
+      "median": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    "callbackAfterFrameTs": {
+      "main": {
+        "n": 684,
+        "median": 7.05,
+        "p95": 20.35,
+        "p99": 31.72,
+        "max": 279.09
+      },
+      "worker": {
+        "n": 620,
+        "median": 4.73,
+        "p95": 15.27,
+        "p99": 16.48,
+        "max": 16.76
+      }
+    },
+    "inputToPresentFrames": {
+      "median": 0.05,
+      "p95": 5.3
+    },
+    "p95WithinBudget": false
+  },
+  "e4": {
+    "pointerdowns": 4695,
+    "displayedCameraStaleAtDown": 3715
+  },
+  "gfx": {
+    "kind": "webgpu",
+    "adapter": "google swiftshader ",
+    "format": "rgba8unorm",
+    "lost": {
+      "reason": null
+    },
+    "errors": [],
+    "skippedGpuDone": 342
+  },
+  "extra": {
+    "genMs": 380.91999999806285,
+    "driveMs": 217004.1950000003,
+    "maxInputPending": 0
+  },
+  "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36"
+}

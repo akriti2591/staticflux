@@ -10,7 +10,7 @@ import { TREE } from './store.js';
 /** Flatten a layout model into absolute boxes for lints. */
 function boxes(node, out = []) {
   const a = node.attrs;
-  out.push({ h: node.id, kind: node.kind, role: a.role, x: a.x ?? 0, y: a.y ?? 0, w: a.w, hgt: a.h, text: node.text, size: a.size, weight: a.weight, lineHeight: a.lineHeight });
+  out.push({ key: node.attrs, h: node.id, kind: node.kind, role: a.role, x: a.x ?? 0, y: a.y ?? 0, w: a.w, hgt: a.h, text: node.text, size: a.size, weight: a.weight, lineHeight: a.lineHeight });
   for (const c of node.children ?? []) boxes(c, out);
   return out;
 }

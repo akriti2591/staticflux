@@ -1,0 +1,278 @@
+{
+  "node": "v22.22.0",
+  "procs": 5,
+  "iters": 300,
+  "page": "200 elements (bigPageSeed)",
+  "stats": {
+    "cold": {
+      "n": 1500,
+      "median": 13.492,
+      "p95": 59.503,
+      "perProcessMedian": [
+        13.194,
+        13.793,
+        12.278,
+        12.702,
+        15.01
+      ]
+    },
+    "coldModel": {
+      "n": 1500,
+      "median": 0.459,
+      "p95": 1.077,
+      "perProcessMedian": [
+        0.442,
+        0.482,
+        0.447,
+        0.437,
+        0.497
+      ]
+    },
+    "warm": {
+      "n": 1500,
+      "median": 1.186,
+      "p95": 4.084,
+      "perProcessMedian": [
+        1.155,
+        1.228,
+        1.152,
+        1.154,
+        1.224
+      ]
+    },
+    "oneChange": {
+      "n": 1500,
+      "median": 1.643,
+      "p95": 5.997,
+      "perProcessMedian": [
+        1.633,
+        1.654,
+        1.611,
+        1.605,
+        1.728
+      ]
+    },
+    "structural": {
+      "n": 1500,
+      "median": 0.944,
+      "p95": 12.509,
+      "perProcessMedian": [
+        0.914,
+        0.966,
+        0.912,
+        0.909,
+        1.012
+      ]
+    },
+    "serializeOnly": {
+      "n": 1500,
+      "median": 0.295,
+      "p95": 0.666,
+      "perProcessMedian": [
+        0.281,
+        0.303,
+        0.29,
+        0.294,
+        0.312
+      ]
+    },
+    "hashOnly": {
+      "n": 1500,
+      "median": 0.131,
+      "p95": 0.248,
+      "perProcessMedian": [
+        0.127,
+        0.133,
+        0.132,
+        0.13,
+        0.139
+      ]
+    },
+    "jsonView": {
+      "n": 1500,
+      "median": 0.425,
+      "p95": 1.206,
+      "perProcessMedian": [
+        0.406,
+        0.434,
+        0.415,
+        0.42,
+        0.461
+      ]
+    },
+    "canonical": {
+      "n": 1500,
+      "median": 7.55,
+      "p95": 20.284,
+      "perProcessMedian": [
+        7.291,
+        7.759,
+        7.244,
+        7.538,
+        8.282
+      ]
+    },
+    "compile2": {
+      "n": 1500,
+      "median": 0.443,
+      "p95": 0.96,
+      "perProcessMedian": [
+        0.431,
+        0.443,
+        0.449,
+        0.433,
+        0.478
+      ]
+    },
+    "validate500": {
+      "n": 150,
+      "median": 26.156,
+      "p95": 79.145,
+      "perProcessMedian": [
+        21.708,
+        25.529,
+        27.514,
+        19.679,
+        28.405
+      ]
+    }
+  },
+  "tokens": [
+    {
+      "seed": "flyer",
+      "scope": "page:fl-page",
+      "view": "markup",
+      "chars": 2623,
+      "tokChars4": 656,
+      "tokO200k": 1000
+    },
+    {
+      "seed": "flyer",
+      "scope": "page:fl-page",
+      "view": "json",
+      "chars": 2971,
+      "tokChars4": 743,
+      "tokO200k": 1057
+    },
+    {
+      "seed": "flyer",
+      "scope": "page:fl-page",
+      "view": "canonical-json",
+      "chars": 5862,
+      "tokChars4": 1466,
+      "tokO200k": 1899
+    },
+    {
+      "seed": "deck",
+      "scope": "doc",
+      "view": "markup",
+      "chars": 3396,
+      "tokChars4": 849,
+      "tokO200k": 1319
+    },
+    {
+      "seed": "deck",
+      "scope": "doc",
+      "view": "json",
+      "chars": 3940,
+      "tokChars4": 985,
+      "tokO200k": 1411
+    },
+    {
+      "seed": "deck",
+      "scope": "doc",
+      "view": "canonical-json",
+      "chars": 8382,
+      "tokChars4": 2096,
+      "tokO200k": 2758
+    },
+    {
+      "seed": "deck",
+      "scope": "page:dk-s3",
+      "view": "markup",
+      "chars": 651,
+      "tokChars4": 163,
+      "tokO200k": 262
+    },
+    {
+      "seed": "deck",
+      "scope": "page:dk-s3",
+      "view": "json",
+      "chars": 738,
+      "tokChars4": 185,
+      "tokO200k": 271
+    },
+    {
+      "seed": "deck",
+      "scope": "page:dk-s3",
+      "view": "canonical-json",
+      "chars": 1740,
+      "tokChars4": 435,
+      "tokO200k": 588
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "timeline",
+      "chars": 2056,
+      "tokChars4": 514,
+      "tokO200k": 807
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "markup",
+      "chars": 2244,
+      "tokChars4": 561,
+      "tokO200k": 916
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "json",
+      "chars": 2529,
+      "tokChars4": 632,
+      "tokO200k": 969
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "canonical-json",
+      "chars": 6105,
+      "tokChars4": 1526,
+      "tokO200k": 2035
+    },
+    {
+      "seed": "reel",
+      "scope": "flow:fw-captions",
+      "view": "graph",
+      "chars": 1017,
+      "tokChars4": 254,
+      "tokO200k": 341
+    },
+    {
+      "seed": "big",
+      "scope": "page:bp-page",
+      "view": "markup",
+      "chars": 27262,
+      "tokChars4": 6816,
+      "tokO200k": 10304
+    },
+    {
+      "seed": "big",
+      "scope": "page:bp-page",
+      "view": "json",
+      "chars": 30651,
+      "tokChars4": 7663,
+      "tokO200k": 11058
+    },
+    {
+      "seed": "big",
+      "scope": "page:bp-page",
+      "view": "canonical-json",
+      "chars": 60640,
+      "tokChars4": 15160,
+      "tokO200k": 19718
+    }
+  ]
+}

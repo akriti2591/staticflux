@@ -1,0 +1,3 @@
+```json
+{"upsert":[{"id":"n3","kind":"text","name":"subtitle slide 1","role":"subhead","x":160,"y":580,"w":1200,"h":64,"size":48,"fill":"@ink","text":"Flux team · October 2026"}]}
+```

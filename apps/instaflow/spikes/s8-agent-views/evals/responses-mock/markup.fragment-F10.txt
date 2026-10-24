@@ -1,0 +1,3 @@
+```xml
+<image id="n18" name="sponsor logo 2" role="logo" x="441" y="1213" w="200" h="100" src="as_logo_brew"/>
+```

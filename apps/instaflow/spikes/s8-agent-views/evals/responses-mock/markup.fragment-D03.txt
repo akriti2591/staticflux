@@ -1,0 +1,7 @@
+```xml
+<image id="n4" name="logo slide 1" role="logo" x="1720" y="980" w="160" h="60" src="as_logo_flux"/>
+<image id="n12" name="logo slide 2" role="logo" x="1720" y="980" w="160" h="60" src="as_logo_flux"/>
+<image id="n17" name="logo slide 3" role="logo" x="1720" y="980" w="160" h="60" src="as_logo_flux"/>
+<image id="n23" name="logo slide 4" role="logo" x="1720" y="980" w="160" h="60" src="as_logo_flux"/>
+<image id="n29" name="logo slide 5" role="logo" x="1720" y="980" w="160" h="60" src="as_logo_flux"/>
+```

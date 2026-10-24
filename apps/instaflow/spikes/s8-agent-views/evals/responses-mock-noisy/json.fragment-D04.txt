@@ -1,0 +1,3 @@
+```json
+{"upsert":[{"id":"n2","kind":"text","name":"title slide 1","role":"title","x":160,"y":380,"w":1600,"h":160,"font":"@display","size":120,"weight":800,"fill":"@primary","text":"Q4 Product Update"},{"id":"n19","kind":"text","name":"title slide 4","role":"title","x":160,"y":120,"w":1600,"h":94,"font":"@display","size":72,"weight":700,"fill":"@ink","text":"Q4 metrics"},{"id":"n20","kind":"text","name":"metrics body","role":"body","x":160,"y":300,"w":700,"h":200,"size":40,"fill":"@ink","lineHeight":1.4,"text":"Revenue up 32% in Q4. Weekly active teams doubled."}]}
+```

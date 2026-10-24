@@ -34,8 +34,10 @@ export function measureText(text, { size, weight = 400, w, lineHeight = 1.2 }) {
 
 /** Largest integer font size at which the text fits the box (no wrap-overflow, no too-wide word). */
 export function fitSize(text, box) {
-  for (let s = Math.floor(box.size); s >= 1; s--) if (!overflows(text, { ...box, size: s })) return s;
-  return 1;
+  let lo = 1, hi = Math.floor(box.size);           // binary search for the largest size that fits
+  if (!overflows(text, { ...box, size: hi })) return hi;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (overflows(text, { ...box, size: mid })) hi = mid; else lo = mid; }
+  return lo;
 }
 export function overflows(text, box) {
   const m = measureText(text, box);
@@ -46,9 +48,22 @@ export function overflows(text, box) {
  * Lints over an absolute-geometry list: [{ h, kind, x, y, w, h, text, size, weight, lineHeight, pageW, pageH }].
  * Returns [{ on, code, detail, fix? }].
  */
+const LINT = new WeakMap();   // attrs object (stable while the node is unchanged) → { pw, ph, res }
 export function lint(items, page) {
   const out = [];
   for (const it of items) {
+    if (it.key) {
+      const c = LINT.get(it.key);
+      if (c && c.pw === page?.w && c.ph === page?.h) { out.push(...c.res); continue; }
+      const res = lintOne(it, page); LINT.set(it.key, { pw: page?.w, ph: page?.h, res }); out.push(...res); continue;
+    }
+    out.push(...lintOne(it, page));
+  }
+  return out;
+}
+function lintOne(it, page) {
+  const out = [];
+  {
     if (it.kind === 'text' && it.size && it.w !== undefined && it.text !== undefined && it.hgt !== undefined) {
       const box = { size: it.size, weight: it.weight, w: it.w, h: it.hgt, lineHeight: it.lineHeight };
       if (overflows(it.text, box)) {
