@@ -54,9 +54,14 @@ const tests = {
   async composite() {
     const blobs = await loadBlobs(FILES.filter((f) => f !== 'long10'));
     const w = renderWorker(); const [m, t] = canvasMsg();
-    const r1080 = await rpc(w, { cmd: 'composite', blobs, frames: Number(q.get('frames') ?? 300), ...m }, t);
-    const r540 = await rpc(w, { cmd: 'composite', blobs, frames: Number(q.get('frames') ?? 300), modes: ['external'], rendition: '540p' });
-    return { meta: meta(), composite1080p: r1080, composite540p: r540 };
+    const frames = Number(q.get('frames') ?? 300);
+    const small = (q.get('small') ?? '480x270').split('x').map(Number);
+    const r = { meta: meta() };
+    // full 1080p output (the real criterion), then a small output canvas: same 3 x 1080p decode + import, little fill
+    r['1080p layers -> 1920x1080 canvas'] = await rpc(w, { cmd: 'composite', blobs, frames, ...m }, t);
+    r[`1080p layers -> ${small.join('x')} canvas`] = await rpc(w, { cmd: 'composite', blobs, frames: frames * 3, canvasSize: small });
+    r['540p layers -> 1920x1080 canvas'] = await rpc(w, { cmd: 'composite', blobs, frames, modes: ['external'], rendition: '540p' });
+    return r;
   },
   async seek() {
     const blobs = await loadBlobs(['layer0', 'layer0_540p', 'long10']);
@@ -77,7 +82,10 @@ const tests = {
     const publish = () => {
       const ts = ctx.getOutputTimestamp();
       K[0]++; K[1] = ts.contextTime; K[2] = performance.timeOrigin + ts.performanceTime; K[3] = ctx.outputLatency; K[4] = ctx.baseLatency; K[0]++;
+      // how far behind the render clock (currentTime) the output timestamp is = latency getOutputTimestamp accounts for
+      if (ts.contextTime > 0 && latGap.length < 5000) latGap.push((ctx.currentTime - (ts.contextTime + (performance.now() - ts.performanceTime) / 1000)) * 1000);
     };
+    const latGap = [];
     const iv = setInterval(publish, 20);
     const rafLoop = () => { publish(); if (!stopped) requestAnimationFrame(rafLoop); };
     let stopped = false; requestAnimationFrame(rafLoop);
@@ -87,7 +95,8 @@ const tests = {
     // wait until 250 ms is buffered, then start playback
     while (Atomics.load(C, 0) < 12000) await new Promise((r) => setTimeout(r, 10));
     const w = renderWorker(); const [m, t] = canvasMsg();
-    const videoDone = rpc(w, { cmd: 'drift', blobs, ctl, clock, lead: Number(q.get('lead') ?? 1000 / 60), ...m }, t);
+    const canvasSize = (q.get('canvas') ?? '1920x1080').split('x').map(Number);
+    const videoDone = rpc(w, { cmd: 'drift', blobs, ctl, clock, canvasSize, present: q.get('present') ?? 'gpu', lead: Number(q.get('lead') ?? 1000 / 60), ...m }, t);
     await new Promise((r) => setTimeout(r, 500)); // let the render worker open the media and pre-roll
     const ctxStart = ctx.currentTime;
     Atomics.store(C, 6, 1);
@@ -100,9 +109,9 @@ const tests = {
     const beepErr = []; for (let k = 0; k < nb; k++) beepErr.push(B[k] - Math.round(B[k] / 48000) * 48000);
     const consumed = Atomics.load(C, 1);
     return {
-      meta: meta(), durationSec: dur,
+      meta: meta(), durationSec: dur, canvasSize,
       audio: { ...audio, consumedFrames: consumed, underrunFrames: Atomics.load(C, 2), ctxElapsedSec: ctx.currentTime - ctxStart, consumedSec: consumed / 48000, outputLatency: ctx.outputLatency, baseLatency: ctx.baseLatency,
-        beepsDetected: nb, beepOnsetErrorSamples: summarize(beepErr) },
+        beepsDetected: nb, currentTimeMinusOutputTimestampMs: summarize(latGap.map((x) => Math.round(x * 10) / 10)), beepOnsetErrorSamples: summarize(beepErr) },
       video,
     };
   },

@@ -27,7 +27,9 @@ export const LAYOUT = [
   { rect: [0, 540, 960, 540], opacity: 0.8 },
 ];
 
-export async function createCompositor(canvas, { mode = 'external', layers = 3, width = 1920, height = 1080 } = {}) {
+// The stage is always 1920x1080 in layout units; the canvas backing size may be smaller (SwiftShader runs).
+export async function createCompositor(canvas, { mode = 'external', layers = 3, width = 1920, height = 1080, canvasSize } = {}) {
+  if (canvasSize) { canvas.width = canvasSize[0]; canvas.height = canvasSize[1]; }
   const adapter = await navigator.gpu?.requestAdapter();
   if (!adapter) throw new Error('no WebGPU adapter');
   const device = await adapter.requestDevice();
@@ -80,7 +82,7 @@ export async function createCompositor(canvas, { mode = 'external', layers = 3, 
     pass.setPipeline(pipeline);
     for (const b of binds) { if (!b) continue; pass.setBindGroup(0, b); pass.draw(6); }
     pass.end();
-    if (readback) enc.copyTextureToBuffer({ texture: target, origin: [0, 0] }, { buffer: readBuf, bytesPerRow: 3072 }, [768, 48]);
+    if (readback && target.width >= 768) enc.copyTextureToBuffer({ texture: target, origin: [0, 0] }, { buffer: readBuf, bytesPerRow: 3072 }, [768, 48]);
     device.queue.submit([enc.finish()]);
   }
   /** Reads the layer-0 barcode back from the composited canvas texture (after draw(..., {readback:true})). */

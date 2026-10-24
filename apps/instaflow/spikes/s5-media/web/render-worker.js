@@ -82,10 +82,10 @@ async function decode({ blobs, frames = 300, reps = 3 }) {
 }
 
 // ---------------------------------------------------------------------------------------------- composite
-async function composite({ blobs, frames = 300, modes = ['external', 'copy'], rendition = '1080p' }) {
+async function composite({ blobs, frames = 300, modes = ['external', 'copy'], rendition = '1080p', canvasSize = [1920, 1080] }) {
   const out = {};
   for (const mode of modes) {
-    const gpu = await createCompositor(canvas, { mode });
+    const gpu = await createCompositor(canvas, { mode, canvasSize });
     out.adapter = gpu.info;
     const set = rendition === '540p' ? [blobs.layer0_540p, blobs.layer1_540p, blobs.layer2_540p] : [blobs.layer0, blobs.layer1, blobs.layer2];
     const medias = await Promise.all(set.map(openMedia));
@@ -99,7 +99,7 @@ async function composite({ blobs, frames = 300, modes = ['external', 'copy'], re
       if (i === warm) t0 = performance.now();
       const a = performance.now();
       const fs = await Promise.all(sessions.map((s) => s.next()));
-      const check = i >= warm && i % 30 === 0;
+      const check = i >= warm && i % 30 === 0 && canvasSize[0] >= 768;
       gpu.draw(fs, { readback: check });
       await gpu.done();
       if (check) { const want = await frameBarcode(fs[0]); const got = await gpu.readBarcode(); checks++; if (want !== got) mismatches++; }
@@ -111,11 +111,11 @@ async function composite({ blobs, frames = 300, modes = ['external', 'copy'], re
     // composite-only: re-import the same three frames (isolates import + GPU work from decode)
     const fs = await Promise.all(sessions.map((s) => s.next()));
     const gpuMs = [];
-    for (let i = 0; i < 120; i++) { const a = performance.now(); gpu.draw(fs); await gpu.done(); gpuMs.push(performance.now() - a); }
+    for (let i = 0; i < Math.min(120, frames); i++) { const a = performance.now(); gpu.draw(fs); await gpu.done(); gpuMs.push(performance.now() - a); }
     fs.forEach((f) => f.close());
     sessions.forEach((s) => s.close());
     out[mode] = {
-      rendition,
+      rendition, canvasSize,
       decodeAndCompositeFps: Math.round((frames / ms) * 1000 * 10) / 10,
       frameMs: stats(frameMs),
       compositeOnlyMs: stats(gpuMs),
@@ -208,11 +208,11 @@ let stopFlag = false;
  * predicted display moment → pick the frame on the 30 fps grid → present. Records offsets from the timeline's
  * point of view: (a) flash-frame onset vs beep second, (b) presented frame vs heard time, (c) audio vs wall skew.
  */
-async function drift({ blobs, ctl, clock, lead = 1000 / 60, sampleRate = 48000 }) {
+async function drift({ blobs, ctl, clock, lead = 1000 / 60, sampleRate = 48000, canvasSize = [1920, 1080], present = 'gpu' }) {
   stopFlag = false;
   const C = new Int32Array(ctl); // [1]=mediaFrames consumed, [3]=ctx frame end, [4]=seq
   const K = new Float64Array(clock); // [0] seq, [1] contextTime, [2] performanceTime(abs epoch ms), [3] outputLatency, [4] baseLatency
-  const gpu = await createCompositor(canvas, { mode: 'external', layers: 1 });
+  const gpu = await createCompositor(canvas, { mode: 'external', layers: 1, canvasSize });
   const m = await openMedia(blobs.long10);
   const s = new ForwardSession(m, { loop: false, maxQueue: 8 });
   await s.start();
@@ -233,13 +233,14 @@ async function drift({ blobs, ctl, clock, lead = 1000 / 60, sampleRate = 48000 }
     return mediaFrame * ST;
   }
 
-  const flash = []; const offsets = []; const skew = []; let presentedCount = 0, dropped = 0, late = 0, wrong = 0, lastBc = -1;
+  const renderLag = []; const tickMs = []; let lastTick = 0; const flash = []; const offsets = []; const skew = []; let presentedCount = 0, dropped = 0, late = 0, wrong = 0, lastBc = -1;
   let wall0 = null, media0 = null, lastLog = 0, startedAt = 0, latencies = null;
   const raf = self.requestAnimationFrame ? (f) => self.requestAnimationFrame(f) : (f) => setTimeout(() => f(performance.now()), 16);
   await new Promise((resolve) => {
     const tick = async () => {
       if (stopFlag) return resolve();
       const W = now() + lead;
+      const pn = performance.now(); if (lastTick && wall0 !== null) tickMs.push(pn - lastTick); lastTick = pn;
       const c = readClock();
       if (!c.contextTime || !c.mediaFrameEnd) { raf(tick); return; }
       const t = heardTicks(W, c);
@@ -253,7 +254,11 @@ async function drift({ blobs, ctl, clock, lead = 1000 / 60, sampleRate = 48000 }
         if (f.timestamp + (f.duration || 33334) <= tUs) late++;
         if (!f.__shown) {
           f.__shown = true;
-          gpu.draw([f]);
+          if (present === 'gpu') {
+            const tk = performance.now();
+            gpu.draw([f]);
+            gpu.done().then(() => renderLag.push(performance.now() - tk));
+          }
           presentedCount++;
           const bc = await frameBarcode(f);
           const expected = Math.floor(t / FT);
@@ -281,12 +286,13 @@ async function drift({ blobs, ctl, clock, lead = 1000 / 60, sampleRate = 48000 }
   const first = fo.slice(0, 30), last = fo.slice(-30);
   return {
     playedSec: Math.round((performance.now() - startedAt) / 100) / 10,
-    displayLeadMs: lead, latencies,
+    present, displayLeadMs: lead, latencies, tickMs: stats(tickMs),
     presented: presentedCount, dropped, late, wrongFrameForClock: wrong,
     flashOnsetOffsetMs: stats(fo), flashAbsMaxMs: Math.round(Math.max(...fo.map(Math.abs)) * 100) / 100,
     flashTrendMsPerMin: Math.round(slope * 60 * 1000) / 1000,
     flashMeanFirst30s: stats(first).mean, flashMeanLast30s: stats(last).mean,
     presentedOffsetMs: stats(offsets),
+    gpuSubmitToDoneMs: stats(renderLag),
     audioVsWallSkew: skew.filter((_, i) => i % 6 === 0 || i === skew.length - 1).map((x) => ({ wallSec: Math.round(x.wallSec), audioMinusWallMs: Math.round(x.audioMinusWallMs * 100) / 100 })),
   };
 }
