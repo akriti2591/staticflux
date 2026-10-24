@@ -301,3 +301,13 @@ form. When you delegate work to an AI agent:
 ## License
 
 By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE).
+
+## Releasing
+
+All `@staticflux/*` packages are versioned and released **together** with [Changesets](https://github.com/changesets/changesets) (one fixed group, so an app always uses one version of the framework).
+
+1. In your PR, run `pnpm changeset`, choose the bump (`patch` / `minor`; we stay on `0.x` until the API is stable) and write a one-line summary.
+2. When PRs with changesets land on `main`, the **Release** workflow opens or updates a **"chore: version packages"** PR with the new version and changelogs.
+3. Merging that PR publishes every package to npm from GitHub Actions, with [provenance](https://docs.npmjs.com/generating-provenance-statements).
+
+Publishing auth: npm **trusted publishing** (OIDC) — no token stored in the repo. For the very first publish only, a temporary `NPM_TOKEN` repository secret is used; see `docs/RELEASING.md`.

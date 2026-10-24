@@ -93,7 +93,5 @@ Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a r
 
 **Layer:** core
 
-- External: `mobx` (7.1.0)
-
-Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.
+None. This package may not import any other package.
 <!-- sf:generated:end -->

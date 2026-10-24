@@ -20,7 +20,10 @@
     "errors:check": "node tooling/sf/dist/cli.js errors --check packages/*/dist/index.js packages/worker/dist/channels.js packages/worker/dist/coordinator-entry.js tooling/vite-plugin/dist/index.js tooling/rspack-plugin/dist/index.js",
     "agents": "node tooling/sf/dist/cli.js agents",
     "agents:check": "node tooling/sf/dist/cli.js agents --check",
-    "budgets": "size-limit --json > .size-results.json; node tooling/sf/dist/cli.js budgets --results .size-results.json"
+    "budgets": "size-limit --json > .size-results.json; node tooling/sf/dist/cli.js budgets --results .size-results.json",
+    "changeset": "changeset",
+    "version-packages": "changeset version && pnpm install --lockfile-only",
+    "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
     "typescript": "5.9.3",
@@ -29,7 +32,8 @@
     "dependency-cruiser": "18.7.0",
     "size-limit": "14.3.0",
     "@size-limit/preset-small-lib": "14.3.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "@changesets/cli": "3.0.3"
   },
   "license": "MIT"
 }
