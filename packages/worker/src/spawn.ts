@@ -92,6 +92,7 @@ export function acceptSharedConnections(scope: SharedWorkerScopeLike, onConnect:
     const port = (event as MessageEvent).ports[0];
     if (port !== undefined) onConnect(fromMessagePort(port));
   };
+  // sf-lint-disable-next-line no-bare-listener -- removed by the returned stop function; SharedWorkerScopeLike takes no listener options
   scope.addEventListener('connect', listener);
   return () => scope.removeEventListener('connect', listener);
 }

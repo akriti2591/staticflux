@@ -47,15 +47,17 @@ export function sleep(ms: number, signal?: AbortSignal): Promise<Result<void>> {
       resolve(err(AbortedError({ cause: signal.reason })));
       return;
     }
+    // Aborted to detach the abort listener once the timer wins.
+    const detach = new AbortController();
     const timer = setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort);
+      detach.abort();
       resolve(ok());
     }, ms);
     const onAbort = (): void => {
       clearTimeout(timer);
       resolve(err(AbortedError({ cause: signal?.reason })));
     };
-    signal?.addEventListener('abort', onAbort, { once: true });
+    signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
   });
 }
 
@@ -213,9 +215,10 @@ export function createSingleFlight<K, T>(): SingleFlight<K, T> {
           onAbort();
           return;
         }
-        signal.addEventListener('abort', onAbort, { once: true });
+        const detach = new AbortController();
+        signal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
         void current.promise.then((result) => {
-          signal.removeEventListener('abort', onAbort);
+          detach.abort();
           resolve(result);
         });
       });
@@ -255,8 +258,10 @@ export function createLimiter(concurrency: number): Limiter {
     },
     run<T>(inner: Task<T>, signal: AbortSignal): Promise<Result<T>> {
       return new Promise((resolve) => {
+        // Aborted to detach the abort listener once the task leaves the queue.
+        const detach = new AbortController();
         const start = (): void => {
-          signal.removeEventListener('abort', onAbort);
+          detach.abort();
           if (signal.aborted) {
             resolve(err(AbortedError({ cause: signal.reason })));
             next();
@@ -274,7 +279,7 @@ export function createLimiter(concurrency: number): Limiter {
           if (index >= 0) queue.splice(index, 1);
           resolve(err(AbortedError({ cause: signal.reason })));
         };
-        signal.addEventListener('abort', onAbort, { once: true });
+        signal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
         queue.push(start);
         next();
       });

@@ -51,6 +51,8 @@ export class SfBoundaryElement extends SfElement<typeof boundarySpec> {
     this.region = '';
     this.label = '';
     this.failure = undefined;
+    // The boundary listens on itself for its whole life (it must keep catching across disconnect/reconnect).
+    // sf-lint-disable-next-line no-bare-listener -- self-listener; lifetime is the element itself
     this.addEventListener(SfErrorEvent.type, (event) => this.onError(event));
   }
 

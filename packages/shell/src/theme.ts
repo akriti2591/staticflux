@@ -168,8 +168,9 @@ export function browserMedia(): MediaPort {
     subscribe(query, listener) {
       const list = mm.call(globalThis, query);
       if (typeof list.addEventListener !== 'function') return () => undefined;
-      list.addEventListener('change', listener);
-      return () => list.removeEventListener('change', listener);
+      const subscription = new AbortController();
+      list.addEventListener('change', listener, { signal: subscription.signal });
+      return () => subscription.abort();
     },
   };
 }

@@ -128,9 +128,11 @@ function transactionDone(tx: IdbTransactionLike, signal: AbortSignal | undefined
         // already finished
       }
     };
-    signal?.addEventListener('abort', onAbortSignal, { once: true });
+    // Aborted to detach the abort listener once the transaction settles.
+    const detach = new AbortController();
+    signal?.addEventListener('abort', onAbortSignal, { once: true, signal: detach.signal });
     const settle = (error?: unknown): void => {
-      signal?.removeEventListener('abort', onAbortSignal);
+      detach.abort();
       if (error === undefined) resolve();
       else reject(error);
     };

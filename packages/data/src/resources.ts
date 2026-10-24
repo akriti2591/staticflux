@@ -198,9 +198,10 @@ function raceSignal<T>(promise: Promise<Result<T>>, signal: AbortSignal | undefi
   if (signal.aborted) return Promise.resolve(err(AbortedError({ cause: signal.reason })));
   return new Promise((resolve) => {
     const onAbort = (): void => resolve(err(AbortedError({ cause: signal.reason })));
-    signal.addEventListener('abort', onAbort, { once: true });
+    const detach = new AbortController();
+    signal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
     void promise.then((result) => {
-      signal.removeEventListener('abort', onAbort);
+      detach.abort();
       resolve(result);
     });
   });

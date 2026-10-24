@@ -66,26 +66,32 @@ export function createSseTransport(options: SseTransportOptions): Transport {
       const source = factory(buildUrl(options.baseUrl, { ...request, query }), { withCredentials: options.withCredentials ?? false });
       return new Promise((resolve) => {
         let settled = false;
+        // Aborted to detach the abort listener once the stream settles.
+        const detach = new AbortController();
         const finish = (result: Result<void>): void => {
           if (settled) return;
           settled = true;
-          signal.removeEventListener('abort', onAbort);
+          detach.abort();
           source.close();
           resolve(result);
         };
         const onAbort = (): void => finish(err(AbortedError({ cause: signal.reason })));
-        signal.addEventListener('abort', onAbort, { once: true });
+        signal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
+        // sf-lint-disable-next-line no-bare-listener -- source-lifetime listener; finish() closes the source and EventSourceLike takes no options
         source.addEventListener('message', (event) => {
           const parsed = parse(event.data);
           if (!parsed.ok) finish(parsed);
           else if (!settled) onChunk(parsed.value);
         });
+        // sf-lint-disable-next-line no-bare-listener -- source-lifetime listener; finish() closes the source and EventSourceLike takes no options
         source.addEventListener(doneEvent, () => finish(ok()));
+        // sf-lint-disable-next-line no-bare-listener -- source-lifetime listener; finish() closes the source and EventSourceLike takes no options
         source.addEventListener(failEvent, (event) => {
           const parsed = parse(event.data);
           const status = parsed.ok && typeof parsed.value === 'object' && parsed.value !== null ? Number((parsed.value as { status?: unknown }).status) : 500;
           finish(err(errorForStatus({ status: Number.isFinite(status) ? status : 500, endpoint: request.endpoint })));
         });
+        // sf-lint-disable-next-line no-bare-listener -- source-lifetime listener; finish() closes the source and EventSourceLike takes no options
         source.addEventListener('error', () => {
           if (source.readyState === CLOSED) finish(err(NetworkError({ details: { endpoint: request.endpoint } })));
         });

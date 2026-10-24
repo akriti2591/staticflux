@@ -48,8 +48,12 @@ export function createRunControl(hardSignal: AbortSignal): RunControl {
   const abort = (reason: string): void => {
     if (!controller.signal.aborted) controller.abort(new DOMException(reason, 'AbortError'));
   };
+  // Forward router disposal to this run only while it is in flight: the listener is detached
+  // when the run aborts or finishes, so finished runs don't accumulate on the router's signal.
+  const detach = new AbortController();
+  controller.signal.addEventListener('abort', () => detach.abort(), { once: true, signal: detach.signal });
   if (hardSignal.aborted) abort('router-disposed');
-  else hardSignal.addEventListener('abort', () => abort('router-disposed'), { once: true });
+  else hardSignal.addEventListener('abort', () => abort('router-disposed'), { once: true, signal: detach.signal });
   return {
     signal: controller.signal,
     hardSignal,
@@ -73,6 +77,7 @@ export function createRunControl(hardSignal: AbortSignal): RunControl {
     },
     finish() {
       finished = true;
+      detach.abort();
     },
   };
 }
@@ -89,13 +94,14 @@ function cancelled(signal: AbortSignal): PipelineOutcome {
   return { kind: 'cancel', reason: cancelReason(signal) };
 }
 
-function abortedPromise(signal: AbortSignal): Promise<PipelineOutcome> {
+/** Resolves when `signal` aborts; `detach` removes the listener once the caller no longer races it. */
+function abortedPromise(signal: AbortSignal, detach: AbortSignal): Promise<PipelineOutcome> {
   return new Promise((resolve) => {
     if (signal.aborted) {
       resolve(cancelled(signal));
       return;
     }
-    signal.addEventListener('abort', () => resolve(cancelled(signal)), { once: true });
+    signal.addEventListener('abort', () => resolve(cancelled(signal)), { once: true, signal: detach });
   });
 }
 
@@ -138,6 +144,7 @@ async function runStep(
     attrs: { step: step.id, source: step.source, stage: options.stage, uninterruptible },
   });
   const release = uninterruptible ? control.hold() : undefined;
+  const raceDone = new AbortController();
   let outcome: PipelineOutcome;
   try {
     if (uninterruptible) {
@@ -145,9 +152,10 @@ async function runStep(
     } else if (softSignal.aborted) {
       outcome = cancelled(softSignal);
     } else {
-      outcome = await Promise.race([invoke(step, context, softSignal), abortedPromise(softSignal)]);
+      outcome = await Promise.race([invoke(step, context, softSignal), abortedPromise(softSignal, raceDone.signal)]);
     }
   } finally {
+    raceDone.abort();
     release?.();
   }
   span.set('outcome', outcome.kind);

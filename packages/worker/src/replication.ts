@@ -499,7 +499,14 @@ export function createReplica<D extends AnyReplicaDefinition>(
       if (status.get() === 'live') return Promise.resolve(ok());
       if (signal?.aborted === true) return Promise.resolve(err(AbortedError({ cause: signal.reason })));
       const deferred = createDeferred<Result<void>>();
-      const waiter = { resolve: (result: Result<void>) => deferred.resolve(result) };
+      // Aborted to detach the abort listener once the waiter is resolved.
+      const detach = new AbortController();
+      const waiter = {
+        resolve: (result: Result<void>) => {
+          detach.abort();
+          deferred.resolve(result);
+        },
+      };
       liveWaiters.push(waiter);
       signal?.addEventListener(
         'abort',
@@ -507,7 +514,7 @@ export function createReplica<D extends AnyReplicaDefinition>(
           liveWaiters = liveWaiters.filter((w) => w !== waiter);
           deferred.resolve(err(AbortedError({ cause: signal.reason })));
         },
-        { once: true },
+        { once: true, signal: detach.signal },
       );
       return deferred.promise;
     },

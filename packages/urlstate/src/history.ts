@@ -117,6 +117,7 @@ export function createBrowserHistory(win: WindowLike): HistoryPort {
     depth = Math.max(0, depth - 1);
     events.emit({ url: relative(win.location), cause: 'pop', source: 'external' });
   };
+  // sf-lint-disable-next-line no-bare-listener -- port-lifetime listener removed in dispose(); WindowLike takes no listener options
   win.addEventListener('popstate', onPop);
   return {
     kind: 'history',
@@ -162,6 +163,7 @@ export function createNavigationHistory(win: WindowLike & { readonly navigation:
     const cause: HistoryChangeCause = type === 'push' ? 'push' : type === 'replace' ? 'replace' : 'pop';
     events.emit({ url, cause, source: 'external' });
   };
+  // sf-lint-disable-next-line no-bare-listener -- port-lifetime listener removed in dispose(); NavigationLike takes no listener options
   navigation.addEventListener('currententrychange', onChange);
   const write = (cause: 'push' | 'replace', url: string, options: WriteOptions): void => {
     writing = true;

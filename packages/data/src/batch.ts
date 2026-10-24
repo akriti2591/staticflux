@@ -55,7 +55,8 @@ export function createBatcher<K, V>(options: BatcherOptions<K, V>): Batcher<K, V
           live -= 1;
           if (live === 0) controller.abort(new DOMException('All batch callers aborted', 'AbortError'));
         },
-        { once: true },
+        // Once the batch is aborted the remaining slot listeners have nothing left to do.
+        { once: true, signal: controller.signal },
       );
     }
     options.onBatch?.(slots.length);
@@ -102,8 +103,10 @@ export function createBatcher<K, V>(options: BatcherOptions<K, V>): Batcher<K, V
       current.active += 1;
       schedule();
       return new Promise<Result<V>>((resolve) => {
+        // Aborted to detach the abort listener once the batch delivers a result.
+        const detach = new AbortController();
         const waiter = (result: Result<V>): void => {
-          signal?.removeEventListener('abort', onAbort);
+          detach.abort();
           resolve(result);
         };
         const onAbort = (): void => {
@@ -113,7 +116,7 @@ export function createBatcher<K, V>(options: BatcherOptions<K, V>): Batcher<K, V
           resolve(err(AbortedError({ cause: signal?.reason })));
         };
         current.waiters.add(waiter);
-        signal?.addEventListener('abort', onAbort, { once: true });
+        signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
       });
     },
   };

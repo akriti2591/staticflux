@@ -878,9 +878,10 @@ class Handle<T> implements DepHandle<T> {
         onAbort();
         return;
       }
-      signal.addEventListener('abort', onAbort, { once: true });
+      const detach = new AbortController();
+      signal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
       void first.then((r) => {
-        signal.removeEventListener('abort', onAbort);
+        detach.abort();
         resolve(r);
       });
     });

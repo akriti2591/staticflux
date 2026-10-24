@@ -484,12 +484,14 @@ export function createSessionStore(options: SessionStoreOptions): SessionStore {
       };
       if (settled() || signal?.aborted === true) return snapshotBox.get();
       return new Promise<SessionSnapshot>((resolve) => {
+        // Aborted to detach the abort listener once the session settles.
+        const detach = new AbortController();
         const stop = watch(
           () => settled(),
           (isSettled) => {
             if (!isSettled) return;
             stop();
-            signal?.removeEventListener('abort', onAbort);
+            detach.abort();
             resolve(snapshotBox.get());
           },
         );
@@ -497,7 +499,7 @@ export function createSessionStore(options: SessionStoreOptions): SessionStore {
           stop();
           resolve(snapshotBox.get());
         };
-        signal?.addEventListener('abort', onAbort, { once: true });
+        signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
       });
     },
 

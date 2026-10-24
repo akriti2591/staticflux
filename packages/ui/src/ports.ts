@@ -43,6 +43,8 @@ export function frameRenderScheduler(scheduler: FrameScheduler): RenderScheduler
  */
 export function microtaskRenderScheduler(): RenderScheduler {
   const jobs = new Set<() => void>();
+  // Detaches the abort listeners of the jobs currently queued; replaced whenever the queue is drained.
+  let jobsDetach = new AbortController();
   let queued = false;
   let flushing = false;
   const flush = (): void => {
@@ -51,6 +53,8 @@ export function microtaskRenderScheduler(): RenderScheduler {
     try {
       const batch = [...jobs];
       jobs.clear();
+      jobsDetach.abort();
+      jobsDetach = new AbortController();
       for (const job of batch) job();
     } finally {
       flushing = false;
@@ -63,7 +67,7 @@ export function microtaskRenderScheduler(): RenderScheduler {
     schedule(job, signal) {
       if (signal?.aborted === true) return;
       jobs.add(job);
-      signal?.addEventListener('abort', () => jobs.delete(job), { once: true });
+      signal?.addEventListener('abort', () => jobs.delete(job), { once: true, signal: jobsDetach.signal });
       if (!queued) {
         queued = true;
         queueMicrotask(flush);

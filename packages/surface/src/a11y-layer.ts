@@ -88,9 +88,11 @@ export function createAccessibleLayer(options: AccessibleLayerOptions): Result<A
     const id = (event.target as Element | null)?.getAttribute?.(NODE_ATTR);
     if (id !== null && id !== undefined) options.onAction?.(id, 'focus');
   };
-  root.addEventListener('click', onClick);
-  root.addEventListener('keydown', onKeydown);
-  root.addEventListener('focusin', onFocusin);
+  // Aborted in dispose() to remove the layer's listeners.
+  const listeners = new AbortController();
+  root.addEventListener('click', onClick, { signal: listeners.signal });
+  root.addEventListener('keydown', onKeydown, { signal: listeners.signal });
+  root.addEventListener('focusin', onFocusin, { signal: listeners.signal });
 
   const setAttr = (el: HTMLElement, name: string, value: string | undefined): void => {
     if (value === undefined) el.removeAttribute(name);
@@ -180,9 +182,7 @@ export function createAccessibleLayer(options: AccessibleLayerOptions): Result<A
       return elements.size;
     },
     dispose() {
-      root.removeEventListener('click', onClick);
-      root.removeEventListener('keydown', onKeydown);
-      root.removeEventListener('focusin', onFocusin);
+      listeners.abort();
       root.remove();
       elements.clear();
     },

@@ -51,9 +51,11 @@ export function createPauseControl(): PauseControl {
       if (!paused.get()) return Promise.resolve(ok());
       if (signal.aborted) return Promise.resolve(err(AbortedError({ cause: signal.reason })));
       return new Promise((resolve) => {
+        // Aborted to detach the abort listener once the gate opens or the caller aborts.
+        const detach = new AbortController();
         const done = (result: Result<void>): void => {
           waiters.delete(wake);
-          signal.removeEventListener('abort', onAbort);
+          detach.abort();
           queued.set(queued.get() - 1);
           resolve(result);
         };
@@ -61,7 +63,7 @@ export function createPauseControl(): PauseControl {
         const onAbort = (): void => done(err(AbortedError({ cause: signal.reason })));
         waiters.add(wake);
         queued.set(queued.get() + 1);
-        signal.addEventListener('abort', onAbort, { once: true });
+        signal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
       });
     },
   };

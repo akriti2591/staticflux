@@ -85,6 +85,7 @@ export function createFakePlatformEnv(options: FakePlatformEnvOptions = {}): Fak
       if (options.crossOriginFrame === true) throw new DOMException('Blocked a frame', 'SecurityError');
       return top;
     },
+    // sf-lint-disable-next-line no-bare-listener -- fake forwarding shim; the caller owns the lifetime via remove*
     addEventListener: (type, listener) => windowTarget.addEventListener(type, listener),
     removeEventListener: (type, listener) => windowTarget.removeEventListener(type, listener),
   };
@@ -105,6 +106,7 @@ export function createFakePlatformEnv(options: FakePlatformEnvOptions = {}): Fak
           get saveData() {
             return connectionData?.saveData;
           },
+          // sf-lint-disable-next-line no-bare-listener -- fake forwarding shim; the caller owns the lifetime via remove*
           addEventListener: (type: string, listener: () => void) => connectionTarget.addEventListener(type, listener),
           removeEventListener: (type: string, listener: () => void) => connectionTarget.removeEventListener(type, listener),
         };
@@ -129,6 +131,7 @@ export function createFakePlatformEnv(options: FakePlatformEnvOptions = {}): Fak
         get matches() {
           return matching.has(query);
         },
+        // sf-lint-disable-next-line no-bare-listener -- fake forwarding shim; the caller owns the lifetime via remove*
         addListener: (listener) => t.addEventListener('change', listener),
         removeListener: (listener) => t.removeEventListener('change', listener),
       };
@@ -137,6 +140,7 @@ export function createFakePlatformEnv(options: FakePlatformEnvOptions = {}): Fak
       get matches() {
         return matching.has(query);
       },
+      // sf-lint-disable-next-line no-bare-listener -- fake forwarding shim; the caller owns the lifetime via remove*
       addEventListener: (_type, listener) => t.addEventListener('change', listener),
       removeEventListener: (_type, listener) => t.removeEventListener('change', listener),
     };

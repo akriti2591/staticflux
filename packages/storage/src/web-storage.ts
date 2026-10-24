@@ -177,6 +177,7 @@ export function createWebStorageStore<V = unknown>(options: WebStorageStoreOptio
             : { type: 'set', key, origin: 'external' };
           emit(change);
         };
+        // sf-lint-disable-next-line no-bare-listener -- StorageEventSource takes no listener options; the returned unsubscribe removes it
         events.addEventListener('storage', onStorage);
         return () => events.removeEventListener('storage', onStorage);
       },

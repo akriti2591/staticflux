@@ -172,7 +172,9 @@ export function createHtmlInCanvas(options: HtmlInCanvasOptions): Result<HtmlInC
   const onNativePaint = (): void => {
     for (const listener of [...paintListeners]) listener();
   };
-  if (mode === 'native') canvas.addEventListener('paint', onNativePaint);
+  // Aborted in dispose() to remove the native paint listener.
+  const listeners = new AbortController();
+  if (mode === 'native') canvas.addEventListener('paint', onNativePaint, { signal: listeners.signal });
 
   const adapter: HtmlInCanvasAdapter = {
     mode,
@@ -244,7 +246,7 @@ export function createHtmlInCanvas(options: HtmlInCanvasOptions): Result<HtmlInC
     dispose() {
       paintListeners.clear();
       if (mode === 'native') {
-        canvas.removeEventListener('paint', onNativePaint);
+        listeners.abort();
         canvas.removeAttribute('layoutsubtree');
         canvas.removeAttribute('content');
       }

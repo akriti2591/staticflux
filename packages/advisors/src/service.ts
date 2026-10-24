@@ -198,9 +198,15 @@ function defaultIdle(signal: AbortSignal): Promise<void> {
     }
     const ric = (globalThis as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
       .requestIdleCallback;
-    if (typeof ric === 'function') ric(() => resolve(), { timeout: 1000 });
-    else setTimeout(resolve, 0);
-    signal.addEventListener('abort', () => resolve(), { once: true });
+    // Aborted to detach the abort listener once the idle callback fires.
+    const detach = new AbortController();
+    const done = (): void => {
+      detach.abort();
+      resolve();
+    };
+    if (typeof ric === 'function') ric(done, { timeout: 1000 });
+    else setTimeout(done, 0);
+    signal.addEventListener('abort', () => resolve(), { once: true, signal: detach.signal });
   });
 }
 
@@ -558,9 +564,10 @@ export function createAdvisorService(options: AdvisorServiceOptions = {}): Advis
               return;
             }
             const onAbort = (): void => resolve({ kind: 'fallback', reason: 'cancelled', at: now() });
-            callerSignal.addEventListener('abort', onAbort, { once: true });
+            const detach = new AbortController();
+            callerSignal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
             void flight.then((value) => {
-              callerSignal.removeEventListener('abort', onAbort);
+              detach.abort();
               resolve(value);
             });
           }));

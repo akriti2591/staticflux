@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "lint:boundaries": "depcruise packages tooling apps --config .dependency-cruiser.cjs",
     "size": "size-limit",
-    "check": "pnpm build && pnpm typecheck && pnpm test && pnpm lint:boundaries && pnpm size",
+    "check": "pnpm build && pnpm typecheck && pnpm test && pnpm lint:boundaries && pnpm lint:sf && pnpm errors:check && pnpm size",
     "sf": "node tooling/sf/dist/cli.js",
     "lint:sf": "node tooling/sf/dist/cli.js lint",
     "errors": "node tooling/sf/dist/cli.js errors",

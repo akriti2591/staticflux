@@ -117,8 +117,9 @@ export function broadcastChannelPort(
     },
     subscribe(listener) {
       const handler = (event: MessageEvent): void => listener(event.data);
-      channel.addEventListener('message', handler);
-      return () => channel.removeEventListener('message', handler);
+      const subscription = new AbortController();
+      channel.addEventListener('message', handler, { signal: subscription.signal });
+      return () => subscription.abort();
     },
     close() {
       channel.close();

@@ -453,8 +453,12 @@ export function createUserData(options: UserDataOptions): UserData {
                     resolve(true);
                     return;
                   }
-                  signal.addEventListener('abort', () => resolve(true), { once: true });
-                  void loading.then(() => resolve(false));
+                  const detach = new AbortController();
+                  signal.addEventListener('abort', () => resolve(true), { once: true, signal: detach.signal });
+                  void loading.then(() => {
+                    detach.abort();
+                    resolve(false);
+                  });
                 });
           if (aborted) return err(AbortedError({ cause: signal?.reason }));
         }

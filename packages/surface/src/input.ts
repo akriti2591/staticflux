@@ -174,10 +174,12 @@ export function createInputForwarder(options: InputForwarderOptions): InputForwa
   };
 
   const pointerTypes = Object.keys(POINTER_CODES);
-  for (const type of pointerTypes) target.addEventListener(type, onPointer);
-  target.addEventListener('wheel', onWheel, { passive: options.captureWheel !== true });
-  keyboardTarget.addEventListener('keydown', onKey);
-  keyboardTarget.addEventListener('keyup', onKey);
+  // Aborted in dispose() to remove every input listener.
+  const listeners = new AbortController();
+  for (const type of pointerTypes) target.addEventListener(type, onPointer, { signal: listeners.signal });
+  target.addEventListener('wheel', onWheel, { passive: options.captureWheel !== true, signal: listeners.signal });
+  keyboardTarget.addEventListener('keydown', onKey, { signal: listeners.signal });
+  keyboardTarget.addEventListener('keyup', onKey, { signal: listeners.signal });
 
   return {
     flush,
@@ -188,10 +190,7 @@ export function createInputForwarder(options: InputForwarderOptions): InputForwa
       if (disposed) return;
       flush();
       disposed = true;
-      for (const type of pointerTypes) target.removeEventListener(type, onPointer);
-      target.removeEventListener('wheel', onWheel);
-      keyboardTarget.removeEventListener('keydown', onKey);
-      keyboardTarget.removeEventListener('keyup', onKey);
+      listeners.abort();
       queue = [];
     },
   };

@@ -114,9 +114,10 @@ async function untilAborted(fn: () => Promise<void>, signal: AbortSignal): Promi
   if (signal.aborted) return err(toSfError(signal.reason ?? new DOMException('aborted', 'AbortError')));
   return new Promise<Result<void>>((resolve) => {
     const onAbort = (): void => resolve(err(toSfError(signal.reason ?? new DOMException('aborted', 'AbortError'))));
-    signal.addEventListener('abort', onAbort, { once: true });
+    const detach = new AbortController();
+    signal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
     void attemptAsync(fn).then((result) => {
-      signal.removeEventListener('abort', onAbort);
+      detach.abort();
       resolve(result);
     });
   });

@@ -151,14 +151,19 @@ export function createMockRemoteTransport(
           respond();
           return;
         }
-        const timer = setTimeout(respond, options.latencyMs);
+        // Aborted to detach the abort listener once the response is delivered.
+        const detach = new AbortController();
+        const timer = setTimeout(() => {
+          detach.abort();
+          respond();
+        }, options.latencyMs);
         signal.addEventListener(
           'abort',
           () => {
             clearTimeout(timer);
             resolve(err(AbortedError({ cause: signal.reason })));
           },
-          { once: true },
+          { once: true, signal: detach.signal },
         );
       });
     },

@@ -262,19 +262,21 @@ export function createSupervisor(options: SupervisorOptions = {}): Supervisor {
     if (isDown()) return Promise.resolve(false);
     if (!app.is('paused')) return Promise.resolve(true);
     return new Promise((resolve) => {
+      // Aborted to detach the abort listener once the app resumes or shuts down.
+      const detach = new AbortController();
       const onAbort = (): void => {
         pausedWaiters.delete(waiter);
         resolve(false);
       };
       const waiter = (resumed: boolean): void => {
-        signal?.removeEventListener('abort', onAbort);
+        detach.abort();
         resolve(resumed);
       };
       if (signal?.aborted === true) {
         resolve(false);
         return;
       }
-      signal?.addEventListener('abort', onAbort, { once: true });
+      signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
       pausedWaiters.add(waiter);
     });
   };

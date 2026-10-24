@@ -169,6 +169,8 @@ export function createBrowserAiProvider(options: BrowserAiProviderOptions = {}):
   const signalFor = (signal: AbortSignal | undefined): AbortSignal => anySignal(signal, lifetime.signal);
 
   const monitorFor = (tasks: readonly AiTask[], onProgress?: (fraction: number) => void) => (monitor: CreateMonitorLike) => {
+    // The monitor is created by the browser for one create() call and dropped with it; CreateMonitorLike takes no options.
+    // sf-lint-disable-next-line no-bare-listener -- listener lifetime equals the per-call monitor object
     monitor.addEventListener('downloadprogress', (event) => {
       const fraction = typeof event.total === 'number' && event.total > 1 ? event.loaded / event.total : event.loaded;
       for (const task of tasks) {

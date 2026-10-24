@@ -577,7 +577,12 @@ export function createSupervisedWorker<P extends AnyProtocol>(spec: WorkerSpec<P
     if (machine.is('draining', 'terminated')) return Promise.resolve(err(WorkerNotRunningError({ details: { worker: spec.id } })));
     if (signal?.aborted === true) return Promise.resolve(err(AbortedError({ cause: signal.reason })));
     const deferred = createDeferred<Result<void>>();
-    const waiter = (result: Result<void>): void => deferred.resolve(result);
+    // Aborted to detach the abort listener once the waiter is resolved.
+    const detach = new AbortController();
+    const waiter = (result: Result<void>): void => {
+      detach.abort();
+      deferred.resolve(result);
+    };
     readyWaiters.push(waiter);
     signal?.addEventListener(
       'abort',
@@ -585,7 +590,7 @@ export function createSupervisedWorker<P extends AnyProtocol>(spec: WorkerSpec<P
         readyWaiters = readyWaiters.filter((w) => w !== waiter);
         deferred.resolve(err(AbortedError({ cause: signal.reason })));
       },
-      { once: true },
+      { once: true, signal: detach.signal },
     );
     return deferred.promise;
   };
@@ -679,6 +684,8 @@ export function createSupervisedWorker<P extends AnyProtocol>(spec: WorkerSpec<P
       const signal = options.signal;
       if (signal?.aborted === true) return Promise.resolve(err(AbortedError({ cause: signal.reason })));
       const deferred = createDeferred<Result<unknown>>();
+      // Aborted to detach the abort listener once the request settles.
+      const detach = new AbortController();
       const onAbort = (): void => {
         const index = queue.indexOf(entry);
         if (index >= 0) {
@@ -696,11 +703,11 @@ export function createSupervisedWorker<P extends AnyProtocol>(spec: WorkerSpec<P
         resolve(result) {
           if (entry.settled) return;
           entry.settled = true;
-          signal?.removeEventListener('abort', onAbort);
+          detach.abort();
           deferred.resolve(result);
         },
       };
-      signal?.addEventListener('abort', onAbort, { once: true });
+      signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
       queue.push(entry);
       dispatch();
       return deferred.promise as Promise<Result<ResultOf<P, typeof name>>>;

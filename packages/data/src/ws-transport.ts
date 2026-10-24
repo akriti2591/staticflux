@@ -58,11 +58,13 @@ export function createWebSocketTransport(options: WebSocketTransportOptions): Tr
     if (factory === undefined) return err(TransportUnavailableError({ message: 'WebSocket is not available in this environment.' }));
     const created = factory(options.url);
     socket = created;
+    // sf-lint-disable-next-line no-bare-listener -- socket-lifetime listener on the transport-owned socket; WebSocketLike takes no options
     created.addEventListener('open', () => {
       const frames = outbox;
       outbox = [];
       for (const frame of frames) created.send(frame);
     });
+    // sf-lint-disable-next-line no-bare-listener -- socket-lifetime listener on the transport-owned socket; WebSocketLike takes no options
     created.addEventListener('message', (event) => {
       let frame: ServerFrame;
       try {
@@ -72,6 +74,7 @@ export function createWebSocketTransport(options: WebSocketTransportOptions): Tr
       }
       pending.get(frame.id)?.onFrame(frame);
     });
+    // sf-lint-disable-next-line no-bare-listener -- socket-lifetime listener on the transport-owned socket; WebSocketLike takes no options
     created.addEventListener('close', () => {
       if (socket === created) socket = undefined;
       outbox = [];
@@ -100,9 +103,11 @@ export function createWebSocketTransport(options: WebSocketTransportOptions): Tr
     const id = nextId;
     nextId += 1;
     return new Promise<Result<T>>((resolve) => {
+      // Aborted to detach the abort listener once the request settles or fails.
+      const detach = new AbortController();
       const settle = (result: Result<T>): void => {
         if (!pending.delete(id)) return;
-        signal.removeEventListener('abort', onAbort);
+        detach.abort();
         resolve(result);
       };
       const onAbort = (): void => {
@@ -110,12 +115,12 @@ export function createWebSocketTransport(options: WebSocketTransportOptions): Tr
         pending.delete(id);
         resolve(err(AbortedError({ cause: signal.reason })));
       };
-      signal.addEventListener('abort', onAbort, { once: true });
+      signal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
       pending.set(id, {
         endpoint: request.endpoint,
         onFrame: (frame) => handle(frame, settle),
         fail: (result) => {
-          signal.removeEventListener('abort', onAbort);
+          detach.abort();
           resolve(result);
         },
       });

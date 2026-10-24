@@ -52,10 +52,14 @@ function fromTarget(target: MessageTargetLike, extra: { start?: () => void; clos
     emitAll(listeners.error, toSfError(new Error('messageerror: message could not be deserialized')));
   };
   const onPeerClose = (): void => port.close();
+  // sf-lint-disable-next-line no-bare-listener -- port-lifetime listener removed in close(); MessageTargetLike takes no listener options
   target.addEventListener('message', onMessage);
+  // sf-lint-disable-next-line no-bare-listener -- port-lifetime listener removed in close(); MessageTargetLike takes no listener options
   target.addEventListener('messageerror', onMessageError);
   // MessagePort 'close' (newer Chromium) tells us the peer went away.
+  // sf-lint-disable-next-line no-bare-listener -- port-lifetime listener removed in close(); MessageTargetLike takes no listener options
   target.addEventListener('close', onPeerClose);
+  // sf-lint-disable-next-line no-bare-listener -- port-lifetime listener removed in close(); MessageTargetLike takes no listener options
   (extra.errorTarget ?? target).addEventListener('error', onError);
   extra.start?.();
   const port: Port = {

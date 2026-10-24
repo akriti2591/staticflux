@@ -52,7 +52,11 @@ export async function withViewTransition(
       throw error;
     }
   });
-  options.signal?.addEventListener('abort', () => transition.skipTransition?.(), { once: true });
+  // Skipping only matters while the transition runs; detach once it has finished either way.
+  const detach = new AbortController();
+  const detachListener = (): void => detach.abort();
+  void transition.finished.then(detachListener, detachListener);
+  options.signal?.addEventListener('abort', () => transition.skipTransition?.(), { once: true, signal: detach.signal });
   try {
     await transition.updateCallbackDone;
     if (options.waitForFinish === true) await transition.finished.catch(() => undefined);

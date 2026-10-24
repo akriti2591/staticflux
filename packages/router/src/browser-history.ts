@@ -201,7 +201,10 @@ export function createBrowserHistory(options: BrowserHistoryOptions): HistoryAda
     return `${url.pathname}${url.search}${url.hash}`;
   };
 
+  // Both listeners are removed in dispose(); the *Like target interfaces take no listener options.
+  // sf-lint-disable-next-line no-bare-listener -- adapter-lifetime listener, removed in dispose()
   win.addEventListener('popstate', onPop);
+  // sf-lint-disable-next-line no-bare-listener -- adapter-lifetime listener, removed in dispose()
   navigation?.addEventListener('navigate', onNavigate);
 
   const adapter: HistoryAdapter = {

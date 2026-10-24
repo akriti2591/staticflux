@@ -279,6 +279,8 @@ export function createLink(options: LinkOptions): Link {
       const timeoutMs = requestOptions.timeoutMs ?? defaultTimeoutMs;
       return new Promise<Result<unknown>>((resolve) => {
         let timer: unknown;
+        // Aborted to detach the abort listener once the request settles.
+        const detach = new AbortController();
         const cancel = (): void => {
           post(createEnvelope({ kind: 'cancel', channel, id, epoch, payload: null }));
         };
@@ -290,7 +292,7 @@ export function createLink(options: LinkOptions): Link {
           if (!pending.has(id)) return;
           pending.delete(id);
           clock.clearTimeout(timer);
-          signal?.removeEventListener('abort', onAbort);
+          detach.abort();
           if (result.ok) span.end('ok');
           else span.end(result.error.kind === 'aborted' ? 'cancelled' : 'error', result.error);
           resolve(result);
@@ -300,7 +302,7 @@ export function createLink(options: LinkOptions): Link {
           cancel();
           settle(err(RequestTimeoutError({ details: { channel, timeoutMs, link: name } })));
         }, timeoutMs);
-        signal?.addEventListener('abort', onAbort, { once: true });
+        signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
         post(
           createEnvelope({
             kind: 'request',

@@ -877,9 +877,11 @@ export function createRouter(options: RouterOptions): Result<Router> {
     if (disposed) return immediateFailure(RouterDisposedError(), request.redirects);
     sequence += 1;
     const run: Run = { id: sequence, request, control: createRunControl(hard.signal), done: createDeferred<void>(), finished: false };
+    // Aborted once the run is done, so a long-lived caller signal does not keep one listener per navigation.
+    const detachCaller = new AbortController();
     if (request.signal !== undefined) {
       if (request.signal.aborted) run.control.requestCancel('aborted');
-      else request.signal.addEventListener('abort', () => run.control.requestCancel('aborted'), { once: true });
+      else request.signal.addEventListener('abort', () => run.control.requestCancel('aborted'), { once: true, signal: detachCaller.signal });
     }
     const previous = active;
     active = run;
@@ -899,6 +901,7 @@ export function createRouter(options: RouterOptions): Result<Router> {
       }
     }
     run.finished = true;
+    detachCaller.abort();
     run.done.resolve();
     const latest = active === run;
 

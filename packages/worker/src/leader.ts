@@ -82,7 +82,8 @@ export function createLeaderElection(options: LeaderElectionOptions): LeaderElec
     for (const waiter of pending) waiter.resolve(err(AbortedError()));
   };
 
-  options.signal?.addEventListener('abort', resign, { once: true });
+  // resign() aborts `controller`, after which the caller's abort has nothing left to do.
+  options.signal?.addEventListener('abort', resign, { once: true, signal: controller.signal });
 
   if (locks === undefined) {
     set(true);
@@ -106,7 +107,14 @@ export function createLeaderElection(options: LeaderElectionOptions): LeaderElec
       if (leader.get()) return Promise.resolve(ok());
       if (resigned) return Promise.resolve(err(AbortedError()));
       const deferred = createDeferred<Result<void>>();
-      const waiter = { resolve: (r: Result<void>) => deferred.resolve(r) };
+      // Aborted to detach the abort listener once the waiter is resolved.
+      const detach = new AbortController();
+      const waiter = {
+        resolve: (r: Result<void>) => {
+          detach.abort();
+          deferred.resolve(r);
+        },
+      };
       waiters.push(waiter);
       signal?.addEventListener(
         'abort',
@@ -114,7 +122,7 @@ export function createLeaderElection(options: LeaderElectionOptions): LeaderElec
           waiters = waiters.filter((w) => w !== waiter);
           deferred.resolve(err(AbortedError({ cause: signal.reason })));
         },
-        { once: true },
+        { once: true, signal: detach.signal },
       );
       return deferred.promise;
     },

@@ -208,6 +208,13 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
   let loopScheduled = false;
   let idleScheduled = false;
   const updates = new Set<FrameJob>();
+  // Detaches the abort listeners of the jobs currently in `updates`; replaced whenever the set is drained.
+  let updatesDetach = new AbortController();
+  const clearUpdates = (): void => {
+    updates.clear();
+    updatesDetach.abort();
+    updatesDetach = new AbortController();
+  };
   let reads: QueuedTask[] = [];
   let writes: QueuedTask[] = [];
   const queues: Record<Priority, QueuedTask[]> = { interaction: [], critical: [], visible: [], idle: [] };
@@ -238,7 +245,7 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
     try {
       phase = 'update';
       const jobs = [...updates];
-      updates.clear();
+      clearUpdates();
       for (const job of jobs) {
         try {
           job();
@@ -277,9 +284,11 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
         settled = true;
         resolve(err(AbortedError({ cause: signal?.reason })));
       };
-      signal?.addEventListener('abort', onAbort, { once: true });
+      // Aborted to detach the abort listener once the job runs or is cancelled.
+      const detach = new AbortController();
+      signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
       const entry = (): void => {
-        signal?.removeEventListener('abort', onAbort);
+        detach.abort();
         if (settled) return;
         settled = true;
         try {
@@ -292,7 +301,7 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
       const queued: QueuedTask = {
         run: entry,
         cancel: (error) => {
-          signal?.removeEventListener('abort', onAbort);
+          detach.abort();
           if (settled) return;
           settled = true;
           resolve(err(error));
@@ -354,15 +363,17 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
     if (disposed) return Promise.resolve(err(SchedulerDisposedError()));
     if (!paused) return Promise.resolve(ok());
     return new Promise((resolve) => {
+      // Aborted to detach the abort listener once the scheduler resumes.
+      const detach = new AbortController();
       const onAbort = (): void => {
         resumeWaiters.delete(waiter);
         resolve(err(AbortedError({ cause: signal?.reason })));
       };
       const waiter = (): void => {
-        signal?.removeEventListener('abort', onAbort);
+        detach.abort();
         resolve(disposed ? err(SchedulerDisposedError()) : ok());
       };
-      signal?.addEventListener('abort', onAbort, { once: true });
+      signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
       resumeWaiters.add(waiter);
     });
   };
@@ -388,7 +399,7 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
     schedule(job, signal) {
       if (disposed || signal?.aborted === true) return;
       updates.add(job);
-      signal?.addEventListener('abort', () => updates.delete(job), { once: true });
+      signal?.addEventListener('abort', () => updates.delete(job), { once: true, signal: updatesDetach.signal });
       requestFrame();
     },
     measure: (read, signal) => enqueuePhase('measure', read, signal),
@@ -400,6 +411,8 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
       if (signal.aborted) return Promise.resolve(err(AbortedError({ cause: signal.reason })));
       return new Promise((resolve) => {
         const queue = queues[priority];
+        // Aborted to detach the abort listener once the task leaves the queue.
+        const detach = new AbortController();
         const onAbort = (): void => {
           const index = queue.indexOf(entry);
           if (index >= 0) queue.splice(index, 1);
@@ -407,7 +420,7 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
         };
         const entry: QueuedTask = {
           run: () => {
-            signal.removeEventListener('abort', onAbort);
+            detach.abort();
             try {
               const value = fn(signal);
               if (value instanceof Promise) {
@@ -421,11 +434,11 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
             }
           },
           cancel: (error) => {
-            signal.removeEventListener('abort', onAbort);
+            detach.abort();
             resolve(err(error));
           },
         };
-        signal.addEventListener('abort', onAbort, { once: true });
+        signal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
         queue.push(entry);
         scheduleLoop();
       });
@@ -442,7 +455,11 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
       let done = false;
       let value: T | undefined;
       const controller = new AbortController();
-      idleOptions.signal?.addEventListener('abort', () => controller.abort(idleOptions.signal?.reason), { once: true });
+      // Once `controller` is aborted, forwarding the caller's abort is a no-op.
+      idleOptions.signal?.addEventListener('abort', () => controller.abort(idleOptions.signal?.reason), {
+        once: true,
+        signal: controller.signal,
+      });
       const compute = (): T => {
         if (!done) {
           value = fn();
@@ -490,7 +507,7 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
       if (disposed) return;
       disposed = true;
       const error = SchedulerDisposedError();
-      updates.clear();
+      clearUpdates();
       for (const entry of [...reads, ...writes]) entry.cancel(error);
       reads = [];
       writes = [];

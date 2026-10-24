@@ -18,4 +18,6 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm lint:boundaries
+      - run: pnpm lint:sf
+      - run: pnpm errors:check
       - run: pnpm size

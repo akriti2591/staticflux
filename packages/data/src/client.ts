@@ -322,7 +322,8 @@ export function createDataClient(options: DataClientOptions = {}): DataClient {
         if (!gate.ok) return gate;
         const inner = new AbortController();
         const onOuterAbort = (): void => inner.abort(signal.reason);
-        signal.addEventListener('abort', onOuterAbort, { once: true });
+        const detach = new AbortController();
+        signal.addEventListener('abort', onOuterAbort, { once: true, signal: detach.signal });
         let failure: SfError | undefined;
         let chunks = 0;
         const transportRequest = buildRequest(endpoint, input, {
@@ -354,7 +355,7 @@ export function createDataClient(options: DataClientOptions = {}): DataClient {
           },
           inner.signal,
         );
-        signal.removeEventListener('abort', onOuterAbort);
+        detach.abort();
         started.span.set('chunks', chunks);
         if (failure !== undefined) return err(failure);
         if (signal.aborted && result.ok) return err(AbortedError({ cause: signal.reason }));

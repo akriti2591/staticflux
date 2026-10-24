@@ -324,7 +324,9 @@ function ringOver(
       const onAbort = (): void => {
         Atomics.notify(header, H_WRITE); // wake our own waiter
       };
-      signal?.addEventListener('abort', onAbort, { once: true });
+      // Aborted in `finally` to detach the abort listener when the wait ends.
+      const detach = new AbortController();
+      signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
       try {
         for (;;) {
           if (signal?.aborted === true) return abortedResult(signal);
@@ -338,7 +340,7 @@ function ringOver(
           if (value === 'timed-out' && pending() === 0 && !isClosed() && !aborted(signal)) return ok(false);
         }
       } finally {
-        signal?.removeEventListener('abort', onAbort);
+        detach.abort();
       }
     };
 
@@ -347,9 +349,11 @@ function ringOver(
         const signal = options.signal;
         const deadline = options.timeoutMs === undefined ? undefined : clock.now() + options.timeoutMs;
         let timer: unknown;
+        // Aborted to detach the abort listener once the wait finishes.
+        const detach = new AbortController();
         const finish = (result: Result<boolean>): void => {
           clock.clearTimeout(timer);
-          signal?.removeEventListener('abort', onAbort);
+          detach.abort();
           resolve(result);
         };
         const onAbort = (): void => finish(abortedResult(signal as AbortSignal));
@@ -360,7 +364,7 @@ function ringOver(
           if (deadline !== undefined && clock.now() >= deadline) return finish(ok(false));
           timer = clock.setTimeout(check, pollMs);
         };
-        signal?.addEventListener('abort', onAbort, { once: true });
+        signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
         check();
       });
 
@@ -838,10 +842,12 @@ function transferReader(
       return new Promise((resolve) => {
         const signal = waitOptions.signal;
         let timer: unknown;
+        // Aborted to detach the abort listener once the wait finishes.
+        const detach = new AbortController();
         const finish = (result: Result<boolean>): void => {
           waiters.delete(check);
           clock.clearTimeout(timer);
-          signal?.removeEventListener('abort', onAbort);
+          detach.abort();
           resolve(result);
         };
         const onAbort = (): void => finish(abortedResult(signal as AbortSignal));
@@ -851,7 +857,7 @@ function transferReader(
           if (closed) return finish(err(FrameChannelClosedError()));
         };
         waiters.add(check);
-        signal?.addEventListener('abort', onAbort, { once: true });
+        signal?.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
         if (waitOptions.timeoutMs !== undefined) timer = clock.setTimeout(() => finish(ok(false)), waitOptions.timeoutMs);
         check();
       });

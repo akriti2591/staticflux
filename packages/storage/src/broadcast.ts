@@ -54,6 +54,7 @@ export function createChangeBroadcast<V>(factory: BroadcastChannelFactory | unde
           emit({ type: data.type, key: data.key, origin: 'external' });
         }
       };
+      // sf-lint-disable-next-line no-bare-listener -- BroadcastChannelLike takes no listener options; the returned unsubscribe removes it
       target.addEventListener('message', onMessage);
       return () => target.removeEventListener('message', onMessage);
     },

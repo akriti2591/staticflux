@@ -558,14 +558,15 @@ export function createSurfaceManager(options: SurfaceManagerOptions = {}): Surfa
     }
 
     // Scope-bound lifetime (I-7): the owner's end force-dismisses the surface.
+    // `detach` removes both abort listeners when the entry is cleaned up.
+    const detach = new AbortController();
     const onScopeEnd = (): void => dismiss(entry as Entry, 'scope-ended', undefined);
-    owner.scope.signal.addEventListener('abort', onScopeEnd, { once: true });
-    entry.cleanups.push(() => owner.scope.signal.removeEventListener('abort', onScopeEnd));
+    owner.scope.signal.addEventListener('abort', onScopeEnd, { once: true, signal: detach.signal });
+    entry.cleanups.push(() => detach.abort());
     const signal = requestOptions.signal;
     if (signal !== undefined) {
       const onAbort = (): void => dismiss(entry as Entry, 'programmatic', undefined);
-      signal.addEventListener('abort', onAbort, { once: true });
-      entry.cleanups.push(() => signal.removeEventListener('abort', onAbort));
+      signal.addEventListener('abort', onAbort, { once: true, signal: detach.signal });
     }
 
     entries.set([...entries.get(), entry as Entry]);

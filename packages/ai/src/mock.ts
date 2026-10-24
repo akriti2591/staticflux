@@ -48,14 +48,19 @@ function delay(ms: number, signal: AbortSignal | undefined): Promise<Result<void
       resolve(err(AbortedError({ cause: signal.reason })));
       return;
     }
-    const timer = setTimeout(() => resolve(ok()), ms);
+    // Aborted to detach the abort listener once the timer wins.
+    const detach = new AbortController();
+    const timer = setTimeout(() => {
+      detach.abort();
+      resolve(ok());
+    }, ms);
     signal?.addEventListener(
       'abort',
       () => {
         clearTimeout(timer);
         resolve(err(AbortedError({ cause: signal.reason })));
       },
-      { once: true },
+      { once: true, signal: detach.signal },
     );
   });
 }
