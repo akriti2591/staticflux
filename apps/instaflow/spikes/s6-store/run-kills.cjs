@@ -111,6 +111,6 @@ const q = (xs, p) => { const s = [...xs].sort((a, b) => a - b); return s.length 
   };
   console.log(JSON.stringify(result, null, 2));
   fs.mkdirSync(path.join(__dirname, 'results'), { recursive: true });
-  fs.writeFileSync(path.join(__dirname, 'results', `kills-${BACKEND}${SLOW ? '-slowhead' : ''}.json`), JSON.stringify({ ...result, recoveriesDetail: recov }, null, 2));
+  fs.writeFileSync(path.join(__dirname, 'results', `kills-${BACKEND}${arg("tag", "")}.json`), JSON.stringify({ ...result, recoveriesDetail: recov }, null, 2));
   await browser.close(); srv.kill();
 })().catch((e) => { console.error(e); process.exit(1); });
