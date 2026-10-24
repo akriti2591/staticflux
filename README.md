@@ -177,3 +177,7 @@ The site deploys from `.github/workflows/pages.yml` on every push to `main` (and
 **One-time setup:** in the repository settings, open *Pages → Build and deployment → Source* and select
 **GitHub Actions**. The site is served at `https://akriti2591.github.io/staticflux/` (the Vite `base` is
 `/staticflux/`; change it in `site/src/build/site.ts` if the repository is renamed or a custom domain is used).
+
+## License
+
+[MIT](LICENSE) © akriti2591 and StaticFlux contributors.

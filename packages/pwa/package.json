@@ -2,6 +2,7 @@
   "name": "@staticflux/pwa",
   "version": "0.1.0",
   "description": "PWA: service-worker runtime (precache from the loader manifest), update flow, web app manifest, link capture, share targets, optional COOP/COEP service worker.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

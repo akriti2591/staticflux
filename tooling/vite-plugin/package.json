@@ -2,6 +2,7 @@
   "name": "@staticflux/vite-plugin",
   "version": "0.1.0",
   "description": "Vite plugin: logical chunk naming, sf-manifest emission, per-profile preloads, SW precache list, dev isolation headers, budget report.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

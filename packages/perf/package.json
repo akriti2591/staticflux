@@ -2,6 +2,7 @@
   "name": "@staticflux/perf",
   "version": "0.1.0",
   "description": "Journey tracing, feature marks, long-task/layout detectors, runtime budgets.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

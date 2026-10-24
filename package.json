@@ -30,5 +30,6 @@
     "size-limit": "14.3.0",
     "@size-limit/preset-small-lib": "14.3.0",
     "@types/node": "^22.0.0"
-  }
+  },
+  "license": "MIT"
 }

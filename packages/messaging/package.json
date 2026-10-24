@@ -2,6 +2,7 @@
   "name": "@staticflux/messaging",
   "version": "0.1.0",
   "description": "Surface manager: dialogs, sheets, popovers, tooltips, toasts, banners, coach marks.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

@@ -2,6 +2,7 @@
   "name": "@staticflux/gate",
   "version": "0.1.0",
   "description": "Facts, declarative policies compiled to decision tables, explainable decisions, meters.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

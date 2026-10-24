@@ -2,6 +2,7 @@
   "name": "@staticflux/devtools",
   "version": "0.1.0",
   "description": "Devtools on the telemetry fabric: boot waterfall, journeys, DI graph, lifecycle states, decision traces, store inspector, violations, verbosity controls.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

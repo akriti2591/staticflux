@@ -2,6 +2,7 @@
   "name": "@staticflux/wasm",
   "version": "0.1.0",
   "description": "Wasm modules as worker-scoped units and chunks; feature facts; memory views.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

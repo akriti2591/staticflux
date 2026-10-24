@@ -2,6 +2,7 @@
   "name": "@staticflux/surface",
   "version": "0.1.0",
   "description": "Render surfaces (Canvas2D/WebGL/WebGPU/HTML-in-Canvas), frame loop, OffscreenCanvas transfer, input forwarding.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

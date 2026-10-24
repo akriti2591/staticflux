@@ -2,6 +2,7 @@
   "name": "@staticflux/platform",
   "version": "0.1.0",
   "description": "Capability-based platform facts, host modes, form factors, app profile.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

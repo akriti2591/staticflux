@@ -2,6 +2,7 @@
   "name": "@staticflux/runtime",
   "version": "0.1.0",
   "description": "App supervisor, app & feature lifecycles, resource manager, frame scheduler.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

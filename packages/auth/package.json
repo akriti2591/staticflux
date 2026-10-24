@@ -2,6 +2,7 @@
   "name": "@staticflux/auth",
   "version": "0.1.0",
   "description": "Identity providers, session lifecycle, multi-tab sync, single-flight refresh, token broker.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

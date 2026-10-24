@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "StaticFlux documentation site (GitHub Pages), built with StaticFlux.",
+  "license": "MIT",
   "staticflux": {
     "layer": "app"
   },

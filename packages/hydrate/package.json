@@ -2,6 +2,7 @@
   "name": "@staticflux/hydrate",
   "version": "0.1.0",
   "description": "Hydration: islands over prerendered HTML (visible/idle/interaction) and store-snapshot rehydration for instant boot.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

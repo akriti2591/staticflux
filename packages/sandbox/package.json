@@ -2,6 +2,7 @@
   "name": "@staticflux/sandbox",
   "version": "0.1.0",
   "description": "Isolated hosting of untrusted plugins (iframe/worker) that can only call declared capabilities.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {
