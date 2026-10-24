@@ -20,6 +20,7 @@ import {
   marketingCaptureUnit,
   memoryHistoryUnit,
   rafSchedulerUnit,
+  UrlDeclarationRegistryToken,
   urlDeclarationRegistryUnit,
   urlDeclarationUnit,
   UrlSyncToken,
@@ -297,9 +298,10 @@ describe('urlstate DI units', () => {
   it('fails the registry unit on key collisions (SF-URL-002)', async () => {
     const Clash = defineIntent({ id: 'studio/tab', owner: 'studio', params: { tab: codec.enum(['comments']) } });
     const injector = createInjector({ units: [urlDeclarationUnit(Tab), urlDeclarationUnit(Clash), urlDeclarationRegistryUnit, memoryHistoryUnit(), schedulerUnit, urlSyncUnit] });
-    const r = await injector.get(UrlSyncToken);
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(JSON.stringify(r.error.toJSON()) + String((r.error.cause as { cause?: { code?: string } } | undefined)?.cause?.code ?? '')).toMatch(/SF-DI-003|SF-URL-002/);
+    const registry = await injector.get(UrlDeclarationRegistryToken);
+    expect(registry.ok).toBe(false);
+    if (!registry.ok) expect((registry.error.cause as { code?: string }).code).toBe('SF-URL-002');
+    expect((await injector.get(UrlSyncToken)).ok).toBe(false);
   });
 
   it('browser history and raf scheduler units resolve', async () => {

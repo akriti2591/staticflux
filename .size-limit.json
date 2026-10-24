@@ -87,5 +87,41 @@
       "yjs"
     ],
     "limit": "10 KB"
+  },
+  {
+    "name": "@staticflux/i18n (full)",
+    "path": "packages/i18n/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "7.5 KB"
+  },
+  {
+    "name": "@staticflux/a11y (full)",
+    "path": "packages/a11y/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "7.5 KB"
+  },
+  {
+    "name": "@staticflux/handoff (full)",
+    "path": "packages/handoff/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "6 KB"
+  },
+  {
+    "name": "@staticflux/urlstate (full)",
+    "path": "packages/urlstate/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "8 KB"
   }
 ]

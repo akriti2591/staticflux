@@ -1,0 +1,35 @@
+# @staticflux/a11y — AGENTS.md
+
+**Layer:** vertical (depends only on `@staticflux/core`).
+**Budget:** full surface ≤ 7 KB brotli (measured 6.6 KB minified, core external); loaded with the shell, not before.
+
+## Purpose
+Accessibility primitives the shell and messaging layer build on (REQUIREMENTS §15):
+focus management (route-change focus, stacked focus traps with restore, inert
+background), a debounced live-region announcer, a keyboard-shortcut registry with
+typed declarations, scopes and conflict detection, platform preference facts, and
+`aria-busy` helpers for placeholders.
+
+## Public API (by file)
+- `env.ts` — `A11yEnvironment` (`document`, `matchMedia`, `timers`, `isMac`), `browserA11yEnvironment()`, `defaultTimers`, `SF-A11Y-004` (no document).
+- `focus.ts` — `createFocusManager({ document, telemetry })` → `focusRouteTarget({ target? })`, `registerRouteTarget(el, scope?)`, `trap(container, { initialFocus, restoreFocus, inertBackground, onEscape, scope, label })`,
+  `activeTrap`, `trapCount`, `tabbables`; `tabbablesOf`, `KEEP_INTERACTIVE_ATTR`; machine `FocusTrapMachine` (`a11y/focus-trap`: active ⇄ paused → released); `SF-A11Y-001`.
+- `announcer.ts` — `createAnnouncer({ document, timers, debounceMs, clearAfterMs, container })` → `announce(msg, { politeness, dedupe })`, `flush`, `clear`, `text`, `dispose`; `LIVE_REGION_ATTR`.
+- `shortcuts.ts` — `defineShortcutScope(id, { parent })`, `GlobalShortcutScope`, `defineShortcut({ id, keys: KeyCombo[], scope, description, allowInInputs, preventDefault })`,
+  `createShortcutRegistry({ isMac })` → `register`, `activate`, `handle`, `attach`, `list`, `conflicts`, `label`, `activeScopes`;
+  `checkShortcuts(defs)` (CI), `parseCombo`, `comboId`, `eventComboId`, `comboLabel`, `RESERVED_COMBOS`; `SF-A11Y-002` conflict, `SF-A11Y-003` invalid combo.
+- `preferences.ts` — `createPreferenceFacts({ matchMedia, scope })` → reactive `reducedMotion`, `contrast`, `forcedColors`, `colorScheme`, `reducedTransparency`, `snapshot()`; `PREFERENCE_DEFAULTS`.
+- `busy.ts` — `markBusy(el, scope?)` (ref-counted), `bindBusy(el, () => boolean, scope?)`, `busyAttributes(busy)`, `busyCount`.
+- `units.ts` — tokens `A11yEnvironmentToken`, `FocusManagerToken`, `AnnouncerToken`, `ShortcutRegistryToken`, `PreferenceFactsToken`;
+  units `browserA11yEnvironmentUnit`, `a11yEnvironmentUnit(env)`, `focusManagerUnit`, `announcerUnit(options?)`, `shortcutRegistryUnit` (attaches to the document), `preferenceFactsUnit`.
+
+## Rules
+- Inject the environment; never read `document`/`matchMedia` globals inside services (embedded/worker hosts have none).
+- Inert background uses `inert`, falling back to `aria-hidden`; live regions and `[data-sf-keep-interactive]` (toasts) are never made inert.
+- Traps stack; only the top trap is active. Inertness is ref-counted so out-of-order release is safe.
+- Shortcut combos: modifiers in the order `Mod, Ctrl, Alt, Shift, Meta`; `Mod` = ⌘ on Apple, Ctrl elsewhere. Same combo in the same scope is an error; child-scope shadowing is a warning.
+- Never send announced text to telemetry (privacy) — only politeness and length.
+- Lifecycle machines above must stay mirrored in `docs/LIFECYCLES.md`.
+
+## Test
+`pnpm vitest run packages/a11y`

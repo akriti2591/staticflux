@@ -201,3 +201,8 @@ Every `SfError` carries: `code` (stable), `message` (one line), `units` involved
 | `platform/ai-probe` | unknown → probing → available \| downloadable \| downloading \| unavailable | `packages/platform/src` |
 | `platform/facts-source` | idle → listening → disposed | `packages/platform/src` |
 | `config/provider` | not-ready → ready ⇄ stale; ready → error → ready; any → fatal | `packages/config/src/resolver.ts` header |
+| `i18n/locale` | idle → loading → active; loading → failed (previous locale kept) | `packages/i18n/src` |
+| `i18n/catalog` | unloaded → loading → loaded \| failed | `packages/i18n/src` |
+| `a11y/focus-trap` | inactive → active → released (focus restored) | `packages/a11y/src` |
+| `handoff/entry` | absent → stored → taken \| expired | `packages/handoff/src` |
+| `urlstate/intent` | captured → held → authorized → delivered → stripped; captured → rejected | `packages/urlstate/src` |
