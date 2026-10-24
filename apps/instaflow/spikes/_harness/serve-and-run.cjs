@@ -42,7 +42,7 @@ if (flags.includes('--serve-only')) { console.log(`serving ${root} at ${url} (Ct
 
 (async () => {
   const { chromium } = require('playwright');
-  const swiftshader = ['--enable-unsafe-webgpu', '--enable-features=Vulkan', '--use-vulkan=swiftshader', '--use-webgpu-adapter=swiftshader', '--disable-vulkan-surface'];
+  const swiftshader = ['--enable-unsafe-webgpu', '--enable-features=Vulkan', '--use-vulkan=swiftshader', '--use-webgpu-adapter=swiftshader', '--disable-vulkan-surface', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
   const args = flags.includes('--real-gpu') ? ['--enable-unsafe-webgpu'] : swiftshader;
   const browser = await chromium.launch({ headless: !flags.includes('--headed'), args: [...args, '--js-flags=--expose-gc', '--enable-precise-memory-info'] });
   const context = await browser.newContext();
