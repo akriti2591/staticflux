@@ -309,6 +309,7 @@
 - **R18.3** Two independent mode axes, both reactive platform facts:
   - **host mode:** `web | pwa | embed-iframe | embed-agent-host | webview-ios | webview-android`
   - **form factor:** `compact | medium | expanded` (+ input: touch/pointer, orientation)
+- **R18.3a** Both axes are **open sets** extended via declaration merging. A host mode is a plugin bundle: detector (→ platform fact) + capability profile + optional host bridge + history strategy + shell preset. New modes (browser extension, Electron/Tauri, TV, …) need no core change; the listed modes are the initial built-ins.
 - **R18.4** Host mode × form factor → **app profile** → shell config, feature availability, bindings.
 - **R18.5** **Per-mode variants are separate features**, never `if/else` inside one feature. Features declare `modes`; routes bind to a capability, and the availability stage selects the feature matching the profile. Variants share logic (stores/services) via DI; only UI features differ.
 - **R18.6** Mode changes at runtime (rotate, fold, resize) swap variants without reload: UI unmounts, view state hands off, matching variant mounts, shared logic stays warm. Hysteresis prevents flapping.
