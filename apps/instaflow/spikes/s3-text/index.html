@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S3 Text Spike</title>
+<style>
+  @font-face { font-family: "Ref Noto Sans"; src: url(fonts/NotoSans.ttf); }
+  @font-face { font-family: "Ref Noto Sans Arabic"; src: url(fonts/NotoSansArabic.ttf); }
+  @font-face { font-family: "Ref Noto Sans Devanagari"; src: url(fonts/NotoSansDevanagari.ttf); }
+  @font-face { font-family: "Ref Noto Sans JP"; src: url(fonts/NotoSansJP.ttf); }
+  @font-face { font-family: "Ref Noto Sans KR"; src: url(fonts/NotoSansKR.ttf); }
+  @font-face { font-family: "Ref Noto Color Emoji"; src: url(fonts/NotoColorEmoji.ttf); }
+  :root { --bg: #fff; --fg: #1a1a1a; --muted: #666; --line: #ddd; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #fff; --fg: #1a1a1a; } }
+  body { background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; margin: 16px; }
+  h2 { font-size: 14px; margin: 16px 0 6px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  canvas { border: 1px solid var(--line); background: #fff; }
+  #editor:focus { outline: 2px solid #4a7cff; }
+  .ref { width: 480px; border: 1px solid var(--line); padding: 12px; box-sizing: border-box;
+         font-family: "Ref Noto Sans", "Ref Noto Sans Arabic", "Ref Noto Sans Devanagari", "Ref Noto Sans JP", "Ref Noto Sans KR", "Ref Noto Color Emoji"; font-size: 20px; line-height: normal; }
+  .ref p { margin: 0 0 8px; white-space: pre-wrap; }
+  pre { max-width: 100%; overflow: auto; background: #f6f6f6; padding: 8px; font-size: 11px; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<h2>EditContext editor (canvas, Parley layout in a worker) — click and type</h2>
+<div class="row">
+  <canvas id="editor" width="640" height="220" tabindex="0" style="width:640px;height:220px"></canvas>
+  <div class="muted" id="edstate" style="max-width:420px;white-space:pre-wrap"></div>
+</div>
+<h2>Specimen: Parley glyph outlines on canvas (left) vs Chrome DOM text with the same font files (right)</h2>
+<div class="row">
+  <canvas id="specimen" width="480" height="760" style="width:480px;height:760px"></canvas>
+  <div class="ref" id="ref"></div>
+</div>
+<h2>Local Font Access</h2>
+<button id="lfa">Load a local font via queryLocalFonts() (needs a click + permission)</button> <span id="lfaout" class="muted"></span>
+<h2>Results</h2>
+<pre id="out">running…</pre>
+<script type="module" src="web/main.mjs"></script>
+</body>
+</html>

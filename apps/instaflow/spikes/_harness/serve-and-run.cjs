@@ -50,7 +50,8 @@ if (flags.includes('--serve-only')) { console.log(`serving ${root} at ${url} (Ct
   pageHandle.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') console.error(`[page ${m.type()}] ${m.text()}`); });
   pageHandle.on('pageerror', (e) => console.error(`[page error] ${e.message}`));
   await pageHandle.goto(url);
-  const result = await pageHandle.waitForFunction(() => window.__result !== undefined, null, { timeout, polling: 250 }).then((h) => h.jsonValue());
+  await pageHandle.waitForFunction(() => window.__result !== undefined, null, { timeout, polling: 250 });
+  const result = await pageHandle.evaluate(() => window.__result);
   console.log(JSON.stringify(result, null, 2));
   await browser.close();
   server.close();
