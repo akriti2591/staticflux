@@ -39,5 +39,23 @@
       "@staticflux/core"
     ],
     "limit": "14.5 KB"
+  },
+  {
+    "name": "@staticflux/auth (full)",
+    "path": "packages/auth/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "11 KB"
+  },
+  {
+    "name": "@staticflux/gate (full)",
+    "path": "packages/gate/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "9 KB"
   }
 ]

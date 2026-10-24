@@ -71,7 +71,10 @@ export interface GateSnapshot {
 }
 
 export interface Gate {
-  /** Synchronous O(1) decision. Reactive: reading it inside an effect/derived tracks changes. */
+  /**
+   * Synchronous O(1) decision. Reactive: reading it inside an effect/derived tracks changes.
+   * UX ONLY — `allow` is not authorization; the server re-checks (R6.16).
+   */
   decide(level: GateLevel, resourceId: string, action?: GateAction, options?: DecideOptions): Decision;
   check(resource: GateResource, action?: GateAction, options?: DecideOptions): Decision;
   isAllowed(level: GateLevel, resourceId: string, action?: GateAction, options?: DecideOptions): boolean;

@@ -162,6 +162,7 @@ session end → flushed → cleared(policy)
 
 ```
 estimating → reserved → committed | released | expired
+estimating → released (cancelled before the server answered)
 reserve → denied(quota | rate)
 ```
 

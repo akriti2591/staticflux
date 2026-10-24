@@ -9,7 +9,7 @@
  *
  * Client gating is UX, not security (R6.16).
  */
-import { bind, token, unit } from '@staticflux/core';
+import { contribution, token, unit } from '@staticflux/core';
 import { type Gate, GateMetrics, createGate } from './engine.js';
 import { type FactSource, type GateClock, systemGateClock } from './facts.js';
 import { type MeterBackend, type MeterDef, MeterMetrics, type MeterRegistry, createMeterRegistry, localMeterBackend } from './meters.js';
@@ -69,25 +69,24 @@ export function createGateUnit(config: { readonly unmatched?: 'allow' | 'deny' }
 
 export const gateUnit = createGateUnit();
 
-/** One-line opt-in: clock + default (local) meter backend + meter registry + gate. */
-export const gateUnits = [
-  bind(systemGateClockUnit, { precedence: 'default' }),
-  bind(localMeterBackendUnit, { precedence: 'default' }),
-  meterRegistryUnit,
-  gateUnit,
-] as const;
+/**
+ * One-line opt-in: clock + default (local) meter backend + meter registry + gate.
+ * Override the backend/clock by registering your unit after these, or with
+ * `bind(unit, { precedence: 'app' })`.
+ */
+export const gateUnits = [systemGateClockUnit, localMeterBackendUnit, meterRegistryUnit, gateUnit] as const;
 
 /** Contribute a policy set (multi token). */
 export function policySetUnit(id: `${string}/${string}`, set: PolicySet) {
-  return unit({ id, provides: PolicySetsToken, scope: 'app', create: () => set as never });
+  return contribution({ id, provides: PolicySetsToken, scope: 'app', create: () => set });
 }
 
 /** Contribute a fact source (multi token). */
 export function factSourceUnit(id: `${string}/${string}`, create: () => FactSource) {
-  return unit({ id, provides: FactSourcesToken, scope: 'app', create: () => create() as never });
+  return contribution({ id, provides: FactSourcesToken, scope: 'app', create: () => create() });
 }
 
 /** Contribute a meter definition (multi token). */
 export function meterDefinitionUnit(id: `${string}/${string}`, meter: MeterDef) {
-  return unit({ id, provides: MeterDefinitionsToken, scope: 'app', create: () => meter as never });
+  return contribution({ id, provides: MeterDefinitionsToken, scope: 'app', create: () => meter });
 }
