@@ -17,6 +17,7 @@ import {
   MeterReserveEndpoint,
   type ReplyChunk,
   RemoteFlagsEndpoint,
+  UpgradePlanEndpoint,
   UserBatchProfilesEndpoint,
 } from '../app/endpoints.js';
 import type { MockServer } from './server.js';
@@ -100,6 +101,12 @@ export function configureMockRoutes(mock: MockTransport, server: MockServer): Mo
       if (reservation === undefined || user === undefined) return mockStatus(404, {});
       reservation.state = 'released';
       return { balance: user.credits };
+    })
+    .route(UpgradePlanEndpoint, ({ plan }) => {
+      const user = requireUser();
+      if (user === undefined) return mockStatus(401, {});
+      server.upgrade(user.id, plan);
+      return { credits: user.credits, plan: user.plan };
     })
     .route(RemoteFlagsEndpoint, () => ({ ...server.state.flags }))
     .route(ExportPdfEndpoint, ({ id }) => ({ url: `blob:studio/export/${id}.pdf` }));

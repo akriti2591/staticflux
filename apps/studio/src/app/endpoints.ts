@@ -111,6 +111,14 @@ export const MeterReleaseEndpoint = defineEndpoint({
   response: s.object({ balance: s.number() }),
 });
 
+export const UpgradePlanEndpoint = defineEndpoint({
+  id: 'billing/upgrade',
+  method: 'POST',
+  path: () => '/billing/upgrade',
+  body: (input: { readonly plan: 'pro' }) => input,
+  response: BalanceSchema,
+});
+
 export const RemoteFlagsEndpoint = defineEndpoint({
   id: 'config/remote-flags',
   path: () => '/flags',

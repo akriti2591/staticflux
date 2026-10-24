@@ -32,8 +32,8 @@ const JSON_ESCAPES: Readonly<Record<string, string>> = {
   '<': '\\u003c',
   '>': '\\u003e',
   '&': '\\u0026',
-  ' ': '\\u2028',
-  ' ': '\\u2029',
+  '\u2028': '\\u2028',
+  '\u2029': '\\u2029',
 };
 
 const HTML_ATTR_ESCAPES: Readonly<Record<string, string>> = {
@@ -51,7 +51,7 @@ export function escapeHtmlAttribute(value: string): string {
 
 /** Make JSON text safe to embed in HTML (script body or attribute): no `<`, `>`, `&`, U+2028/9 left. */
 export function escapeJsonForHtml(json: string): string {
-  return json.replace(/[<>&  ]/g, (c) => JSON_ESCAPES[c] ?? c);
+  return json.replace(/[<>&\u2028\u2029]/g, (c) => JSON_ESCAPES[c] ?? c);
 }
 
 function checkPlain(value: unknown, path: string, seen: Set<object>): string | undefined {
