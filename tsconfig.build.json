@@ -81,6 +81,9 @@
     },
     {
       "path": "packages/surface"
+    },
+    {
+      "path": "packages/storage"
     }
   ]
 }

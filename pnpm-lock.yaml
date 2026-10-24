@@ -77,6 +77,9 @@ importers:
       '@staticflux/core':
         specifier: workspace:*
         version: link:../core
+      '@staticflux/storage':
+        specifier: workspace:*
+        version: link:../storage
 
   packages/document:
     dependencies:
@@ -101,6 +104,9 @@ importers:
       '@staticflux/core':
         specifier: workspace:*
         version: link:../core
+      '@staticflux/storage':
+        specifier: workspace:*
+        version: link:../storage
 
   packages/i18n:
     dependencies:
@@ -152,6 +158,9 @@ importers:
       '@staticflux/core':
         specifier: workspace:*
         version: link:../core
+      '@staticflux/storage':
+        specifier: workspace:*
+        version: link:../storage
 
   packages/shell:
     dependencies:
@@ -167,6 +176,12 @@ importers:
       lit:
         specifier: 3.3.3
         version: 3.3.3
+
+  packages/storage:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/surface:
     dependencies:

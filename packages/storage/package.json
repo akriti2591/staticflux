@@ -1,0 +1,22 @@
+{
+  "name": "@staticflux/storage",
+  "version": "0.1.0",
+  "description": "One async key-value interface over any backend (memory, web storage, cookies, IndexedDB, OPFS, remote) with composable middleware.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*"
+  }
+}

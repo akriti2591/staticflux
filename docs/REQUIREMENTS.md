@@ -167,6 +167,12 @@
 - **R9.6** UI stores are distinct from domain/client services; both are DI units.
 - **R9.7** Mock backends in the example app follow the same contracts.
 
+### 9.0 Storage (one async interface, any backend)
+- **R9.0a** `@staticflux/storage`: a single **async** key-value interface — `get`, `set`, `delete`, `has`, `clear`, `seek` (prefix/range async iteration), `batch` (atomic where supported), `watch` (change events incl. cross-tab) — all returning `Promise<Result<…>>` with typed errors (quota, unavailable, corrupt). **No synchronous storage APIs anywhere in the framework**, so any layer can be swapped later.
+- **R9.0b** Adapters: memory, localStorage, sessionStorage, cookies, IndexedDB, OPFS, remote/cloud (port). Feature-detected; fallback reported.
+- **R9.0c** Composable middleware returning the same interface: namespace, TTL, codec (JSON / versioned envelope / binary), encryption (WebCrypto), budget/quota, telemetry, tiered (local cache ⇄ remote; write-through or write-back).
+- **R9.0d** Framework consumers (user-data slices, handoff, feature archive, advisor history) accept this interface instead of private storage ports.
+
 ### 9.1 Persistent user data
 - **R9.8** A user-data document with **typed per-feature slices** (key, schema, version, migrations, default). Features never collide and never read each other's slices directly.
 - **R9.9** Slice scopes: `device | user | workspace | session`. Pluggable backends: memory → IndexedDB → remote sync contract (mocked). Offline-first, batched writes, per-slice conflict policy (LWW default or merge fn).

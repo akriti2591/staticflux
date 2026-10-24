@@ -17,6 +17,7 @@
     "layer": "runtime"
   },
   "dependencies": {
-    "@staticflux/core": "workspace:*"
+    "@staticflux/core": "workspace:*",
+    "@staticflux/storage": "workspace:*"
   }
 }
