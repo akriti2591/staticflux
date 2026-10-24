@@ -8,6 +8,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./detect-mode": {
+      "types": "./dist/detect-mode.d.ts",
+      "import": "./dist/detect-mode.js"
     }
   },
   "files": [
