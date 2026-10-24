@@ -84,6 +84,21 @@
     },
     {
       "path": "packages/storage"
+    },
+    {
+      "path": "packages/pwa"
+    },
+    {
+      "path": "packages/hydrate"
+    },
+    {
+      "path": "packages/sandbox"
+    },
+    {
+      "path": "tooling/vite-plugin"
+    },
+    {
+      "path": "tooling/rspack-plugin"
     }
   ]
 }

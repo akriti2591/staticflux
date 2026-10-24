@@ -1,0 +1,26 @@
+{
+  "name": "@staticflux/vite-plugin",
+  "version": "0.1.0",
+  "description": "Vite plugin: logical chunk naming, sf-manifest emission, per-profile preloads, SW precache list, dev isolation headers, budget report.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "tooling"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*",
+    "@staticflux/loader": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "8.3.5"
+  }
+}

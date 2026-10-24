@@ -208,6 +208,21 @@ importers:
         specifier: workspace:*
         version: link:../storage
 
+  packages/hydrate:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/data':
+        specifier: workspace:*
+        version: link:../data
+      '@staticflux/loader':
+        specifier: workspace:*
+        version: link:../loader
+      '@staticflux/storage':
+        specifier: workspace:*
+        version: link:../storage
+
   packages/i18n:
     dependencies:
       '@staticflux/core':
@@ -244,6 +259,18 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/pwa:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/loader':
+        specifier: workspace:*
+        version: link:../loader
+      '@staticflux/storage':
+        specifier: workspace:*
+        version: link:../storage
+
   packages/router:
     dependencies:
       '@staticflux/core':
@@ -261,6 +288,18 @@ importers:
       '@staticflux/storage':
         specifier: workspace:*
         version: link:../storage
+
+  packages/sandbox:
+    dependencies:
+      '@staticflux/capabilities':
+        specifier: workspace:*
+        version: link:../capabilities
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/worker':
+        specifier: workspace:*
+        version: link:../worker
 
   packages/shell:
     dependencies:
@@ -370,6 +409,15 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  tooling/rspack-plugin:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@staticflux/loader':
+        specifier: workspace:*
+        version: link:../../packages/loader
+
   tooling/sf:
     dependencies:
       '@staticflux/core':
@@ -378,6 +426,19 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
+
+  tooling/vite-plugin:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@staticflux/loader':
+        specifier: workspace:*
+        version: link:../../packages/loader
+    devDependencies:
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(@types/node@22.20.5)
 
 packages:
 

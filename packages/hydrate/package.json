@@ -1,0 +1,25 @@
+{
+  "name": "@staticflux/hydrate",
+  "version": "0.1.0",
+  "description": "Hydration: islands over prerendered HTML (visible/idle/interaction) and store-snapshot rehydration for instant boot.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*",
+    "@staticflux/loader": "workspace:*",
+    "@staticflux/data": "workspace:*",
+    "@staticflux/storage": "workspace:*"
+  }
+}
