@@ -1,0 +1,22 @@
+{
+  "name": "@staticflux/webmcp",
+  "version": "0.1.0",
+  "description": "Publishes capabilities as WebMCP tools through gating and confirmation.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*"
+  }
+}

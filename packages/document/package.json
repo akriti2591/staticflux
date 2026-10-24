@@ -1,0 +1,24 @@
+{
+  "name": "@staticflux/document",
+  "version": "0.1.0",
+  "description": "ECS document model, DocumentCRDT interface, projections.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*",
+    "@staticflux/worker": "workspace:*",
+    "yjs": "13.6.33"
+  }
+}

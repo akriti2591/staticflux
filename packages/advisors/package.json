@@ -1,0 +1,22 @@
+{
+  "name": "@staticflux/advisors",
+  "version": "0.1.0",
+  "description": "Decision points and pluggable advisors (heuristic, statistical, model, remote).",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*"
+  }
+}

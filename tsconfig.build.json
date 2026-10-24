@@ -1,4 +1,77 @@
 {
   "files": [],
-  "references": [{ "path": "packages/core" }]
+  "references": [
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/runtime"
+    },
+    {
+      "path": "packages/platform"
+    },
+    {
+      "path": "packages/config"
+    },
+    {
+      "path": "packages/auth"
+    },
+    {
+      "path": "packages/gate"
+    },
+    {
+      "path": "packages/data"
+    },
+    {
+      "path": "packages/worker"
+    },
+    {
+      "path": "packages/document"
+    },
+    {
+      "path": "packages/i18n"
+    },
+    {
+      "path": "packages/a11y"
+    },
+    {
+      "path": "packages/handoff"
+    },
+    {
+      "path": "packages/urlstate"
+    },
+    {
+      "path": "packages/router"
+    },
+    {
+      "path": "packages/loader"
+    },
+    {
+      "path": "packages/perf"
+    },
+    {
+      "path": "packages/advisors"
+    },
+    {
+      "path": "packages/ai"
+    },
+    {
+      "path": "packages/webmcp"
+    },
+    {
+      "path": "packages/ui"
+    },
+    {
+      "path": "packages/messaging"
+    },
+    {
+      "path": "packages/shell"
+    },
+    {
+      "path": "packages/testkit"
+    },
+    {
+      "path": "tooling/sf"
+    }
+  ]
 }

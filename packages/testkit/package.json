@@ -1,0 +1,22 @@
+{
+  "name": "@staticflux/testkit",
+  "version": "0.1.0",
+  "description": "Test injector, fakes (clock, transport, session, platform, worker bridge), contract suites.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*"
+  }
+}

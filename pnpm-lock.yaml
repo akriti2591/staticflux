@@ -30,11 +30,185 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(@types/node@22.20.5)(happy-dom@21.0.4)(vite@8.3.5(@types/node@22.20.5))
 
+  packages/a11y:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/advisors:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/ai:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/auth:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/config:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/core:
     dependencies:
       mobx:
         specifier: 7.1.0
         version: 7.1.0
+
+  packages/data:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/document:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/worker':
+        specifier: workspace:*
+        version: link:../worker
+      yjs:
+        specifier: 13.6.33
+        version: 13.6.33
+
+  packages/gate:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/handoff:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/i18n:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/loader:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/messaging:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/ui':
+        specifier: workspace:*
+        version: link:../ui
+      lit:
+        specifier: 3.3.3
+        version: 3.3.3
+
+  packages/perf:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/platform:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/router:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+
+  packages/runtime:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/shell:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/messaging':
+        specifier: workspace:*
+        version: link:../messaging
+      '@staticflux/ui':
+        specifier: workspace:*
+        version: link:../ui
+      lit:
+        specifier: 3.3.3
+        version: 3.3.3
+
+  packages/testkit:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/ui:
+    dependencies:
+      '@lit/context':
+        specifier: 1.1.6
+        version: 1.1.6
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      lit:
+        specifier: 3.3.3
+        version: 3.3.3
+
+  packages/urlstate:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/webmcp:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/worker:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+
+  tooling/sf:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
 packages:
 
@@ -47,6 +221,15 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@lit-labs/ssr-dom-shim@1.6.0':
+    resolution: {integrity: sha512-VHb0ALPMTlgKjM6yIxxoQNnpKyUKLD04VzeQdsiXkMqkvYlAHxq9glGLmgbb889/1GsohSOAjvQYoiBppXFqrQ==}
+
+  '@lit/context@1.1.6':
+    resolution: {integrity: sha512-M26qDE6UkQbZA2mQ3RjJ3Gzd8TxP+/0obMgE5HfkfLhEEyYE3Bui4A5XHiGPjy0MUGAyxB3QgVuw2ciS0kHn6A==}
+
+  '@lit/reactive-element@2.1.2':
+    resolution: {integrity: sha512-pbCDiVMnne1lYUIaYNN5wrwQXDtHaYtg7YEFPeW+hws6U47WeFvISGUWekPGKWOP1ygrs0ef0o1VJMk1exos5A==}
 
   '@oxc-project/types@0.155.0':
     resolution: {integrity: sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q==}
@@ -172,6 +355,9 @@ packages:
 
   '@types/node@22.20.5':
     resolution: {integrity: sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==}
+
+  '@types/trusted-types@2.0.7':
+    resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
   '@types/whatwg-mimetype@3.0.2':
     resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
@@ -336,6 +522,9 @@ packages:
     resolution: {integrity: sha512-lJJV/5dYS+RcL8uQdBDW9c9uWFLLBNRyFhnAKXw5tVqLlKZ4RMGZKv+YQ/IA3OhD+RpbJa1LLFM1FQPGyIXvOA==}
     engines: {node: '>=12'}
 
+  isomorphic.js@0.2.5:
+    resolution: {integrity: sha512-PIeMbHqMt4DnUP3MA/Flc0HElYjMXArsw1qwJZcm9sqR8mq3l8NYizFMty0pWwE/tzIGH3EKK5+jes5mAr85yw==}
+
   json5@2.2.3:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
@@ -344,6 +533,11 @@ packages:
   kleur@3.0.3:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
+
+  lib0@0.2.119:
+    resolution: {integrity: sha512-vh+TiejVy8Xm+hCdnRfn9BthGNvNUZdEXltNjVZL3TzRIKP3s1lnQh8pWd/Q0wCgY0FPAGVVjFF4ZiHUV3LFgA==}
+    engines: {node: '>=16'}
+    hasBin: true
 
   lightningcss-android-arm64@1.33.0:
     resolution: {integrity: sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==}
@@ -418,6 +612,15 @@ packages:
   lilconfig@3.1.4:
     resolution: {integrity: sha512-zJZyBmQhArDRefuWTypZxwDpFDIYmrj8ypSBvwGD5P13Y95s6DjzKgu4DVdGbeQa5PDEsAOCAPNk4X+QOR006w==}
     engines: {node: '>=14'}
+
+  lit-element@4.2.2:
+    resolution: {integrity: sha512-aFKhNToWxoyhkNDmWZwEva2SlQia+jfG0fjIWV//YeTaWrVnOxD89dPKfigCUspXFmjzOEUQpOkejH5Ly6sG0w==}
+
+  lit-html@3.3.3:
+    resolution: {integrity: sha512-el8M6jK2o3RXBnrSHX3ZKrsN8zEV63pSExTO1wYJz7QndGYZ8353e2a5PPX+qHe2aGayfnchQmkAojaWAREOIA==}
+
+  lit@3.3.3:
+    resolution: {integrity: sha512-fycuvZg/hkpozL00lm1pEJH5nN/lr9ZXd6mJI2HSN4+Bzc+LDNdEApJ6HFbPkdFNHLvOplIIuJvxkS4XUxqirw==}
 
   magic-string@1.4.3:
     resolution: {integrity: sha512-z12OxmaPGE0F4xlpGdjuAUckipLpQlTAuAmyGhNoD7ODpYUzvDfvtxUbjM/jwznyP178oju/KDdyi220wNJ0RQ==}
@@ -653,6 +856,10 @@ packages:
       utf-8-validate:
         optional: true
 
+  yjs@13.6.33:
+    resolution: {integrity: sha512-q/UYvr1gOk4XII+Cu1CW2dINjYqJJFifTzogEaIARznrvX7uOlHsdTEXcnOBMuIsrCGEEKdNxi74kyMLZlKVfw==}
+    engines: {node: '>=16.0.0', npm: '>=8.0.0'}
+
 snapshots:
 
   '@jridgewell/resolve-uri@3.1.2': {}
@@ -663,6 +870,16 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  '@lit-labs/ssr-dom-shim@1.6.0': {}
+
+  '@lit/context@1.1.6':
+    dependencies:
+      '@lit/reactive-element': 2.1.2
+
+  '@lit/reactive-element@2.1.2':
+    dependencies:
+      '@lit-labs/ssr-dom-shim': 1.6.0
 
   '@oxc-project/types@0.155.0': {}
 
@@ -740,6 +957,8 @@ snapshots:
   '@types/node@22.20.5':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/trusted-types@2.0.7': {}
 
   '@types/whatwg-mimetype@3.0.2': {}
 
@@ -890,9 +1109,15 @@ snapshots:
 
   is-path-inside@4.0.0: {}
 
+  isomorphic.js@0.2.5: {}
+
   json5@2.2.3: {}
 
   kleur@3.0.3: {}
+
+  lib0@0.2.119:
+    dependencies:
+      isomorphic.js: 0.2.5
 
   lightningcss-android-arm64@1.33.0:
     optional: true
@@ -944,6 +1169,22 @@ snapshots:
       lightningcss-win32-x64-msvc: 1.33.0
 
   lilconfig@3.1.4: {}
+
+  lit-element@4.2.2:
+    dependencies:
+      '@lit-labs/ssr-dom-shim': 1.6.0
+      '@lit/reactive-element': 2.1.2
+      lit-html: 3.3.3
+
+  lit-html@3.3.3:
+    dependencies:
+      '@types/trusted-types': 2.0.7
+
+  lit@3.3.3:
+    dependencies:
+      '@lit/reactive-element': 2.1.2
+      lit-element: 4.2.2
+      lit-html: 3.3.3
 
   magic-string@1.4.3:
     dependencies:
@@ -1105,3 +1346,7 @@ snapshots:
   why-is-node-running@3.2.1: {}
 
   ws@8.22.0: {}
+
+  yjs@13.6.33:
+    dependencies:
+      lib0: 0.2.119

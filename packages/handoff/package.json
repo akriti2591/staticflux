@@ -1,0 +1,22 @@
+{
+  "name": "@staticflux/handoff",
+  "version": "0.1.0",
+  "description": "Boundary-surviving state with lifetimes; shared snapshot format.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*"
+  }
+}
