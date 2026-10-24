@@ -1,12 +1,50 @@
 # S1 (Render) + S7 (Export parity): result
 
-**Verdict: proceed with Vello GPU. The perf criteria need an owner-machine run.** The Vello WebGPU path works end to end: a
+**Verdict: proceed with Vello GPU. The perf criteria PASS on the owner's machine (see "Owner-machine run" below); one new
+M1 item: cold first frame ≈ 1 s.** The Vello WebGPU path works end to end: a
 `vello_gpu` 0.3.0 + `wgpu` 30.0.1 module runs in a dedicated worker on a transferred OffscreenCanvas, with 512 px tiles per
 √2 zoom level, a lifted layer and our own WGSL compositor. It renders pixel-equivalent to `vello_cpu` (SSIM ≥ 0.9995 on
 every frame and every corpus scene). The two exports (SVG and PDF via krilla) carry the same content. Real text in the PDF
 works. Every timing below comes from **SwiftShader (CPU WebGPU) under contention from other spikes, so it is not a GPU
 number.** The CPU-side numbers (Vello strip preparation in Wasm) *are* meaningful, and they drive two of the M1
 recommendations. No fallback was needed. CanvasKit plan B is weaker than research/03 assumed (see Surprises).
+
+## Owner-machine run (2026-10-24, Chrome 155, Apple Metal-3 GPU, `isFallback: false`, `frames=120&variant=gpu_simd`)
+
+Frame time in ms (submit → `onSubmittedWorkDone`). Budget is 8.3 ms (120 Hz).
+
+| Sequence | median | p95 | max |
+|---|---|---|---|
+| pan_full z1 | 3.27 | 3.44 | 3.51 |
+| pan_tiled z1 | 0.42 | 0.58 | 3.78 |
+| pan_full z0.25 | 12.38 | **17.77** | 18.92 |
+| pan_tiled z0.25 | 0.39 | 0.49 | 0.60 |
+| zoom_tiled_continuous | 0.42 | 7.13 | 12.41 |
+| zoom_full_continuous | 4.79 | **15.50** | 17.79 |
+| drag100_full | 3.21 | 3.64 | 7.03 |
+| drag100_tiled_cached | 0.41 | 0.85 | 2.41 |
+| drag100_tiled_reraster | 1.40 | 1.71 | 2.42 |
+
+| Criterion | Result |
+|---|---|
+| Pan/zoom p95 ≤ 8.3 ms | **PASS** on the tiled path (pan 0.49–0.58, continuous zoom 7.13). Full redraw fails at z0.25 (17.8), confirming tiles are required. |
+| Drag 100 p95 ≤ 8.3 ms | **PASS** (0.85 cached layer, 1.71 re-raster) |
+| Time to sharp ≤ 250 ms | **PASS**: 40 ms worst (zoom step at z0.25), 4.4 ms at z2; lift/drop re-sharpen 4.2 / 7.7 ms |
+| Memory ≤ 512 MiB | **PASS**: ≈194 MB page, 27 MB Wasm, ≈68 MB peak tile cache |
+| Quality | Same as SwiftShader: GPU vs CPU ≥ 0.99992; corpus min 0.99955; tiled vs full 1.0 |
+| SVG export parity | Still FAIL on the threshold: median 0.9945, 27/200 below 0.99 in Chrome's SVG rasterizer |
+
+Caveats and new findings:
+- This is a fast Apple GPU; the plan's reference machine is a mid-range iGPU laptop. The tiled path has ≥ 10× headroom, so
+  a pass there is likely, but continuous zoom (p95 7.13, max 12.41) is the tight spot.
+- Continuous zoom: 8 of 120 frames had missing tiles and spent up to ≈11 ms rastering tiles on the CPU in-frame. Confirms
+  the recommendation to move tile preparation off the frame (helper worker / idle) and show the scaled previous level
+  meanwhile.
+- **Cold first frame ≈ 1,017 ms** (engine creation only 9 ms). Almost certainly pipeline/shader compilation on the first
+  render. M1 must hide it: warm up pipelines during boot in parallel with document load, and show a cached snapshot or a
+  `vello_cpu` frame until the GPU path is ready. Add "first sharp frame" to the M1 budgets.
+- An Edge run on the same machine showed p95 spikes up to 74 ms; the Chrome run did not reproduce them, so they are
+  attributed to that browser session. The Chrome run is the reference.
 
 ## What was built (`rust/`, `web/`, `scripts/`)
 - **`ir`**: one deterministic scene IR. It holds a 6000×6000 page with **10,000 elements**: rects, rounded rects,
