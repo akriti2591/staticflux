@@ -15,7 +15,9 @@ import { formatError, type ModuleImporter, readJson } from './files.js';
 import { checkGraph, formatGraphDot, formatGraphJson, formatGraphText, loadGraphModule } from './graph.js';
 import { formatLintText, LINT_RULES, type LintConfig, type LintRule, lintPaths } from './lint.js';
 import { checkManifest, formatManifestText } from './manifest-check.js';
+import { discoverPackages, publishPackages, type Runner } from './publish.js';
 import { checkRoutes, formatRoutesJson, formatRoutesText, loadRoutesModule } from './routes.js';
+import { spawn } from 'node:child_process';
 
 export interface CliIo {
   readonly cwd: string;
@@ -31,7 +33,7 @@ export interface ParsedArgs {
 }
 
 /** Flags that take a value (`--out x` or `--out=x`); every other `--flag` is boolean. */
-const VALUE_FLAGS = new Set(['out', 'rules', 'flag-names', 'config', 'results', 'threshold', 'headroom', 'packages', 'size-limit', 'max-fan-out', 'max-fan-in', 'external', 'max-eager-kb', 'max-boot-kb', 'report']);
+const VALUE_FLAGS = new Set(['out', 'rules', 'flag-names', 'config', 'results', 'threshold', 'headroom', 'packages', 'size-limit', 'max-fan-out', 'max-fan-in', 'external', 'max-eager-kb', 'max-boot-kb', 'report', 'delay-ms', 'max-attempts', 'backoff-ms', 'max-backoff-ms']);
 
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const positionals: string[] = [];
@@ -106,6 +108,13 @@ Usage: sf <command> [options]
       --max-boot-kb N      fail when a profile's boot JS exceeds N KB (needs the report)
       --report FILE        build report path (default: <manifest dir>/sf-build-report.json)
       --no-report          check the manifest alone (closure overruns are warnings)
+  publish                Publish public workspace packages whose version is not on npm yet,
+                         one at a time in dependency order (used by the Release workflow)
+      --dry-run            list what would be published
+      --delay-ms N         pause between packages (default 10000)
+      --max-attempts N     attempts per package on HTTP 429 (default 6)
+      --backoff-ms N       first rate-limit backoff, doubles each retry (default 60000)
+      --max-backoff-ms N   backoff cap (default 900000)
   help
 
 Exit codes: 0 ok · 1 check failed · 2 usage or input error.`;
@@ -290,6 +299,49 @@ function manifestCommand(args: ParsedArgs, io: CliIo): number {
   return result.errorCount > 0 ? 1 : 0;
 }
 
+/** Real process runner for `sf publish` (inherits env: NODE_AUTH_TOKEN / OIDC, NPM_CONFIG_PROVENANCE). */
+const processRunner: Runner = {
+  run: (command, args, cwd) =>
+    new Promise((resolveRun) => {
+      const child = spawn(command, [...args], { cwd, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] });
+      let stdout = '';
+      let stderr = '';
+      child.stdout.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
+      child.stderr.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
+      child.on('error', (error) => resolveRun({ code: 127, stdout, stderr: `${stderr}${error.message}` }));
+      child.on('close', (code) => resolveRun({ code: code ?? 1, stdout, stderr }));
+    }),
+};
+
+async function publishCommand(args: ParsedArgs, io: CliIo): Promise<number> {
+  const numbers: Record<string, number | undefined> = {};
+  for (const name of ['delay-ms', 'max-attempts', 'backoff-ms', 'max-backoff-ms']) {
+    const value = numberFlag(args, name);
+    if (typeof value === 'object') {
+      io.stderr(formatError(value));
+      return 2;
+    }
+    numbers[name] = value;
+  }
+  const report = await publishPackages(discoverPackages(io.cwd), {
+    runner: processRunner,
+    root: io.cwd,
+    log: io.stdout,
+    sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
+    dryRun: args.flags.has('dry-run'),
+    ...(numbers['delay-ms'] === undefined ? {} : { delayMs: numbers['delay-ms'] }),
+    ...(numbers['max-attempts'] === undefined ? {} : { maxAttempts: numbers['max-attempts'] }),
+    ...(numbers['backoff-ms'] === undefined ? {} : { initialBackoffMs: numbers['backoff-ms'] }),
+    ...(numbers['max-backoff-ms'] === undefined ? {} : { maxBackoffMs: numbers['max-backoff-ms'] }),
+  });
+  io.stdout(`published ${report.published} · skipped ${report.skipped} · failed ${report.failed}`);
+  return report.failed > 0 ? 1 : 0;
+}
+
 /** Run the CLI; resolves to the process exit code. */
 export async function runCli(argv: readonly string[], io: CliIo): Promise<number> {
   const args = parseArgs(argv);
@@ -308,6 +360,8 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
       return routesCommand(args, io);
     case 'manifest':
       return manifestCommand(args, io);
+    case 'publish':
+      return publishCommand(args, io);
     case undefined:
     case 'help':
       io.stdout(HELP);
