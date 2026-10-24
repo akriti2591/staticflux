@@ -337,6 +337,9 @@
 - **R19.9** **Never used for authorization, entitlement or security decisions.**
 - **R19.10** Explainable: decision traces record advisor, confidence, the default it overrode, and the outcome (hit rate, wasted bytes).
 - **R19.11** Private by default (on-device signals); remote advisors explicitly enabled. Auto-downgrade on low-end device, battery saver, slow network.
+- **R19.12** **Advisor contract = typed decision:** a typed question, a closed set of typed options, and a returned probability distribution over the options (plus optional confidence/explanation). This matches the shape of decision models such as **Jev** (TypeSafe AI, early access, Sept 2026: closed answer set → per-option probabilities, single pass; vendor-reported 70–500 ms), so they plug in as advisors without special casing.
+- **R19.13** Advisor latency classes: `sync` (< 1 ms, heuristics/statistical only), `idle` (one idle slot), `background` (≤ ~500 ms, e.g. remote decision models). Background answers are cached until their input facts change; never awaited on a frame or navigation critical path.
+- **R19.14** Remote advisors receive only declared, minimized feature vectors (e.g. route-history buckets, device tier) — never raw user content.
 
 ## 20. Tooling, repo & enforcement
 
