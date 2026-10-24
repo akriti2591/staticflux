@@ -1,0 +1,6 @@
+```xml
+<group id="n11" x="230" y="1010">
+  <rect id="n12" x="230" y="1010"/>
+  <text id="n13" x="230" y="1032">Get tickets</text>
+</group>
+```

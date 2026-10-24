@@ -1,0 +1,8 @@
+```xml
+<group id="n3">
+  <text id="n6" y="300">Pricing</text>
+  <text id="n4" y="380">Highlights</text>
+  <text id="n5" y="460">Metrics</text>
+  <text id="n7" y="540">Next steps</text>
+</group>
+```

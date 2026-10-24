@@ -1,0 +1,3 @@
+```json
+{"ops":[{"op":"trim","id":"n4","end":8.812,"ripple":true}]}
+```
