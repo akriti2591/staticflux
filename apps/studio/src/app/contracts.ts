@@ -175,7 +175,6 @@ export const InsertTextCapability = defineCapability({
   input: cs.object({ text: cs.string({ minLength: 1, maxLength: 4000 }) }),
   output: cs.object({ blockId: cs.string() }),
   policy: { resource: 'studio/insert-text' },
-  feature: Features.studioDesktop,
   requiresConfirmation: false,
   destructive: false,
 });
@@ -187,7 +186,6 @@ export const InsertImageCapability = defineCapability({
   input: cs.object({ src: cs.string({ minLength: 1 }), alt: cs.optional(cs.string()) }),
   output: cs.object({ blockId: cs.string() }),
   policy: { resource: 'agent/insert-image' },
-  feature: Features.studioDesktop,
   requiresConfirmation: false,
   destructive: false,
   costEstimate: () => ({ meter: CreditsMeter.id, amount: 2 }),
@@ -212,7 +210,6 @@ export const ClearDocumentCapability = defineCapability({
   input: cs.object({}),
   output: cs.object({ removed: cs.number() }),
   policy: { resource: 'studio/clear-document' },
-  feature: Features.studioDesktop,
   requiresConfirmation: false,
   destructive: true,
 });
