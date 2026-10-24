@@ -441,8 +441,11 @@ first apply. Replays (macros, templates, batch runs) reuse it unless "re-run" is
 
 ### 7.4 Proposals
 
-A valid change set becomes a **proposal**: its ops applied to a fork of the affected parts, composed as a
-`proposal/<id>` layer over Latest, and stored as CRDT state in the asset, so every peer sees it.
+A valid change set becomes a **proposal**. The change set and its per-op status are stored in the root part's
+`proposals` map (CRDT state), so every peer (other tabs, later remote users) sees it. Each peer computes the
+preview deterministically by applying the ops to a fork of the affected parts, composed as a `proposal/<id>`
+layer over Latest. The fork itself is never persisted. Proposals are excluded from milestones and are pruned
+30 days after they are resolved.
 
 Lifecycle `edit/proposal`: `received → validating → invalid | proposed → accepting → accepted | partially-accepted`;
 `proposed → rejected | superseded`. Under `auto-apply-safe`, eligible change sets go `validating → applied` (still
