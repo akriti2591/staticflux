@@ -227,6 +227,8 @@
   | Locale catalog per feature | ≤ 10 KB |
 
   Timing (mid-tier mobile, 4G-class, lab): core-ready ≤ 300 ms cold / 100 ms warm; app loading state ≤ 1.0 s / 300 ms; `feature.first-render` ≤ 1.8 s / 500 ms; `feature.interactive` ≤ 2.5 s / 700 ms; sub-route transition ≤ 150 ms / 100 ms.
+- **R12.8** Budgets **ratchet**: CI proposes tightening when actuals beat them; loosening needs a reviewed change. Exemptions are declared in manifests with a reason.
+
 ### 12.1 Per-mode boot plans & lazy-by-default
 - **R12.9** A tiny inline **mode detector** (< 1 KB) runs first and selects a **boot plan** for the app profile (host mode × form factor).
 - **R12.10** Boot plans are declarative per profile: critical units, eager units, host bridge, history strategy, shell preset. The build emits **per-profile entry/preload manifests**; code for other modes is never fetched.
@@ -242,7 +244,6 @@
 - **R12.18** Input-first priority; long work chunked with `scheduler.yield` (+ fallback); heavy compute to workers by default; "idle until urgent" for deferred work; intent-based pre-warming of functional deps.
 - **R12.19** Size-stable placeholders (no layout shift on load); View Transitions for route/view/mode changes where supported; animations restricted to compositor properties; reduced motion respected.
 - **R12.20** Continuous measurement of long tasks, forced layouts, per-component render counts, per-feature layout shift, and input-to-next-paint latency — fed into journey traces and budgets; CI lab runs fail on regressions.
-- **R12.8** Budgets **ratchet**: CI proposes tightening when actuals beat them; loosening needs a reviewed change. Exemptions are declared in manifests with a reason.
 
 ## 13. Shell
 
