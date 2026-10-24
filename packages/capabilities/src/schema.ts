@@ -69,6 +69,8 @@ export interface Schema<T, Opt extends boolean = boolean> {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnySchema = Schema<any, boolean>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyRequiredSchema = Schema<any, false>;
 
 /** The TypeScript type a schema describes. */
 export type Infer<S> = S extends Schema<infer T, boolean> ? T : never;
@@ -220,7 +222,7 @@ function enumOf<const V extends string>(values: readonly V[], options: CommonOpt
   };
 }
 
-function array<S extends AnySchema>(item: S, options: ArrayOptions = {}): Schema<readonly Infer<S>[], false> {
+function array<S extends AnyRequiredSchema>(item: S, options: ArrayOptions = {}): Schema<readonly Infer<S>[], false> {
   if (item.optional) throw new Error('s.array(): items cannot be optional');
   return {
     kind: 'array',

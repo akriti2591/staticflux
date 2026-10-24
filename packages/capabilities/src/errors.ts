@@ -69,3 +69,31 @@ export const ImplementationFailedError = defineError(
   'A capability implementation threw instead of returning a Result.',
   'Return `err(...)` with a typed SfError from the implementation; see `cause`.',
 );
+
+export const CapabilityLoginRequiredError = defineError(
+  'SF-CAP-011',
+  'auth',
+  'The policy decision requires a signed-in user for this capability.',
+  'Offer sign-in (the intent survives via handoff); do not retry until the session changes.',
+);
+
+export const CapabilityQuotaError = defineError(
+  'SF-CAP-012',
+  'quota',
+  'The policy decision denied this capability because a quota/credit meter is exhausted.',
+  'Surface the low-balance / upsell surface; the meter balance is server-authoritative.',
+);
+
+export const CapabilityRateLimitedError = defineError(
+  'SF-CAP-013',
+  'rate',
+  'The policy decision denied this capability because a rate limit was hit.',
+  'Back off and retry later (`details.meta` may carry a retry hint).',
+);
+
+export const CapabilityUnavailableError = defineError(
+  'SF-CAP-014',
+  'unavailable',
+  'The capability is unavailable for the current platform, mode or host.',
+  'Hide or disable the trigger; the decision changes reactively when the facts change.',
+);
