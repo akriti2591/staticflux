@@ -16,7 +16,7 @@
 const q = new URLSearchParams(location.search);
 const runs = Number(q.get('runs') ?? 3);
 const reps = Number(q.get('reps') ?? 5);
-const phases = (q.get('phases') ?? 'boot,open,gestures,merge,history,correctness').split(',');
+const phases = (q.get('phases') ?? 'boot,open,gestures,merge,history,milestone,correctness').split(',');
 const logEl = document.getElementById('log');
 const log = (s) => { logEl.textContent += s + '\n'; };
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s[Math.floor((s.length - 1) / 2)]; };
@@ -89,8 +89,9 @@ try {
   }
   if (phases.includes('history')) {
     result.history = [];
-    for (const [cps, ms] of [[[0, 10000, 50000], false], [[100000], false], [[200000], true]]) { log(`history ${cps}`); result.history.push((await runWorker({ type: 'run', phase: 'perf', reps, only: ['history'], checkpoints: cps, milestone: ms })).out); }
+    for (const [cps, ms] of [[[0, 10000, 50000], false], [[100000], false], [[200000], false]]) { log(`history ${cps}`); result.history.push((await runWorker({ type: 'run', phase: 'perf', reps, only: ['history'], checkpoints: cps, milestone: ms })).out); }
   }
+  if (phases.includes('milestone')) { log('milestone'); result.milestone = (await runWorker({ type: 'run', phase: 'perf', reps, only: ['milestone'] })).out; }
   if (phases.includes('correctness')) { log('correctness'); result.correctness = (await runWorker({ type: 'run', phase: 'correctness' })).out; }
 } catch (e) { result.error = String(e.stack ?? e); log('ERROR ' + result.error); }
 log('done');

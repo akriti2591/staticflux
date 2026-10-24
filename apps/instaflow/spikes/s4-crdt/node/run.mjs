@@ -8,7 +8,7 @@ import { sizes } from './sizes.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (k, d) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=')[1] ?? d;
 const runs = Number(arg('runs', 3)), reps = Number(arg('reps', 5));
-const only = arg('only', 'sizes,boot,open,gestures,merge,history,build,correctness').split(',');
+const only = arg('only', 'sizes,boot,open,gestures,merge,history,milestone,build,correctness').split(',');
 const run = (...a) => {
   const t = Date.now();
   const extraEnv = typeof a.at(-1) === 'object' ? a.pop() : {};
@@ -35,9 +35,9 @@ if (only.includes('merge')) {
 }
 if (only.includes('history')) {
   out.history = [];
-  for (const [cps, ms] of [['0,10000,50000', '0'], ['100000', '0'], ['200000', '1']]) { out.history.push(run('perf', 'history', { CPS: cps, MILESTONE: ms }).out); save(); }
+  for (const [cps, ms] of [['0,10000,50000', '0'], ['100000', '0'], ['200000', '0']]) { out.history.push(run('perf', 'history', { CPS: cps, MILESTONE: ms }).out); save(); }
 }
-for (const p of ['gestures', 'build']) if (only.includes(p)) { out[p] = []; for (let i = 0; i < (p === 'gestures' ? runs : 1); i++) { out[p].push(run('perf', p).out); save(); } }
+for (const p of ['gestures', 'milestone', 'build']) if (only.includes(p)) { out[p] = []; for (let i = 0; i < (p === 'gestures' ? runs : 1); i++) { out[p].push(run('perf', p).out); save(); } }
 if (only.includes('correctness')) out.correctness = run('correctness').out;
 save();
 console.error('wrote results/node.json');

@@ -14,8 +14,8 @@ export function canonicalPart(L, doc) {
         props[k] = meta[k];
       }
       if (meta['text.content'] !== undefined) {
-        const t = tree.getNodeByID(n.id).data.get('text.content');
-        props['text.content'] = { delta: t.toDelta() };
+        const h = tree.getNodeByID(n.id); const m = h.data; const t = m.get('text.content');
+        props['text.content'] = { delta: t.toDelta() }; t.free(); m.free(); h.free();
       }
       nodes.push({ id: meta.id, kind: meta.kind, parent, order: n.fractional_index, props });
       if (n.children.length) walk(n.children, meta.id);
@@ -41,10 +41,12 @@ export function fromCanonical(L, part, peer) {
       const d = h.data;
       d.set('id', n.id); d.set('kind', n.kind);
       for (const k in n.props) {
-        if (k === 'text.content') { const t = d.setContainer(k, new L.LoroText()); t.applyDelta(n.props[k].delta); }
+        if (k === 'text.content') { const t = d.setContainer(k, new L.LoroText()); t.applyDelta(n.props[k].delta); t.free(); }
         else d.set(k, n.props[k]);
       }
+      d.free();
       make(h, n.id);
+      h.free();
     }
   };
   make(null, '');

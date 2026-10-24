@@ -3,7 +3,7 @@
   "cpus": 4,
   "runs": 3,
   "reps": 5,
-  "at": "2026-10-24T17:21:27.855Z",
+  "at": "2026-10-24T17:45:31.188Z",
   "sizes": {
     "versions": {
       "loro-crdt": "1.17.1",
@@ -826,6 +826,362 @@
           "shallowImportFirstEditMs": 464.95
         }
       ]
+    },
+    {
+      "historyGrowth": [
+        {
+          "edits": 200000,
+          "changes": 848,
+          "fullKB": 14833,
+          "shallowKB": 8298.1,
+          "yjsKB": 18583.6,
+          "fullImportMs": 27.17,
+          "fullImportFirstEditMs": 340.47,
+          "shallowImportMs": 229.2,
+          "shallowImportFirstEditMs": 567.32
+        }
+      ],
+      "milestoneFork": {
+        "agedFullSnapshotKB": 14833.1,
+        "canonicalJsonKB": 14186,
+        "canonicalDeflateKB": 2149,
+        "canonicalEncodeMs": 4369.5,
+        "rebuildFromCanonicalMs": 282134.2,
+        "rebuiltSnapshotKB": 11929.6,
+        "rebuiltShallowKB": 7762.1,
+        "rebuiltChanges": 632,
+        "rebuiltRoundTripsCanonical": false,
+        "shallowSnapshotKB": 8298.2,
+        "shallowExportMs": 863.5,
+        "shallowImportMs": 287.7,
+        "shallowIsShallow": true,
+        "shallowVersionVectorPeers": 2
+      }
+    }
+  ],
+  "gestures": [
+    {
+      "gestures": {
+        "move1kNodesOneCommit": {
+          "KB": 12.8,
+          "ms": 21.8
+        },
+        "reorder1kOneCommit": {
+          "KB": 9.8,
+          "ms": 23
+        },
+        "set1kPropsOneNodeOneCommit": {
+          "KB": 7,
+          "ms": 9.1
+        },
+        "set1kNodesXOneCommit": {
+          "KB": 15.8,
+          "ms": 56.8
+        },
+        "set1kNodesXYOneCommit": {
+          "KB": 28.6,
+          "ms": 80.3
+        },
+        "move1kOneCommitEach": {
+          "perCommitLogKB": 146.5,
+          "coalescedExportKB": 10.3,
+          "totalMs": 90.9
+        },
+        "fork50kDocMs": {
+          "n": 3,
+          "median": 40.64,
+          "p95": 299.71,
+          "min": 39.32,
+          "max": 299.71
+        }
+      },
+      "gesturesYjs": {
+        "move1kNodesOneCommit": {
+          "KB": 33.8
+        },
+        "set1kPropsOneNodeOneCommit": {
+          "KB": 8.8
+        },
+        "set1kNodesXOneCommit": {
+          "KB": 18.5
+        }
+      }
+    },
+    {
+      "gestures": {
+        "move1kNodesOneCommit": {
+          "KB": 12.8,
+          "ms": 44.1
+        },
+        "reorder1kOneCommit": {
+          "KB": 9.8,
+          "ms": 62.8
+        },
+        "set1kPropsOneNodeOneCommit": {
+          "KB": 7,
+          "ms": 7.2
+        },
+        "set1kNodesXOneCommit": {
+          "KB": 15.8,
+          "ms": 78.9
+        },
+        "set1kNodesXYOneCommit": {
+          "KB": 28.6,
+          "ms": 73.1
+        },
+        "move1kOneCommitEach": {
+          "perCommitLogKB": 146.5,
+          "coalescedExportKB": 10.3,
+          "totalMs": 90.6
+        },
+        "fork50kDocMs": {
+          "n": 3,
+          "median": 36.91,
+          "p95": 440.6,
+          "min": 36.77,
+          "max": 440.6
+        }
+      },
+      "gesturesYjs": {
+        "move1kNodesOneCommit": {
+          "KB": 33.8
+        },
+        "set1kPropsOneNodeOneCommit": {
+          "KB": 8.8
+        },
+        "set1kNodesXOneCommit": {
+          "KB": 18.5
+        }
+      }
+    },
+    {
+      "gestures": {
+        "move1kNodesOneCommit": {
+          "KB": 12.8,
+          "ms": 20.4
+        },
+        "reorder1kOneCommit": {
+          "KB": 9.8,
+          "ms": 22.5
+        },
+        "set1kPropsOneNodeOneCommit": {
+          "KB": 7,
+          "ms": 4.3
+        },
+        "set1kNodesXOneCommit": {
+          "KB": 15.8,
+          "ms": 62.3
+        },
+        "set1kNodesXYOneCommit": {
+          "KB": 28.6,
+          "ms": 70.3
+        },
+        "move1kOneCommitEach": {
+          "perCommitLogKB": 146.5,
+          "coalescedExportKB": 10.3,
+          "totalMs": 82.1
+        },
+        "fork50kDocMs": {
+          "n": 3,
+          "median": 40.25,
+          "p95": 312.67,
+          "min": 38.31,
+          "max": 312.67
+        }
+      },
+      "gesturesYjs": {
+        "move1kNodesOneCommit": {
+          "KB": 33.8
+        },
+        "set1kPropsOneNodeOneCommit": {
+          "KB": 8.8
+        },
+        "set1kNodesXOneCommit": {
+          "KB": 18.5
+        }
+      }
+    }
+  ],
+  "build": [
+    {
+      "build50k": {
+        "loroMs": 5876,
+        "yjsMs": 1717.4
+      }
+    }
+  ],
+  "correctness": {
+    "undoPeerPerActor": {
+      "agentSteps": 5,
+      "humanSteps": 5,
+      "agentUndoKeepsHumanEdits": true,
+      "afterAgentUndo": {
+        "n1x": 10,
+        "n1fill": "#000000",
+        "n2parent": "g2",
+        "n3x": 0,
+        "text": "Hi alpha beta gamma",
+        "n4y": 5
+      },
+      "n5AfterAgentUndo": 10,
+      "fullUndoRestoresOriginal": true,
+      "converged": true,
+      "afterScript": {
+        "n1x": 99,
+        "text": "Hi alpha beta gamma (AI)"
+      },
+      "humanUndoAfterAgentOverwrite_n5x": 0
+    },
+    "undoOneDocOriginFilter": {
+      "got": {
+        "n1x": 10,
+        "n1fill": "#000000",
+        "n2parent": "g2",
+        "n3x": 0,
+        "text": "Hi alpha beta gamma",
+        "n4y": 5
+      },
+      "agentUndoKeepsHumanEdits": true,
+      "humanStepsAfterAgentUndo": 10,
+      "fullUndoRestoresOriginal": false,
+      "finalAfterHumanUndo": {
+        "n1fill": "#ff0000",
+        "n3x": 50,
+        "text": "alpha beta gamma (AI)",
+        "n5x": 0
+      },
+      "note": "both UndoManagers share one peer; undo commits carry no actor origin"
+    },
+    "undoOneDocOriginFilterPaused": {
+      "agentUndoKeepsHumanEdits": true,
+      "humanSteps": 5,
+      "fullUndoRestoresOriginal": true,
+      "finalAfterHumanUndo": {
+        "n1fill": "#000000",
+        "n3x": 0,
+        "text": "alpha beta gamma",
+        "n5x": 0
+      }
+    },
+    "undoAfterReloadViaInverseDiff": {
+      "message": "{\"actor\":\"agent\",\"cs\":\"cs_1\"}",
+      "text": "Hey alENT beta gamma",
+      "expectedText": "Hey alpha beta gamma",
+      "n6": {
+        "x": 0,
+        "y": 3
+      },
+      "propsOk": true,
+      "textOk": false
+    },
+    "proposals": {
+      "reapplyOneCommit": {
+        "results": [
+          {
+            "op": 1,
+            "status": "flagged",
+            "reason": "stale field spatial.x (IF-CS-010)",
+            "kept": "current"
+          },
+          {
+            "op": 2,
+            "status": "flagged",
+            "reason": "target deleted in Latest",
+            "kept": "current"
+          },
+          {
+            "op": 3,
+            "status": "accepted"
+          },
+          {
+            "op": 4,
+            "status": "accepted"
+          },
+          {
+            "op": 5,
+            "status": "accepted"
+          }
+        ],
+        "text": "Hey alpha NEW beta gamma",
+        "textOk": true,
+        "n1fillUnchanged": true,
+        "n2xKeptCurrent": true,
+        "n6humanKept": true,
+        "createdWithDep": {
+          "y": 40,
+          "text": "Agent headline"
+        },
+        "oneUndoStepRevertsAccept": true
+      },
+      "cherryPickDiff": {
+        "text": "Hey alNEW pha beta gamma",
+        "textOk": false,
+        "createdWithDep": {
+          "text": "Agent headline"
+        },
+        "errors": [
+          {
+            "op": 5,
+            "err": "The containers [Normal(Map 3@2000)] are not found in the doc"
+          }
+        ]
+      },
+      "mergeThenRevert": {
+        "rejected": [
+          2,
+          1,
+          0
+        ],
+        "text": "Hey alpha NEW beta gamma",
+        "n2x": 0,
+        "n1fill": "#000000",
+        "n3": {
+          "parent": "g1",
+          "x": 0,
+          "y": 0,
+          "fill": "#000000"
+        },
+        "note": "revert of a flagged op restores the base value, clobbering the concurrent human value unless restricted to unchanged paths"
+      }
+    }
+  },
+  "milestone": [
+    {
+      "milestoneFork": {
+        "agedFullSnapshotKB": 11442.7,
+        "canonicalJsonKB": 13939.1,
+        "canonicalDeflateKB": 1879.9,
+        "canonicalEncodeMs": 7050.3,
+        "rebuildFromCanonicalMs": 14957.2,
+        "rebuiltSnapshotKB": 11211.6,
+        "rebuiltShallowKB": 7395.3,
+        "rebuiltChanges": 632,
+        "rebuiltRoundTripsCanonical": true,
+        "roundTripNote": "compared with order keys normalised to sibling index (Loro regenerates fractional indexes)",
+        "shallowSnapshotKB": 7573.2,
+        "shallowExportMs": 3825.4,
+        "shallowImportMs": 241.8,
+        "shallowIsShallow": true,
+        "shallowVersionVectorPeers": 2
+      },
+      "milestoneForkPagePart": {
+        "canonicalJsonKB": 275.2,
+        "canonicalDeflateKB": 37.8,
+        "canonicalEncodeMs": {
+          "n": 5,
+          "median": 147.43,
+          "p95": 189.76,
+          "min": 129.81,
+          "max": 189.76
+        },
+        "rebuildFromCanonicalMs": {
+          "n": 5,
+          "median": 66.14,
+          "p95": 105.64,
+          "min": 57.17,
+          "max": 105.64
+        }
+      }
     }
   ]
 }

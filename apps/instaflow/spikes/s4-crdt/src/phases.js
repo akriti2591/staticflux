@@ -269,9 +269,12 @@ export async function perf(env, only) {
     }
     out.historyGrowth = rows;
     yd.destroy();
-    if (env.milestone === false) { (P.tree?.free(), P.doc.free()); return out; }
-
-    // "New document from milestone" on the aged doc
+    (P.tree?.free(), P.doc.free());
+  }
+  if (want('milestone')) {
+    // "New document from milestone": canonical part of a 50k-node doc with 10k edits of history → fresh doc, vs shallow snapshot
+    const P = open(9);
+    applyLoroOps(L, P, generateOps(s, 20_000, 777).filter((o) => o.op === 'set' || o.op === 'move').slice(0, 10_000));
     let t = env.now();
     const canon = canonicalPart(L, P.doc);
     const canonMs = env.now() - t;
@@ -282,7 +285,8 @@ export async function perf(env, only) {
     const rebuildMs = env.now() - t;
     const freshSnap = fresh.export({ mode: 'snapshot' });
     const freshShallow = fresh.export({ mode: 'shallow-snapshot', frontiers: fresh.frontiers() });
-    const same = canonicalPart(L, fresh).json === canon.json;
+    const norm = (o) => { const byP = new Map(); for (const n of o.nodes) { if (!byP.has(n.parent)) byP.set(n.parent, []); byP.get(n.parent).push(n); } for (const l of byP.values()) { l.sort((x, y) => (x.order < y.order ? -1 : 1)); l.forEach((n, k) => { n.order = k; }); } return JSON.stringify(o.nodes); };
+    const same = norm(canonicalPart(L, fresh).obj) === norm(canon.obj);
     t = env.now();
     const sh = P.doc.export({ mode: 'shallow-snapshot', frontiers: P.doc.frontiers() });
     const shallowExportMs = env.now() - t;
@@ -292,11 +296,23 @@ export async function perf(env, only) {
     out.milestoneFork = {
       agedFullSnapshotKB: kb(P.doc.export({ mode: 'snapshot' }).byteLength),
       canonicalJsonKB: kb(canonBytes.byteLength), canonicalDeflateKB: kb(comp.deflateRaw), canonicalEncodeMs: r1(canonMs),
-      rebuildFromCanonicalMs: r1(rebuildMs), rebuiltSnapshotKB: kb(freshSnap.byteLength), rebuiltShallowKB: kb(freshShallow.byteLength), rebuiltChanges: fresh.changeCount(), rebuiltRoundTripsCanonical: same,
+      rebuildFromCanonicalMs: r1(rebuildMs), rebuiltSnapshotKB: kb(freshSnap.byteLength), rebuiltShallowKB: kb(freshShallow.byteLength), rebuiltChanges: fresh.changeCount(), rebuiltRoundTripsCanonical: same, roundTripNote: 'compared with order keys normalised to sibling index (Loro regenerates fractional indexes)',
       shallowSnapshotKB: kb(sh.byteLength), shallowExportMs: r1(shallowExportMs), shallowImportMs: r1(shallowImportMs), shallowIsShallow: nd.isShallow(),
       shallowVersionVectorPeers: [...(nd.oplogVersion().toJSON?.() ?? new Map())].length,
     };
     fresh.free(); nd.free(); (P.tree?.free(), P.doc.free());
+    // the same for one ~1k-node page part (the partitioned shape)
+    const pb = await env.fixture('loro-page-0.snapshot');
+    const enc1 = [], reb1 = [];
+    let pageCanonKB, pageDeflKB;
+    for (let i = 0; i < 5; i++) {
+      const pd = new L.LoroDoc(); pd.import(pb);
+      let t1 = env.now(); const c = canonicalPart(L, pd); enc1.push(env.now() - t1);
+      t1 = env.now(); const f = fromCanonical(L, JSON.parse(c.json), 9000 + i); reb1.push(env.now() - t1);
+      const cb = new TextEncoder().encode(c.json); pageCanonKB = kb(cb.byteLength); pageDeflKB = kb((await env.gzip(cb)).deflateRaw);
+      f.free(); pd.free();
+    }
+    out.milestoneForkPagePart = { canonicalJsonKB: pageCanonKB, canonicalDeflateKB: pageDeflKB, canonicalEncodeMs: stats(enc1), rebuildFromCanonicalMs: stats(reb1) };
   }
   return out;
 }
