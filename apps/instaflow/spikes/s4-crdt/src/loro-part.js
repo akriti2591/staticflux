@@ -47,34 +47,33 @@ export function applyLoroOp(L, part, op) {
       case 'set': {
         const n = tree.getNodeByID(ids[op.node]);
         if (!n || tree.isNodeDeleted(ids[op.node])) return false;
-        n.data.set(op.key, op.value);
+        const m = n.data; m.set(op.key, op.value); m.free(); n.free();
         return true;
       }
       case 'move': {
         if (tree.isNodeDeleted(ids[op.node]) || tree.isNodeDeleted(ids[op.parent])) return false;
         const p = tree.getNodeByID(ids[op.parent]);
-        const len = p.children()?.length ?? 0;
+        const kids = p.children() ?? []; const len = kids.length; for (const k of kids) k.free(); p.free();
         tree.move(ids[op.node], ids[op.parent], Math.min(op.index, len));
         return true;
       }
       case 'text.insert': {
         if (tree.isNodeDeleted(ids[op.node])) return false;
-        const t = tree.getNodeByID(ids[op.node]).data.get('text.content');
-        t.insert(Math.min(op.at, t.length), op.insert);
+        const n = tree.getNodeByID(ids[op.node]); const m = n.data; const t = m.get('text.content');
+        t.insert(Math.min(op.at, t.length), op.insert); t.free(); m.free(); n.free();
         return true;
       }
       case 'text.mark': {
         if (tree.isNodeDeleted(ids[op.node])) return false;
-        const t = tree.getNodeByID(ids[op.node]).data.get('text.content');
-        t.mark({ start: Math.min(op.start, t.length - 1), end: Math.min(op.end, t.length) }, op.key, op.value);
+        const n = tree.getNodeByID(ids[op.node]); const m = n.data; const t = m.get('text.content');
+        t.mark({ start: Math.min(op.start, t.length - 1), end: Math.min(op.end, t.length) }, op.key, op.value); t.free(); m.free(); n.free();
         return true;
       }
       case 'create': {
         if (tree.isNodeDeleted(ids[op.parent])) return false;
         const n = tree.createNode(ids[op.parent]);
-        n.data.set('id', `new-${op.seq.toString(36)}-${String(part.doc.peerIdStr)}`);
-        n.data.set('kind', 'shape');
-        for (const k in op.props) n.data.set(k, op.props[k]);
+        const d0 = n.data; d0.set('id', `new-${op.seq.toString(36)}-${String(part.doc.peerIdStr)}`); d0.set('kind', 'shape'); d0.free();
+        const m = n.data; for (const k in op.props) m.set(k, op.props[k]); m.free(); n.free();
         return true;
       }
       case 'delete': {

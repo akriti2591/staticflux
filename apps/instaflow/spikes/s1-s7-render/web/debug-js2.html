@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><canvas id="c" width="1280" height="720"></canvas>
+<script type="module">
+const q = new URLSearchParams(location.search);
+const mode = q.get('mode');
+async function drive(canvasLike, log) {
+  const ad = await navigator.gpu.requestAdapter(); const dev = await ad.requestDevice();
+  dev.lost.then((i) => log.push('LOST ' + i.reason + ' ' + i.message));
+  const ctx = canvasLike.getContext('webgpu');
+  ctx.configure({ device: dev, format: navigator.gpu.getPreferredCanvasFormat(), alphaMode: 'opaque' });
+  for (let i = 0; i < 3; i++) {
+    const enc = dev.createCommandEncoder();
+    const p = enc.beginRenderPass({ colorAttachments: [{ view: ctx.getCurrentTexture().createView(), loadOp: 'clear', storeOp: 'store', clearValue: [1, 0, 0, 1] }] });
+    p.end(); dev.queue.submit([enc.finish()]);
+    await dev.queue.onSubmittedWorkDone();
+    if (canvasLike.transferToImageBitmap) { const bm = canvasLike.transferToImageBitmap(); log.push('bitmap ' + bm.width); bm.close(); }
+    await new Promise((r) => setTimeout(r, 30));
+    log.push('frame ' + i);
+  }
+}
+const log = [];
+try {
+  if (mode === 'main') await drive(document.getElementById('c'), log);
+  else if (mode === 'mainoff') await drive(new OffscreenCanvas(1280, 720), log);
+} catch (e) { log.push('EXC ' + e); }
+await new Promise((r) => setTimeout(r, 300));
+window.__result = log;
+</script>

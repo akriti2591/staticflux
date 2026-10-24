@@ -8,6 +8,6 @@ NAME=${1:-run}; shift || true
 export NODE_PATH=${NODE_PATH:-/opt/node-tools/node_modules}
 mkdir -p results/$NAME
 PAGE="index.html${QUERY:+?$QUERY}"
-node ../_harness/serve-and-run.cjs web "$PAGE" --timeout=1800 "$@" > results/$NAME/raw.json 2> results/$NAME/stderr.log
+node scripts/serve-and-run-angle.cjs web "$PAGE" --timeout=1800 "$@" > results/$NAME/raw.json 2> results/$NAME/stderr.log
 node scripts/split-result.mjs results/$NAME/raw.json results/$NAME
 rm results/$NAME/raw.json

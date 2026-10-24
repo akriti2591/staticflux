@@ -29,6 +29,28 @@ function pageSpecs(s, pageIdx) {
   return out;
 }
 
+/** global spec index → { page, local } for the page partition; groups per page for move remapping. */
+function pageLocator(s) {
+  const pages = s.map((x, i) => i).filter((i) => s[i].kind === 'page');
+  const loc = new Array(s.length);
+  const groupsOf = pages.map(() => []);
+  pages.forEach((pi, k) => {
+    const local = new Map();
+    for (let i = 0; i < s.length; i++) {
+      if (i === pi || local.has(s[i].parentIdx)) { local.set(i, local.size); loc[i] = { page: k, local: local.get(i) }; if (s[i].kind === 'group') groupsOf[k].push(local.get(i)); }
+    }
+  });
+  return { loc, groupsOf };
+}
+function remapToPage(op, { loc, groupsOf }) {
+  const anchor = op.node ?? op.parent;
+  const l = loc[anchor]; if (!l) return null;
+  const o = { ...op };
+  if (op.node !== undefined) o.node = l.local;
+  if (op.parent !== undefined) { const g = groupsOf[l.page]; o.parent = g[(loc[op.parent]?.local ?? 0) % g.length]; }
+  return { page: l.page, op: o };
+}
+
 // ---------------------------------------------------------------------------------------------- fixtures
 export function makeFixtures(L, Y) {
   const s = specs();
@@ -43,7 +65,9 @@ export function makeFixtures(L, Y) {
     'yjs-50k.update': Y.encodeStateAsUpdate(yj.doc),
   };
   const pages = s.map((x, i) => i).filter((i) => s[i].kind === 'page');
-  pages.forEach((pi, k) => { f[`loro-page-${k}.snapshot`] = buildLoro(L, pageSpecs(s, pi), 100 + k).doc.export({ mode: 'snapshot' }); });
+  const pageIds = [];
+  pages.forEach((pi, k) => { const p = buildLoro(L, pageSpecs(s, pi), 100 + k); f[`loro-page-${k}.snapshot`] = p.doc.export({ mode: 'snapshot' }); pageIds.push(p.ids); });
+  f['loro-pages.ids.json'] = enc(pageIds);
   return f;
 }
 
@@ -151,7 +175,8 @@ function loroDigest(doc, ids) {
   const tree = doc.getTree(TREE);
   const parts = [JSON.stringify([...doc.oplogVersion().toJSON()].sort())];
   parts.push(JSON.stringify(tree.getShallowValue()));
-  for (let i = 0; i < ids.length; i += 50) { const n = tree.getNodeByID(ids[i]); parts.push(n && !tree.isNodeDeleted(ids[i]) ? JSON.stringify(n.data.toJSON()) : 'x'); }
+  for (let i = 0; i < ids.length; i += 50) { const n = tree.getNodeByID(ids[i]); if (n && !tree.isNodeDeleted(ids[i])) { const m = n.data; parts.push(JSON.stringify(m.toJSON())); m.free(); } else parts.push('x'); n?.free(); }
+  tree.free();
   return parts.join('|');
 }
 
@@ -164,7 +189,7 @@ export async function perf(env, only) {
   const want = (k) => !only || only.includes(k);
 
   if (want('build')) {
-    const t = env.now(); const p = buildLoro(L, s, 50); const lb = env.now() - t; p.doc.free();
+    const t = env.now(); const p = buildLoro(L, s, 50); const lb = env.now() - t; (p.tree?.free(), p.doc.free());
     const t2 = env.now(); const q = buildYjs(Y, s, 50); const yb = env.now() - t2; q.doc.destroy();
     out.build50k = { loroMs: r1(lb), yjsMs: r1(yb) };
   }
@@ -217,54 +242,7 @@ export async function perf(env, only) {
     ydoc.destroy();
   }
 
-  if (want('merge')) {
-    out.merge = {};
-    for (const N of [5000, 10000]) {
-      const A = open(2), B = open(3);
-      const baseVV = A.doc.oplogVersion();
-      const baseFrontiers = A.doc.frontiers();
-      const opsA = generateOps(s, N, 1001), opsB = generateOps(s, N, 2002);
-      let t = env.now(); const appliedA = applyLoroOps(L, A, opsA); const applyMs = env.now() - t;
-      const appliedB = applyLoroOps(L, B, opsB);
-      const updA = A.doc.export({ mode: 'update', from: baseVV });
-      const updB = B.doc.export({ mode: 'update', from: baseVV });
-      const noSub = [], withSub = [];
-      for (let i = 0; i < env.reps; i++) {
-        const t1 = A.doc.fork();
-        let t0 = env.now(); t1.import(updB); noSub.push(env.now() - t0); t1.free();
-        const t2 = A.doc.fork();
-        let events = 0;
-        const unsub = t2.subscribe((e) => { for (const ev of e.events) events += 1; });
-        t0 = env.now(); t2.import(updB); await Promise.resolve(); withSub.push(env.now() - t0);
-        unsub(); t2.free();
-      }
-      t = env.now(); const df = A.doc.diff(baseFrontiers, A.doc.frontiers(), false); const diffMs = env.now() - t;
-      A.doc.import(updB); B.doc.import(updA);
-      const converged = loroDigest(A.doc, A.ids) === loroDigest(B.doc, B.ids);
-      out.merge[`loro_${N}opsEach`] = { appliedA, appliedB, applyMsPeerA: r1(applyMs), updateKB_B: kb(updB.byteLength), importMs: stats(noSub), importWithEventsMs: stats(withSub), diffSinceBaseMs: r1(diffMs), diffContainers: df.length, converged };
-      A.doc.free(); B.doc.free();
-
-      const ya = new Y.Doc(); ya.clientID = 2; Y.applyUpdate(ya, yupd);
-      const yb = new Y.Doc(); yb.clientID = 3; Y.applyUpdate(yb, yupd);
-      const ysv = Y.encodeStateVector(ya);
-      const PA = { doc: ya, nodes: ya.getMap('nodes'), ids: s.map((x) => x.id) }, PB = { doc: yb, nodes: yb.getMap('nodes'), ids: s.map((x) => x.id) };
-      t = env.now(); applyYjsOps(Y, PA, opsA); const yApply = env.now() - t;
-      applyYjsOps(Y, PB, opsB);
-      const yuB = Y.encodeStateAsUpdate(yb, ysv), yuA = Y.encodeStateAsUpdate(ya, ysv);
-      const yaState = Y.encodeStateAsUpdate(ya);
-      const yt = [], yto = [];
-      for (let i = 0; i < env.reps; i++) {
-        const c = new Y.Doc(); Y.applyUpdate(c, yaState);
-        let t0 = env.now(); Y.applyUpdate(c, yuB); yt.push(env.now() - t0); c.destroy();
-        const c2 = new Y.Doc(); Y.applyUpdate(c2, yaState);
-        let deep = 0; c2.getMap('nodes').observeDeep((evs) => { deep += evs.length; });
-        t0 = env.now(); Y.applyUpdate(c2, yuB); yto.push(env.now() - t0); c2.destroy();
-      }
-      Y.applyUpdate(ya, yuB); Y.applyUpdate(yb, yuA);
-      out.merge[`yjs_${N}opsEach`] = { applyMsPeerA: r1(yApply), updateKB_B: kb(yuB.byteLength), importMs: stats(yt), importWithObserverMs: stats(yto), converged: JSON.stringify(ya.getMap('nodes').toJSON()) === JSON.stringify(yb.getMap('nodes').toJSON()) };
-      ya.destroy(); yb.destroy();
-    }
-  }
+  if (want('merge')) out.merge = 'use mergeOne() — one sample per fresh process/worker (a long-lived instance degrades, see README)';
 
   if (want('history')) {
     // age the doc with size-neutral edits (prop sets + moves), commit every 10 ops; full vs shallow snapshot
@@ -274,13 +252,13 @@ export async function perf(env, only) {
     const allOps = generateOps(s, 400_000, 777).filter((o) => o.op === 'set' || o.op === 'move').slice(0, 200_000);
     const rows = [];
     let done = 0;
-    for (const cp of [0, 10_000, 50_000, 100_000, 200_000]) {
+    for (const cp of env.checkpoints ?? [0, 10_000, 50_000, 100_000, 200_000]) {
       applyLoroOps(L, P, allOps.slice(done, cp), { commitEvery: 10 });
       applyYjsOps(Y, YP, allOps.slice(done, cp), { commitEvery: 10 });
       done = cp;
       const full = P.doc.export({ mode: 'snapshot' });
       const shallow = P.doc.export({ mode: 'shallow-snapshot', frontiers: P.doc.frontiers() });
-      const openEdit = (bytes) => { const t = env.now(); const a = new L.LoroDoc(); a.import(bytes); const ti = env.now() - t; a.setPeerId(77); a.getTree(TREE).getNodeByID(P.ids[600]).data.set('spatial.x', 3); a.commit(); const te = env.now() - t; a.free(); return { ti, te }; };
+      const openEdit = (bytes) => { const t = env.now(); const a = new L.LoroDoc(); a.import(bytes); const ti = env.now() - t; a.setPeerId(77); const tr = a.getTree(TREE); const nn = tr.getNodeByID(P.ids[600]); const dm = nn.data; dm.set('spatial.x', 3); a.commit(); const te = env.now() - t; dm.free(); nn.free(); tr.free(); a.free(); return { ti, te }; };
       const f = [], sh = [];
       for (let i = 0; i < 3; i++) { f.push(openEdit(full)); sh.push(openEdit(shallow)); }
       rows.push({
@@ -291,6 +269,7 @@ export async function perf(env, only) {
     }
     out.historyGrowth = rows;
     yd.destroy();
+    if (env.milestone === false) { (P.tree?.free(), P.doc.free()); return out; }
 
     // "New document from milestone" on the aged doc
     let t = env.now();
@@ -317,7 +296,68 @@ export async function perf(env, only) {
       shallowSnapshotKB: kb(sh.byteLength), shallowExportMs: r1(shallowExportMs), shallowImportMs: r1(shallowImportMs), shallowIsShallow: nd.isShallow(),
       shallowVersionVectorPeers: [...(nd.oplogVersion().toJSON?.() ?? new Map())].length,
     };
-    fresh.free(); nd.free(); P.doc.free();
+    fresh.free(); nd.free(); (P.tree?.free(), P.doc.free());
   }
   return out;
+}
+
+// One divergent-merge sample in a fresh instance. kind: 'loro-cold' | 'loro-warm' | 'loro-pages' | 'yjs'
+export async function mergeOne(env, kind, N) {
+  const { L, Y } = env;
+  const s = specs();
+  const opsA = generateOps(s, N, 1001), opsB = generateOps(s, N, 2002);
+  if (kind === 'yjs') {
+    const yupd = await env.fixture('yjs-50k.update');
+    const ybase = new Y.Doc(); Y.applyUpdate(ybase, yupd); const ysv = Y.encodeStateVector(ybase); ybase.destroy();
+    const mk = (c) => { const d = new Y.Doc(); d.clientID = c; Y.applyUpdate(d, yupd); return { doc: d, nodes: d.getMap('nodes'), ids: s.map((x) => x.id) }; };
+    const B = mk(3); applyYjsOps(Y, B, opsB); const uB = Y.encodeStateAsUpdate(B.doc, ysv);
+    const A = mk(2); let t = env.now(); applyYjsOps(Y, A, opsA); const applyMs = env.now() - t;
+    let deep = 0; A.nodes.observeDeep((evs) => { deep += evs.length; });
+    t = env.now(); Y.applyUpdate(A.doc, uB); const importMs = env.now() - t;
+    t = env.now(); Y.applyUpdate(B.doc, Y.encodeStateAsUpdate(A.doc, ysv)); const reverseMs = env.now() - t;
+    const canon = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : 1))) : x));
+    const converged = canon(A.nodes.toJSON()) === canon(B.nodes.toJSON());
+    return { kind, N, updateKB: kb(uB.byteLength), applyLocalMs: r1(applyMs), importMs: r1(importMs), reverseMs: r1(reverseMs), converged };
+  }
+  if (kind === 'loro-pages') {
+    const pageIds = dec(await env.fixture('loro-pages.ids.json'));
+    const pageBytes = []; for (let k = 0; k < 50; k++) pageBytes.push(await env.fixture(`loro-page-${k}.snapshot`));
+    const loc = pageLocator(s);
+    const split = (ops) => { const per = Array.from({ length: 50 }, () => []); for (const o of ops) { const r = remapToPage(o, loc); if (r) per[r.page].push(r.op); } return per; };
+    const perA = split(opsA), perB = split(opsB);
+    const openPart = (k, peer) => { const d = new L.LoroDoc(); d.import(pageBytes[k]); d.setPeerId(peer); d.configTextStyle({ bold: { expand: 'after' }, italic: { expand: 'after' } }); return { doc: d, tree: d.getTree(TREE), ids: pageIds[k] }; };
+    let sum = 0, worst = 0, rev = 0, kbs = 0, converged = true;
+    for (let k = 0; k < 50; k++) {
+      const B = openPart(k, 3), A = openPart(k, 2); const vv = A.doc.oplogVersion();
+      applyLoroOps(L, B, perB[k]); applyLoroOps(L, A, perA[k]);
+      const uB = B.doc.export({ mode: 'update', from: vv }); kbs += uB.byteLength;
+      let t = env.now(); A.doc.import(uB); const dt = env.now() - t; sum += dt; worst = Math.max(worst, dt);
+      t = env.now(); B.doc.import(A.doc.export({ mode: 'update', from: vv })); rev += env.now() - t;
+      converged &&= loroDigest(A.doc, A.ids) === loroDigest(B.doc, B.ids);
+      (A.tree?.free(), A.doc.free()); (B.tree?.free(), B.doc.free());
+    }
+    return { kind, N, parts: 50, updateKB: kb(kbs), importMsTotal: r1(sum), worstPartMs: r1(worst), reverseMsTotal: r1(rev), converged };
+  }
+  const open = await opener(env);
+  const B = open(3); const baseVV = B.doc.oplogVersion();
+  applyLoroOps(L, B, opsB);
+  const uB = B.doc.export({ mode: 'update', from: baseVV });
+  const W = open(4); applyLoroOps(L, W, generateOps(s, 10, 3003)); const uW = W.doc.export({ mode: 'update', from: baseVV }); (W.tree?.free(), W.doc.free());
+  const A = open(2); const baseFrontiers = A.doc.frontiers();
+  let t = env.now(); applyLoroOps(L, A, opsA); const applyMs = env.now() - t;
+  let warmupMs = null;
+  if (kind === 'loro-warm') { t = env.now(); A.doc.import(uW); warmupMs = r1(env.now() - t); }
+  let events = 0; const unsub = A.doc.subscribe((e) => { events += e.events.length; });
+  t = env.now(); A.doc.import(uB); await Promise.resolve(); const importMs = env.now() - t; unsub();
+  let diffMs = null;
+  if (N <= 1000) { t = env.now(); A.doc.diff(baseFrontiers, A.doc.frontiers(), false); diffMs = r1(env.now() - t); }
+  // cheaper stale-field primitive: the ops since base as JSON (proportional to the ops since base, not the doc)
+  t = env.now();
+  const spans = A.doc.findIdSpansBetween(baseFrontiers, A.doc.frontiers());
+  let opsSince = 0; for (const sp of spans.forward) for (const c of A.doc.exportJsonInIdSpan(sp)) opsSince += c.ops.length;
+  const opsSinceMs = r1(env.now() - t);
+  if (kind !== 'loro-warm') A.doc.import(uW);
+  t = env.now(); B.doc.import(uW); B.doc.import(A.doc.export({ mode: 'update', from: baseVV })); const reverseMs = env.now() - t;
+  const converged = loroDigest(A.doc, A.ids) === loroDigest(B.doc, B.ids);
+  return { kind, N, updateKB: kb(uB.byteLength), applyLocalMs: r1(applyMs), warmupMs, importMs: r1(importMs), events, reverseMs: r1(reverseMs), diffSinceBaseMs: diffMs, opsSinceBaseJsonMs: opsSinceMs, opsSinceBase: opsSince, converged, wasmMBAfter: env.mem().wasmMB };
 }

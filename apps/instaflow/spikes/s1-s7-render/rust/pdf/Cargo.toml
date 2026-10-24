@@ -1,0 +1,14 @@
+[package]
+name = "pdf"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ir = { path = "../ir" }
+krilla = { version = "=0.8.2", default-features = false, features = ["raster-images"] }
+
+[features]
+text = ["krilla/simple-text"]

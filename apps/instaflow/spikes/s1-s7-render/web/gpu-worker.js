@@ -6,6 +6,7 @@ const pct = (a, p) => { if (!a.length) return null; const s = [...a].sort((x, y)
 const summary = (a) => ({ n: a.length, median: pct(a, 0.5), p95: pct(a, 0.95), max: pct(a, 1), mean: a.length ? +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(2) : null });
 
 let log = [];
+let modRef = null;
 const say = (m) => { log.push(m); postMessage({ type: 'log', msg: m }); };
 
 self.onmessage = async (ev) => {
@@ -14,7 +15,8 @@ self.onmessage = async (ev) => {
     const out = await run(canvas, count, maxTiles, frames, budget, variant);
     postMessage({ type: 'done', out }, out.transfer);
   } catch (e) {
-    postMessage({ type: 'error', error: String(e && e.stack || e), log });
+    try { if (modRef) say('wgpu errors: ' + modRef.take_errors().slice(0, 5).join(' | ')); } catch {}
+    postMessage({ type: 'error', error: String(e && e.stack || e) + '\nLOG:\n' + log.join('\n') });
   }
 };
 
@@ -24,6 +26,7 @@ async function run(canvas, count, maxTiles, FRAMES, BUDGET, variant) {
   const readbacks = [];
   const t0 = now();
   const mod = await import(`./pkg/${variant}.js`);
+  modRef = mod;
   R.init.import_js_ms = +(now() - t0).toFixed(2);
   const t1 = now();
   const wasm = await mod.default({ module_or_path: new URL(`./pkg/${variant}_bg.wasm`, import.meta.url) });
@@ -40,7 +43,10 @@ async function run(canvas, count, maxTiles, FRAMES, BUDGET, variant) {
   R.init.total_to_first_frame_ms = +(now() - t0).toFixed(2);
   say(`init done ${JSON.stringify(R.init)}`);
 
+  const errs = (where) => { const e = mod.take_errors(); if (e.length) { say(`wgpu errors @${where}: ${e.slice(0, 5).join(' | ')}`); R.info.wgpu_errors = (R.info.wgpu_errors ?? 0) + e.length; } };
+  errs('init');
   const grab = async (name, meta) => {
+    errs(name);
     await eng.begin_readback();
     const px = eng.finish_readback();
     readbacks.push({ name, w: W, h: H, ...meta, px });
@@ -89,23 +95,34 @@ async function run(canvas, count, maxTiles, FRAMES, BUDGET, variant) {
   // ---------------------------------------------------------------- perf sequences
   const seq = async (name, setup, step, frameFn) => {
     await setup();
-    const tot = [], cpu = [], extra = [];
+    const tot = [], ex = [];
     for (let i = 0; i < FRAMES; i++) {
       step(i);
       const ts = now();
       const st = frameFn();
       await eng.gpu_done();
-      tot.push(now() - ts); cpu.push(st[0] + (st.length > 4 ? 0 : st[1])); extra.push(st);
+      tot.push(now() - ts); ex.push(st);
     }
-    R.perf[name] = { frame_ms: summary(tot), cpu_submit_ms: summary(cpu) };
-    if (extra[0].length > 3) {
-      R.perf[name].tiles_rendered = extra.reduce((a, s) => a + s[1], 0);
-      R.perf[name].frames_with_missing_tiles = extra.filter((s) => s[2] > 0).length;
-      R.perf[name].visible_tiles_median = pct(extra.map((s) => s[3]), 0.5);
+    const col = (k) => ex.map((s) => s[k]);
+    const P = { frame_ms: summary(tot) };
+    if (ex[0].length > 3) {
+      // tiled: [cpu_ms, tiles_rendered, missing, visible, lifted_ms, tiles_cpu_ms]
+      P.cpu_total_ms = summary(col(0));
+      P.cpu_tile_raster_ms = summary(col(5));
+      P.cpu_lifted_ms = summary(col(4));
+      P.tiles_rendered = col(1).reduce((a, b) => a + b, 0);
+      P.frames_with_missing_tiles = col(2).filter((x) => x > 0).length;
+      P.visible_tiles_median = pct(col(3), 0.5);
+      const comp = tot.filter((_, i) => ex[i][1] === 0 && ex[i][4] < 0.5);
+      P.composite_only_frame_ms = summary(comp);
     } else {
-      R.perf[name].elements_drawn_median = pct(extra.map((s) => s[2]), 0.5);
+      // full: [scene_encode_ms, render_submit_ms, drawn]
+      P.cpu_scene_encode_ms = summary(col(0));
+      P.cpu_render_submit_ms = summary(col(1));
+      P.elements_drawn_median = pct(col(2), 0.5);
     }
-    say(`${name}: ${JSON.stringify(R.perf[name])}`);
+    R.perf[name] = P;
+    say(`${name}: ${JSON.stringify(P)}`);
   };
   const resetDoc = async () => { eng.clear_tiles(); };
   for (const z of [1, 0.25]) {
@@ -130,6 +147,7 @@ async function run(canvas, count, maxTiles, FRAMES, BUDGET, variant) {
     R.perf.time_to_sharp.push({ zoom: +z.toFixed(3), ...s });
   }
   say(`time_to_sharp ${JSON.stringify(R.perf.time_to_sharp)}`);
+  R.info.stats_after_zoom_sweep = JSON.parse(eng.stats());
 
   // drag of 100 elements
   const camA = cams.A;

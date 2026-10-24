@@ -182,6 +182,14 @@ pub async fn create_engine(canvas: OffscreenCanvas, width: u32, height: u32, cou
         .await
         .map_err(|e| JsValue::from_str(&format!("request_device: {e}")))?;
     marks.push(("device".into(), now() - t0));
+    device.set_device_lost_callback(|reason, msg| {
+        web_sys::console::error_1(&format!("wgpu device lost: {reason:?} {msg}").into());
+        ERRORS.with(|v| v.borrow_mut().push(format!("DEVICE LOST {reason:?} {msg}")));
+    });
+    device.on_uncaptured_error(std::sync::Arc::new(|e: wgpu::Error| {
+        web_sys::console::error_1(&format!("wgpu uncaptured error: {e}").into());
+        ERRORS.with(|v| v.borrow_mut().push(format!("{e}")));
+    }));
     let mut sc = surface
         .get_default_config(&adapter, width, height)
         .ok_or_else(|| JsValue::from_str("surface unsupported"))?;
@@ -292,6 +300,16 @@ pub async fn create_engine(canvas: OffscreenCanvas, width: u32, height: u32, cou
     })
 }
 
+thread_local! {
+    static ERRORS: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// wgpu validation errors seen so far (drained).
+#[wasm_bindgen]
+pub fn take_errors() -> Vec<String> {
+    ERRORS.with(|v| std::mem::take(&mut *v.borrow_mut()))
+}
+
 fn level_of(zoom: f64) -> (i32, f64) {
     let k = (2.0 * zoom.log2()).round() as i32;
     (k, 2f64.powf(k as f64 / 2.0))
@@ -344,6 +362,27 @@ impl Engine {
         self.present();
         let t2 = now();
         vec![t1 - t0, t2 - t1, drawn as f64]
+    }
+
+    /// Debug: 0 = present only, 1 = vello render (empty scene) only, 2 = vello render of the frame scene only.
+    pub fn frame_debug(&mut self, mode: u32) {
+        let (w, h) = (self.frame.w, self.frame.h);
+        match mode {
+            0 => self.present(),
+            1 => {
+                self.scene.reset();
+                self.vello(w, h, true, None, TargetInit::Clear(ClearSettings::Viewport { color: bg() }));
+            }
+            _ => {
+                self.scene.reset();
+                let lifted = self.lifted_ids.clone();
+                {
+                    let mut p = GpuPainter { scene: &mut self.scene, images: &self.images };
+                    ir::draw_frame(&mut p, &self.doc, &self.grid, &self.cam, &lifted, self.drag);
+                }
+                self.vello(w, h, true, None, TargetInit::Clear(ClearSettings::Viewport { color: bg() }));
+            }
+        }
     }
 
     fn tile_world(k: i32, tx: i32, ty: i32) -> Rect {
@@ -417,13 +456,14 @@ impl Engine {
 
     /// Tiled path. `budget` = max tiles rasterized this frame; `reraster_lift` = draw the lifted
     /// selection with Vello every frame (instead of compositing the cached lifted texture).
-    /// Returns [cpu_ms, tiles_rendered, visible_missing_after, visible, lifted_ms].
+    /// Returns [cpu_ms, tiles_rendered, visible_missing_after, visible, lifted_ms, tiles_cpu_ms].
     pub fn frame_tiled(&mut self, budget: u32, reraster_lift: bool) -> Vec<f64> {
         let t0 = now();
         self.frame_no += 1;
         let (k, s) = level_of(self.cam.zoom);
         let visible = self.visible_tiles(k, 0);
         let mut rendered = 0u32;
+        let tt = now();
         for &(tx, ty) in &visible {
             if rendered >= budget {
                 break;
@@ -444,6 +484,7 @@ impl Engine {
                 }
             }
         }
+        let tiles_ms = now() - tt;
         let mut missing = 0;
         for &(tx, ty) in &visible {
             match self.tiles.get_mut(&(k, tx, ty)) {
@@ -552,7 +593,7 @@ impl Engine {
             lifted_ms2 = now() - tr;
         }
         self.present();
-        vec![now() - t0, rendered as f64, missing as f64, visible.len() as f64, lifted_ms + lifted_ms2]
+        vec![now() - t0, rendered as f64, missing as f64, visible.len() as f64, lifted_ms + lifted_ms2, tiles_ms]
     }
 
     fn render_lifted_tex(&mut self) {

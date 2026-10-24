@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["ir", "cpu", "gpu"]
+members = ["ir", "cpu", "gpu", "pdf", "native"]
 
 [workspace.dependencies]
 vello_common = { version = "=0.3.0", default-features = false, features = ["std"] }
@@ -25,3 +25,8 @@ strip = true
 inherits = "release"
 opt-level = 3
 panic = "unwind"
+
+# Speed variant (for CPU-side strip preparation timings).
+[profile.release-o3]
+inherits = "release"
+opt-level = 3

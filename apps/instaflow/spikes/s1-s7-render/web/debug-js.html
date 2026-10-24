@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8"><canvas id="c" width="1280" height="720"></canvas>
+<script type="module">
+const q = new URLSearchParams(location.search);
+const src = `self.onmessage = async (ev) => {
+  const log = []; const fmt = ev.data.fmt;
+  try {
+  const ad = await navigator.gpu.requestAdapter(); const dev = await ad.requestDevice();
+  dev.lost.then((i) => log.push('LOST ' + i.reason + ' ' + i.message));
+  dev.onuncapturederror = (e) => log.push('ERR ' + e.error.message);
+  const ctx = ev.data.canvas.getContext('webgpu');
+  ctx.configure({ device: dev, format: fmt || navigator.gpu.getPreferredCanvasFormat(), alphaMode: ev.data.alpha || 'opaque' });
+  log.push('preferred ' + navigator.gpu.getPreferredCanvasFormat() + ' using ' + (fmt || 'preferred'));
+  for (let i = 0; i < 3; i++) {
+    const enc = dev.createCommandEncoder();
+    const p = enc.beginRenderPass({ colorAttachments: [{ view: ctx.getCurrentTexture().createView(), loadOp: 'clear', storeOp: 'store', clearValue: [1, 0, 0, 1] }] });
+    p.end(); dev.queue.submit([enc.finish()]);
+    await dev.queue.onSubmittedWorkDone();
+    await new Promise((r) => requestAnimationFrame ? requestAnimationFrame(r) : setTimeout(r, 16));
+    log.push('frame ' + i);
+  }
+  } catch (e) { log.push('EXC ' + e); }
+  await new Promise((r) => setTimeout(r, 300));
+  postMessage(log);
+};`;
+const w = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+const off = document.getElementById('c').transferControlToOffscreen();
+w.onmessage = (e) => { window.__result = e.data; };
+w.postMessage({ canvas: off, fmt: q.get('fmt'), alpha: q.get('alpha') }, [off]);
+</script>

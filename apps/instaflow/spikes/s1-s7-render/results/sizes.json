@@ -1,0 +1,191 @@
+{
+  "canvaskit_version": "0.42.0",
+  "rows": [
+    {
+      "file": "build/raw/cpu.cargo.wasm",
+      "raw_kb": 526.4,
+      "gzip_kb": 203.3,
+      "brotli_kb": 167.7
+    },
+    {
+      "file": "build/raw/cpu_z.cargo.wasm",
+      "raw_kb": 2342.9,
+      "gzip_kb": 428.5,
+      "brotli_kb": 270.2
+    },
+    {
+      "file": "build/raw/gpu.cargo.wasm",
+      "raw_kb": 1519.5,
+      "gzip_kb": 411.4,
+      "brotli_kb": 292.5
+    },
+    {
+      "file": "build/raw/gpu_o3_simd.cargo.wasm",
+      "raw_kb": 1621.7,
+      "gzip_kb": 423,
+      "brotli_kb": 303.8
+    },
+    {
+      "file": "build/raw/gpu_simd.cargo.wasm",
+      "raw_kb": 1372.2,
+      "gzip_kb": 386.5,
+      "brotli_kb": 280.4
+    },
+    {
+      "file": "build/raw/gpu_text.cargo.wasm",
+      "raw_kb": 1531.3,
+      "gzip_kb": 415.7,
+      "brotli_kb": 296.6
+    },
+    {
+      "file": "build/bindgen/cpu.js",
+      "raw_kb": 10.8,
+      "gzip_kb": 2.2,
+      "brotli_kb": 2
+    },
+    {
+      "file": "build/bindgen/cpu_bg.opt.wasm",
+      "raw_kb": 478,
+      "gzip_kb": 194.5,
+      "brotli_kb": 161.3
+    },
+    {
+      "file": "build/bindgen/cpu_bg.wasm",
+      "raw_kb": 488.6,
+      "gzip_kb": 197.9,
+      "brotli_kb": 164.1
+    },
+    {
+      "file": "build/bindgen/cpu_z.js",
+      "raw_kb": 10.9,
+      "gzip_kb": 2.2,
+      "brotli_kb": 2
+    },
+    {
+      "file": "build/bindgen/cpu_z_bg.opt.wasm",
+      "raw_kb": 2022.7,
+      "gzip_kb": 450.5,
+      "brotli_kb": 279
+    },
+    {
+      "file": "build/bindgen/cpu_z_bg.wasm",
+      "raw_kb": 2208,
+      "gzip_kb": 416.7,
+      "brotli_kb": 266.7
+    },
+    {
+      "file": "build/bindgen/gpu.js",
+      "raw_kb": 77.1,
+      "gzip_kb": 14,
+      "brotli_kb": 11.9
+    },
+    {
+      "file": "build/bindgen/gpu_bg.opt.wasm",
+      "raw_kb": 565,
+      "gzip_kb": 216.1,
+      "brotli_kb": 173.3
+    },
+    {
+      "file": "build/bindgen/gpu_bg.wasm",
+      "raw_kb": 593.4,
+      "gzip_kb": 214.5,
+      "brotli_kb": 172.2
+    },
+    {
+      "file": "build/bindgen/gpu_o3_simd.js",
+      "raw_kb": 77,
+      "gzip_kb": 14,
+      "brotli_kb": 11.9
+    },
+    {
+      "file": "build/bindgen/gpu_o3_simd_bg.opt.wasm",
+      "raw_kb": 546.4,
+      "gzip_kb": 221.8,
+      "brotli_kb": 178.2
+    },
+    {
+      "file": "build/bindgen/gpu_o3_simd_bg.wasm",
+      "raw_kb": 579.3,
+      "gzip_kb": 224.6,
+      "brotli_kb": 180.1
+    },
+    {
+      "file": "build/bindgen/gpu_simd.js",
+      "raw_kb": 77.1,
+      "gzip_kb": 14,
+      "brotli_kb": 11.9
+    },
+    {
+      "file": "build/bindgen/gpu_simd_bg.opt.wasm",
+      "raw_kb": 427.9,
+      "gzip_kb": 189.9,
+      "brotli_kb": 158.3
+    },
+    {
+      "file": "build/bindgen/gpu_simd_bg.wasm",
+      "raw_kb": 451.6,
+      "gzip_kb": 190.8,
+      "brotli_kb": 159.1
+    },
+    {
+      "file": "build/bindgen/gpu_text.js",
+      "raw_kb": 77.3,
+      "gzip_kb": 14,
+      "brotli_kb": 11.9
+    },
+    {
+      "file": "build/bindgen/gpu_text_bg.opt.wasm",
+      "raw_kb": 576.2,
+      "gzip_kb": 222.5,
+      "brotli_kb": 178
+    },
+    {
+      "file": "build/bindgen/gpu_text_bg.wasm",
+      "raw_kb": 605.7,
+      "gzip_kb": 218.9,
+      "brotli_kb": 175.5
+    },
+    {
+      "file": "build/pdf/pdf_images.cargo.wasm",
+      "raw_kb": 1691.1,
+      "gzip_kb": 527.2,
+      "brotli_kb": 389.1
+    },
+    {
+      "file": "build/pdf/pdf_images.opt.wasm",
+      "raw_kb": 1350.1,
+      "gzip_kb": 518.9,
+      "brotli_kb": 397.2
+    },
+    {
+      "file": "build/pdf/pdf_images_text.cargo.wasm",
+      "raw_kb": 2241.4,
+      "gzip_kb": 736.1,
+      "brotli_kb": 529
+    },
+    {
+      "file": "build/pdf/pdf_images_text.opt.wasm",
+      "raw_kb": 1841.5,
+      "gzip_kb": 729.5,
+      "brotli_kb": 539.5
+    },
+    {
+      "file": "node_modules/canvaskit-wasm/bin/canvaskit.wasm",
+      "raw_kb": 7145.8,
+      "gzip_kb": 2891.2,
+      "brotli_kb": 2222.5
+    },
+    {
+      "file": "node_modules/canvaskit-wasm/bin/canvaskit.js",
+      "raw_kb": 118,
+      "gzip_kb": 36.6,
+      "brotli_kb": 32.2
+    },
+    {
+      "file": "node_modules/canvaskit-wasm/bin/full/canvaskit.wasm",
+      "raw_kb": 8049.7,
+      "gzip_kb": 3236.6,
+      "brotli_kb": 2481.9
+    }
+  ]
+}

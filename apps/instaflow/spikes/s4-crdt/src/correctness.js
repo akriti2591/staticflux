@@ -146,7 +146,37 @@ export function correctness(env) {
     } catch (e) { err = String(e); }
     const st = smallState(D.doc);
     const got = { n1x: st.n1.x, n1fill: st.n1.fill, n2parent: st.n2.parent, n3x: st.n3.x, text: st.t1.text, n4y: st.n4.y };
-    res.undoOneDocOriginFilter = { got, agentUndoKeepsHumanEdits: JSON.stringify(got) === JSON.stringify({ n1x: 10, n1fill: '#000000', n2parent: 'g2', n3x: 0, text: 'Hi alpha beta gamma', n4y: 5 }), error: err };
+    // then the human undoes everything: do the agent's undo commits leak into the human's stack?
+    let humanSteps = 0;
+    try { while (uh.canUndo() && humanSteps < 50) { uh.undo(); humanSteps++; } } catch (e) { err = (err ?? '') + String(e); }
+    const fin = smallState(D.doc);
+    res.undoOneDocOriginFilter = {
+      got, agentUndoKeepsHumanEdits: JSON.stringify(got) === JSON.stringify({ n1x: 10, n1fill: '#000000', n2parent: 'g2', n3x: 0, text: 'Hi alpha beta gamma', n4y: 5 }),
+      humanStepsAfterAgentUndo: humanSteps, fullUndoRestoresOriginal: JSON.stringify(fin) === JSON.stringify(original),
+      finalAfterHumanUndo: { n1fill: fin.n1.fill, n3x: fin.n3.x, text: fin.t1.text, n5x: fin.n5.x }, error: err,
+      note: 'both UndoManagers share one peer; undo commits carry no actor origin',
+    };
+  }
+
+  // B2. same, but the other actor's UndoManager is paused while one actor undoes
+  {
+    const D = open(310);
+    const uh = new L.UndoManager(D.doc, { mergeInterval: 0, excludeOriginPrefixes: ['agent'] });
+    const ua = new L.UndoManager(D.doc, { mergeInterval: 0, excludeOriginPrefixes: ['human'] });
+    let err;
+    try {
+      undoScript(L, D, D, () => D.doc.commit({ origin: 'human:guest' }), () => D.doc.commit({ origin: 'agent:s1' }));
+      while (ua.canUndo()) { uh.pause(); ua.undo(); uh.resume(); }
+    } catch (e) { err = String(e); }
+    const st = smallState(D.doc);
+    const got = { n1x: st.n1.x, n1fill: st.n1.fill, n2parent: st.n2.parent, n3x: st.n3.x, text: st.t1.text, n4y: st.n4.y };
+    let humanSteps = 0;
+    try { while (uh.canUndo() && humanSteps < 50) { ua.pause(); uh.undo(); ua.resume(); humanSteps++; } } catch (e) { err = (err ?? '') + String(e); }
+    const fin = smallState(D.doc);
+    res.undoOneDocOriginFilterPaused = {
+      agentUndoKeepsHumanEdits: JSON.stringify(got) === JSON.stringify({ n1x: 10, n1fill: '#000000', n2parent: 'g2', n3x: 0, text: 'Hi alpha beta gamma', n4y: 5 }),
+      humanSteps, fullUndoRestoresOriginal: JSON.stringify(fin) === JSON.stringify(original), finalAfterHumanUndo: { n1fill: fin.n1.fill, n3x: fin.n3.x, text: fin.t1.text, n5x: fin.n5.x }, error: err,
+    };
   }
 
   // C. undo after reload (D9: persisted undo): rebuild the agent's last step from history (commit message) as an inverse diff

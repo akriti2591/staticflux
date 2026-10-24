@@ -24,9 +24,12 @@ const P = await import('../src/phases.js');
 const env = {
   L, Y, reps: Number(process.env.REPS ?? 5),
   now: () => performance.now(),
+  log: (...a) => process.stderr.write(`[${(performance.now() / 1000).toFixed(1)}s] ${a.join(' ')}\n`),
   gc: () => globalThis.gc?.(),
   mem: () => { const m = process.memoryUsage(); return { jsHeapMB: +(m.heapUsed / 2 ** 20).toFixed(1), externalMB: +(m.external / 2 ** 20).toFixed(1), rssMB: +(m.rss / 2 ** 20).toFixed(1), wasmMB: +(exports.memory.buffer.byteLength / 2 ** 20).toFixed(1) }; },
   gzip: async (b) => ({ deflateRaw: zlib.deflateRawSync(b).byteLength }),
+  checkpoints: process.env.CPS ? process.env.CPS.split(',').map(Number) : undefined,
+  milestone: process.env.MILESTONE !== '0',
   fixture: async (name) => new Uint8Array(fs.readFileSync(path.join(root, 'fixtures', name))),
 };
 
@@ -45,6 +48,7 @@ if (phase === 'fixtures') {
 } else if (phase === 'open-loro') out = await P.openLoro(env);
 else if (phase === 'open-yjs') out = await P.openYjs(env);
 else if (phase === 'perf') out = await P.perf(env, process.argv[3]?.split(','));
+else if (phase === 'merge1') out = await P.mergeOne(env, process.argv[3], Number(process.argv[4]));
 else if (phase === 'correctness') out = P.correctness(env);
 else throw new Error('unknown phase ' + phase);
 process.stdout.write(JSON.stringify({ phase, boot, out }));
