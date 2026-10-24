@@ -18,7 +18,8 @@ export const ScopeDisposedError = defineError(
   'Check `scope.disposed` before late async continuations, or pass `scope.signal` so the work is aborted instead.',
 );
 
-export type Cleanup = () => void | Promise<void>;
+/** Cleanup callback. A returned promise is awaited; any other return value is ignored. */
+export type Cleanup = () => unknown;
 
 export interface Scope extends Disposable, AsyncDisposable {
   readonly id: string;

@@ -127,10 +127,10 @@ export interface UnitContext {
   handleOf(key: string): DepHandle<unknown>;
 }
 
-export interface UnitDefinition<T, D extends DepsDeclaration = DepsDeclaration, P extends TokenId = TokenId> {
+/** Everything a unit declares except what it provides (shared by units and contributions). */
+export interface UnitBase<T, D extends DepsDeclaration = DepsDeclaration> {
   /** Namespaced unit id, e.g. `auth/session-unit`. */
   readonly id: TokenId;
-  readonly provides: Token<T, P>;
   /** Lifetime. A unit may only require units with an equal or longer lifetime (I-2). */
   readonly scope: ScopeLevel;
   readonly deps?: D;
@@ -156,6 +156,17 @@ export interface UnitDefinition<T, D extends DepsDeclaration = DepsDeclaration, 
   readonly description?: string;
 }
 
+export interface UnitDefinition<T, D extends DepsDeclaration = DepsDeclaration, P extends TokenId = TokenId>
+  extends UnitBase<T, D> {
+  readonly provides: Token<T, P>;
+}
+
+/** A unit contributing one item `E` to a multi token. */
+export interface ContributionDefinition<E, D extends DepsDeclaration = DepsDeclaration, P extends TokenId = TokenId>
+  extends UnitBase<E, D> {
+  readonly provides: MultiToken<E, P>;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyUnit = UnitDefinition<any, any, TokenId>;
 
@@ -166,7 +177,7 @@ export type AnyUnit = UnitDefinition<any, any, TokenId>;
 export function unit<T, const D extends DepsDeclaration = Record<never, never>, const P extends TokenId = TokenId>(
   definition: UnitDefinition<T, D, P> &
     ([DuplicateDepKeys<D>] extends [never] ? unknown : { __duplicateDepKeys: DuplicateDepKeys<D> }),
-): UnitDefinition<T, D, P> {
+): UnitDefinition<T, NoInfer<D>, P> {
   return definition;
 }
 
@@ -210,8 +221,8 @@ export function dependencyEdges(definition: AnyUnit): readonly DependencyEdge[] 
  *   create: () => ({ label: 'Help' }) });
  */
 export function contribution<E, const D extends DepsDeclaration = Record<never, never>, const P extends TokenId = TokenId>(
-  definition: Omit<UnitDefinition<E, D, P>, 'provides'> & { readonly provides: MultiToken<E, P> } &
+  definition: ContributionDefinition<E, D, P> &
     ([DuplicateDepKeys<D>] extends [never] ? unknown : { __duplicateDepKeys: DuplicateDepKeys<D> }),
-): UnitDefinition<readonly E[], D, P> {
+): UnitDefinition<readonly E[], NoInfer<D>, P> {
   return definition as unknown as UnitDefinition<readonly E[], D, P>;
 }
