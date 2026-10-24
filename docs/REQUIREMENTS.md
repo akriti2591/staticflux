@@ -358,6 +358,13 @@
 - **R19.13** Advisor latency classes: `sync` (< 1 ms, heuristics/statistical only), `idle` (one idle slot), `background` (≤ ~500 ms, e.g. remote decision models). Background answers are cached until their input facts change; never awaited on a frame or navigation critical path.
 - **R19.14** Remote advisors receive only declared, minimized feature vectors (e.g. route-history buckets, device tier) — never raw user content.
 
+## 19.2 AI platform integrations (plugins, not core)
+
+- **R19.15** Browser AI integrations live in adapter packages, not the core, because the APIs are experimental and moving (WebMCP: Chrome flag/origin trial, W3C CG draft Feb 2026; built-in AI APIs: Chromium-first, device-dependent).
+- **R19.16** `@staticflux/webmcp`: publishes registered capabilities as WebMCP tools automatically. Every tool call goes through gating, the agent policy subject, confirmation for destructive actions, meter reservation and tracing — no per-feature WebMCP code.
+- **R19.17** `@staticflux/ai`: one **model provider** port over browser built-in AI (Prompt, Summarizer, Writer, Translator, Language Detector), on-device models (e.g. Gemma via WebGPU), decision models (e.g. Jev) and remote models. Availability (incl. model download state) is a platform fact; features gate on it. Used by the on-device advisor tier and optionally by i18n (translator fallback).
+- **R19.18** Core requirement this imposes: capabilities carry input/output schemas, policies and confirmation metadata (already R3.3, R6.17).
+
 ## 20. Tooling, repo & enforcement
 
 - **R20.1** pnpm workspace monorepo; TypeScript project references; Vitest; tsup (or equivalent) builds.
