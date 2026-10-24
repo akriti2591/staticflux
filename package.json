@@ -16,8 +16,8 @@
     "check": "pnpm build && pnpm typecheck && pnpm test && pnpm lint:boundaries && pnpm lint:sf && pnpm errors:check && pnpm size",
     "sf": "node tooling/sf/dist/cli.js",
     "lint:sf": "node tooling/sf/dist/cli.js lint",
-    "errors": "node tooling/sf/dist/cli.js errors",
-    "errors:check": "node tooling/sf/dist/cli.js errors --check",
+    "errors": "node tooling/sf/dist/cli.js errors packages/*/dist/index.js tooling/vite-plugin/dist/index.js tooling/rspack-plugin/dist/index.js",
+    "errors:check": "node tooling/sf/dist/cli.js errors --check packages/*/dist/index.js tooling/vite-plugin/dist/index.js tooling/rspack-plugin/dist/index.js",
     "agents": "node tooling/sf/dist/cli.js agents",
     "agents:check": "node tooling/sf/dist/cli.js agents --check",
     "budgets": "size-limit --json > .size-results.json; node tooling/sf/dist/cli.js budgets --results .size-results.json"

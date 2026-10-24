@@ -8,7 +8,7 @@ The StaticFlux CLI (R20.6). CI and agents use it to check the DI graph (R2.6, R1
 emit the machine-readable error catalog `docs/errors.json` (§13 error format), enforce
 the StaticFlux lint rules (R20.5), report size budgets and propose ratchets (R12.8), and
 keep the generated sections of every package `AGENTS.md` in sync with the config CI
-enforces (R20.2). Every command is a plain function (unit-tested) behind a thin argv layer.
+enforces (R20.2), check route × profile completeness (R18.7) and validate build manifests (R12.2). Every command is a plain function (unit-tested) behind a thin argv layer.
 
 ## Commands
 | Command | What it does | Exit codes |
@@ -17,6 +17,8 @@ enforces (R20.2). Every command is a plain function (unit-tested) behind a thin 
 | `sf errors [modules…] [--out FILE] [--check] [--strict] [--json]` | Imports modules (default `packages/*/dist/index.js`), merges core's `listErrorDefinitions()` with `ErrorDefinition`s found in the exports, writes `docs/errors.json` (`{ version, description, errors: [{ code, kind, summary, fix }] }`, sorted, deterministic). | 1 on code conflicts, stale file (`--check`), or import failures with `--strict` |
 | `sf lint [paths…] [--json] [--rules a,b] [--flag-names a,b] [--include-tests]` | Runs the rules below over files/dirs/globs (default `packages/*/src`; `*.test.ts`, `*.spec.ts`, `__tests__/`, `.d.ts`, `dist`, `node_modules` excluded). Output `file:line:col rule message`. | 1 on violations |
 | `sf budgets --results FILE [--config .size-limit.json] [--threshold 0.1] [--headroom 0.05] [--write] [--json]` | Table of limit vs. actual (`size-limit --json` output). Proposes tightening when actual < limit by more than the threshold: new limit = actual + headroom, rounded up to 0.1 of the limit's unit. `--write` applies only tightenings; nothing ever loosens. | 1 if any budget exceeded |
+| `sf routes <entry> [--json]` | Imports a module exporting `routes` (router `defineRoute`s; capability bindings via `bindCapability`), `features` (runtime `defineFeature` manifests with `modes`) and `profiles` (`'web:expanded'`, `{ key, hostMode, formFactor }`, `{ key, modes }`) or `hostModes` + `formFactors`. For each capability-bound route × profile, selects the first candidate whose modes (candidate `modes` ?? manifest `modes`; none = all) share a mode with `[hostMode, formFactor]` (router `modesPredicate`). Errors: `SF-ROUTES-NO-FEATURE` (route/profile with no feature), `SF-ROUTES-UNKNOWN-FEATURE`, `SF-ROUTES-NO-CANDIDATES`; warning `SF-ROUTES-SHADOWED-CANDIDATE` (never selected); info `SF-ROUTES-UNROUTED-FEATURE` (non-headless). Text output: issues + route × profile → feature matrix (`MISSING`). | 1 if any error |
+| `sf manifest <file> [--max-eager-kb N] [--json]` | Validates an `sf-manifest.json` (`sf-manifest/1`) structurally, collecting all issues: `SF-MANIFEST-FORMAT`, `-SHAPE` (ids, files, css, deps, tier, load, sizes, profiles, integrity), `-ID-MISMATCH`, `-REMOTE`, `-EAGER-REASON`, `-DANGLING-DEP`, `-OVER-BUDGET` (`sizeKb > budgetKb`), `-EAGER-BUDGET` (with `--max-eager-kb`) — errors; `-CYCLE` warning; `-UNMEASURED` info (budget without size). Prints a chunk table. | 1 if any error |
 | `sf agents [--packages glob,…] [--size-limit FILE] [--check]` | Regenerates "Budgets" and "Allowed dependencies" between `<!-- sf:generated:start -->` / `<!-- sf:generated:end -->` in each `packages/*/AGENTS.md` from `package.json` (`dependencies`, `staticflux.layer`) and `.size-limit.json` (checks whose `path` is inside the package dir). Appends the markers if absent; creates the file if missing. | 1 if stale with `--check` |
 
 Exit code 2 = usage or input error (printed as `SF-TOOL-NNN: message` + `fix:`).
@@ -37,8 +39,10 @@ Suppress one line: `// sf-lint-disable-next-line <rule>[, rule] -- reason` (no r
 - `lint.ts` — `lintSources`, `lintPaths`, `collectLintFiles`, `formatLintText`, `LINT_RULES`, `DEFAULT_LINT_CONFIG`, `DEFAULT_LINT_PATHS`.
 - `budgets.ts` — `analyzeBudgets`, `applyRatchet`, `parseBytes` (size-limit semantics: `KB` = 1000 B, `KiB` = 1024 B), `formatLimitLike`, `formatBudgetTable`, `readBudgetConfig`, `readBudgetResults`, `writeBudgetConfig`.
 - `agents.ts` — `updateAgentsFiles`, `renderGeneratedBlock`, `spliceGeneratedBlock`, `budgetsForPackage`, `readPackageInfo`, `GENERATED_START`/`GENERATED_END`.
+- `routes.ts` — `readRoutesExports`, `loadRoutesModule`, `checkRoutes`, `formatRoutesText`, `formatRoutesJson`, `ROUTE_ISSUES` (structural `RouteLike`/`FeatureLike`/`RouteProfile`; no router/runtime dependency).
+- `manifest-check.ts` — `checkManifest(json, { maxEagerKb })`, `formatManifestText`, `MANIFEST_ISSUES` (structural; no loader dependency).
 - `files.ts` — `expandGlob` (`*`, `?`, `**`), `importModule` (injectable `ModuleImporter`), `readJson`/`readText` as `Result`, `formatError`.
-- `errors.ts` — `SF-TOOL-001` module load failed · `002` invalid graph module · `003` file read failed · `004` invalid JSON/shape · `005` usage · `006` error-code conflict.
+- `errors.ts` — `SF-TOOL-001` module load failed · `002` invalid graph module · `003` file read failed · `004` invalid JSON/shape · `005` usage · `006` error-code conflict · `007` invalid routes module.
 
 ## Rules
 - Node built-ins, `@staticflux/core` (incl. `@staticflux/core/graph`) and `typescript` only; no CLI libraries.

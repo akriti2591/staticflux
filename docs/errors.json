@@ -1305,6 +1305,24 @@
       "fix": "Check the bridge chunk and the host handshake; the app should continue in degraded mode without host features."
     },
     {
+      "code": "SF-PLAT-006",
+      "kind": "unavailable",
+      "summary": "The app declares `isolation: \"required\"` but the page is not cross-origin isolated.",
+      "fix": "Serve every document with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` (or `credentialless`); on static hosts add the @staticflux/pwa COOP/COEP service worker plugin (one reload on first visit); or declare `isolation: \"preferred\"` so shared-memory paths fall back to transfer."
+    },
+    {
+      "code": "SF-PLAT-007",
+      "kind": "forbidden",
+      "summary": "A subresource was blocked (or would be) by Cross-Origin-Embedder-Policy.",
+      "fix": "Load it through the IsolationPolicy (adds `crossorigin` / `mode: \"cors\"`) and make the server send CORS headers, or serve it with `Cross-Origin-Resource-Policy: cross-origin`; for third-party iframes use the `credentialless` attribute (`policy.iframeAttrs(url)`)."
+    },
+    {
+      "code": "SF-PLAT-008",
+      "kind": "forbidden",
+      "summary": "Cross-Origin-Opener-Policy severed (or would sever) an opener relationship.",
+      "fix": "Popups that need `window.opener` (OAuth, payments) must use `postMessage` via a same-origin relay or `BroadcastChannel`; or serve the popup flow with `Cross-Origin-Opener-Policy: same-origin-allow-popups` (not isolated)."
+    },
+    {
       "code": "SF-PWA-001",
       "kind": "unavailable",
       "summary": "Service workers are not available here (unsupported browser, insecure context, or an embedded host mode).",
@@ -1369,6 +1387,120 @@
       "kind": "not-found",
       "summary": "The shared payload referenced by the URL was not found (already consumed or expired).",
       "fix": "Share payloads are consume-once; re-share from the source app."
+    },
+    {
+      "code": "SF-RSPACK-001",
+      "kind": "validation",
+      "summary": "The sf-manifest could not be built from the Rspack compilation.",
+      "fix": "Read the wrapped SF-LOAD code: name each logical chunk's chunk group `chunkNameFor(id)` (entry name or `webpackChunkName`) or give it an `entry` matching the `import()` request, declare every `deps` id, and give eager chunks a `reason`."
+    },
+    {
+      "code": "SF-RSPACK-002",
+      "kind": "quota",
+      "summary": "A chunk, eager boot cost or per-profile boot JS exceeds its budget (R12.7).",
+      "fix": "Split or lazy-load the offending chunk, drop `load: 'eager'`, or raise the budget with a reviewed reason (R12.8). Use `budgets.onViolation: 'warn'` to report without failing."
+    },
+    {
+      "code": "SF-RSPACK-003",
+      "kind": "validation",
+      "summary": "Per-profile preloads could not be computed from the boot plans.",
+      "fix": "Every profile needs a matching boot plan (add a fallback plan without `match`), and every chunk a plan lists must be declared in `chunks`."
+    },
+    {
+      "code": "SF-RSPACK-004",
+      "kind": "validation",
+      "summary": "The staticfluxRspack() plugin options are invalid.",
+      "fix": "Check the options: chunk ids are unique `kind:name` ids, `bootPlans` need `profiles`, `html.profile` must be one of `profiles`."
+    },
+    {
+      "code": "SF-RSPACK-005",
+      "kind": "conflict",
+      "summary": "A Module Federation shared singleton/version declared by the host does not satisfy a requirement (host or remote).",
+      "fix": "Align versions so one singleton version serves the app (P9): bump the host dependency, align the remote build, or widen `requiredVersion` with a reviewed reason. Remote singletons must also be shared as singletons by the host."
+    },
+    {
+      "code": "SF-RSPACK-006",
+      "kind": "validation",
+      "summary": "A logical chunk maps to an unknown Module Federation remote or exposed module.",
+      "fix": "Map each id to `\"<remote>/<exposed>\"` where `<remote>` is a key of the ModuleFederationPlugin `remotes` and `<exposed>` is listed in that remote's `exposes` (mf-manifest.json); declare the chunk with `chunk(id, …)`."
+    },
+    {
+      "code": "SF-RSPACK-007",
+      "kind": "validation",
+      "summary": "The remote entry URL for a federated chunk cannot be determined.",
+      "fix": "Use `\"name@https://…/remoteEntry.js\"` in `remotes`, or pass the remote's mf-manifest.json content in `federation.manifests[name]` when `remotes` points at an mf-manifest.json URL."
+    },
+    {
+      "code": "SF-SBX-001",
+      "kind": "validation",
+      "summary": "The plugin manifest is invalid (id, version, entry, capabilities, events, permissions or limits).",
+      "fix": "Fix the field named in `details.issues`. Ids are namespaced (`vendor/name`), versions are semver, iframe entries are https/relative URLs or inline code."
+    },
+    {
+      "code": "SF-SBX-002",
+      "kind": "forbidden",
+      "summary": "The plugin called a capability it has not been granted.",
+      "fix": "Request the capability in the plugin manifest and have the host grant it (`plugin.grant(capability)`). Revoked grants fail immediately."
+    },
+    {
+      "code": "SF-SBX-003",
+      "kind": "validation",
+      "summary": "A message from the plugin exceeded the payload size limit and was dropped.",
+      "fix": "Send smaller messages (page or stream data through several calls), or raise `limits.maxPayloadBytes` in the manifest within the host ceiling."
+    },
+    {
+      "code": "SF-SBX-004",
+      "kind": "rate",
+      "summary": "The plugin sent messages faster than its rate limit; the message was dropped.",
+      "fix": "Batch work into fewer calls, or raise `limits.maxMessagesPerSecond` within the host ceiling."
+    },
+    {
+      "code": "SF-SBX-005",
+      "kind": "timeout",
+      "summary": "A plugin call did not finish within the call timeout and was cancelled.",
+      "fix": "Make the capability cheaper, or raise `limits.callTimeoutMs` within the host ceiling."
+    },
+    {
+      "code": "SF-SBX-006",
+      "kind": "unavailable",
+      "summary": "The plugin is not running (loading, restarting, killed, failed or stopped).",
+      "fix": "Wait for `plugin.whenRunning()`, or check `plugin.state` before emitting events to it."
+    },
+    {
+      "code": "SF-SBX-007",
+      "kind": "unavailable",
+      "summary": "The plugin crashed too often and was given up (restart intensity exceeded).",
+      "fix": "Inspect the crash causes in `sandbox/host` telemetry; call `plugin.restart()` after fixing the plugin."
+    },
+    {
+      "code": "SF-SBX-008",
+      "kind": "timeout",
+      "summary": "The plugin did not complete the handshake in time (or identified itself with a different id).",
+      "fix": "The plugin entry must call `connectToHost({ pluginId })` with the manifest id on load; check the entry URL and the CSP."
+    },
+    {
+      "code": "SF-SBX-009",
+      "kind": "forbidden",
+      "summary": "The event is not declared in the plugin manifest (or not offered by the host).",
+      "fix": "Add the event id to `manifest.events` and to the host `events` list; plugins only receive declared events."
+    },
+    {
+      "code": "SF-SBX-010",
+      "kind": "unavailable",
+      "summary": "The isolated realm for this plugin entry is not available here (no DOM/iframe, no Worker, or no realm registered for the entry kind).",
+      "fix": "Register a realm for the entry kind (`realms: { iframe: iframeRealm(), worker: workerRealm(...) }`) or run the plugin where it is supported."
+    },
+    {
+      "code": "SF-SBX-011",
+      "kind": "aborted",
+      "summary": "The plugin was killed (kill switch, too many violations, or `plugin.kill()`).",
+      "fix": "Expected after a kill. Call `plugin.restart()` once the cause is resolved; an engaged kill switch refuses every load."
+    },
+    {
+      "code": "SF-SBX-012",
+      "kind": "forbidden",
+      "summary": "The plugin used a permission it does not hold (e.g. `resize` without the permission).",
+      "fix": "Add the permission to `manifest.permissions`; the host decides whether to load plugins that request it."
     },
     {
       "code": "SF-SCHED-001",
@@ -1581,6 +1713,12 @@
       "fix": "Give each `defineError` call a unique `SF-<AREA>-NNN` code; codes are stable identifiers and must never be reused."
     },
     {
+      "code": "SF-TOOL-007",
+      "kind": "validation",
+      "summary": "The `sf routes` entry module does not export valid `routes`, `features` and profiles.",
+      "fix": "Export `routes` (defineRoute results), `features` (defineFeature manifests) and `profiles` (\"web:expanded\" strings or AppProfile-like objects) — or `hostModes` + `formFactors` arrays."
+    },
+    {
       "code": "SF-UI-001",
       "kind": "invariant",
       "summary": "A render dependency was read before it was ready (I-11).",
@@ -1651,6 +1789,30 @@
       "kind": "validation",
       "summary": "This URL part kind cannot be bound by the URL-sync service.",
       "fix": "Only `view` and `sticky` params sync to stores; `path` belongs to the router, `dialog` to messaging, `intent` to the intent service and `hidden` to handoff."
+    },
+    {
+      "code": "SF-VITE-001",
+      "kind": "validation",
+      "summary": "The sf-manifest could not be built from the Vite/Rolldown bundle.",
+      "fix": "Read the wrapped SF-LOAD code: every declaration needs an `entry` that matches a bundled module (path suffix) or chunk name, every `deps` id must be declared, and eager chunks need a `reason`."
+    },
+    {
+      "code": "SF-VITE-002",
+      "kind": "quota",
+      "summary": "A chunk, eager boot cost or per-profile boot JS exceeds its budget (R12.7).",
+      "fix": "Split or lazy-load the offending chunk, drop `load: 'eager'`, or raise the budget with a reviewed reason (R12.8). Use `budgets.onViolation: 'warn'` to report without failing."
+    },
+    {
+      "code": "SF-VITE-003",
+      "kind": "validation",
+      "summary": "Per-profile preloads could not be computed from the boot plans.",
+      "fix": "Every profile needs a matching boot plan (add a fallback plan without `match`), and every chunk a plan lists must be declared in `chunks`."
+    },
+    {
+      "code": "SF-VITE-004",
+      "kind": "validation",
+      "summary": "The staticflux() Vite plugin options are invalid.",
+      "fix": "Check the options: chunk ids are unique `kind:name` ids, `bootPlans` need `profiles`, and `html.profile` must be one of `profiles`."
     },
     {
       "code": "SF-WASM-001",
