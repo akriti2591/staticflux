@@ -1,0 +1,81 @@
+{
+  "dir": "responses-faketest",
+  "scored": 2,
+  "summary": [
+    {
+      "combo": "json.ops",
+      "tasks": 1,
+      "success": 0,
+      "rate": 0,
+      "parseErrors": 0,
+      "opErrors": 0,
+      "staleFlagged": 0,
+      "clobbered": 0,
+      "promptTokO200kAvg": 2369,
+      "promptTokChars4Avg": 1806,
+      "respTokO200kAvg": 32
+    },
+    {
+      "combo": "markup.rel",
+      "tasks": 1,
+      "success": 1,
+      "rate": 100,
+      "parseErrors": 0,
+      "opErrors": 0,
+      "staleFlagged": 0,
+      "clobbered": 0,
+      "promptTokO200kAvg": 1495,
+      "promptTokChars4Avg": 1208,
+      "respTokO200kAvg": 32
+    }
+  ],
+  "rows": [
+    {
+      "task": "D01",
+      "doc": "deck",
+      "view": "json",
+      "style": "ops",
+      "applyMs": 12.66,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": false,
+      "why": "slide 3 title size 64",
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 20,
+        "o200k": 32
+      },
+      "promptTokens": {
+        "chars4": 1806,
+        "o200k": 2369
+      }
+    },
+    {
+      "task": "D02",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 5.12,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 20,
+        "o200k": 32
+      },
+      "promptTokens": {
+        "chars4": 1208,
+        "o200k": 1495
+      }
+    }
+  ]
+}
