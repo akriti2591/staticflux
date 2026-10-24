@@ -57,6 +57,7 @@ export interface PresenceStore extends ReplicableSource<PresenceView> {
   expire(): readonly string[];
   /** Local state changes (for the collaboration transport). */
   onLocalChange(listener: (state: PresenceState | null) => void): () => void;
+  applyIntent(action: string, args: unknown): Result<unknown>;
 }
 
 export interface PresenceStoreOptions {

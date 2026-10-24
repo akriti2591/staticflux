@@ -162,6 +162,8 @@ export interface DocumentEngine extends ReplicableSource<DocumentView>, Document
   /** Merge an archive into this engine (rehydrate after respawn / unarchive). */
   restore(archive: DocumentArchive): Result<ChangeSet>;
   addSystem(system: System<ChangeSet>): () => void;
+  /** Synchronous intent application (see `DocumentIntents`). */
+  applyIntent(action: string, args: unknown): Result<unknown>;
   dispose(): void;
 }
 

@@ -11,12 +11,8 @@ export const InvalidEnvelopeError = defineError(
   'Send messages only through a Link / protocol client; check the schema of the channel and message named in `details`.',
 );
 
-export const ReplicaMutationError = defineError(
-  'SF-WK-002',
-  'invariant',
-  'A replica was mutated directly. Replicas are read-only (I-9).',
-  'Send the write as an intent with `replica.intent(action, args)`; the owner applies it and replicates the patches back.',
-);
+/** SF-WK-002 (I-9) is defined once in core; aliased here for worker call sites. */
+export { ReplicaWriteError, ReplicaWriteError as ReplicaMutationError } from '@staticflux/core';
 
 export const HandshakeTimeoutError = defineError(
   'SF-WK-003',

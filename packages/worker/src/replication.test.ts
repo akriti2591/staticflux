@@ -135,7 +135,7 @@ describe('replication', () => {
       (replica.state as { count: number }).count = 5;
     }).toThrowError(expect.objectContaining({ code: 'SF-WK-002' }));
     expect(() => {
-      (replica.state.items as { id: string }[]).push({ id: 'x' });
+      (replica.state.items as unknown as { id: string }[]).push({ id: 'x' });
     }).toThrowError(expect.objectContaining({ code: 'SF-WK-002' }));
     expect(() => {
       delete (replica.state as { count?: number }).count;

@@ -16,7 +16,7 @@
  * Same-type duplicates are not caught by TypeScript; `checkUrlDeclarations()`
  * (CI) and the runtime registry (boot) report every collision as SF-URL-002.
  */
-import { err, ok, type Registry, type Result } from '@staticflux/core';
+import { err, ok, type Registry, type Result, type SfError } from '@staticflux/core';
 import type { UrlCodec } from './codec.js';
 import { UrlKeyCollisionError } from './errors.js';
 
@@ -206,13 +206,17 @@ export interface UrlDeclarationRegistry {
   /** Declaration owning `key`, if any. */
   lookup(key: string): readonly UrlKeyUse[];
   readonly declarations: readonly UrlDeclaration[];
+  /** Collisions found while registering the initial declarations. */
+  readonly initialErrors: readonly SfError[];
 }
 
 /** Runtime registry: rejects collisions with SF-URL-002 (boot-time safety net for R7.12). */
-export function createUrlDeclarationRegistry(initial: readonly UrlDeclaration[] = []): UrlDeclarationRegistry & { readonly initialErrors: readonly Result<void>[] } {
+export function createUrlDeclarationRegistry(initial: readonly UrlDeclaration[] = []): UrlDeclarationRegistry {
   const uses = new Map<string, UrlKeyUse[]>();
   const declarations: UrlDeclaration[] = [];
+  const initialErrors: SfError[] = [];
   const registry: UrlDeclarationRegistry = {
+    initialErrors,
     register(declaration) {
       if (declarations.includes(declaration)) return ok();
       const incoming = keysOf(declaration);
@@ -236,6 +240,9 @@ export function createUrlDeclarationRegistry(initial: readonly UrlDeclaration[] 
       return declarations;
     },
   };
-  const initialErrors = initial.map((d) => registry.register(d)).filter((r) => !r.ok);
-  return Object.assign(registry, { initialErrors });
+  for (const declaration of initial) {
+    const result = registry.register(declaration);
+    if (!result.ok) initialErrors.push(result.error);
+  }
+  return registry;
 }
