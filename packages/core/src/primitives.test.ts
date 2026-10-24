@@ -228,3 +228,21 @@ describe('machine', () => {
     expect(seen).toEqual(['closed->open']);
   });
 });
+
+describe('reactivity tracker', () => {
+  it('invalidates when a tracked value changes and stops after dispose', async () => {
+    const { box, createTracker } = await import('./index.js');
+    const value = box(1);
+    let invalidations = 0;
+    const tracker = createTracker('test', () => {
+      invalidations += 1;
+    });
+    expect(tracker.track(() => value.get() * 2)).toBe(2);
+    value.set(2);
+    expect(invalidations).toBe(1);
+    tracker.track(() => value.get());
+    tracker.dispose();
+    value.set(3);
+    expect(invalidations).toBe(1);
+  });
+});

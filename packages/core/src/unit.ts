@@ -67,6 +67,8 @@ export interface DepHandle<T> {
   whenReady(signal?: AbortSignal): Promise<Result<T>>;
   /** Listen to state changes; returns unsubscribe. */
   subscribe(listener: (state: HandleState) => void): () => void;
+  /** Detach from the instance and drop listeners (the instance itself is owned by its scope). */
+  dispose(): void;
 }
 
 /** Handle for a functional dependency: nothing happens until it is used (or pre-warmed). */

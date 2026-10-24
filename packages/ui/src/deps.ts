@@ -93,6 +93,7 @@ const IDLE_HANDLE: DepHandle<undefined> = Object.freeze({
   value: undefined,
   error: undefined,
   trigger: () => undefined,
+  dispose: () => undefined,
   whenReady: () => Promise.resolve({ ok: false as const, error: NoInjectorError() }),
   subscribe: () => () => undefined,
 }) as DepHandle<undefined>;
@@ -242,7 +243,7 @@ export class ComponentDepsController<D extends ComponentDepsDeclaration> impleme
         });
       }
       if (edge.init === 'on-visible') visibleKeys.push(handle);
-      scope.defer(() => (handle as { dispose?: () => void }).dispose?.());
+      scope.defer(() => handle.dispose());
     }
 
     if (visibleKeys.length > 0) {

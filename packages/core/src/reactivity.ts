@@ -4,6 +4,7 @@
  * Feature code may use MobX directly.
  */
 import {
+  Reaction,
   autorun,
   computed as mobxComputed,
   observable,
@@ -67,4 +68,32 @@ export function batch<T>(fn: () => T): T {
 /** Read without tracking. */
 export function untracked<T>(fn: () => T): T {
   return mobxUntracked(fn);
+}
+
+export interface Tracker {
+  /** Run `fn`, tracking every observable it reads; `onInvalidate` fires once any of them changes. */
+  track<T>(fn: () => T): T;
+  dispose(): void;
+}
+
+/**
+ * Track reads explicitly (e.g. a component's render) and get notified on change.
+ * Re-call `track()` after each invalidation to re-subscribe to what was read this time.
+ */
+export function createTracker(name: string, onInvalidate: () => void, scope?: Scope): Tracker {
+  const reaction = new Reaction(name, onInvalidate);
+  let result: unknown;
+  const tracker: Tracker = {
+    track<T>(fn: () => T): T {
+      reaction.track(() => {
+        result = fn();
+      });
+      return result as T;
+    },
+    dispose() {
+      reaction.dispose();
+    },
+  };
+  scope?.defer(() => tracker.dispose());
+  return tracker;
 }

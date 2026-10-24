@@ -143,6 +143,8 @@ requested → queued → showing → dismissing → dismissed
 requested → rejected (gate/arbitration)
 showing → suspended (higher-priority surface) → showing
 scope end → dismissing (forced)
+requested → dismissing (cancelled while the gate decision is pending)
+queued → rejected (e.g. coach-mark target never appears)
 ```
 
 ## 9. Session

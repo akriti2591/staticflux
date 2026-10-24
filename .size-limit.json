@@ -192,5 +192,42 @@
       "@staticflux/capabilities"
     ],
     "limit": "2.5 KB"
+  },
+  {
+    "name": "@staticflux/ui (full, excl. lit)",
+    "path": "packages/ui/dist/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/runtime"
+    ],
+    "limit": "9 KB"
+  },
+  {
+    "name": "@staticflux/messaging (full, excl. lit)",
+    "path": "packages/messaging/dist/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui"
+    ],
+    "limit": "9 KB"
+  },
+  {
+    "name": "@staticflux/shell (full, excl. lit)",
+    "path": "packages/shell/dist/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/messaging"
+    ],
+    "limit": "9 KB"
   }
 ]
