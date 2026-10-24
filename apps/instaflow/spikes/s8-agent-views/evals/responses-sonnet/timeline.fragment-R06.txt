@@ -1,0 +1,6 @@
+```json
+{"upsert":[
+ {"id":"n3","kind":"video","dur":2,"out":5},
+ {"id":"new:clip1b","kind":"video","parent":"n1","after":"n3","name":"clip 1 city skyline (2)","role":"broll","src":"as_city","start":2,"dur":2.2,"in":5,"out":7.2}
+]}
+```

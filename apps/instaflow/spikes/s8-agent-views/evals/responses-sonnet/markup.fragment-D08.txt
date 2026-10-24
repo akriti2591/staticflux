@@ -1,0 +1,3 @@
+```xml
+<text id="n3" x="160" y="580">Flux team · October 2026</text>
+```

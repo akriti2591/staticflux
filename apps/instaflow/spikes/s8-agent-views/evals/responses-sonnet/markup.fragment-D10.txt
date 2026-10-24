@@ -1,0 +1,12 @@
+```xml
+<page id="n1" fill="@dark"/>
+<text id="n2" fill="@light">Q3 Product Update</text>
+<page id="n5" fill="@dark"/>
+<text id="n6" fill="@light">Agenda</text>
+<page id="n13" fill="@dark"/>
+<text id="n14" fill="@light">New editor</text>
+<page id="n18" fill="@dark"/>
+<text id="n19" fill="@light">Q3 metrics</text>
+<page id="n24" fill="@dark"/>
+<text id="n25" fill="@light">Team</text>
+```
