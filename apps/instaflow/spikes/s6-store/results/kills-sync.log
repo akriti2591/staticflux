@@ -1,0 +1,9 @@
+kill 10/100: acked=2346 gen=8 failover=624ms
+kill 20/100: acked=5245 gen=8 failover=478ms
+kill 30/100: acked=7781 gen=8 failover=516ms
+kill 40/100: acked=10829 gen=8 failover=523ms
+kill 50/100: acked=14461 gen=8 failover=729ms
+kill 60/100: acked=18520 gen=8 failover=713ms
+kill 70/100: acked=22300 gen=8 failover=772ms
+kill 80/100: acked=26898 gen=8 failover=950ms
+kill 90/100: acked=32373 gen=8 failover=1248ms

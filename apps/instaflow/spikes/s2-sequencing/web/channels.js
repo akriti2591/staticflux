@@ -8,7 +8,7 @@ import { MAX_IDS, N } from './model.js';
 export const absNow = () => performance.timeOrigin + performance.now();
 
 // ---------- control ----------
-export const C = { STOP: 0, WAKE: 1, RESNAP: 2, DRAWN_IN: 3, DRAWN_CAM: 4, EDITOR_IN: 5, EDITOR_DONE: 6, RENDER_READY: 7, EDITOR_READY: 8, KICK: 9 };
+export const C = { STOP: 0, WAKE: 1, RESNAP: 2, DRAWN_IN: 3, DRAWN_CAM: 4, EDITOR_IN: 5, EDITOR_DONE: 6, RENDER_READY: 7, EDITOR_READY: 8, KICK: 9, SLEEP: 10 };
 export const makeControl = () => new Int32Array(new SharedArrayBuffer(64 * 4));
 export function wake(ctl) { Atomics.add(ctl, C.WAKE, 1); Atomics.notify(ctl, C.WAKE); Atomics.add(ctl, C.KICK, 1); Atomics.notify(ctl, C.KICK); }
 

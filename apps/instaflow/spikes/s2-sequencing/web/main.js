@@ -18,6 +18,7 @@ const P = {
   align: q.get('align') ?? 'raf',            // raf = dispatch in main rAF (Chrome rAF-aligns pointermove/wheel) | none = timer-paced
   present: q.get('present') ?? 'raf',        // raf = render draws in its rAF | eager = draws on wake-up (Atomics.waitAsync)
   eagerCap: +(q.get('eagerCap') ?? 0),       // eager: max draws per vsync interval (0 = unlimited)
+  eagerDelay: +(q.get('eagerDelay') ?? 0),   // eager: ms to wait after a wake-up before drawing (burst coalescing)
   latch: +(q.get('latch') ?? 0),             // ms the render worker may wait in rAF for the editor to catch up
 };
 const out = document.getElementById('out');

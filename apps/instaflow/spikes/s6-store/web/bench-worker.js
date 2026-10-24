@@ -162,6 +162,13 @@ async function gcBench(kind, runs) {
     const res = await gc(be, { graceMs: 0, conc: i === 0 ? 1 : 16 });   // run 1 sequential for comparison
     results.push(res);
   }
+  // variant: inventory from the derived catalog instead of listing directories
+  const inv = [];
+  for (let i = 0; i < runs; i++) {
+    g = await garbage();
+    const inventory = new Set([...live, ...g]);
+    inv.push(await gc(be, { graceMs: 0, conc: 16, inventory }));
+  }
   // correctness: every live blob still there, no garbage left
   let liveMissing = 0; for (const hex of live) if (!(await be.exists(['blobs', 'sha256', hex.slice(0, 2)], hex))) liveMissing++;
   let garbageLeft = 0; for (const hex of g) if (await be.exists(['blobs', 'sha256', hex.slice(0, 2)], hex)) garbageLeft++;
@@ -169,7 +176,8 @@ async function gcBench(kind, runs) {
   await garbage(); const graceRun = await gc(be, { graceMs: 3600e3 });
   return { blobsAtStart: live.length + 3000, setupMs: r2(setupMs), runs: results.length, deletedPerRun: summarize(results.map((x) => x.deleted)), scannedPerRun: summarize(results.map((x) => x.scanned)),
     sequentialRun: results[0].ms, parallel16: { markMs: summarize(results.slice(1).map((x) => x.ms.mark)), listMs: summarize(results.slice(1).map((x) => x.ms.list)), deleteMs: summarize(results.slice(1).map((x) => x.ms.delete)), totalMs: summarize(results.slice(1).map((x) => x.ms.total)) },
-    liveMissing, garbageLeft, graceRun: { young: graceRun.young, deleted: graceRun.deleted, ms: graceRun.ms }, pass: liveMissing === 0 && garbageLeft === 0 && results.every((x) => x.deleted === 3000) };
+    inventoryVariant: { deletedPerRun: summarize(inv.map((x) => x.deleted)), markMs: summarize(inv.map((x) => x.ms.mark)), deleteMs: summarize(inv.map((x) => x.ms.delete)), totalMs: summarize(inv.map((x) => x.ms.total)) },
+    liveMissing, garbageLeft, graceRun: { young: graceRun.young, deleted: graceRun.deleted, ms: graceRun.ms }, pass: liveMissing === 0 && garbageLeft === 0 && results.every((x) => x.deleted === 3000) && inv.every((x) => x.deleted === 3000) };
 }
 
 async function zipTest(be, lp, msId, iters, wantBytes) {

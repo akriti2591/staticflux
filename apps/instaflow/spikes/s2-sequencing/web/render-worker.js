@@ -29,6 +29,7 @@ self.onmessage = async (e) => {
           for (;;) {
             const v = Atomics.load(ctl, C.KICK);
             if (self.__stopped) return;
+            if (m.params.eagerDelay) Atomics.wait(ctl, C.SLEEP, 0, m.params.eagerDelay); // coalesce a burst before drawing
             if (editor) editor.step();
             rc.update(false);
             const w = Atomics.waitAsync(ctl, C.KICK, v, 1000);

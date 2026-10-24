@@ -45,7 +45,7 @@ export async function createMilestone(be, { lockPrefix, asset, parts, name, pare
 export async function readRecord(be, kind, id) { const [d, f] = recPath(kind, id); const b = await be.read(d, f); return b ? JSON.parse(dec.decode(b)) : null; }
 
 /** Mark from every head (parts + milestones → parts), sweep unmarked blobs older than graceMs. */
-export async function gc(be, { graceMs = 0, conc = 16 } = {}) {
+export async function gc(be, { graceMs = 0, conc = 16, inventory = null } = {}) {
   const start = Date.now(); const t0 = now();
   const live = new Set(); let heads = 0, records = 0;
   for (const [n] of await be.list(['heads'])) {
@@ -61,15 +61,20 @@ export async function gc(be, { graceMs = 0, conc = 16 } = {}) {
   }
   const t1 = now();
   let scanned = 0, deleted = 0, kept = 0, young = 0;
+  const cands = [];
+  if (inventory) {
+    // derived catalog (IndexedDB in production) lists the blobs: no directory listing
+    for (const hex of inventory) { scanned++; if (live.has(hex)) kept++; else cands.push([await be.dir(['blobs', 'sha256', hex.slice(0, 2)]), hex]); }
+  } else {
   const root = await be.tryDir(['blobs', 'sha256']);
   const shards = []; if (root) for await (const [, sh] of root.entries()) shards.push(sh);
   // list shards in parallel (names only), then delete candidates in parallel
-  const cands = [];
   await pool(shards, conc, async (sh) => { for await (const name of sh.keys()) { scanned++; if (!name.includes('.tmp-') && live.has(name)) kept++; else cands.push([sh, name]); } });
+  }
   const tl = now();
   await pool(cands, conc, async ([sh, name]) => {
     if (graceMs > 0 && (await (await sh.getFileHandle(name)).getFile()).lastModified > start - graceMs) { young++; return; }   // written during/after mark: protected
-    await sh.removeEntry(name); deleted++;
+    await sh.removeEntry(name); deleted++; inventory?.delete(name);
   });
   const t2 = now();
   return { ok: true, heads, records, live: live.size, scanned, kept, deleted, young, conc, ms: { mark: t1 - t0, list: tl - t1, delete: t2 - tl, sweep: t2 - t1, total: t2 - t0 } };
