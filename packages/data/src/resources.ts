@@ -361,6 +361,7 @@ export function createResources(options: ResourcesOptions): Resources {
   const read = (entry: Entry, mode: 'observe' | 'fetch', parent?: Span | SpanContext): Promise<Result<unknown>> | undefined => {
     const attrs = { resource: entry.resource.id };
     const hasData = untracked(() => entry.updatedAt.get()) !== undefined;
+    if (!hasData && entry.inflight !== undefined) return entry.inflight.promise; // dedup join: neither hit nor miss
     if (!hasData) {
       telemetry.record(DataMetrics.cacheMiss, 1, attrs);
       return revalidate(entry, parent);
@@ -503,9 +504,15 @@ export function createResources(options: ResourcesOptions): Resources {
       const streaming = box(false);
       let controller: AbortController | undefined;
       let handleDisposed = false;
+      let received = false;
       const cancel = (): void => {
-        controller?.abort(new DOMException('Stream cancelled', 'AbortError'));
+        if (controller === undefined) return;
+        controller.abort(new DOMException('Stream cancelled', 'AbortError'));
         controller = undefined;
+        batch(() => {
+          streaming.set(false);
+          status.set(received ? 'ready' : 'idle');
+        });
       };
       const handle: StreamHandle<V> = {
         get status() {
@@ -531,7 +538,7 @@ export function createResources(options: ResourcesOptions): Resources {
             status.set('loading');
             streaming.set(true);
           });
-          let received = false;
+          received = false;
           const result = await client.stream(
             resource.endpoint,
             input,

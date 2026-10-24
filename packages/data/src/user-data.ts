@@ -142,7 +142,7 @@ export function ownerFor(scope: SliceScope, identity: UserIdentity): string {
   return 'session';
 }
 
-export function storageKeyFor(definition: SliceDefinition<unknown>, identity: UserIdentity): string {
+export function storageKeyFor(definition: Pick<SliceDefinition<unknown>, 'scope' | 'key'>, identity: UserIdentity): string {
   return `sf-ud/${definition.scope}/${ownerFor(definition.scope, identity)}/${definition.key}`;
 }
 

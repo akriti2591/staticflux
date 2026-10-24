@@ -13,6 +13,9 @@ const ChatSchema = s.object({
   meta: s.record(s.number()),
 });
 
+/** Lets an action call sibling actions (nested-transaction test). */
+const ChatOwnerRef: { current: { readonly actions: { send(id: string): unknown } } | undefined } = { current: undefined };
+
 const ChatStore = defineStore({
   id: 'test/chat',
   version: 1,
@@ -63,11 +66,11 @@ const ChatStore = defineStore({
     },
   },
 });
-const ChatOwnerRef: { current: ReturnType<typeof ChatStore.create> | undefined } = { current: undefined };
+
 
 describe('patch engine', () => {
   it('records ops with copy-on-write structural sharing and frozen output', () => {
-    const base = Object.freeze({ a: Object.freeze({ x: 1 }), b: Object.freeze({ y: Object.freeze([1, 2]) }) });
+    const base = Object.freeze({ a: Object.freeze({ x: 1 }), b: Object.freeze({ y: Object.freeze([1, 2]) }) }) as { a: { x: number }; b: { y: number[] } };
     const result = produceWithPatches(base, (draft) => {
       draft.b.y.push(3);
     });
