@@ -445,6 +445,55 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  site:
+    dependencies:
+      '@staticflux/a11y':
+        specifier: workspace:*
+        version: link:../packages/a11y
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@staticflux/hydrate':
+        specifier: workspace:*
+        version: link:../packages/hydrate
+      '@staticflux/i18n':
+        specifier: workspace:*
+        version: link:../packages/i18n
+      '@staticflux/loader':
+        specifier: workspace:*
+        version: link:../packages/loader
+      '@staticflux/messaging':
+        specifier: workspace:*
+        version: link:../packages/messaging
+      '@staticflux/platform':
+        specifier: workspace:*
+        version: link:../packages/platform
+      '@staticflux/router':
+        specifier: workspace:*
+        version: link:../packages/router
+      '@staticflux/runtime':
+        specifier: workspace:*
+        version: link:../packages/runtime
+      '@staticflux/shell':
+        specifier: workspace:*
+        version: link:../packages/shell
+      '@staticflux/ui':
+        specifier: workspace:*
+        version: link:../packages/ui
+      '@staticflux/urlstate':
+        specifier: workspace:*
+        version: link:../packages/urlstate
+      lit:
+        specifier: 3.3.3
+        version: 3.3.3
+    devDependencies:
+      '@staticflux/vite-plugin':
+        specifier: workspace:*
+        version: link:../tooling/vite-plugin
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(@types/node@22.20.5)
+
   tooling/rspack-plugin:
     dependencies:
       '@staticflux/core':
