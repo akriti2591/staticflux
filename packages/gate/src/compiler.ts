@@ -208,7 +208,7 @@ export function compilePolicies(sets: readonly PolicySet[], version: number): Re
   return ok({ version, entries, byFact, policies });
 }
 
-/** Constant-time lookup with wildcard fallback: exact → resource/* → */action → */*. */
+/** Constant-time lookup with wildcard fallback: (id, action) → (id, any) → (any id, action) → (any, any). */
 export function lookupEntry(table: DecisionTable, level: GateLevel, resourceId: string, actionId: string): TableEntry | undefined {
   const e = table.entries;
   return (

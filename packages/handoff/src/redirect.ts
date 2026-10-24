@@ -173,3 +173,28 @@ export async function takeGuestMigration(store: HandoffStore): Promise<Result<Re
   const taken = await store.take(GuestMigrationSlot);
   return taken.ok ? ok(taken.value?.slices) : taken;
 }
+
+// ------------------------------------------------------------- hold/release adapter
+
+/**
+ * A slot as a hold/release port: `hold` writes, `release` consumes. Matches
+ * `@staticflux/urlstate`'s `IntentHoldPort` structurally, so URL intents survive
+ * a login redirect without urlstate depending on handoff:
+ *
+ *   const IntentsSlot = defineHandoff<readonly HeldIntent[]>({ key: 'app/held-intents', version: 1, lifetime: { ttlMs: 900_000 }, scope: 'tab' });
+ *   createIntentService({ …, hold: createSlotHold(store, IntentsSlot) });
+ */
+export interface SlotHold<T> {
+  hold(data: T): Promise<Result<void>>;
+  release(): Promise<Result<T | undefined>>;
+}
+
+export function createSlotHold<T>(store: HandoffStore, slot: HandoffSlot<T>): SlotHold<T> {
+  return {
+    async hold(data) {
+      const written = await store.put(slot, data);
+      return written.ok ? ok() : written;
+    },
+    release: () => store.take(slot),
+  };
+}

@@ -113,7 +113,9 @@ export function createMockTransport(options: MockTransportOptions = {}): MockTra
     calls.push({ endpoint: request.endpoint, input: request.input, traceparent: request.traceparent, epoch: request.epoch, kind });
     const call = (counts.get(request.endpoint) ?? 0) + 1;
     counts.set(request.endpoint, call);
-    const slept = await sleep(latencyMs ?? options.latencyMs ?? 0, signal);
+    const delay = latencyMs ?? options.latencyMs ?? 0;
+    // Zero latency stays async (microtask) but needs no timer, so fake-timer tests need not advance time.
+    const slept = delay > 0 ? await sleep(delay, signal) : await Promise.resolve(signal.aborted ? err(AbortedError({ cause: signal.reason })) : ok());
     if (!slept.ok) return slept;
     if (offline) return err(NetworkError({ details: { endpoint: request.endpoint, offline: true } }));
     const injected = failNext.get(request.endpoint);

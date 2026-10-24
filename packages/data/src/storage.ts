@@ -188,7 +188,8 @@ export function createMockRemoteSync(options: { readonly latencyMs?: number } = 
   let pulls = 0;
   let pushes = 0;
   const gate = async (signal: AbortSignal): Promise<Result<void>> => {
-    const slept = await sleep(options.latencyMs ?? 0, signal);
+    const delay = options.latencyMs ?? 0;
+    const slept = delay > 0 ? await sleep(delay, signal) : ok();
     if (!slept.ok) return slept;
     if (signal.aborted) return err(AbortedError({ cause: signal.reason }));
     if (offline) return err(NetworkError({ details: { remote: 'user-data', offline: true } }));

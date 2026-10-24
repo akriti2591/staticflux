@@ -26,6 +26,7 @@ const Crash = defineError('SF-TEST-CRASH', 'unavailable', 'crash', 'test');
 const noSleep = vi.fn(async (_ms: number, signal?: AbortSignal): Promise<Result<void>> =>
   signal?.aborted === true ? err(Crash()) : ok(),
 );
+const noop = (): void => undefined;
 const tick = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 
 function recorder(): { log: string[]; sub(id: `${string}/${string}`, extra?: Partial<Subsystem>): Subsystem } {
@@ -101,23 +102,23 @@ describe('supervisor: boot', () => {
   });
 
   it.each([
-    ['unknown dependency', [{ id: 'test/a', dependsOn: ['test/missing'], start: () => undefined }]],
+    ['unknown dependency', [{ id: 'test/a', dependsOn: ['test/missing'], start: noop }]],
     [
       'cycle',
       [
-        { id: 'test/a', dependsOn: ['test/b'], start: () => undefined },
-        { id: 'test/b', dependsOn: ['test/a'], start: () => undefined },
+        { id: 'test/a', dependsOn: ['test/b'], start: noop },
+        { id: 'test/b', dependsOn: ['test/a'], start: noop },
       ],
     ],
     [
       'critical depends on non-critical',
       [
-        { id: 'test/a', critical: true, dependsOn: ['test/b'], start: () => undefined },
-        { id: 'test/b', start: () => undefined },
+        { id: 'test/a', critical: true, dependsOn: ['test/b'], start: noop },
+        { id: 'test/b', start: noop },
       ],
     ],
-  ] as const)('rejects an invalid graph: %s (SF-APP-005)', async (_name, subsystems) => {
-    const supervisor = make({ subsystems: subsystems as unknown as Subsystem[] });
+  ] as [string, Subsystem[]][])('rejects an invalid graph: %s (SF-APP-005)', async (_name, subsystems) => {
+    const supervisor = make({ subsystems });
     const result = await supervisor.start();
     expect(!result.ok && result.error.code).toBe('SF-APP-005');
     expect(supervisor.state).toBe('terminated');
@@ -404,9 +405,18 @@ describe('supervisor: commands', () => {
   it('refresh bumps the injector epoch, refreshes epoch units and subsystems', async () => {
     const T = token('test/clock').type<{ n: number }>();
     let inits = 0;
-    const injector = createInjector({
-      units: [unit({ id: 'test/clock-unit', provides: T, scope: 'app', refreshOn: ['epoch'], create: () => ({ n: 0 }), init: () => ((inits += 1), ok()) })],
+    const clockUnit = unit({
+      id: 'test/clock-unit',
+      provides: T,
+      scope: 'app',
+      refreshOn: ['epoch'],
+      create: () => ({ n: 0 }),
+      init: () => {
+        inits += 1;
+        return ok();
+      },
     });
+    const injector = createInjector({ units: [clockUnit] });
     await injector.get(T);
     const epochs: number[] = [];
     const supervisor = make({ injector, subsystems: [{ id: 'test/s', start: () => undefined, refresh: (e) => void epochs.push(e) }] });

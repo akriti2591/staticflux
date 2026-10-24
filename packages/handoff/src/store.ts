@@ -86,7 +86,7 @@ export interface HandoffStore {
   discard(slot: AnyHandoffSlot): Promise<Result<void>>;
   /** Remove entries of registered slots matching the filter. Resolves to the number removed. */
   clear(filter?: ClearFilter): Promise<Result<number>>;
-  /** Remove expired entries of registered slots. Resolves to the number removed. */
+  /** Remove expired and malformed entries from every storage. Resolves to the number removed. */
   sweep(): Promise<Result<number>>;
   /** True if the scope's storage fell back to memory. */
   isDegraded(scope: HandoffScope): boolean;

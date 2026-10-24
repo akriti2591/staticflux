@@ -19,6 +19,7 @@ import {
   type CircuitState,
   createCircuitBreaker,
   createNoopTelemetry,
+  defaultRetryIf,
   err,
   formatTraceparent,
   ok,
@@ -168,6 +169,9 @@ export function createDataClient(options: DataClientOptions = {}): DataClient {
         failureThreshold: config.failureThreshold,
         resetAfterMs: config.resetAfterMs,
         now,
+        // Local outcomes (pause rejection, epoch discard, aborts) never trip the breaker.
+        isFailure: (error) =>
+          error.code !== TransportPausedError.code && (error.kind === 'network' || error.kind === 'timeout' || error.kind === 'unavailable'),
         onStateChange: (state) => onBreakerState(endpoint.id, state, config),
       });
       breakers.set(endpoint.id, breaker);
@@ -264,9 +268,7 @@ export function createDataClient(options: DataClientOptions = {}): DataClient {
         return finish(endpoint, started, err(UnsupportedOperationError({ details: { endpoint: endpoint.id, transport: transport.id, op: 'request' } })));
       }
       let attempts = 0;
-      const attempt: Task<O> = async (signal) => {
-        const gate = await pauseGate(endpoint, signal);
-        if (!gate.ok) return gate;
+      const send: Task<O> = async (signal) => {
         attempts += 1;
         started.span.set('attempts', attempts);
         const transportRequest = buildRequest(endpoint, input, {
@@ -281,7 +283,12 @@ export function createDataClient(options: DataClientOptions = {}): DataClient {
         const decoded = endpoint.response.validate(response.value.data);
         return decoded.ok ? decoded : err(DecodeError({ cause: decoded.error, details: { endpoint: endpoint.id, ...decoded.error.details } }));
       };
-      const timed = timeout(attempt, endpoint.timeoutMs ?? options.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS);
+      const timedSend = timeout(send, endpoint.timeoutMs ?? options.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS);
+      // The pause gate runs before each attempt and is not counted against the attempt timeout.
+      const timed: Task<O> = async (signal) => {
+        const gate = await pauseGate(endpoint, signal);
+        return gate.ok ? timedSend(signal) : gate;
+      };
       const policy = retryPolicyFor(endpoint as Endpoint<unknown, unknown>);
       const retried: Task<O> =
         policy === undefined
@@ -289,6 +296,8 @@ export function createDataClient(options: DataClientOptions = {}): DataClient {
           : retry(timed, {
               ...policy,
               ...(options.random === undefined ? {} : { random: options.random }),
+              // A pause rejection is a local decision, not a backend failure: never retried.
+              retryIf: (error, n) => error.code !== TransportPausedError.code && (policy.retryIf ?? defaultRetryIf)(error, n),
               onRetry: (error, n, delayMs) => {
                 started.span.event('retry', { attempt: n, delayMs, kind: error.kind });
                 policy.onRetry?.(error, n, delayMs);
