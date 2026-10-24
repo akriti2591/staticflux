@@ -49,7 +49,9 @@ tooling/  sf CLI (graph, budgets, manifests) · eslint-plugin · build plugin ·
 | `@staticflux/a11y` | Focus manager, announcer, shortcut registry, preference facts | `Announcer`, `FocusScope` |
 | `@staticflux/perf` | Web Vitals, LoAF→chunk mapping, boot waterfall, budgets at runtime | `PerfMonitor` |
 | `@staticflux/ui` | Lit bindings: `MobxController`, `inject()` with render/lazy/functional, scope elements | `component()`, `deps` |
-| `@staticflux/shell` | Slots, theming tokens, workspaces, overlays, command palette, error boundaries | `Workspace`, `SlotContribution` |
+| `@staticflux/shell` | Slots, theming tokens, workspaces, command palette, error boundaries | `Workspace`, `SlotContribution` |
+| `@staticflux/messaging` | Surface manager: dialogs, sheets, popovers, tooltips, toasts, banners, coach marks; scope-bound lifetimes; attention arbitration; routable dialogs | `SurfaceDef`, `Surfaces` |
+| `@staticflux/urlstate` | URL-state kinds (view/intent/sticky/dialog), declared bindings, URL ⇄ store sync | `urlBinding`, `intent` |
 | `@staticflux/testkit` | Test injector, fakes (clock, transport, session, platform, worker bridge), contract suites | — |
 | `@staticflux/devtools` | Telemetry-fabric consumer UI | — |
 | `tooling/sf` | CLI: graph check, budgets, manifest/chunk extraction | — |

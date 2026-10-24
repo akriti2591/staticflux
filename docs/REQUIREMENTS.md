@@ -124,6 +124,30 @@
 - **R7.8** Code for a route loads only after auth/authorize stages pass.
 - **R7.9** Typed paths and typed search params.
 
+### 7.1 URL-state model
+- **R7.10** Every URL part has a declared **kind** and **owner**:
+  | Kind | Example | Owner | Behaviour |
+  |---|---|---|---|
+  | path | `/studio/doc/42` | router | full pipeline |
+  | view | `?tab=comments` | feature store | light sub-route transition only |
+  | dialog | `…/d/share` | messaging layer | open/close routable dialog |
+  | intent (consume-once) | `?panel=chat&prompt=…` | declaring feature | digested at resolve, handed to owning store after authorize, stripped via `replace` |
+  | sticky | `?workspace=…&lang=…&sf-debug` | declaring package | carried across navigations |
+  | hidden | scroll, drafts, selection | store / handoff | never in URL; survives via handoff |
+- **R7.11** Features **declare URL bindings** (key, schema, kind, owner store, push vs replace). A **URL-sync service** binds URL ⇄ stores bidirectionally (batched per frame). The router is not invoked for view/intent/sticky changes; stores don't know about the URL.
+- **R7.12** URL key collisions across packages are a build-time error (typed declarations).
+- **R7.13** Intents survive login redirects via handoff.
+- **R7.14** **Intents may prefill but never auto-execute** (prompt-injection/phishing guard) unless a policy marks the intent safe.
+- **R7.15** Marketing params (utm etc.) captured once into telemetry and stripped (default).
+
+### 7.2 Dialog routing
+- **R7.16** Routable dialogs use `/d/<key>` (app-level) or `<feature-path>/d/<key>` (feature-level).
+- **R7.17** Opening a routable dialog runs a light pipeline: availability → authorize → lazy-load → enter.
+- **R7.18** Dismiss = history back when opened in-app; `replace` to parent path when arrived via deep link.
+- **R7.19** Dialogs are scope-bound: leaving the owning feature/route closes them; unsaved state registers an exit guard.
+- **R7.20** At most one routable dialog in the URL; stacked dialogs above it are non-routable (default).
+- **R7.21** Non-routable surfaces (confirmations, pickers, popovers) are scope-bound only.
+
 ## 8. Configuration & feature flags
 
 - **R8.1** Each package declares its flags (key, type, default, owner, pre-auth-safe) in a contracts-only file.
@@ -190,6 +214,15 @@
 - **R13.1** Layout regions (slots), theming via design tokens (CSS custom properties), light/dark/high-contrast.
 - **R13.2** **Workspaces** (e.g. expert mode) are declarative config that rearranges/reconfigures features; may swap features; may be gated.
 - **R13.3** Out of the box: notifications/toasts, modals/overlays, command palette, keyboard shortcuts, focus management, per-region error boundaries, skeletons, live-region announcements.
+
+### 13.1 User messaging (one layer)
+- **R13.4** A single **surface manager** owns every user-messaging surface: `dialog`, `sheet/drawer`, `popover`, `tooltip`, `toast`, `banner`, `coach-mark`, `inline-alert`. Features declare surfaces and request them; they never render overlays directly.
+- **R13.5** One stacking model, focus/a11y behaviour, theming, motion (incl. reduced motion) for all surfaces.
+- **R13.6** **Scope-bound lifetime**: every surface belongs to a scope (app/session/route/feature/view) and is dismissed when the scope ends — a surface can never outlive the page it belongs to.
+- **R13.7** **Attention arbitration**: priorities and queues; toast concurrency caps; coach marks suppressed while dialogs/urgent toasts are up or the user is mid-task; banner dedup.
+- **R13.8** Coach marks: declared targets, gating, seen-once persistence (per user via mocked contract, local cache), sequencing; wait for target visibility.
+- **R13.9** Surfaces are gated (a denied premium dialog resolves to its upsell surface).
+- **R13.10** Every surface emits shown/dismissed/dismiss-reason/dwell metrics through the declarative metrics model.
 
 ## 14. Localization (base requirement)
 
