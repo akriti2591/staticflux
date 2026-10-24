@@ -339,5 +339,21 @@
       "@staticflux/core"
     ],
     "limit": "14 KB"
+  },
+  {
+    "name": "@staticflux/devtools (collector; dev only)",
+    "path": "packages/devtools/dist/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@staticflux/core",
+      "@staticflux/perf",
+      "@staticflux/gate",
+      "@staticflux/runtime",
+      "@staticflux/ui",
+      "@staticflux/core/graph",
+      "@staticflux/devtools/panel"
+    ],
+    "limit": "17.5 KB"
   }
 ]

@@ -8,6 +8,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./panel": {
+      "types": "./dist/panel.d.ts",
+      "import": "./dist/panel.js"
     }
   },
   "files": [
