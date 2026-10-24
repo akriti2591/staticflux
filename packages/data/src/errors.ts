@@ -236,13 +236,8 @@ export const PatchHistoryExpiredError = defineError(
   'Send a full snapshot instead (`getSnapshot()`).',
 );
 
-/** Invariant I-9 — replicas never mutate; writes are intents to the owner. Shared with @staticflux/worker. */
-export const ReplicaWriteError = defineError(
-  'SF-WK-002',
-  'invariant',
-  'A replica store cannot mutate; writes must be sent as intents to the owner (I-9).',
-  'Create the replica with an intent `sink`, or perform the write on the owner thread.',
-);
+/** Invariant I-9 — defined once in core and shared with @staticflux/worker. */
+export { ReplicaWriteError } from '@staticflux/core';
 
 // ---------------------------------------------------------------- user-data slices (R9.8–R9.12)
 

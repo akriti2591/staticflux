@@ -57,5 +57,15 @@
       "@staticflux/core"
     ],
     "limit": "9 KB"
+  },
+  {
+    "name": "@staticflux/data (boot: client + transport + resources)",
+    "path": "packages/data/dist/index.js",
+    "import": "{ createDataClient, createFetchTransport, createResources }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "9.5 KB"
   }
 ]

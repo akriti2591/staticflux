@@ -156,6 +156,8 @@ unloaded → loading → migrating? → ready ⇄ saving
 ready → conflicted → (resolver) → ready
 loading → failed → ready(defaults, reported)
 session end → flushed → cleared(policy)
+saving → ready (failed save; error reported, data kept dirty)
+cleared → loading (reload after logout / identity switch)
 ```
 
 ## 11. Meter reservation (credits/quotas)

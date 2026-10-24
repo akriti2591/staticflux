@@ -150,3 +150,15 @@ export function toSfError(value: unknown): SfError {
   const message = value instanceof Error ? value.message : String(value);
   return UnknownError({ message, cause: value });
 }
+
+/**
+ * Invariant I-9 — replicas never mutate; writes are intents sent to the owner.
+ * Defined in core because both @staticflux/data (stores) and @staticflux/worker
+ * (replication) raise it; each package re-exports this single definition.
+ */
+export const ReplicaWriteError = defineError(
+  'SF-WK-002',
+  'invariant',
+  'A replica was written to directly. Replicas are read-only; writes must be sent as intents to the owner (I-9).',
+  'Send the write as an intent (e.g. `replica.intent(action, args)` or a store created with an intent `sink`); the owner applies it and replicates the patches back.',
+);
