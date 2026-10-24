@@ -126,3 +126,21 @@ Params: `mode=split|fast|colo`, `gfx=webgpu|2d|none`, `present=raf|eager`, `eage
 `pace`, `align=raf|none`, `seed`, `editorLoad`, `latch`, and validation flags `naive`, `seqlock=0`, `gapEvery`,
 `rafDraw=0`. On a 120 Hz display the budget is computed from the measured rAF interval. For true photon latency, record
 a `chrome://tracing` trace (viz, gpu) of one run and compare the `tPresent` estimates.
+
+## Owner real-GPU run (2026-10-24, Chrome 155, Apple Metal, display ≈100 Hz → budget 14 ms p95)
+2,000 gestures per run. **Correctness PASS in all three** (4,342–4,773 frames, 0 mismatches against the oracle; same
+final document hash 2030435605).
+
+| Run | median | p95 | max | frames median/p95 | Budget |
+|---|---|---|---|---|---|
+| A: split, eager (eagerDelay 1) | 9.67 | 19.69 | 39.45 | 0.97 / 1.97 | FAIL |
+| B: split, draw at worker rAF | 19.69 | 19.83 | 20.75 | 1.97 / 1.98 | FAIL |
+| C: one worker (colo), eager | 9.70 | **9.82** | 19.79 | 0.97 / 0.98 | **PASS** |
+
+- A matches C at the median; its tail comes from the cross-worker handoff: `workerRafAfterMainRafMs` p95 10.4 ms and
+  draw start p95 11.6 ms (C: 3.0 ms). Work itself is equal (input → GPU done 3.2 vs 3.0 ms). About half of A's inputs
+  slip to 2 frames.
+- B always pays one full frame (draws on the next worker rAF), as in the cloud runs.
+- Interpretation: the cost is scheduling phase between threads, not CPU/GPU speed, so a faster or slower machine does
+  not by itself fix it. Next fix to try for the split: drive the render from the main thread's rAF (Atomics.notify
+  tick) and draw on arrival with eagerDelay 0, then re-measure A on a 60/120 Hz display and the iGPU reference.
