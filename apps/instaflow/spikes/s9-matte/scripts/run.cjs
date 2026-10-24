@@ -52,11 +52,12 @@ function treeRssMB(pid) { // sum RSS of pid + descendants
   const swiftshader = ['--enable-unsafe-webgpu', '--enable-features=Vulkan', '--use-vulkan=swiftshader', '--use-webgpu-adapter=swiftshader', '--disable-vulkan-surface', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
   const launchArgs = args.includes('--real-gpu') ? ['--enable-unsafe-webgpu'] : swiftshader;
   const browser = await chromium.launch({ ...(args.includes('--chrome') && { channel: 'chrome' }), headless: !args.includes('--headed'), args: [...launchArgs, '--js-flags=--expose-gc', '--enable-precise-memory-info'] });
+  let peak = { total: 0 }; const samples = [];
   const page = await (await browser.newContext()).newPage();
   page.on('console', (m) => { const t = m.text(); if (m.type() === 'log' || m.type() === 'error' || m.type() === 'warning') console.log(`[page ${m.type()}] ${t.length > 600 ? t.slice(0, 600) + '…' : t}`); });
   page.on('pageerror', (e) => console.log(`[page error] ${e.message}`));
+  page.on('crash', () => console.log(`[page CRASHED] renderer crashed; peak tree RSS so far ${Math.round(peak.total)} MB ${JSON.stringify(peak.per)}`));
   const bpid = process.pid; // walk our own descendants (Chromium is spawned by Playwright under this node process)
-  let peak = { total: 0 }; const samples = [];
   const timer = bpid && fs.existsSync('/proc') ? setInterval(() => { const r = treeRssMB(bpid); samples.push({ t: Date.now(), mb: Math.round(r.total) }); if (r.total > peak.total) peak = r; }, 500) : null;
   console.log(`open ${url}`);
   await page.goto(url);

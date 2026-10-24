@@ -1,0 +1,1 @@
+results/_tmp_none-split-eager.json       split/none pace=4 g=10000 rec=54133 | correct=true bad=0 (snap 0, dbl 0) cam=0 mono=0 torn=0 gaps=0 final=true | frames=12723 raf=16.67 budget=20.67 present p50/p95 all=15.73/16.02 pan=15.73/16.03 zoom=15.73/16.03 ptr=15.73/16.02 | submit=1.21/1.72 vf=0.1/0.55 draw=0/0.01 e4stale=1235/4695
