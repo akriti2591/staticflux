@@ -133,5 +133,24 @@
       "@staticflux/runtime"
     ],
     "limit": "13.5 KB"
+  },
+  {
+    "name": "@staticflux/loader (boot: chunk loader + boot plan)",
+    "path": "packages/loader/dist/index.js",
+    "import": "{ createChunkLoader, selectBootPlan, runBootPlan }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "4.5 KB"
+  },
+  {
+    "name": "@staticflux/perf (full; not on boot path)",
+    "path": "packages/perf/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "9.5 KB"
   }
 ]

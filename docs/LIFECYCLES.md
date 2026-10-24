@@ -206,3 +206,6 @@ Every `SfError` carries: `code` (stable), `message` (one line), `units` involved
 | `a11y/focus-trap` | inactive → active → released (focus restored) | `packages/a11y/src` |
 | `handoff/entry` | absent → stored → taken \| expired | `packages/handoff/src` |
 | `urlstate/intent` | captured → held → authorized → delivered → stripped; captured → rejected | `packages/urlstate/src` |
+| `loader/chunk` | unloaded → gated? → loading → loaded \| failed (retry with cache-bust) \| denied | `packages/loader/src` |
+| `loader/warmup` | idle → scheduled → warming → warmed \| skipped (backoff facts) | `packages/loader/src` |
+| `perf/journey` | open → (phases accumulate) → complete \| abandoned | `packages/perf/src` |
