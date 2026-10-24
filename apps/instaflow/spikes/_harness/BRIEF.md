@@ -9,6 +9,7 @@ You run ONE (or a pair of) Instaflow Phase 0 spike(s). Read first:
 ## Machine facts (measured)
 - 4 CPU cores, 15 GB RAM, **no GPU**. Chromium 153 headless.
 - With the harness flags, WebGPU works via **SwiftShader (CPU Vulkan)**: correctness is real, GPU timings are NOT representative.
+- Presenting WebGPU to a canvas needs `--use-angle=swiftshader --enable-unsafe-swiftshader` (now in the harness; found by S1). Without them the device is lost on the first present.
 - WebCodecs: decode H.264/VP9/AV1; encode VP9/AV1 (no H.264 encode in Chromium builds — real Chrome has it); AudioEncoder present.
 - OPFS, SharedArrayBuffer (cross-origin isolated), EditContext, File System Access API objects exist (the folder picker needs a user gesture — not automatable headless).
 - Rust 1.97 + `wasm32-unknown-unknown` target installed (`cargo`). No wasm-pack/wasm-bindgen CLI preinstalled — `cargo install wasm-bindgen-cli` (match the crate version) or use `cargo` + manual bindings. npm registry reachable.
