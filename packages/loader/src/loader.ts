@@ -74,7 +74,8 @@ export function classifyCodeSource(entry: ResourceTimingLike | undefined): CodeS
   return 'network';
 }
 
-function defaultResourceTiming(url: string): ResourceTimingLike | undefined {
+/** Resource timing lookup via `performance.getEntriesByName` (feature-detected). */
+export function defaultResourceTiming(url: string): ResourceTimingLike | undefined {
   const perf = (globalThis as { performance?: { getEntriesByName?: (n: string, t: string) => unknown[] } }).performance;
   if (typeof perf?.getEntriesByName !== 'function') return undefined;
   return perf.getEntriesByName(url, 'resource')[0] as ResourceTimingLike | undefined;

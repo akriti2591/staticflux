@@ -53,24 +53,24 @@ export interface CostEstimate {
 export interface CapabilityOptions<I, O, Id extends CapabilityId> {
   readonly id: Id;
   /** Short human title (command palette, tool listing). Defaults to the id. */
-  readonly title?: string;
+  readonly title?: string | undefined;
   /** What it does — written for humans AND agents (it becomes the tool description). */
   readonly description: string;
   readonly input: Schema<I, false>;
   readonly output: Schema<O, false>;
-  readonly policy?: CapabilityPolicyRef;
+  readonly policy?: CapabilityPolicyRef | undefined;
   /** Owning feature; invoking while it is not active goes through the activation port. */
-  readonly feature?: CapabilityFeatureRef;
+  readonly feature?: CapabilityFeatureRef | undefined;
   /** Always ask the user before running (any subject). */
   readonly requiresConfirmation: boolean;
   /** Irreversible / data-destroying. Non-user subjects (agents) always need confirmation. */
   readonly destructive: boolean;
   /** Estimated cost for actions of unknown cost (reserve → commit | release). */
-  readonly costEstimate?: (input: I) => CostEstimate | undefined;
+  readonly costEstimate?: ((input: I) => CostEstimate | undefined) | undefined;
   /** Publish to agents (WebMCP). Default true; gating still applies. */
-  readonly exposeToAgents?: boolean;
+  readonly exposeToAgents?: boolean | undefined;
   /** Abort the run after this many ms (SF-ASYNC-001). */
-  readonly timeoutMs?: number;
+  readonly timeoutMs?: number | undefined;
 }
 
 export interface Capability<I = unknown, O = unknown, Id extends CapabilityId = CapabilityId> {
@@ -92,8 +92,10 @@ export interface Capability<I = unknown, O = unknown, Id extends CapabilityId = 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyCapability = Capability<any, any, CapabilityId>;
 
-export type CapabilityInput<C> = C extends Capability<infer I, unknown, CapabilityId> ? I : never;
-export type CapabilityOutput<C> = C extends Capability<unknown, infer O, CapabilityId> ? O : never;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export type CapabilityInput<C> = C extends Capability<infer I, infer _O, infer _Id> ? I : never;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export type CapabilityOutput<C> = C extends Capability<infer _I, infer O, infer _Id> ? O : never;
 
 /** Declare a capability (typed, frozen data). */
 export function defineCapability<I, O, const Id extends CapabilityId>(

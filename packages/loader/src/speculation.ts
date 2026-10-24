@@ -107,7 +107,8 @@ export interface SpeculationEngine {
   dispose(): void;
 }
 
-function defaultIntersectionObserver(): IntersectionObserverFactory | undefined {
+/** IntersectionObserver factory when available (Baseline), else undefined. */
+export function defaultIntersectionObserver(): IntersectionObserverFactory | undefined {
   const ctor = (globalThis as { IntersectionObserver?: new (cb: (e: readonly { isIntersecting: boolean }[]) => void) => { observe(t: unknown): void; disconnect(): void } }).IntersectionObserver;
   if (typeof ctor !== 'function') return undefined;
   return (callback) => new ctor(callback);

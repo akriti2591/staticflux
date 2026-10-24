@@ -16,3 +16,8 @@ export * from './spawn.js';
 export * from './supervisor.js';
 export * from './runtime.js';
 export * from './units.js';
+export * from './channel-errors.js';
+export * from './isolation.js';
+export * from './layout.js';
+export * from './data-channel.js';
+export * from './frame-channel.js';
