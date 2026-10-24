@@ -451,7 +451,8 @@ export function createFlagResolver(options: FlagResolverOptions = {}): FlagResol
     );
     entry.unsubscribe = provider.subscribe?.((event) => onProviderEvent(entry, event)) ?? (() => undefined);
     entries.set([...untracked(() => entries.get()), entry]);
-    if (initPromise !== undefined) void initEntry(entry, initSignal);
+    // Providers without async initialization (static layers) serve immediately.
+    if (provider.initialize === undefined || initPromise !== undefined) void initEntry(entry, initSignal);
     return () => {
       entry.unsubscribe();
       entry.reconcile?.abort();

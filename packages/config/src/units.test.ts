@@ -120,13 +120,14 @@ describe('experiment variant bindings (R8.4, P4)', () => {
 
   it('rejects variant units that provide a different token (compile time)', () => {
     const binder = createFlagBinder();
-    binder.variants({
-      flag: OnboardingVariant,
-      of: OnboardingFlowToken,
-      // @ts-expect-error aiSuggest provides studio/suggester, not onboarding/flow
-      variants: { B: aiSuggest },
-    });
-    expect(true).toBe(true);
+    const typeOnly = (): unknown =>
+      binder.variants({
+        flag: OnboardingVariant,
+        of: OnboardingFlowToken,
+        // @ts-expect-error aiSuggest provides studio/suggester, not onboarding/flow
+        variants: { B: aiSuggest },
+      });
+    expect(typeof typeOnly).toBe('function');
   });
 });
 
