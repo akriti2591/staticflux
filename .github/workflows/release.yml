@@ -18,6 +18,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Publishing is sequential with backoff on npm rate limits (sf publish), so allow time for retries.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:

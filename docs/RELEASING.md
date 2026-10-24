@@ -20,6 +20,17 @@ Owner checklist. Day-to-day releases are automatic (see CONTRIBUTING → Releasi
 
 Merge the **"chore: version packages"** PR that the Release workflow keeps open. That's it.
 
+## How publishing works
+
+`pnpm release` runs `sf publish` (tooling/sf), not `changeset publish`:
+- publishes only versions not yet on npm, **one package at a time**, in dependency order, with a 10 s pause between packages;
+- on npm rate limits (HTTP 429) it waits and retries with exponential backoff (60 s, doubling, capped at 15 min, 6 attempts);
+- a version that already exists (published or staged) is skipped, never bumped;
+- prints `New tag: <name>@<version>` and creates the git tag, so changesets/action makes GitHub releases.
+
+Preview without publishing: `pnpm build && node tooling/sf/dist/cli.js publish --dry-run`.
+Changesets is still used for versions and changelogs (`changeset publish` is not used because it publishes 10 packages in parallel with no throttle).
+
 ## What gets published
 
 The 34 packages under `packages/*` and `tooling/*`, each with `dist/`, `src/` (for source maps), `README.md`, `AGENTS.md` and `LICENSE`. `apps/studio` and `site` are private. `lit`, `@lit/context` and `mobx` are **peer dependencies** so an app has exactly one copy of each.

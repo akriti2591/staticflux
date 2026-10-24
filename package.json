@@ -23,7 +23,7 @@
     "budgets": "size-limit --json > .size-results.json; node tooling/sf/dist/cli.js budgets --results .size-results.json",
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm install --lockfile-only",
-    "release": "pnpm build && changeset publish"
+    "release": "pnpm build && node tooling/sf/dist/cli.js publish"
   },
   "devDependencies": {
     "typescript": "5.9.3",
