@@ -31,16 +31,17 @@ export function decodeBarcode(getLuma) {
   for (let k = 0; k < 16; k++) if (getLuma(k * 48 + 24, 24) > 128) v |= 1 << k;
   return v;
 }
-/** Reads the barcode from a VideoFrame by copying only the 768x48 barcode rect (cheap CPU read). */
+/** Reads the barcode from a VideoFrame by copying only the barcode rect (cheap CPU read). Scales for proxies. */
 export async function frameBarcode(frame) {
+  const sc = frame.codedWidth / 1920;
   const fmt = frame.format;
-  const opts = { rect: BARCODE_RECT };
+  const opts = { rect: { x: 0, y: 0, width: Math.round(768 * sc / 2) * 2, height: Math.round(48 * sc / 2) * 2 } };
   if (!fmt || !/^(I4|NV12)/.test(fmt)) opts.format = 'RGBA';
   const buf = new Uint8Array(frame.allocationSize(opts));
   const layout = await frame.copyTo(buf, opts);
   const { offset, stride } = layout[0];
   const bpp = opts.format ? 4 : 1;
-  return decodeBarcode((x, y) => buf[offset + y * stride + x * bpp + (bpp === 4 ? 1 : 0)]);
+  return decodeBarcode((x, y) => buf[offset + Math.floor(y * sc) * stride + Math.floor(x * sc) * bpp + (bpp === 4 ? 1 : 0)]);
 }
 
 /** Opens a Blob with Mediabunny (BlobSource = the OPFS File path in production). */
