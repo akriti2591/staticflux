@@ -134,7 +134,7 @@ any loading/activating → failed → (retry) | evicted
 idle → running(stage) → committed → idle
 running → cancelled | redirected | blocked | failed
 ```
-Uninterruptible stages defer cancellation until they settle.
+Uninterruptible stages defer cancellation until they settle. Every outcome returns to `idle` via a `settle` event. Error codes: `SF-NAV-001…013` (see `docs/errors.json`).
 
 ## 8. Surface (messaging)
 

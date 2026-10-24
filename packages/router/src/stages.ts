@@ -24,7 +24,7 @@
 import { err, ok, type Result, type SfError } from '@staticflux/core';
 import type { NavigationContext } from './context.js';
 import { NavigationBlockedError, RouteDefinitionError } from './errors.js';
-import type { NavigationTarget } from './routes.js';
+import type { AnyRoute, HrefTarget, NavigationTarget, RouteTarget } from './routes.js';
 
 export const STAGES = [
   'resolve',
@@ -112,8 +112,8 @@ export function proceed(): StageResult {
 }
 
 /** Stop this navigation and navigate to `target` instead (typed route target or `{ href }`). */
-export function redirect(target: NavigationTarget, options: RedirectOptions = {}): StageResult {
-  return ok({ kind: 'redirect', target, ...options });
+export function redirect<R extends AnyRoute>(target: RouteTarget<R> | HrefTarget, options: RedirectOptions = {}): StageResult {
+  return ok({ kind: 'redirect', target: target as NavigationTarget, ...options });
 }
 
 /** Stop this navigation; the current location stays. */

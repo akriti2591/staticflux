@@ -113,6 +113,11 @@ export interface RouteDef<Id extends RouteId = RouteId, Path extends string = st
   readonly transient: boolean;
   /** Layout-only parent: never matched by itself. */
   readonly abstract: boolean;
+  /**
+   * View sub-route (tabs, wizard steps) of its parent's feature: entering/leaving it runs the light
+   * view pipeline (exit → enter → commit, R7.7). May only have `exit`/`enter` guards — no feature, no loaders.
+   */
+  readonly view: boolean;
   readonly description: string | undefined;
 }
 
@@ -135,6 +140,7 @@ export interface RouteConfig<Id extends RouteId, Seg extends string, S extends S
   readonly redirect?: (context: NavigationContext) => NavigationTarget;
   readonly transient?: boolean;
   readonly abstract?: boolean;
+  readonly view?: boolean;
   readonly description?: string;
 }
 
@@ -162,6 +168,7 @@ export function defineRoute<
     redirect: config.redirect,
     transient: config.transient ?? false,
     abstract: config.abstract ?? false,
+    view: config.view ?? false,
     description: config.description,
   });
 }
@@ -280,6 +287,17 @@ export function createRouteTable(routes: readonly AnyRoute[], dialogs: readonly 
           details: { route: route.id, parent: route.parent.id },
         }),
       );
+    }
+    if (route.view) {
+      const extraGuards = Object.keys(route.guards).filter((stage) => stage !== 'exit' && stage !== 'enter');
+      if (route.feature !== undefined || route.loaders.length > 0 || extraGuards.length > 0 || route.redirect !== undefined || route.transient) {
+        return err(
+          RouteDefinitionError({
+            message: `View route "${route.id}" may only have exit/enter guards (no feature, loaders, redirect or other stage guards).`,
+            details: { route: route.id },
+          }),
+        );
+      }
     }
     const pattern = compilePattern(route.path);
     compiled.set(route, pattern);

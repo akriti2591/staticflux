@@ -78,15 +78,24 @@ export function createRunControl(hardSignal: AbortSignal): RunControl {
 }
 
 const CONTINUE: PipelineOutcome = { kind: 'continue' };
-const SUPERSEDED: PipelineOutcome = { kind: 'cancel', reason: 'superseded' };
+
+/** Cancellation reason carried by an aborted run signal (`superseded`, `aborted`, `router-disposed`). */
+export function cancelReason(signal: AbortSignal): string {
+  const reason: unknown = signal.reason;
+  return reason instanceof Error && reason.message.length > 0 ? reason.message : 'superseded';
+}
+
+function cancelled(signal: AbortSignal): PipelineOutcome {
+  return { kind: 'cancel', reason: cancelReason(signal) };
+}
 
 function abortedPromise(signal: AbortSignal): Promise<PipelineOutcome> {
   return new Promise((resolve) => {
     if (signal.aborted) {
-      resolve(SUPERSEDED);
+      resolve(cancelled(signal));
       return;
     }
-    signal.addEventListener('abort', () => resolve(SUPERSEDED), { once: true });
+    signal.addEventListener('abort', () => resolve(cancelled(signal)), { once: true });
   });
 }
 
@@ -95,10 +104,10 @@ async function invoke(step: PipelineStep, context: NavigationContext, signal: Ab
     const result = await step.run(context, signal);
     if (result === undefined || result === null) return CONTINUE; // untyped callers
     if (result.ok) return result.value;
-    if (signal.aborted && result.error.kind === 'aborted') return SUPERSEDED;
+    if (signal.aborted && result.error.kind === 'aborted') return cancelled(signal);
     return { kind: 'fail', error: result.error };
   } catch (error) {
-    if (signal.aborted) return SUPERSEDED;
+    if (signal.aborted) return cancelled(signal);
     return {
       kind: 'fail',
       error: StageFailedError({ message: `Step "${step.id}" threw: ${toSfError(error).message}`, cause: error, details: { step: step.id } }),
@@ -134,7 +143,7 @@ async function runStep(
     if (uninterruptible) {
       outcome = await invoke(step, context, control.hardSignal);
     } else if (softSignal.aborted) {
-      outcome = SUPERSEDED;
+      outcome = cancelled(softSignal);
     } else {
       outcome = await Promise.race([invoke(step, context, softSignal), abortedPromise(softSignal)]);
     }
@@ -159,7 +168,7 @@ export async function runStage(
     if (step.concurrency === 'serial') {
       const outcome = await runStep(step, context, control, control.signal, options);
       if (outcome.kind !== 'continue') return outcome;
-      if (!options.uninterruptible && control.signal.aborted) return SUPERSEDED;
+      if (!options.uninterruptible && control.signal.aborted) return cancelled(control.signal);
       i += 1;
       continue;
     }
@@ -182,7 +191,7 @@ export async function runStage(
       }),
     );
     if (decided !== undefined) return decided;
-    if (!options.uninterruptible && control.signal.aborted) return SUPERSEDED;
+    if (!options.uninterruptible && control.signal.aborted) return cancelled(control.signal);
   }
   return CONTINUE;
 }

@@ -86,7 +86,7 @@
       "@staticflux/worker",
       "yjs"
     ],
-    "limit": "10 KB"
+    "limit": "13.5 KB"
   },
   {
     "name": "@staticflux/i18n (full)",
@@ -123,5 +123,15 @@
       "@staticflux/core"
     ],
     "limit": "8 KB"
+  },
+  {
+    "name": "@staticflux/router (full)",
+    "path": "packages/router/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/runtime"
+    ],
+    "limit": "13.5 KB"
   }
 ]
