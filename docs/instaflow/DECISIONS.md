@@ -14,6 +14,8 @@ Open questions are listed separately and are **not** decisions.
 | D5 | **Must-haves:** timeline video and audio editing, animations and transitions. |
 | D6 | **Location:** `apps/instaflow` in the StaticFlux monorepo; framework changes happen in place. Publishing to npm is on demand only. |
 
+| D7 | **Extensions extend, never remodel.** Extensions use only a fixed set of safe, declared contribution points (actions/capabilities, panels, storage providers, importers/exporters, model providers, declarative element types, comments). They cannot replace core behaviour, patch the engine, bypass gating/locks/validation, or touch the document except through capabilities and change sets. |
+
 ## Design direction (agreed, details pending)
 
 - Canonical model: CRDT-based hierarchical document; ECS only as an internal runtime index; content-addressed workspace object store; local-first, cloud-ready.
