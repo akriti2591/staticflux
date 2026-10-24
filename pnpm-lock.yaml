@@ -477,6 +477,9 @@ importers:
       '@staticflux/shell':
         specifier: workspace:*
         version: link:../packages/shell
+      '@staticflux/storage':
+        specifier: workspace:*
+        version: link:../packages/storage
       '@staticflux/ui':
         specifier: workspace:*
         version: link:../packages/ui

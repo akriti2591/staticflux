@@ -16,6 +16,7 @@
     "@staticflux/core": "workspace:*",
     "@staticflux/ui": "workspace:*",
     "@staticflux/shell": "workspace:*",
+    "@staticflux/storage": "workspace:*",
     "@staticflux/router": "workspace:*",
     "@staticflux/urlstate": "workspace:*",
     "@staticflux/runtime": "workspace:*",
