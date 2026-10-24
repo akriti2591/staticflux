@@ -206,4 +206,5 @@ function analyze(S, M, tIn, typeOf, flagsOf, Rn, E, extra) {
 run().then((r) => {
   window.__result = r;
   say(JSON.stringify({ pass: r.correctness.pass, framesNotEqualOracle: r.correctness.framesNotEqualOracle, p50: r.latency.inputToPresentEst.all.median, p95: r.latency.inputToPresentEst.all.p95, budget: r.latency.budgetMs }, null, 1));
+  say('\nfull result JSON:\n' + JSON.stringify(r, null, 1));
 }).catch((e) => { window.__result = { error: String(e?.stack ?? e) }; say('ERROR ' + e); });

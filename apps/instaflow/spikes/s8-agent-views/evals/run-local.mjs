@@ -1,6 +1,7 @@
 // Sends every evals/prompts/*.md to a local OpenAI-compatible server (omlx, LM Studio, Ollama, llama.cpp…)
 // and writes the raw replies to evals/responses-<label>/<same name>.txt for `harness.mjs score`.
 //   node evals/run-local.mjs --url=http://localhost:8000/v1 [--model=<id>] [--label=local] [--only=markup.rel,json.ops] [--think]
+// Set OPENAI_API_KEY if the server needs a bearer token (it is sent as Authorization, never written to disk).
 // Each prompt is sent as-is as one user message (same as the Sonnet run), temperature 0.
 // Thinking is switched off by default (chat_template_kwargs.enable_thinking=false, honoured by Qwen3-style
 // templates); --think turns it on. Reasoning blocks (<think>…</think>) are stripped before saving. Existing replies are skipped, so it resumes.
@@ -15,11 +16,12 @@ const label = arg('label', 'local');
 const only = arg('only', '').split(',').filter(Boolean);
 const think = process.argv.includes('--think');
 const maxTokens = Number(arg('max-tokens', 8192));
+const headers = { 'content-type': 'application/json', ...(process.env.OPENAI_API_KEY ? { authorization: `Bearer ${process.env.OPENAI_API_KEY}` } : {}) };
 
 async function pickModel() {
   const given = arg('model', '');
   if (given) return given;
-  const res = await fetch(`${url}/models`);
+  const res = await fetch(`${url}/models`, { headers });
   if (!res.ok) throw new Error(`GET ${url}/models → ${res.status}. Pass --model=<id>.`);
   const ids = (await res.json()).data?.map((m) => m.id) ?? [];
   if (ids.length === 0) throw new Error('server lists no models; pass --model=<id>');
@@ -41,7 +43,7 @@ for (const file of prompts) {
   const t0 = Date.now();
   const res = await fetch(`${url}/chat/completions`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers,
     body: JSON.stringify({ model, temperature: 0, max_tokens: maxTokens, messages: [{ role: 'user', content: readFileSync(join(HERE, 'prompts', file), 'utf8') }],
       ...(think ? {} : { chat_template_kwargs: { enable_thinking: false } }) }),
   });

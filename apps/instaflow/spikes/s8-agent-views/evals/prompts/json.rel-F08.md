@@ -57,8 +57,8 @@ Reply with one ```json block: {"ops":[...]} — ops apply in order, ids are from
 Relational ops (computed by the editor from exact geometry; prefer them over hand-computed coordinates):
 - {"op":"align","ids":["n3","n4"],"edge":"top","to":"n3"}  edge: left|right|centerX|top|bottom|centerY; to: "bounds" (default: their bounding box) | "page" | an id
 - {"op":"distribute","ids":["n3","n4","n5"],"axis":"x"}  equal gaps; the first and last (by position) stay put
-- {"op":"stack","ids":["n3","n4","n5"],"direction":"vertical","gap":24,"align":"start"}  ids[0] stays; the others follow in the given order; align (optional) on the cross axis
-- {"op":"place","id":"n7","relativeTo":"n5","side":"below","gap":40,"align":"center"}  side: above|below|left|right (align: start|center|end on the other axis)
+- {"op":"stack","ids":["n3","n4","n5"],"direction":"vertical","gap":24,"align":"start"}  ids[0] stays; the others follow in the given order; gap = empty space between neighbours, edge to edge (bottom of one to top of the next), NOT top-to-top: for items 56 px tall that should start 80 px apart, gap = 24; align (optional) on the cross axis
+- {"op":"place","id":"n7","relativeTo":"n5","side":"below","gap":40,"align":"center"}  side: above|below|left|right; gap = empty space edge to edge (align: start|center|end on the other axis)
 - {"op":"place","id":"n7","relativeTo":"page","side":"inside","corner":"bottom-right","gap":40}  corner: top-left|top-right|bottom-left|bottom-right|top|bottom|left|right|center; gap = margin
 
 Edits that conflict with someone else's concurrent change are reported back, not forced. Reply with the code block only.
