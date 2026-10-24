@@ -19,8 +19,8 @@ import { detectWasmFeatures, type WasmFeatureFacts } from './features.js';
 import { createWasmModule, defaultWasmEnvironment, type WasmEnvironment, type WasmModuleHandle } from './host.js';
 import type { WasmExports, WasmModuleDefinition } from './module.js';
 
-export const WasmEnvironmentToken = token('wasm/environment').type<WasmEnvironment>();
-export const WasmFeaturesToken = token('wasm/features').type<WasmFeatureFacts>();
+export const WasmEnvironmentToken = /* @__PURE__ */ token('wasm/environment').type<WasmEnvironment>();
+export const WasmFeaturesToken = /* @__PURE__ */ token('wasm/features').type<WasmFeatureFacts>();
 
 /** Engine, fetch, chunk resolver and thread kind (defaults from the platform). */
 export function wasmEnvironmentUnit(

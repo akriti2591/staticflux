@@ -12,4 +12,5 @@ export * from './resource-manager.js';
 export * from './scheduler.js';
 export * from './tokens.js';
 export * from './units.js';
+export * from './resource-units.js';
 export type { Sleep } from './hooks.js';

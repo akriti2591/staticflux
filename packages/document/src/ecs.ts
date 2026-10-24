@@ -70,6 +70,7 @@ function defaultFor(type: FieldType): unknown {
  * export const Transform = defineComponent('studio/transform', { x: 'f64', y: 'f64', w: 'f64', h: 'f64' });
  * export const Image = defineComponent('studio/image', { src: 'string', alt: 'string' });
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineComponent<const Id extends ComponentId, const S extends ComponentSchema>(
   id: Id,
   schema: S,
@@ -87,6 +88,7 @@ export function defineComponent<const Id extends ComponentId, const S extends Co
 }
 
 /** A collaborative text component (Yjs-backed). */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineTextComponent<const Id extends ComponentId>(id: Id): TextComponent<Id> {
   return Object.freeze({ kind: 'component', storage: 'text', id });
 }

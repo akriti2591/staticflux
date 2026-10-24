@@ -4,7 +4,6 @@
  * into, the assistant panel controller, and the UI root.
  */
 import { box, contribution, ok, type Result, unit, watch } from '@staticflux/core';
-import { defineSurfaceHost } from '@staticflux/messaging';
 import { RouterToken } from '@staticflux/router';
 import { FeatureHostToken, defineSubsystem, SubsystemsToken } from '@staticflux/runtime';
 import { defaultWorkspace, defineShell, defineWorkspace, slotContribution, workspaceContribution, WorkspaceManagerToken } from '@staticflux/shell';
@@ -106,8 +105,7 @@ export const workspaceSwitchSubsystemUnit = contribution({
 /** Render the UI root into `container` (browser entry and DOM tests). */
 export async function mountStudioUi(container: HTMLElement, injector: Injector): Promise<Result<() => void>> {
   defineShell();
-  defineSurfaceHost();
-  defineAppViews();
+  defineAppViews(); // <sf-surface-host> is defined by the deferred surfaces chunk
   const environment = await injector.get(UiEnvironmentToken);
   if (!environment.ok) return environment;
   const router = await injector.get(RouterToken);

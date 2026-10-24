@@ -154,6 +154,19 @@ export interface UnitBase<T, D extends DepsDeclaration = DepsDeclaration> {
   readonly budget?: { readonly initMs?: number };
   /** Free-form documentation for agents and devtools. */
   readonly description?: string;
+  /**
+   * Set only on the placeholders made by `deferredUnits()`: resolving the placeholder loads
+   * the source's units into the injector and resolves the real provider instead.
+   */
+  readonly deferred?: DeferredSource;
+}
+
+/** Where the real units of a deferred placeholder come from (see `deferredUnits` in injector.ts). */
+export interface DeferredSource {
+  /** Namespaced id of the deferred group (telemetry, devtools). */
+  readonly id: TokenId;
+  /** Import the chunk and return its registrations; called at most once per owning injector. */
+  load(signal: AbortSignal): Promise<readonly unknown[]>;
 }
 
 export interface UnitDefinition<T, D extends DepsDeclaration = DepsDeclaration, P extends TokenId = TokenId>
@@ -174,6 +187,7 @@ export type AnyUnit = UnitDefinition<any, any, TokenId>;
  * Declare a unit. Purely a typed identity function: the declaration is data.
  * Compile error if a dependency key appears in more than one kind.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function unit<T, const D extends DepsDeclaration = Record<never, never>, const P extends TokenId = TokenId>(
   definition: UnitDefinition<T, D, P> &
     ([DuplicateDepKeys<D>] extends [never] ? unknown : { __duplicateDepKeys: DuplicateDepKeys<D> }),
@@ -220,6 +234,7 @@ export function dependencyEdges(definition: AnyUnit): readonly DependencyEdge[] 
  * export const helpItem = contribution({ id: 'help/menu-item', provides: MenuItems, scope: 'app', order: 90,
  *   create: () => ({ label: 'Help' }) });
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function contribution<E, const D extends DepsDeclaration = Record<never, never>, const P extends TokenId = TokenId>(
   definition: ContributionDefinition<E, D, P> &
     ([DuplicateDepKeys<D>] extends [never] ? unknown : { __duplicateDepKeys: DuplicateDepKeys<D> }),

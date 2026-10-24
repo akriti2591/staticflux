@@ -99,6 +99,7 @@ export type CapabilityInput<C> = C extends Capability<infer I, infer _O, infer _
 export type CapabilityOutput<C> = C extends Capability<infer _I, infer O, infer _Id> ? O : never;
 
 /** Declare a capability (typed, frozen data). */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineCapability<I, O, const Id extends CapabilityId>(
   options: CapabilityOptions<I, O, Id>,
 ): Capability<I, O, Id> {

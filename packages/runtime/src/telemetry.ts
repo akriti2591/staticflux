@@ -13,21 +13,21 @@ export const RUNTIME_SUBSYSTEMS = {
 
 export const runtimeMetrics = {
   /** Restarts of supervised subsystems (attrs: subsystem). */
-  subsystemRestarts: metric.counter('runtime/subsystem-restarts', { description: 'Subsystem restarts by the supervisor.' }),
+  subsystemRestarts: /* @__PURE__ */ metric.counter('runtime/subsystem-restarts', { description: 'Subsystem restarts by the supervisor.' }),
   /** Time from boot start to core-ready. */
-  coreReady: metric.histogram('runtime/core-ready', { unit: 'ms', description: 'Boot start → core-ready.' }),
+  coreReady: /* @__PURE__ */ metric.histogram('runtime/core-ready', { unit: 'ms', description: 'Boot start → core-ready.' }),
   /** Feature module load time (attrs: feature). */
-  featureLoad: metric.histogram('runtime/feature-load', { unit: 'ms', description: 'Feature module load duration.' }),
+  featureLoad: /* @__PURE__ */ metric.histogram('runtime/feature-load', { unit: 'ms', description: 'Feature module load duration.' }),
   /** Feature activation time (attrs: feature, activation: fresh|warm|archived). */
-  featureActivation: metric.histogram('runtime/feature-activation', { unit: 'ms', description: 'Feature activation duration.' }),
+  featureActivation: /* @__PURE__ */ metric.histogram('runtime/feature-activation', { unit: 'ms', description: 'Feature activation duration.' }),
   /** Number of features whose logic is alive. */
-  activeFeatures: metric.gauge('runtime/active-features', { description: 'Features with live logic.' }),
+  activeFeatures: /* @__PURE__ */ metric.gauge('runtime/active-features', { description: 'Features with live logic.' }),
   /** Demotions issued by the resource manager (attrs: feature, action, reason). */
-  demotions: metric.counter('runtime/feature-demotions', { description: 'Resource-manager demotions.' }),
+  demotions: /* @__PURE__ */ metric.counter('runtime/feature-demotions', { description: 'Resource-manager demotions.' }),
   /** Duration of one coalesced frame flush. */
-  frameFlush: metric.histogram('runtime/frame-flush', { unit: 'ms', description: 'Coalesced frame flush duration.' }),
+  frameFlush: /* @__PURE__ */ metric.histogram('runtime/frame-flush', { unit: 'ms', description: 'Coalesced frame flush duration.' }),
   /** Feature readiness marks (attrs: feature, mark). Value: ms since activation start. */
-  featureReadiness: metric.mark('runtime/feature-readiness', { description: 'feature.first-render / interactive / complete.' }),
+  featureReadiness: /* @__PURE__ */ metric.mark('runtime/feature-readiness', { description: 'feature.first-render / interactive / complete.' }),
 } as const;
 
 export interface TraceMachineOptions<S extends string> {

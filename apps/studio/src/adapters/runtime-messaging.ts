@@ -2,6 +2,8 @@
  * Adapter: @staticflux/runtime app lifecycle → @staticflux/messaging. While the app
  * is paused (e.g. connection lost) a non-dismissible "Reconnecting" dialog shows;
  * it closes on resume (FEATURE-NEEDS runtime: pause while "reconnecting" shows).
+ * The surface manager is a functional dep: the surfaces chunk loads on the first pause
+ * (or earlier, after first paint), never on the boot path.
  */
 import { contribution } from '@staticflux/core';
 import { type SurfaceHandle, SurfaceManagerToken } from '@staticflux/messaging';
@@ -12,16 +14,22 @@ export const reconnectingSurfaceSubsystemUnit = contribution({
   id: 'studio/reconnecting-surface-subsystem-unit',
   provides: SubsystemsToken,
   scope: 'app',
-  deps: { required: { surfaces: SurfaceManagerToken } },
+  deps: { functional: { surfaces: SurfaceManagerToken } },
   create: ({ surfaces }) => {
     let handle: SurfaceHandle | undefined;
+    let paused = false;
     return defineSubsystem({
       id: 'messaging/reconnecting',
       start: () => undefined,
       pause: (ctx) => {
-        handle = surfaces.request(ReconnectingDialog, { owner: { scope: ctx.scope, level: 'app' } });
+        paused = true;
+        // Not awaited: pausing never waits for the surfaces chunk.
+        void surfaces.get(ctx.signal).then((manager) => {
+          if (manager.ok && paused) handle = manager.value.request(ReconnectingDialog, { owner: { scope: ctx.scope, level: 'app' } });
+        });
       },
       resume: () => {
+        paused = false;
         handle?.dismiss('programmatic');
         handle = undefined;
       },

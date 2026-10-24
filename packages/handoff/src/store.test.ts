@@ -12,7 +12,7 @@ import {
   STORAGE_PREFIX,
 } from './storage.js';
 import { createHandoffStore } from './store.js';
-import { browserHandoffStoragesUnit, handoffSlotUnit, HandoffStoragesToken, HandoffStoreToken, handoffStoreUnit, memoryHandoffStoragesUnit } from './units.js';
+import { browserHandoffStoragesUnit, handoffSlotUnit, HandoffStoragesToken, HandoffStoreToken, handoffStoreUnit, memoryHandoffStoragesUnit } from './index.js';
 
 interface Draft {
   readonly title: string;

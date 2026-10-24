@@ -107,12 +107,12 @@ export type InvocationState = (typeof invocationMachine.states)[number];
 // ---------------------------------------------------------------- metrics
 
 export const CapabilityMetrics = {
-  invocations: metric.counter('capabilities/invocations', {
+  invocations: /* @__PURE__ */ metric.counter('capabilities/invocations', {
     description: 'Capability invocations by capability, subject and outcome.',
   }),
-  duration: metric.histogram('capabilities/invoke-duration', { unit: 'ms', description: 'End-to-end invoke time.' }),
-  denials: metric.counter('capabilities/denials', { description: 'Policy denials by reason.' }),
-  confirmations: metric.counter('capabilities/confirmations', {
+  duration: /* @__PURE__ */ metric.histogram('capabilities/invoke-duration', { unit: 'ms', description: 'End-to-end invoke time.' }),
+  denials: /* @__PURE__ */ metric.counter('capabilities/denials', { description: 'Policy denials by reason.' }),
+  confirmations: /* @__PURE__ */ metric.counter('capabilities/confirmations', {
     description: 'Confirmation prompts by outcome (confirmed | declined | error).',
   }),
 } as const;

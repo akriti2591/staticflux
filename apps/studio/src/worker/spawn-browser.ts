@@ -1,17 +1,21 @@
 /**
  * Browser spawner for the document worker. Imported only by the browser entry
- * (`main.ts`); headless runs use the in-thread spawner instead. Without `Worker`
- * (feature-detected) the host runs in-thread, loaded lazily so the engine and Yjs
- * never land in the main-thread boot chunk.
+ * (`boot-browser.ts`); headless runs use the in-thread spawner instead. The real spawner
+ * (worker transport, in-thread fallback) is its own chunk, loaded on the first spawn —
+ * i.e. with the lazy document runtime, never on the boot path.
  */
-import { dedicatedWorkerSpawner, inMemorySpawner, type Spawner, supportsWorker } from '@staticflux/worker';
+import { err, toSfError } from '@staticflux/core';
+import type { Spawner } from '@staticflux/worker';
 
 export function browserDocumentWorkerSpawner(): Spawner {
-  if (supportsWorker()) {
-    return dedicatedWorkerSpawner(() => new Worker(new URL('./document.worker.ts', import.meta.url), { type: 'module', name: 'studio-document' }));
-  }
+  let spawner: Promise<Spawner> | undefined;
   return async (context) => {
-    const host = await import('./document-host.js');
-    return inMemorySpawner((port) => host.startDocumentWorker(port))(context);
+    spawner ??= import('./spawn-worker.js').then((chunk) => chunk.createDocumentWorkerSpawner());
+    try {
+      return await (await spawner)(context);
+    } catch (error) {
+      spawner = undefined; // chunk failed (offline): the worker supervisor's restart retries the import
+      return err(toSfError(error));
+    }
   };
 }

@@ -180,12 +180,12 @@ export const consultationMachine = defineMachine({
 });
 
 export const AdvisorMetrics = {
-  decisions: metric.counter('advisors/decisions', { description: 'Decisions by point, source and advisor.' }),
-  overrides: metric.counter('advisors/overrides', { description: 'Decisions where the advisor overrode the default.' }),
-  fallbacks: metric.counter('advisors/fallbacks', { description: 'Default used, by reason.' }),
-  latency: metric.histogram('advisors/consult-latency', { unit: 'ms', description: 'Async consultation time.' }),
-  outcomes: metric.counter('advisors/outcomes', { description: 'Reported outcomes (hit true/false) per point.' }),
-  wasted: metric.histogram('advisors/wasted-bytes', { unit: 'By', description: 'Bytes fetched for suggestions that missed.' }),
+  decisions: /* @__PURE__ */ metric.counter('advisors/decisions', { description: 'Decisions by point, source and advisor.' }),
+  overrides: /* @__PURE__ */ metric.counter('advisors/overrides', { description: 'Decisions where the advisor overrode the default.' }),
+  fallbacks: /* @__PURE__ */ metric.counter('advisors/fallbacks', { description: 'Default used, by reason.' }),
+  latency: /* @__PURE__ */ metric.histogram('advisors/consult-latency', { unit: 'ms', description: 'Async consultation time.' }),
+  outcomes: /* @__PURE__ */ metric.counter('advisors/outcomes', { description: 'Reported outcomes (hit true/false) per point.' }),
+  wasted: /* @__PURE__ */ metric.histogram('advisors/wasted-bytes', { unit: 'By', description: 'Bytes fetched for suggestions that missed.' }),
 } as const;
 
 const DEFAULT_ENVIRONMENT: AdvisorEnvironment = { lowEndDevice: false, saveData: false };

@@ -21,6 +21,7 @@ export interface MachineDefinition<S extends string, E extends string> {
 }
 
 /** Identity function that preserves literal state/event types. */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineMachine<const S extends string, const E extends string>(
   definition: MachineDefinition<S, E>,
 ): MachineDefinition<S, E> {

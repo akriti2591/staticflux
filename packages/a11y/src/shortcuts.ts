@@ -102,6 +102,7 @@ export interface ShortcutDef<Id extends TokenId = TokenId> {
   readonly preventDefault?: boolean;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineShortcut<const Id extends TokenId>(
   definition: Omit<ShortcutDef<Id>, 'kind' | 'scope'> & { readonly scope?: ShortcutScopeDef },
 ): ShortcutDef<Id> {

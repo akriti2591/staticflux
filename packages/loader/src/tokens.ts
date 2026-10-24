@@ -32,26 +32,26 @@ export interface BootPlanner {
 }
 
 /** The build manifest (`sf-manifest.json`). Provide with `manifestUnit(manifest)`. */
-export const ChunkManifestToken = token('loader/manifest').type<SfManifest>();
-export const LoaderEnvToken = token('loader/env').type<LoaderEnv>();
+export const ChunkManifestToken = /* @__PURE__ */ token('loader/manifest').type<SfManifest>();
+export const LoaderEnvToken = /* @__PURE__ */ token('loader/env').type<LoaderEnv>();
 /** Gating hook consulted before any fetch (I-8). The gate package binds it. */
-export const ChunkGateToken = token('loader/chunk-gate').type<ChunkGate>();
+export const ChunkGateToken = /* @__PURE__ */ token('loader/chunk-gate').type<ChunkGate>();
 /** `crossorigin` policy for injected tags (R11.16b). */
-export const LoaderIsolationPolicyToken = token('loader/isolation-policy').type<LoaderIsolationPolicy>();
+export const LoaderIsolationPolicyToken = /* @__PURE__ */ token('loader/isolation-policy').type<LoaderIsolationPolicy>();
 /** Network/device facts reader (bind from platform facts). */
-export const WarmupFactsToken = token('loader/warmup-facts').type<() => WarmupFacts>();
+export const WarmupFactsToken = /* @__PURE__ */ token('loader/warmup-facts').type<() => WarmupFacts>();
 /** Current app profile reader (bind from platform `AppProfileSource.current`). */
-export const LoaderProfileToken = token('loader/profile').type<() => ProfileLike | undefined>();
+export const LoaderProfileToken = /* @__PURE__ */ token('loader/profile').type<() => ProfileLike | undefined>();
 /** Strategy for local chunks (default dynamic import). */
-export const LoadStrategyToken = token('loader/load-strategy').type<LoadStrategy>();
+export const LoadStrategyToken = /* @__PURE__ */ token('loader/load-strategy').type<LoadStrategy>();
 /** Optional strategy for federated (`remote`) chunks; the first contribution is used. */
-export const RemoteStrategyToken = token('loader/remote-strategy').multi<LoadStrategy>();
+export const RemoteStrategyToken = /* @__PURE__ */ token('loader/remote-strategy').multi<LoadStrategy>();
 /** Optional warmup advisors (R19.5); the first contribution is used. */
-export const WarmupAdvisorsToken = token('loader/warmup-advisors').multi<WarmupAdvisor>();
-export const SpeculationRulesToken = token('loader/speculation-rules').multi<SpeculationRule>();
-export const BootPlansToken = token('loader/boot-plans').multi<BootPlan>();
+export const WarmupAdvisorsToken = /* @__PURE__ */ token('loader/warmup-advisors').multi<WarmupAdvisor>();
+export const SpeculationRulesToken = /* @__PURE__ */ token('loader/speculation-rules').multi<SpeculationRule>();
+export const BootPlansToken = /* @__PURE__ */ token('loader/boot-plans').multi<BootPlan>();
 
-export const ChunkLoaderToken = token('loader/chunk-loader').type<ChunkLoader>();
-export const WarmupToken = token('loader/warmup').type<Warmup>();
-export const SpeculationEngineToken = token('loader/speculation-engine').type<SpeculationEngine>();
-export const BootPlannerToken = token('loader/boot-planner').type<BootPlanner>();
+export const ChunkLoaderToken = /* @__PURE__ */ token('loader/chunk-loader').type<ChunkLoader>();
+export const WarmupToken = /* @__PURE__ */ token('loader/warmup').type<Warmup>();
+export const SpeculationEngineToken = /* @__PURE__ */ token('loader/speculation-engine').type<SpeculationEngine>();
+export const BootPlannerToken = /* @__PURE__ */ token('loader/boot-planner').type<BootPlanner>();

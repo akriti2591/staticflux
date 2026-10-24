@@ -36,7 +36,7 @@ import { shallowEqual } from './platform-facts.js';
 
 export const PROFILE_SUBSYSTEM = 'platform/profile' as const;
 
-export const profileChanges = metric.counter('platform/profile-changes', {
+export const profileChanges = /* @__PURE__ */ metric.counter('platform/profile-changes', {
   description: 'App profile changes (host mode or form factor) at runtime.',
 });
 

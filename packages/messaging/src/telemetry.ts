@@ -8,13 +8,13 @@ export const MESSAGING_SUBSYSTEM = 'messaging/surfaces' as const satisfies Subsy
 
 export const messagingMetrics = {
   /** attrs: surface, kind */
-  shown: metric.counter('messaging/surface-shown', { description: 'Surfaces that reached showing.' }),
+  shown: /* @__PURE__ */ metric.counter('messaging/surface-shown', { description: 'Surfaces that reached showing.' }),
   /** attrs: surface, kind, reason */
-  dismissed: metric.counter('messaging/surface-dismissed', { description: 'Surface dismissals by reason.' }),
+  dismissed: /* @__PURE__ */ metric.counter('messaging/surface-dismissed', { description: 'Surface dismissals by reason.' }),
   /** attrs: surface, kind, reason (gated | seen | scope | target-missing | load-failed) */
-  rejected: metric.counter('messaging/surface-rejected', { description: 'Surfaces rejected before showing.' }),
+  rejected: /* @__PURE__ */ metric.counter('messaging/surface-rejected', { description: 'Surfaces rejected before showing.' }),
   /** Time on screen while showing (suspended time excluded). attrs: surface, kind, reason */
-  dwell: metric.histogram('messaging/surface-dwell', { unit: 'ms', description: 'Surface dwell time.' }),
+  dwell: /* @__PURE__ */ metric.histogram('messaging/surface-dwell', { unit: 'ms', description: 'Surface dwell time.' }),
   /** Requests answered by an existing surface (banner dedup). attrs: surface */
-  deduped: metric.counter('messaging/surface-deduped', { description: 'Deduplicated surface requests.' }),
+  deduped: /* @__PURE__ */ metric.counter('messaging/surface-deduped', { description: 'Deduplicated surface requests.' }),
 } as const;

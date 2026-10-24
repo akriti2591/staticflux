@@ -148,6 +148,7 @@ const NAMESPACE = /^[a-z0-9][a-z0-9-]*(?:\/[a-z0-9][a-z0-9-]*)*$/;
  * Declare a package's messages. `namespace` is the package/feature name
  * (`studio`, `agent-chat`); it scopes keys so packages never collide.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineMessages<const NS extends string, const M extends Readonly<Record<string, string>>>(
   namespace: NS,
   messages: M,
@@ -233,6 +234,7 @@ export type BundleSource = TranslationBundle | { readonly default: TranslationBu
  *
  *   catalogLoader(m, { fr: () => import('./i18n/fr.js'), de: () => import('./i18n/de.js') })
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function catalogLoader(
   messages: AnyMessages,
   imports: Readonly<Record<string, (signal: AbortSignal) => Promise<BundleSource>>>,

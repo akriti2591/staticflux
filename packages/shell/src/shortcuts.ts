@@ -13,7 +13,7 @@ import {
   type ShortcutDef,
   type ShortcutRegistry,
 } from '@staticflux/a11y';
-import { type Result, type Scope, type SfError, token } from '@staticflux/core';
+import type { Result, Scope, SfError } from '@staticflux/core';
 import type { CommandDef, CommandRegistry } from './commands.js';
 
 /** The command palette's default shortcut (global scope, fires in text fields). */
@@ -87,4 +87,3 @@ export interface CommandShortcutBindings {
   readonly errors: readonly SfError[];
 }
 
-export const CommandShortcutBindingsToken = token('shell/command-shortcuts').type<CommandShortcutBindings>();

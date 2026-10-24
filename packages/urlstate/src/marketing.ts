@@ -25,7 +25,7 @@ export const DEFAULT_MARKETING_PARAMS: readonly string[] = [
 ];
 
 export const MarketingMetrics = {
-  captured: metric.counter('urlstate/marketing-captured', { description: 'Landings with marketing params.' }),
+  captured: /* @__PURE__ */ metric.counter('urlstate/marketing-captured', { description: 'Landings with marketing params.' }),
 } as const;
 
 /** Declaration for collision checks: these keys are reserved. */

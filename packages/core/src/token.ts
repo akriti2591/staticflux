@@ -39,6 +39,7 @@ export interface TokenBuilder<Id extends TokenId> {
   multi<T>(): MultiToken<T, Id>;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function token<const Id extends TokenId>(id: Id): TokenBuilder<Id> {
   return {
     type: <T>() => Object.freeze({ kind: 'token', id, multi: false }) as Token<T, Id>,

@@ -43,7 +43,7 @@ export function sharedMemoryAvailable(
   return typeof globals.SharedArrayBuffer === 'function' && typeof globals.Atomics === 'object' && globals.Atomics !== null;
 }
 
-export const IsolationFactsToken = token('worker/isolation-facts').type<IsolationFacts>();
+export const IsolationFactsToken = /* @__PURE__ */ token('worker/isolation-facts').type<IsolationFacts>();
 
 /** Default binding: platform fact + declared mode. Apps with an IsolationPolicy bind their own. */
 export function isolationFactsUnit(

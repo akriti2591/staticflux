@@ -293,10 +293,10 @@ export function createUiEnvironment(options: UiEnvironmentOptions = {}): UiEnvir
 
 // ---------------------------------------------------------------- tokens
 
-export const UiEnvironmentToken = token('ui/environment').type<UiEnvironment>();
-export const RenderSchedulerToken = token('ui/render-scheduler').type<RenderScheduler>();
-export const VisibilityObserverToken = token('ui/visibility-observer').type<VisibilityObserver>();
-export const IsolationPolicyToken = token('ui/isolation-policy').type<IsolationPolicy>();
+export const UiEnvironmentToken = /* @__PURE__ */ token('ui/environment').type<UiEnvironment>();
+export const RenderSchedulerToken = /* @__PURE__ */ token('ui/render-scheduler').type<RenderScheduler>();
+export const VisibilityObserverToken = /* @__PURE__ */ token('ui/visibility-observer').type<VisibilityObserver>();
+export const IsolationPolicyToken = /* @__PURE__ */ token('ui/isolation-policy').type<IsolationPolicy>();
 /** Multi: render observers (perf, devtools). */
-export const RenderObserversToken = token('ui/render-observers').multi<RenderObserver>();
-export const DecideToken = token('ui/decide').type<DecidePort>();
+export const RenderObserversToken = /* @__PURE__ */ token('ui/render-observers').multi<RenderObserver>();
+export const DecideToken = /* @__PURE__ */ token('ui/decide').type<DecidePort>();

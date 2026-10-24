@@ -2,18 +2,17 @@
  * DI units. Register one storages unit (browser-detected or memory-only for
  * embedded hosts) plus `handoffStoreUnit`; packages contribute their slot
  * declarations to `HandoffSlotsToken` so collisions are caught at boot and
- * logout/sweep cover them.
+ * logout/sweep cover them. Tokens are in `tokens.ts` (apps can name them at boot while the
+ * store loads later).
  */
-import { ok, token, unit, type UnitDefinition } from '@staticflux/core';
+import { ok, unit, type UnitDefinition } from '@staticflux/core';
 import { StoreRegistryToken } from '@staticflux/storage';
 import { handoffStoragesFromStores } from './async-store.js';
 import type { AnyHandoffSlot } from './slot.js';
-import { detectHandoffStorages, type HandoffStorages, memoryHandoffStorages } from './storage.js';
-import { createHandoffStore, type HandoffStore } from './store.js';
+import { detectHandoffStorages, memoryHandoffStorages } from './storage.js';
+import { createHandoffStore } from './store.js';
+import { HandoffSlotsToken, HandoffStoragesToken, HandoffStoreToken } from './tokens.js';
 
-export const HandoffStoragesToken = token('handoff/storages').type<HandoffStorages>();
-export const HandoffSlotsToken = token('handoff/slots').multi<AnyHandoffSlot>();
-export const HandoffStoreToken = token('handoff/store').type<HandoffStore>();
 
 type NoDeps = Record<never, never>;
 

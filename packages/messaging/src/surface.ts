@@ -62,6 +62,7 @@ export interface CoachTarget<Id extends SurfaceId = SurfaceId> {
   readonly id: Id;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineCoachTarget<const Id extends SurfaceId>(id: Id): CoachTarget<Id> {
   return Object.freeze({ kind: 'coach-target', id });
 }
@@ -126,6 +127,7 @@ export interface SurfaceDef<P = void, R = unknown> extends SurfaceDefInit<P, R> 
 export type AnySurfaceDef = SurfaceDef<any, any>;
 
 /** Declare a surface (data). Props/result types are inferred from `render`. */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineSurface<P = void, R = unknown>(init: SurfaceDefInit<P, R>): SurfaceDef<P, R> {
   if (init.routable !== undefined && init.kind !== 'dialog' && init.kind !== 'sheet') {
     throw new Error(`defineSurface("${init.id}"): only dialogs and sheets can be routable.`);

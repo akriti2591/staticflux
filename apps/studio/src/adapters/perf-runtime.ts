@@ -16,7 +16,7 @@ export interface Readiness {
   /** A content render committed (framework-measured firstRender). */
   rendered(feature: FeatureId, element?: Element): void;
 }
-export const ReadinessToken = token('studio/readiness').type<Readiness>();
+export const ReadinessToken = /* @__PURE__ */ token('studio/readiness').type<Readiness>();
 
 export const readinessUnit = unit({
   id: 'studio/readiness-unit',

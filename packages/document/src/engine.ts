@@ -177,8 +177,8 @@ export interface DocumentEngineOptions {
 }
 
 export const DocumentMetrics = {
-  ops: metric.counter('document/ops', { description: 'Local document ops applied.' }),
-  remoteUpdates: metric.counter('document/remote-updates'),
+  ops: /* @__PURE__ */ metric.counter('document/ops', { description: 'Local document ops applied.' }),
+  remoteUpdates: /* @__PURE__ */ metric.counter('document/remote-updates'),
 } as const;
 
 const SUBSYSTEM = 'document/engine';

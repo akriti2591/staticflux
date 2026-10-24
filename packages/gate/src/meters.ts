@@ -46,6 +46,7 @@ export interface MeterDef<Id extends MeterId = MeterId> {
   readonly reservationTtlMs: number;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineMeter<const Id extends MeterId>(
   id: Id,
   options: {
@@ -75,9 +76,9 @@ export function meterFact(meter: MeterDef): FactDef<number> {
 }
 
 export const MeterMetrics = {
-  reservations: metric.counter('gate/meter.reservations'),
-  denials: metric.counter('gate/meter.denials'),
-  committed: metric.counter('gate/meter.committed', { description: 'Sum of committed amounts.' }),
+  reservations: /* @__PURE__ */ metric.counter('gate/meter.reservations'),
+  denials: /* @__PURE__ */ metric.counter('gate/meter.denials'),
+  committed: /* @__PURE__ */ metric.counter('gate/meter.committed', { description: 'Sum of committed amounts.' }),
 } as const;
 
 // ---------------------------------------------------------------- reservation lifecycle

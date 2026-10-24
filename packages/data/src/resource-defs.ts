@@ -78,6 +78,7 @@ export interface SubscriptionResource<I, C, V> {
 
 const defaultKey = <I>(input: I): readonly KeyPart[] => (input === undefined ? [] : [input as unknown as KeyPart]);
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineResource<I, O>(init: {
   readonly id: TokenId;
   readonly endpoint: Endpoint<I, O>;
@@ -86,6 +87,7 @@ export function defineResource<I, O>(init: {
   return Object.freeze({ ...init, kind: 'single', key: init.key ?? defaultKey });
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function definePaginatedResource<I, EI, P, Page, Item>(init: {
   readonly id: TokenId;
   readonly endpoint: Endpoint<EI, Page>;
@@ -96,6 +98,7 @@ export function definePaginatedResource<I, EI, P, Page, Item>(init: {
   return Object.freeze({ ...init, kind: 'paginated', key: init.key ?? defaultKey });
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineBatchedResource<K, R, V = R extends readonly (infer E)[] ? E : never>(init: {
   readonly id: TokenId;
   readonly endpoint: Endpoint<readonly K[], R>;
@@ -114,6 +117,7 @@ export function defineBatchedResource<K, R, V = R extends readonly (infer E)[] ?
   });
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineStreamResource<I, C, V>(init: {
   readonly id: TokenId;
   readonly endpoint: StreamEndpoint<I, C>;

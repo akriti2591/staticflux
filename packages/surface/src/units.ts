@@ -26,10 +26,10 @@ import {
 } from './images.js';
 import type { Surface } from './surface.js';
 
-export const SurfaceEnvironmentToken = token('surface/environment').type<SurfaceEnvironment>();
-export const SurfaceImagePolicyToken = token('surface/image-policy').type<SurfaceImagePolicy>();
-export const SurfaceImageLoaderToken = token('surface/image-loader').type<SurfaceImageLoader>();
-export const HtmlInCanvasSupportToken = token('surface/html-in-canvas-support').type<HtmlInCanvasSupport>();
+export const SurfaceEnvironmentToken = /* @__PURE__ */ token('surface/environment').type<SurfaceEnvironment>();
+export const SurfaceImagePolicyToken = /* @__PURE__ */ token('surface/image-policy').type<SurfaceImagePolicy>();
+export const SurfaceImageLoaderToken = /* @__PURE__ */ token('surface/image-loader').type<SurfaceImageLoader>();
+export const HtmlInCanvasSupportToken = /* @__PURE__ */ token('surface/html-in-canvas-support').type<HtmlInCanvasSupport>();
 
 export function surfaceEnvironmentUnit(
   overrides: Partial<SurfaceEnvironment> = {},

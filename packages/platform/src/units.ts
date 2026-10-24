@@ -23,14 +23,14 @@ export interface PlatformOptions {
   readonly probeAiOnStart?: boolean;
 }
 
-export const PlatformEnvToken = token('platform/env').type<PlatformEnv>();
-export const PlatformOptionsToken = token('platform/options').type<PlatformOptions>();
+export const PlatformEnvToken = /* @__PURE__ */ token('platform/env').type<PlatformEnv>();
+export const PlatformOptionsToken = /* @__PURE__ */ token('platform/options').type<PlatformOptions>();
 /** Host mode plugin bundles. Zero contributions = the built-ins. */
-export const HostModesToken = token('platform/host-modes').multi<HostModeDefinition>();
+export const HostModesToken = /* @__PURE__ */ token('platform/host-modes').multi<HostModeDefinition>();
 /** Form factor definitions. Zero contributions = the built-ins. */
-export const FormFactorsToken = token('platform/form-factors').multi<FormFactorDefinition>();
-export const PlatformFactsToken = token('platform/facts').type<PlatformFactsSource>();
-export const AppProfileToken = token('platform/app-profile').type<AppProfileSource>();
+export const FormFactorsToken = /* @__PURE__ */ token('platform/form-factors').multi<FormFactorDefinition>();
+export const PlatformFactsToken = /* @__PURE__ */ token('platform/facts').type<PlatformFactsSource>();
+export const AppProfileToken = /* @__PURE__ */ token('platform/app-profile').type<AppProfileSource>();
 
 export const browserEnvUnit = unit({
   id: 'platform/browser-env-unit',

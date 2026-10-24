@@ -17,8 +17,8 @@ import { mountFeatureRoot } from '../../ui/feature-root.js';
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark', 'high-contrast'];
 
 // Slices are registered once per activation (never inside render: registration mutates observables).
-const ThemeSliceToken = token('settings/theme-slice').type<SliceHandle<{ readonly mode: ThemePreference }>>();
-const LocaleSliceToken = token('settings/locale-slice').type<SliceHandle<{ readonly locale: string }>>();
+const ThemeSliceToken = /* @__PURE__ */ token('settings/theme-slice').type<SliceHandle<{ readonly mode: ThemePreference }>>();
+const LocaleSliceToken = /* @__PURE__ */ token('settings/locale-slice').type<SliceHandle<{ readonly locale: string }>>();
 const themeSliceUnit = unit({
   id: 'settings/theme-slice-unit',
   provides: ThemeSliceToken,

@@ -7,7 +7,7 @@
  * (app composition, adapters, feature chunks); this file is declarations only.
  */
 import { type Box, type Result, token } from '@staticflux/core';
-import { s as cs, defineCapability } from '@staticflux/capabilities';
+import { type AnyCapability, type CapabilityInput, type CapabilityOutput, s as cs, defineCapability } from '@staticflux/capabilities';
 import { defineFlag, flagType } from '@staticflux/config';
 import { s as ds, defineSlice } from '@staticflux/data';
 import { defineMeter } from '@staticflux/gate';
@@ -253,7 +253,7 @@ export interface DocumentStore {
   flush(signal?: AbortSignal): Promise<Result<void>>;
   plainText(): string;
 }
-export const DocumentStoreToken = token('studio/document-store').type<DocumentStore>();
+export const DocumentStoreToken = /* @__PURE__ */ token('studio/document-store').type<DocumentStore>();
 
 /** Presence of co-editors (lazy dependency of the editor). */
 export interface PresenceFeed {
@@ -261,7 +261,7 @@ export interface PresenceFeed {
   readonly view: PresenceView;
   setLocal(name: string, cursor: { readonly entity: string; readonly index: number } | null): Promise<Result<void>>;
 }
-export const PresenceToken = token('studio/presence').type<PresenceFeed>();
+export const PresenceToken = /* @__PURE__ */ token('studio/presence').type<PresenceFeed>();
 
 /** DOM outlets the app owns; the router's feature driver mounts features into them. */
 export interface StudioOutlets {
@@ -269,14 +269,14 @@ export interface StudioOutlets {
   readonly panel: HTMLElement;
   readonly inspector: HTMLElement;
 }
-export const OutletsToken = token('studio/outlets').type<StudioOutlets>();
+export const OutletsToken = /* @__PURE__ */ token('studio/outlets').type<StudioOutlets>();
 
 /** Onboarding copy — variant-bound to OnboardingVariantFlag (feature code never reads the flag, R8.4). */
 export interface OnboardingCopy {
   readonly variant: 'A' | 'B';
   readonly headline: string;
 }
-export const OnboardingCopyToken = token('onboarding/copy').type<OnboardingCopy>();
+export const OnboardingCopyToken = /* @__PURE__ */ token('onboarding/copy').type<OnboardingCopy>();
 
 /** Opens the chat panel (implemented by the app; agent-chat is mounted into the panel outlet). */
 export interface PanelController {
@@ -285,12 +285,18 @@ export interface PanelController {
   show(feature: 'agent/chat'): Promise<Result<void>>;
   hide(): Promise<Result<void>>;
 }
-export const PanelControllerToken = token('studio/panel').type<PanelController>();
+export const PanelControllerToken = /* @__PURE__ */ token('studio/panel').type<PanelController>();
 
 /** Resolves once the late units chunk (AI, WebMCP, warmup) is registered (post-boot). */
 export interface LateServices {
   readonly ready: Promise<Result<void>>;
 }
-export const LateServicesToken = token('studio/late-services').type<LateServices>();
+export const LateServicesToken = /* @__PURE__ */ token('studio/late-services').type<LateServices>();
 
 export type { DocumentRecord };
+
+/** UI-initiated capability calls: an `upgrade` denial opens `/d/upgrade` (adapters/capabilities-router). */
+export interface CapabilityInvoker {
+  invoke<C extends AnyCapability>(capability: C, input: CapabilityInput<C>, options?: { readonly signal?: AbortSignal; readonly channel?: string }): Promise<Result<CapabilityOutput<C>>>;
+}
+export const CapabilityInvokerToken = /* @__PURE__ */ token('studio/capability-invoker').type<CapabilityInvoker>();

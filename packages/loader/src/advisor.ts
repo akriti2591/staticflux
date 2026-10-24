@@ -8,6 +8,7 @@
 import type { Telemetry } from '@staticflux/core';
 import type { ChunkIdShape, WarmupTier } from './chunk.js';
 import { LOADER_SUBSYSTEMS } from './telemetry.js';
+import { defaultTimer } from './defaults.js';
 
 export interface AdviceContext {
   readonly tier: WarmupTier;
@@ -28,10 +29,7 @@ export interface AdviceResult {
 
 export type TimerFn = (callback: () => void, ms: number) => () => void;
 
-export const defaultTimer: TimerFn = (callback, ms) => {
-  const handle = setTimeout(callback, ms);
-  return () => clearTimeout(handle);
-};
+export { defaultTimer } from './defaults.js';
 
 /** Clamp an advisor's suggestion to the candidate set (R19.7). */
 export function clampOrder(candidates: readonly ChunkIdShape[], suggested: readonly ChunkIdShape[]): readonly ChunkIdShape[] {

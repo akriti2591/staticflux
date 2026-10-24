@@ -2,12 +2,13 @@
  * Messaging surfaces (R13.4–R13.10). Features *request* surfaces; the surface
  * manager arbitrates and `<sf-surface-host>` renders them. Routable dialogs open
  * from the URL (`/d/upgrade`, `/studio/doc/:id/d/share`) through the router.
+ * Data only (definitions): the units registering the routable dialogs are in the deferred
+ * surfaces chunk (`deferred/surfaces.ts`).
  */
-import { contribution, ok, type Result } from '@staticflux/core';
-import { defineSurface, RoutableSurfacesToken, type SurfaceDef } from '@staticflux/messaging';
-import { FeatureHostToken } from '@staticflux/runtime';
+import { ok, type Result } from '@staticflux/core';
+import { defineSurface, type SurfaceDef } from '@staticflux/messaging';
 import { html } from 'lit';
-import { AiButtonTarget, Features } from './contracts.js';
+import { AiButtonTarget } from './contracts.js';
 
 export interface ConfirmProps {
   readonly title: string;
@@ -94,24 +95,4 @@ export const ShareDialog = defineSurface<{ readonly docId: string }>({
     <label>Invite <input type="email" placeholder="name@example.com" /></label>
     <div class="actions"><button @click=${() => dismiss('completed')}>Done</button></div>
   `,
-});
-
-export const upgradeDialogUnit = contribution({
-  id: 'studio/upgrade-dialog-surface-unit',
-  provides: RoutableSurfacesToken,
-  scope: 'app',
-  deps: { required: { host: FeatureHostToken } },
-  create: ({ host }) =>
-    upgradeDialog(async (signal) => {
-      // Lazy content: activating the billing feature loads its chunk (gated, I-8).
-      const activated = await host.activate(Features.billing.id, signal);
-      return activated.ok ? ok() : activated;
-    }),
-});
-
-export const shareDialogUnit = contribution({
-  id: 'studio/share-dialog-surface-unit',
-  provides: RoutableSurfacesToken,
-  scope: 'app',
-  create: () => ShareDialog,
 });

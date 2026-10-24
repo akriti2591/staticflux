@@ -145,6 +145,7 @@ export interface RouteConfig<Id extends RouteId, Seg extends string, S extends S
 }
 
 /** Declare a route. Params and search are typed from the (joined) path and the merged schema. */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineRoute<
   const Id extends RouteId,
   const Seg extends string,

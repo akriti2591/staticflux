@@ -58,6 +58,7 @@ export interface ThemeDef {
   readonly tokens: DesignTokens;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineTheme(init: {
   readonly id: ThemeId;
   readonly scheme: 'light' | 'dark';
@@ -288,5 +289,5 @@ export function createThemeController(options: ThemeControllerOptions = {}): The
   };
 }
 
-export const ThemeControllerToken = token('shell/theme-controller').type<ThemeController>();
-export const ThemePreferenceStoreToken = token('shell/theme-preference-store').type<KeyValuePort<string>>();
+export const ThemeControllerToken = /* @__PURE__ */ token('shell/theme-controller').type<ThemeController>();
+export const ThemePreferenceStoreToken = /* @__PURE__ */ token('shell/theme-preference-store').type<KeyValuePort<string>>();

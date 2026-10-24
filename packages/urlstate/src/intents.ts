@@ -48,9 +48,9 @@ export type IntentState = (typeof IntentMachine.states)[number];
 type IntentEvent = 'hold' | 'reject' | 'authorize' | 'deliver' | 'discard';
 
 export const IntentMetrics = {
-  captured: metric.counter('urlstate/intent-captured', { description: 'Intents captured from URLs.' }),
-  delivered: metric.counter('urlstate/intent-delivered', { description: 'Intents delivered to their owner.' }),
-  blocked: metric.counter('urlstate/intent-execute-blocked', { description: 'Auto-execution attempts refused (I-13).' }),
+  captured: /* @__PURE__ */ metric.counter('urlstate/intent-captured', { description: 'Intents captured from URLs.' }),
+  delivered: /* @__PURE__ */ metric.counter('urlstate/intent-delivered', { description: 'Intents delivered to their owner.' }),
+  blocked: /* @__PURE__ */ metric.counter('urlstate/intent-execute-blocked', { description: 'Auto-execution attempts refused (I-13).' }),
 } as const;
 
 const SUBSYSTEM = 'urlstate/intent';

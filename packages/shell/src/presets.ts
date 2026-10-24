@@ -21,6 +21,7 @@ export interface ShellPreset {
   readonly skipTargets?: readonly SlotId[];
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineShellPreset(init: Omit<ShellPreset, 'kind'>): ShellPreset {
   return Object.freeze({ ...init, kind: 'shell-preset' });
 }
@@ -60,9 +61,10 @@ export const embeddedPreset = defineShellPreset({
 
 export const shellPresets = { expanded: expandedPreset, medium: mediumPreset, compact: compactPreset, embedded: embeddedPreset } as const;
 
-export const ShellPresetToken = token('shell/preset').type<ShellPreset>();
+export const ShellPresetToken = /* @__PURE__ */ token('shell/preset').type<ShellPreset>();
 
 /** Bind the preset of a boot plan / profile. */
+/* @__NO_SIDE_EFFECTS__ */
 export function shellPresetUnit(preset: ShellPreset) {
   return unit({
     id: 'shell/preset-unit',

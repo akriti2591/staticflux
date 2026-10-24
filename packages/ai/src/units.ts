@@ -15,8 +15,8 @@ import { createMockProvider, type MockProviderOptions } from './mock.js';
 import { AiMetrics, type ModelProvider } from './provider.js';
 import { createModelRouter } from './router.js';
 
-export const ModelProvidersToken = token('ai/model-providers').multi<ModelProvider>();
-export const ModelProviderToken = token('ai/model-provider').type<ModelProvider>();
+export const ModelProvidersToken = /* @__PURE__ */ token('ai/model-providers').multi<ModelProvider>();
+export const ModelProviderToken = /* @__PURE__ */ token('ai/model-provider').type<ModelProvider>();
 
 export const browserAiProviderUnit = contribution({
   id: 'ai/browser-built-in-provider',

@@ -7,7 +7,10 @@
  *
  * Boot (runtime `bootApp`): injector → supervisor → critical units (platform facts,
  * app profile, flag resolver + what they need) → core-ready → subsystems (router
- * first navigation, document worker, meter sync, …) → running.
+ * first navigation, document worker, meter sync, …) → running. Verticals the first frame does
+ * not need (surfaces, keyboard, capabilities, resource manager, user data, handoff, resource
+ * cache) are deferred unit groups
+ * (`deferred.ts`): their chunks load on first resolution.
  */
 import {
   contribution,
@@ -18,7 +21,7 @@ import {
   type Token,
   unit,
 } from '@staticflux/core';
-import { a11yEnvironmentUnit, type A11yEnvironment, announcerUnit, focusManagerUnit, preferenceFactsUnit, shortcutRegistryUnit } from '@staticflux/a11y';
+import { a11yEnvironmentUnit, type A11yEnvironment, announcerUnit, focusManagerUnit, preferenceFactsUnit } from '@staticflux/a11y';
 import {
   AuthEnvironmentToken,
   type AuthEnvironment,
@@ -26,7 +29,6 @@ import {
   bffCookieProviderUnit,
   createSessionUnit,
 } from '@staticflux/auth';
-import { capabilityRegistryUnit } from '@staticflux/capabilities';
 import {
   createExperimentLayer,
   createFlagBinder,
@@ -39,12 +41,10 @@ import {
   layerUnit,
   type StorageLike,
 } from '@staticflux/config';
-import { DataTransportToken, dataClientUnitWith, resourcesUnit, userDataUnit } from '@staticflux/data';
+import { DataTransportToken, dataClientUnitWith } from '@staticflux/data';
 import { gateUnits, meterDefinitionUnit, policySetUnit } from '@staticflux/gate';
-import { handoffStoreUnit, registryHandoffStoragesUnit } from '@staticflux/handoff';
 import { catalogLoaderUnit, i18nConfigUnit, i18nUnit } from '@staticflux/i18n';
 import { chunkLoaderUnit, manifestUnit, noIsolationPolicyUnit as loaderNoIsolationUnit } from '@staticflux/loader';
-import { routableDialogBridgeUnit, surfaceManagerUnit } from '@staticflux/messaging';
 import {
   conformanceUnit,
   featureMarksUnit,
@@ -62,24 +62,19 @@ import {
   FeatureManifestsToken,
   frameSchedulerSubsystemUnit,
   frameSchedulerUnit,
-  nominalMemoryPressureUnit,
   registryArchiveStoreUnit,
-  resourceManagerUnit,
 } from '@staticflux/runtime';
-import { commandRegistryUnit, shellKeyboardUnits, shellPresets, ShellPresetToken, themeControllerUnit, workspaceManagerUnit } from '@staticflux/shell';
+import { shellPresets, ShellPresetToken, themeControllerUnit, workspaceManagerUnit } from '@staticflux/shell';
 import { storeFactoryUnit, storeRegistryUnit, type StoreFactory } from '@staticflux/storage';
 import { noIsolationPolicyUnit, renderSchedulerUnit, uiEnvironmentUnit, visibilityObserverUnit } from '@staticflux/ui';
 import { intentServiceUnit, intentUnit, urlDeclarationRegistryUnit, urlDeclarationUnit, urlSyncUnit } from '@staticflux/urlstate';
 import type { Spawner } from '@staticflux/worker';
 import { routeFocusHookUnit } from '../adapters/a11y-router.js';
 import { sessionEvaluationContextUnit } from '../adapters/auth-config.js';
-import { userDataConfigUnit, userDataIdentityListenerUnit } from '../adapters/auth-data.js';
+import { userDataIdentityListenerUnit } from '../adapters/auth-data.js';
 import { claimFactsUnit, sessionFactsUnit } from '../adapters/auth-gate.js';
 import { authBoundaryPluginUnit } from '../adapters/auth-router.js';
 import { epochRefreshListenerUnit, sessionScopeUnit } from '../adapters/auth-runtime.js';
-import { gateCapabilityDecideUnit, gateCapabilityMeterUnit } from '../adapters/capabilities-gate.js';
-import { confirmPortUnit } from '../adapters/capabilities-messaging.js';
-import { featureActivationPortUnit } from '../adapters/capabilities-runtime.js';
 import { flagFactsUnit } from '../adapters/config-gate.js';
 import { remoteFlagLayerUnit } from '../adapters/data-config.js';
 import { dataMeterBackendUnit, meterSyncSubsystemUnit } from '../adapters/gate-data.js';
@@ -91,8 +86,6 @@ import { heldIntentsSlotUnit, intentHoldUnit, intentRestorePluginUnit, loginRetu
 import { localeUrlSubsystemUnit } from '../adapters/i18n-urlstate.js';
 import { chunkScriptAttributionUnit } from '../adapters/loader-perf.js';
 import { buildDevManifest, chunkFeatureLoaderUnit, staticImportStrategyUnit, studioLoaderEnvUnit } from '../adapters/loader-runtime.js';
-import { routableDialogPortUnit } from '../adapters/messaging-router.js';
-import { upsellInvokerUnit } from '../adapters/capabilities-router.js';
 import { intentActivationHookUnit } from '../adapters/urlstate-runtime.js';
 import { featureMarksSubsystemUnit, readinessUnit } from '../adapters/perf-runtime.js';
 import { platformFactsGateUnit } from '../adapters/platform-gate.js';
@@ -103,13 +96,12 @@ import { dataPauseSubsystemUnit, pauseControlUnit, supervisorEpochSourceUnit } f
 import { reconnectingSurfaceSubsystemUnit } from '../adapters/runtime-messaging.js';
 import { outletFeatureDriverUnit } from '../adapters/runtime-router.js';
 import { runtimeUrlFrameSchedulerUnit } from '../adapters/runtime-urlstate.js';
-import { seenStoreUnit, themePreferenceStoreUnit, workspacePreferenceStoreUnit } from '../adapters/storage-shell.js';
+import { themePreferenceStoreUnit, workspacePreferenceStoreUnit } from '../adapters/storage-shell.js';
 import { intentAuthorizePluginUnit, intentCapturePluginUnit, sharedHistoryUnits, urlSyncFlushHookUnit } from '../adapters/urlstate-router.js';
 import { documentRuntimeUnit, documentStoreUnit, presenceFeedUnit } from './document.js';
 import { BFF_ENDPOINTS, CSRF_HEADER, createMockBffTransport } from '../mocks/auth-endpoints.js';
 import { createStudioMockTransport } from '../mocks/data-routes.js';
 import type { MockServer } from '../mocks/server.js';
-import { clearDocumentImplementationUnit, documentCapabilityDeclarations, insertImageImplementationUnit, insertTextImplementationUnit } from './capabilities.js';
 import { AiSuggestionsFlag, ChatPromptIntent, CreditsMeter, DebugBinding, LangBinding, OnboardingCopyToken, OnboardingVariantFlag, TabBinding, WorkspaceBinding } from './contracts.js';
 import { featureManifests } from './features.js';
 import { homeDocsUnit } from './home.js';
@@ -117,7 +109,7 @@ import { appCatalogLoader, AVAILABLE_LOCALES } from './messages.js';
 import { studioPolicies } from './policies.js';
 import { NotFoundRoute, studioDialogs, studioRoutes } from './routes.js';
 import { outletsUnit, panelControllerUnit, shellContributionUnits, workspaceSwitchSubsystemUnit } from './shell.js';
-import { shareDialogUnit, upgradeDialogUnit } from './surfaces.js';
+import { deferredStudioUnits, resourceCacheGroup } from './deferred.js';
 import { createStudioTelemetry, type StudioTelemetry } from './telemetry.js';
 import { lateServicesUnit, postBootSubsystemUnit } from './post-boot.js';
 
@@ -183,7 +175,7 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     epochRefreshListenerUnit,
     userDataIdentityListenerUnit,
     guestDraftUpgradeHookUnit,
-    sessionScopeUnit([resourcesUnit]),
+    sessionScopeUnit(resourceCacheGroup),
   ];
 
   const gate: readonly Registration[] = [
@@ -204,18 +196,14 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     pauseControlUnit,
     dataPauseSubsystemUnit,
     dataClientUnitWith({ defaultRetry: { attempts: 3, baseDelayMs: 50, maxDelayMs: 500 }, defaultTimeoutMs: 8_000, defaultBreaker: { failureThreshold: 5, resetAfterMs: 15_000 } }),
-    userDataConfigUnit,
-    userDataUnit,
   ];
 
   const runtime: readonly Registration[] = [
     frameSchedulerUnit,
     frameSchedulerSubsystemUnit,
     registryArchiveStoreUnit,
-    nominalMemoryPressureUnit,
     featureHostUnit,
     chunkFeatureLoaderUnit,
-    resourceManagerUnit,
     ...featureManifests.map((manifest) => contribution({ id: `studio/feature-${manifest.id.replace('/', '-')}`, provides: FeatureManifestsToken, scope: 'app', create: () => manifest })),
   ];
 
@@ -236,7 +224,6 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     urlSyncFlushHookUnit,
     routeFocusHookUnit,
     intentActivationHookUnit,
-    routableDialogPortUnit,
   ];
 
   const urlstate: readonly Registration[] = [
@@ -284,18 +271,16 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     localeUrlSubsystemUnit,
   ];
 
-  const a11y: readonly Registration[] = [a11yEnvironmentUnit(env.a11yEnv), focusManagerUnit, announcerUnit(), preferenceFactsUnit, shortcutRegistryUnit];
+  const a11y: readonly Registration[] = [a11yEnvironmentUnit(env.a11yEnv), focusManagerUnit, announcerUnit(), preferenceFactsUnit];
 
-  const handoff: readonly Registration[] = [registryHandoffStoragesUnit, handoffStoreUnit, heldIntentsSlotUnit, guestDraftSlotUnit, guestDraftUnit];
+  const handoff: readonly Registration[] = [heldIntentsSlotUnit, guestDraftSlotUnit, guestDraftUnit];
 
   const ui: readonly Registration[] = [renderSchedulerUnit, visibilityObserverUnit, noIsolationPolicyUnit, gateDecidePortUnit, uiEnvironmentUnit];
 
-  const messaging: readonly Registration[] = [seenStoreUnit, surfaceManagerUnit, routableDialogBridgeUnit, upgradeDialogUnit, shareDialogUnit, reconnectingSurfaceSubsystemUnit];
+  const messaging: readonly Registration[] = [reconnectingSurfaceSubsystemUnit];
 
   const shell: readonly Registration[] = [
     workspaceManagerUnit,
-    commandRegistryUnit,
-    ...shellKeyboardUnits,
     themeControllerUnit,
     themePreferenceStoreUnit,
     workspacePreferenceStoreUnit,
@@ -314,18 +299,6 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     workspaceSwitchSubsystemUnit,
   ];
 
-  const capabilities: readonly Registration[] = [
-    gateCapabilityDecideUnit,
-    confirmPortUnit,
-    gateCapabilityMeterUnit,
-    featureActivationPortUnit,
-    capabilityRegistryUnit,
-    ...documentCapabilityDeclarations,
-    insertTextImplementationUnit,
-    insertImageImplementationUnit,
-    clearDocumentImplementationUnit,
-    upsellInvokerUnit,
-  ];
 
 
   const documents: readonly Registration[] = [documentRuntimeUnit(env.spawnWorker), documentStoreUnit, presenceFeedUnit];
@@ -350,9 +323,10 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     ...ui,
     ...messaging,
     ...shell,
-    ...capabilities,
     ...documents,
     ...app,
+    // Off the boot path: loaded on first resolution (see deferred.ts).
+    ...deferredStudioUnits,
   ];
 }
 

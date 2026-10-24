@@ -42,6 +42,7 @@ export interface WorkspaceDef {
   readonly features?: { readonly mount?: readonly `${string}/${string}`[]; readonly unmount?: readonly `${string}/${string}`[] };
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineWorkspace(init: Omit<WorkspaceDef, 'kind' | 'label'> & { readonly label?: string }): WorkspaceDef {
   return Object.freeze({ ...init, kind: 'workspace', label: init.label ?? init.id });
 }
@@ -190,11 +191,12 @@ export function createWorkspaceManager(options: WorkspaceManagerOptions): Result
 }
 
 /** Multi token: workspaces contributed by packages/features. */
-export const WorkspacesToken = token('shell/workspaces').multi<WorkspaceDef>();
-export const WorkspaceManagerToken = token('shell/workspace-manager').type<WorkspaceManager>();
+export const WorkspacesToken = /* @__PURE__ */ token('shell/workspaces').multi<WorkspaceDef>();
+export const WorkspaceManagerToken = /* @__PURE__ */ token('shell/workspace-manager').type<WorkspaceManager>();
 /** Workspace preference persistence (optional binding; AsyncStore-compatible). */
-export const WorkspacePreferenceStoreToken = token('shell/workspace-preference-store').type<KeyValuePort<string>>();
+export const WorkspacePreferenceStoreToken = /* @__PURE__ */ token('shell/workspace-preference-store').type<KeyValuePort<string>>();
 
+/* @__NO_SIDE_EFFECTS__ */
 export function workspaceContribution(workspace: WorkspaceDef) {
   return contribution({
     id: `${workspace.id}-workspace`,

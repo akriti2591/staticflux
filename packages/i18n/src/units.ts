@@ -12,19 +12,21 @@ import { effect, ok, type Scope, token, unit, type UnitDefinition } from '@stati
 import type { AnyMessages, CatalogLoader } from './messages.js';
 import { createI18n, type I18n, type I18nConfig } from './service.js';
 
-export const I18nConfigToken = token('i18n/config').type<I18nConfig>();
-export const CatalogLoadersToken = token('i18n/catalog-loaders').multi<CatalogLoader>();
-export const I18nToken = token('i18n/service').type<I18n>();
+export const I18nConfigToken = /* @__PURE__ */ token('i18n/config').type<I18nConfig>();
+export const CatalogLoadersToken = /* @__PURE__ */ token('i18n/catalog-loaders').multi<CatalogLoader>();
+export const I18nToken = /* @__PURE__ */ token('i18n/service').type<I18n>();
 
 type NoDeps = Record<never, never>;
 
 const preloads = new WeakMap<I18n, readonly AnyMessages[]>();
 
+/* @__NO_SIDE_EFFECTS__ */
 export function i18nConfigUnit(config: I18nConfig): UnitDefinition<I18nConfig, NoDeps, 'i18n/config'> {
   return unit({ id: 'i18n/config-unit', provides: I18nConfigToken, scope: 'app', create: () => config });
 }
 
 /** Contribute a catalog loader (one per package/feature namespace). */
+/* @__NO_SIDE_EFFECTS__ */
 export function catalogLoaderUnit(
   loader: CatalogLoader,
   order?: number,

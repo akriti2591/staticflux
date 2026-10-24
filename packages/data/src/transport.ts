@@ -20,6 +20,7 @@ export interface TransportSlot<Id extends TokenId = TokenId> {
   readonly id: Id;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function transportSlot<const Id extends TokenId>(id: Id): TransportSlot<Id> {
   return Object.freeze({ kind: 'transport-slot', id });
 }
@@ -147,6 +148,7 @@ function common<I>(init: EndpointInit<I>): EndpointCommon<I> {
  *   id: 'docs/get', path: (i: { id: string }) => `/docs/${i.id}`, response: DocSchema,
  * });
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineEndpoint<I, O>(
   init: EndpointInit<I> & { readonly response?: Schema<O>; readonly retry?: Omit<RetryPolicy, 'random'> | false },
 ): Endpoint<I, O> {
@@ -154,6 +156,7 @@ export function defineEndpoint<I, O>(
 }
 
 /** Declare a streamed endpoint (SSE, NDJSON, WebSocket stream, subscription). */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineStreamEndpoint<I, C>(init: EndpointInit<I> & { readonly chunk?: Schema<C> }): StreamEndpoint<I, C> {
   return Object.freeze({ kind: 'stream-endpoint', ...common(init), chunk: init.chunk });
 }

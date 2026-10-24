@@ -31,6 +31,7 @@ export interface FormFactorDefinition<Id extends FormFactorId = FormFactorId> {
   readonly description?: string;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineFormFactor<const Id extends FormFactorId>(definition: FormFactorDefinition<Id>): FormFactorDefinition<Id> {
   return definition;
 }

@@ -27,7 +27,7 @@ export interface DocumentRuntimeHolder {
   /** Loads the runtime chunk (called once by `init`). */
   load(signal: AbortSignal): Promise<Result<void>>;
 }
-export const DocumentRuntimeToken = token('studio/document-runtime').type<DocumentRuntimeHolder>();
+export const DocumentRuntimeToken = /* @__PURE__ */ token('studio/document-runtime').type<DocumentRuntimeHolder>();
 
 export function documentRuntimeUnit(spawn: Spawner) {
   return unit({

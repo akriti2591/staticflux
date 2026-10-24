@@ -2,15 +2,15 @@
  * DI units for @staticflux/loader. Register `...loaderUnits` plus `manifestUnit(manifest)`;
  * re-bind any port with `bind(unit, { precedence: 'app' })` (the gate package binds
  * `ChunkGateToken`, platform binds facts/profile, the isolation unit binds the policy).
+ * Warmup + speculation units are in `warmup-units.ts` (post-boot; not bundled with the loader).
  */
 import { contribution, err, ok, unit, type UnitDefinition } from '@staticflux/core';
-import { defaultTimer, type WarmupAdvisor } from './advisor.js';
+import { defaultIdleScheduler, defaultIntersectionObserver, defaultTimer, NOMINAL_WARMUP_FACTS } from './defaults.js';
 import { runBootPlan, selectBootPlan, type BootPlan } from './boot-plan.js';
 import { defaultDocument, noIsolationPolicy } from './dom.js';
 import { NoBootPlanError } from './errors.js';
 import { allowAllChunks, createChunkLoader, defaultResourceTiming } from './loader.js';
 import type { SfManifest } from './manifest.js';
-import { createSpeculationEngine, defaultIntersectionObserver, type SpeculationRule } from './speculation.js';
 import { dynamicImportStrategy, nativeImporter } from './strategies.js';
 import {
   BootPlannerToken,
@@ -24,13 +24,9 @@ import {
   LoaderProfileToken,
   LoadStrategyToken,
   RemoteStrategyToken,
-  SpeculationEngineToken,
-  SpeculationRulesToken,
-  WarmupAdvisorsToken,
   WarmupFactsToken,
-  WarmupToken,
 } from './tokens.js';
-import { createWarmup, defaultIdleScheduler, NOMINAL_WARMUP_FACTS } from './warmup.js';
+import { speculationEngineUnit, warmupUnit } from './warmup-units.js';
 
 /** Browser defaults, feature-detected. */
 export function browserLoaderEnv(): LoaderEnv {
@@ -45,6 +41,7 @@ export function browserLoaderEnv(): LoaderEnv {
 }
 
 /** Provide the build manifest (fetched/inlined at boot). */
+/* @__NO_SIDE_EFFECTS__ */
 export function manifestUnit(manifest: SfManifest): UnitDefinition<SfManifest, Record<never, never>, 'loader/manifest'> {
   return unit({ id: 'loader/manifest-unit', provides: ChunkManifestToken, scope: 'app', create: () => manifest });
 }
@@ -129,51 +126,6 @@ export const chunkLoaderUnit = unit({
   description: 'Logical chunk loader: gate → profile → modulepreload deps → strategy, deduped and retried.',
 });
 
-export const warmupUnit = unit({
-  id: 'loader/warmup-unit',
-  provides: WarmupToken,
-  scope: 'app',
-  deps: { required: { loader: ChunkLoaderToken, env: LoaderEnvToken, facts: WarmupFactsToken, advisors: WarmupAdvisorsToken } },
-  create: ({ loader, env, facts, advisors }, ctx) => {
-    const [advisor] = advisors as readonly WarmupAdvisor[];
-    const warmup = createWarmup({
-      loader,
-      idle: env.idle,
-      facts,
-      timer: env.timer,
-      telemetry: ctx.telemetry,
-      ...(advisor === undefined ? {} : { advisor }),
-    });
-    ctx.scope.defer(() => warmup.dispose());
-    return warmup;
-  },
-  description: 'Likely tier: idle-time background loading, advisor-ranked, network/device aware.',
-});
-
-export const speculationEngineUnit = unit({
-  id: 'loader/speculation-engine-unit',
-  provides: SpeculationEngineToken,
-  scope: 'app',
-  deps: {
-    required: { loader: ChunkLoaderToken, env: LoaderEnvToken, facts: WarmupFactsToken, rules: SpeculationRulesToken, advisors: WarmupAdvisorsToken },
-  },
-  create: ({ loader, env, facts, rules, advisors }, ctx) => {
-    const [advisor] = advisors as readonly WarmupAdvisor[];
-    const engine = createSpeculationEngine({
-      loader,
-      rules: rules as readonly SpeculationRule[],
-      facts,
-      timer: env.timer,
-      telemetry: ctx.telemetry,
-      intersectionObserver: env.intersectionObserver,
-      ...(advisor === undefined ? {} : { advisor }),
-    });
-    ctx.scope.defer(() => engine.dispose());
-    return engine;
-  },
-  description: 'Speculative tier: declarative intent rules with eagerness levels.',
-});
-
 export const bootPlannerUnit = unit({
   id: 'loader/boot-planner-unit',
   provides: BootPlannerToken,
@@ -203,14 +155,8 @@ export const bootPlannerUnit = unit({
   description: 'Selects the boot plan for the current profile and runs it (R12.10).',
 });
 
-/** Contribute a speculation rule. */
-export function speculationRuleUnit(
-  rule: SpeculationRule,
-): UnitDefinition<readonly SpeculationRule[], Record<never, never>, 'loader/speculation-rules'> {
-  return contribution({ id: `loader/rule-${rule.id}` as `loader/${string}`, provides: SpeculationRulesToken, scope: 'app', create: () => rule });
-}
-
 /** Contribute a boot plan. */
+/* @__NO_SIDE_EFFECTS__ */
 export function bootPlanUnit(plan: BootPlan): UnitDefinition<readonly BootPlan[], Record<never, never>, 'loader/boot-plans'> {
   return contribution({ id: `loader/boot-plan-${plan.id}` as `loader/${string}`, provides: BootPlansToken, scope: 'app', create: () => plan });
 }

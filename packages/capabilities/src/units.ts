@@ -18,7 +18,7 @@
  *          deps: { required: { registry: CapabilityRegistryToken, doc: DocumentStoreToken } },
  *          create: ({ registry, doc }, ctx) => provideCapabilities(registry, [insertImage(doc)], ctx.scope) })
  */
-import { contribution, type Result, type Scope, token, unit } from '@staticflux/core';
+import { contribution, type Result, type Scope, unit } from '@staticflux/core';
 import type {
   AnyCapability,
   AnyCapabilityImplementation,
@@ -29,14 +29,15 @@ import type {
 } from './capability.js';
 import { allowAllDecidePort, alwaysActivePort, failClosedConfirmPort, unmeteredPort } from './ports.js';
 import { CapabilityMetrics, type CapabilityRegistry, createCapabilityRegistry } from './registry.js';
-
-export const CapabilityDeclarationsToken = token('capabilities/declarations').multi<AnyCapability>();
-export const CapabilityImplementationsToken = token('capabilities/implementations').multi<AnyCapabilityImplementation>();
-export const CapabilityDecidePortToken = token('capabilities/decide-port').type<CapabilityDecidePort>();
-export const CapabilityConfirmPortToken = token('capabilities/confirm-port').type<CapabilityConfirmPort>();
-export const CapabilityMeterPortToken = token('capabilities/meter-port').type<CapabilityMeterPort>();
-export const FeatureActivationPortToken = token('capabilities/activation-port').type<FeatureActivationPort>();
-export const CapabilityRegistryToken = token('capabilities/registry').type<CapabilityRegistry>();
+import {
+  CapabilityConfirmPortToken,
+  CapabilityDeclarationsToken,
+  CapabilityDecidePortToken,
+  CapabilityImplementationsToken,
+  CapabilityMeterPortToken,
+  CapabilityRegistryToken,
+  FeatureActivationPortToken,
+} from './tokens.js';
 
 export const allowAllDecidePortUnit = unit({
   id: 'capabilities/allow-all-decide-unit',

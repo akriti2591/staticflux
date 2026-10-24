@@ -80,6 +80,7 @@ export interface HostModeDefinition<Id extends HostModeId = HostModeId> extends 
   readonly description?: string;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineHostMode<const Id extends HostModeId>(definition: HostModeDefinition<Id>): HostModeDefinition<Id> {
   return definition;
 }

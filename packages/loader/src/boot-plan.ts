@@ -48,6 +48,7 @@ export interface BootPlan<Id extends string = string> {
   readonly description?: string;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineBootPlan<const Id extends string>(plan: {
   readonly id: Id;
   readonly match?: BootPlanMatch;

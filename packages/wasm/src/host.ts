@@ -142,10 +142,10 @@ export type WasmModuleState = (typeof WasmModuleLifecycle.states)[number];
 type WasmModuleEvent = 'fetch' | 'compile' | 'instantiate' | 'ready' | 'fail' | 'dispose';
 
 export const WasmMetrics = {
-  moduleBytes: metric.gauge('wasm/module-bytes', { unit: 'By', description: 'Size of the loaded Wasm binary' }),
-  compileTime: metric.histogram('wasm/compile-time', { unit: 'ms' }),
-  instantiateTime: metric.histogram('wasm/instantiate-time', { unit: 'ms' }),
-  mainThreadOverBudget: metric.counter('wasm/main-thread-over-budget', { description: 'Main-thread Wasm calls over budgetMs' }),
+  moduleBytes: /* @__PURE__ */ metric.gauge('wasm/module-bytes', { unit: 'By', description: 'Size of the loaded Wasm binary' }),
+  compileTime: /* @__PURE__ */ metric.histogram('wasm/compile-time', { unit: 'ms' }),
+  instantiateTime: /* @__PURE__ */ metric.histogram('wasm/instantiate-time', { unit: 'ms' }),
+  mainThreadOverBudget: /* @__PURE__ */ metric.counter('wasm/main-thread-over-budget', { description: 'Main-thread Wasm calls over budgetMs' }),
 } as const;
 
 // ---------------------------------------------------------------- handle

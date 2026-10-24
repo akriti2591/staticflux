@@ -83,6 +83,7 @@ export interface Subsystem {
 }
 
 /** Identity helper that keeps literal ids. */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineSubsystem<const S extends Subsystem>(subsystem: S): S {
   return subsystem;
 }

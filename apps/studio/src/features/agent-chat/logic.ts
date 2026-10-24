@@ -48,7 +48,7 @@ export const ChatStore = defineStore({
 });
 
 export type ChatStoreInstance = OwnerStore<ChatState, (typeof ChatStore)['actions']>;
-export const ChatStoreToken = token('agent/chat-store').type<ChatStoreInstance>();
+export const ChatStoreToken = /* @__PURE__ */ token('agent/chat-store').type<ChatStoreInstance>();
 
 export const chatStoreUnit = storeUnit({ id: 'agent/chat-store-unit', store: ChatStore, provides: ChatStoreToken, scope: 'feature' });
 
@@ -57,7 +57,7 @@ export interface ChatController {
   /** Send the draft (or `prompt`). Never called automatically for URL intents (prefill only, I-13). */
   send(prompt?: string): Promise<Result<void>>;
 }
-export const ChatControllerToken = token('agent/chat-controller').type<ChatController>();
+export const ChatControllerToken = /* @__PURE__ */ token('agent/chat-controller').type<ChatController>();
 
 type ToolCall = Extract<ReplyChunk, { readonly type: 'tool' }>;
 

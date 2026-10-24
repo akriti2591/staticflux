@@ -16,6 +16,7 @@ import type { ChunkIdShape, WarmupTier } from './chunk.js';
 import { ProfileExcludedError } from './errors.js';
 import type { ChunkLoader } from './loader.js';
 import { LOADER_SUBSYSTEMS, loaderMetrics } from './telemetry.js';
+import { defaultIdleScheduler, NOMINAL_WARMUP_FACTS } from './defaults.js';
 
 export type EffectiveConnectionType = 'slow-2g' | '2g' | '3g' | '4g' | 'unknown';
 export type DeviceTierName = 'low' | 'mid' | 'high';
@@ -28,12 +29,7 @@ export interface WarmupFacts {
   readonly deviceTier: DeviceTierName;
 }
 
-export const NOMINAL_WARMUP_FACTS: WarmupFacts = Object.freeze({
-  online: true,
-  saveData: false,
-  effectiveType: 'unknown',
-  deviceTier: 'mid',
-});
+export { NOMINAL_WARMUP_FACTS } from './defaults.js';
 
 export interface WarmupAllowance {
   readonly allowed: boolean;
@@ -59,23 +55,7 @@ export function warmupAllowance(facts: WarmupFacts, tier: WarmupTier): WarmupAll
 /** Idle scheduler port (runtime frame scheduler `postTask('idle')`, or requestIdleCallback). */
 export type IdleScheduler = (callback: () => void, signal: AbortSignal) => void;
 
-export const defaultIdleScheduler: IdleScheduler = (callback, signal) => {
-  const ric = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
-  const cancelRic = (globalThis as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
-  // The abort listener is itself removed once the callback ran (no leaked listener).
-  const ran = new AbortController();
-  const run = (): void => {
-    ran.abort();
-    callback();
-  };
-  if (typeof ric === 'function') {
-    const handle = ric(run, { timeout: 2_000 });
-    signal.addEventListener('abort', () => cancelRic?.(handle), { once: true, signal: ran.signal });
-    return;
-  }
-  const handle = setTimeout(run, 50);
-  signal.addEventListener('abort', () => clearTimeout(handle), { once: true, signal: ran.signal });
-};
+export { defaultIdleScheduler } from './defaults.js';
 
 export const warmupMachine = defineMachine({
   id: 'loader/warmup',

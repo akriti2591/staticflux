@@ -64,9 +64,9 @@ export const CatalogMachine = defineMachine({
 export type CatalogState = (typeof CatalogMachine.states)[number];
 
 export const I18nMetrics = {
-  catalogLoad: metric.histogram('i18n/catalog-load', { unit: 'ms', description: 'Time to load one catalog for one locale.' }),
-  missingTranslation: metric.counter('i18n/missing-translation', { description: 'Messages shown in the source locale.' }),
-  localeSwitch: metric.histogram('i18n/locale-switch', { unit: 'ms', description: 'Time from setLocale() to the flip.' }),
+  catalogLoad: /* @__PURE__ */ metric.histogram('i18n/catalog-load', { unit: 'ms', description: 'Time to load one catalog for one locale.' }),
+  missingTranslation: /* @__PURE__ */ metric.counter('i18n/missing-translation', { description: 'Messages shown in the source locale.' }),
+  localeSwitch: /* @__PURE__ */ metric.histogram('i18n/locale-switch', { unit: 'ms', description: 'Time from setLocale() to the flip.' }),
 } as const;
 
 const SUBSYSTEM = 'i18n/locale';

@@ -91,9 +91,9 @@ type CoordinatorEvent = 'start' | 'elected' | 'leader-found' | 'leader-lost' | '
 export type CoordinatorTransport = 'shared-worker' | 'leader-tab' | 'single-tab';
 
 export const TabCoordinatorMetrics = {
-  failovers: metric.counter('worker/tabs-failovers', { description: 'Leadership changes after a previous owner (tab or SharedWorker) was lost.' }),
-  term: metric.gauge('worker/tabs-term', { description: 'Current leadership term seen by this tab.' }),
-  staleDropped: metric.counter('worker/tabs-stale-dropped', { description: 'Cross-tab messages dropped because of an old term (SF-WK-030).' }),
+  failovers: /* @__PURE__ */ metric.counter('worker/tabs-failovers', { description: 'Leadership changes after a previous owner (tab or SharedWorker) was lost.' }),
+  term: /* @__PURE__ */ metric.gauge('worker/tabs-term', { description: 'Current leadership term seen by this tab.' }),
+  staleDropped: /* @__PURE__ */ metric.counter('worker/tabs-stale-dropped', { description: 'Cross-tab messages dropped because of an old term (SF-WK-030).' }),
 } as const;
 
 // ---------------------------------------------------------------- platform ports

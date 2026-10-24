@@ -4,9 +4,8 @@
  */
 import { component, type ComponentHooksOf, defineComponent, SfElement } from '@staticflux/ui';
 import { css, html, type TemplateResult } from 'lit';
-import { CapabilityInvokerToken } from '../../adapters/capabilities-router.js';
 import { ReadinessToken } from '../../adapters/perf-runtime.js';
-import { DocumentStoreToken, Features, InsertTextCapability, PresenceToken } from '../../app/contracts.js';
+import { CapabilityInvokerToken, DocumentStoreToken, Features, InsertTextCapability, PresenceToken } from '../../app/contracts.js';
 import { defineBlockList } from '../../ui/block-list.js';
 
 const mobileSpec = component({

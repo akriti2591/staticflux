@@ -6,12 +6,16 @@
  * - `LoginReturnPort` (consumed by the auth-boundary plugin): persist held intents,
  *   strip them from `returnTo`, drop them from memory so the login page does not
  *   deliver them.
- * - The first navigation of an app restores held intents before `authorize`.
+ * - The first signed-in navigation of an app restores held intents before `authorize`
+ *   (they are held across the login redirect, so a guest boot has nothing to restore).
+ * - The handoff store is a functional dep (deferred `studio/handoff` chunk): it loads when
+ *   intents are held (login redirect) or restored (signed-in boots prewarm it), not at boot.
  */
-import { contribution, unit } from '@staticflux/core';
-import { createSlotHold, defineHandoff, HandoffSlotsToken, HandoffStoreToken } from '@staticflux/handoff';
+import { contribution, type FunctionalDep, ok, type Result, unit } from '@staticflux/core';
+import { SessionToken } from '@staticflux/auth';
+import { createSlotHold, defineHandoff, type HandoffStore, HandoffSlotsToken, HandoffStoreToken } from '@staticflux/handoff';
 import { proceed, stagePlugin, StagePluginsToken } from '@staticflux/router';
-import { type HeldIntent, IntentHoldPortsToken, IntentServiceToken } from '@staticflux/urlstate';
+import { type HeldIntent, type IntentHoldPort, IntentHoldPortsToken, IntentServiceToken } from '@staticflux/urlstate';
 import { type LoginReturnPort, LoginReturnPortToken } from './auth-router.js';
 
 const isHeldIntents = (value: unknown): value is readonly HeldIntent[] =>
@@ -32,12 +36,33 @@ export const heldIntentsSlotUnit = contribution({
   create: () => HeldIntentsSlot,
 });
 
+/** An intent hold over a handoff store that loads on first use. */
+function lazySlotHold(store: FunctionalDep<HandoffStore>): IntentHoldPort {
+  const hold = async (): Promise<Result<IntentHoldPort>> => {
+    const resolved = await store.get();
+    return resolved.ok ? ok(createSlotHold(resolved.value, HeldIntentsSlot)) : resolved;
+  };
+  return {
+    async hold(intents) {
+      const port = await hold();
+      return port.ok ? port.value.hold(intents) : port;
+    },
+    async release() {
+      const port = await hold();
+      return port.ok ? port.value.release() : port;
+    },
+  };
+}
+
 export const intentHoldUnit = contribution({
   id: 'studio/intent-hold-unit',
   provides: IntentHoldPortsToken,
   scope: 'app',
-  deps: { required: { store: HandoffStoreToken } },
-  create: ({ store }) => createSlotHold(store, HeldIntentsSlot),
+  deps: { required: { session: SessionToken }, functional: { store: HandoffStoreToken } },
+  create: ({ session, store }) => {
+    if (session.isAuthenticated) store.prewarm(); // restore runs in the first navigation
+    return lazySlotHold(store);
+  },
   description: 'Held URL intents live in a tab-scoped handoff slot across the login redirect.',
 });
 
@@ -60,20 +85,20 @@ export const intentRestorePluginUnit = contribution({
   id: 'studio/intent-restore-plugin-unit',
   provides: StagePluginsToken,
   scope: 'app',
-  deps: { required: { intents: IntentServiceToken } },
-  create: ({ intents }) => {
+  deps: { required: { intents: IntentServiceToken, session: SessionToken } },
+  create: ({ intents, session }) => {
     let restored = false;
     return stagePlugin({
       id: 'studio/intent-restore',
       stage: 'resolve',
       order: -400,
-      applies: () => !restored,
+      applies: () => !restored && session.isAuthenticated,
       run: async () => {
         restored = true;
         await intents.restore();
         return proceed();
       },
-      description: 'After a login redirect, held intents come back before authorize.',
+      description: 'After a login redirect (signed in), held intents come back before authorize.',
     });
   },
 });

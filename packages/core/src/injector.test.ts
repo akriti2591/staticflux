@@ -18,6 +18,7 @@ import {
   variant,
   type DepHandle,
   defineError,
+  deferredUnits,
 } from './index.js';
 
 interface Config {
@@ -271,6 +272,85 @@ describe('injector: lazy and functional deps, hooks', () => {
     const fn = injector.functional(PresenceToken);
     expect((await fn.get()).ok).toBe(true);
     expect(created).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('injector: deferred units', () => {
+  const LazyStoreToken = token('test/lazy-store').type<Store>();
+  const LazyMenuToken = token('test/lazy-menu').multi<string>();
+  const realStore = unit({
+    id: 'test/real-store-unit',
+    provides: LazyStoreToken,
+    scope: 'app',
+    deps: { required: { config: ConfigToken } },
+    create: ({ config }) => ({ label: `store@${config.apiUrl}` }),
+  });
+
+  it('loads the group on first resolution, once per injector, and resolves the real provider', async () => {
+    const load = vi.fn(async () => [realStore, contribution({ id: 'test/lazy-menu-a', provides: LazyMenuToken, scope: 'app', create: () => 'a' })]);
+    const units = deferredUnits({ id: 'test/lazy-group', provides: [LazyStoreToken, LazyMenuToken], load });
+    const sink = createMemorySink();
+    const telemetry = createTelemetry({ defaultLevel: 'debug' });
+    telemetry.addSink(sink);
+    const injector = createInjector({ units: [configUnit, ...units], telemetry });
+    expect(load).not.toHaveBeenCalled();
+    expect(injector.stateOf(LazyStoreToken)).toBe('unresolved');
+    const [a, b] = await Promise.all([injector.get(LazyStoreToken), injector.get(LazyStoreToken)]);
+    expect(a).toEqual(ok({ label: 'store@https://api' }));
+    expect(b.ok && a.ok && b.value === a.value).toBe(true);
+    expect(await injector.get(LazyMenuToken)).toEqual(ok(['a']));
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(injector.stateOf(LazyStoreToken)).toBe('ready');
+    expect(sink.records.some((r) => r.type === 'span' && r.name === 'di.deferred' && r.attrs['units'] === 'test/lazy-group')).toBe(true);
+
+    // A second app (same module graph) gets its own registration.
+    const other = createInjector({ units: [configUnit, ...units] });
+    expect((await other.get(LazyStoreToken)).ok).toBe(true);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('serves required deps and lazy handles of consumers, from child injectors too', async () => {
+    const consumer = unit({
+      id: 'test/consumer-unit',
+      provides: PresenceToken,
+      scope: 'feature',
+      deps: { required: { store: LazyStoreToken } },
+      create: ({ store }) => ({ online: store.label.length }),
+    });
+    const root = createInjector({ units: [configUnit, ...deferredUnits({ id: 'test/lazy-group', provides: [LazyStoreToken], load: async () => [realStore] })] });
+    const handle = root.handle(LazyStoreToken);
+    const child = root.child('feature', 'f', [consumer]);
+    const presence = await child.get(PresenceToken);
+    expect(presence).toEqual(ok({ online: 'store@https://api'.length }));
+    expect(await handle.whenReady()).toEqual(ok({ label: 'store@https://api' }));
+  });
+
+  it('a failed load is an SF-DI-008 error and the next resolution retries', async () => {
+    let attempts = 0;
+    const injector = createInjector({
+      units: [
+        configUnit,
+        ...deferredUnits({
+          id: 'test/lazy-group',
+          provides: [LazyStoreToken],
+          load: async () => {
+            attempts += 1;
+            if (attempts === 1) throw new Error('chunk offline');
+            return [realStore];
+          },
+        }),
+      ],
+    });
+    const first = await injector.get(LazyStoreToken);
+    expect(!first.ok && first.error.code).toBe('SF-DI-008');
+    expect((await injector.get(LazyStoreToken)).ok).toBe(true);
+    expect(attempts).toBe(2);
+  });
+
+  it('reports SF-DI-001 when the loaded group does not provide the token', async () => {
+    const injector = createInjector({ units: deferredUnits({ id: 'test/lazy-group', provides: [LazyStoreToken], load: async () => [] }) });
+    const result = await injector.get(LazyStoreToken);
+    expect(!result.ok && result.error.code).toBe('SF-DI-001');
   });
 });
 

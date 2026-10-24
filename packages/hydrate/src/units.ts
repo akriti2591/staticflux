@@ -128,6 +128,7 @@ const registryUnitFor = (level: ScopeLevel) =>
 export type SnapshotRegistryUnit = ReturnType<typeof registryUnitFor>;
 
 /** The snapshot registry at `level` (critical: restores during boot, then autosaves). */
+/* @__NO_SIDE_EFFECTS__ */
 export function snapshotRegistryUnitAt(level: ScopeLevel): SnapshotRegistryUnit {
   return registryUnitFor(level);
 }

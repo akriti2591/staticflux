@@ -1,11 +1,12 @@
 /**
  * Post-boot work, off the critical path (R12.1 tiers: visible → idle): load the late
- * units chunk (AI, WebMCP, warmup/advisors), publish capabilities as WebMCP tools,
+ * units chunk (AI, WebMCP, warmup/advisors) and the deferred surfaces chunk, publish capabilities as WebMCP tools,
  * start the model router's background probe, restore the theme preference, and
  * activate billing logic once a user is signed in (credit banner).
  */
 import { contribution, err, ok, type Result, toSfError, unit, watch } from '@staticflux/core';
 import { SessionToken } from '@staticflux/auth';
+import { SurfaceManagerToken } from '@staticflux/messaging';
 import { AppInjectorToken, defineSubsystem, FeatureHostToken, FrameSchedulerToken, SubsystemsToken, SupervisorToken } from '@staticflux/runtime';
 import { ThemeControllerToken } from '@staticflux/shell';
 import { Features, type LateServices, LateServicesToken } from './contracts.js';
@@ -28,6 +29,8 @@ export const lateServicesUnit = unit({
           }
           const registered = injector.register(...late.lateUnits);
           if (!registered.ok) return registered;
+          // Surfaces (banners, toasts, routable dialogs) ready soon after first paint (deferred chunk).
+          void injector.get(SurfaceManagerToken, signal);
           const warmup = await injector.get(late.NavigationWarmupToken, signal);
           if (warmup.ok) supervisor.register(warmup.value);
           await injector.get(late.WebMcpPublisherToken, signal);

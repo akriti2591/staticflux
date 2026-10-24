@@ -20,13 +20,13 @@ import {
   type Result,
   type Scope,
   type Telemetry,
-  token,
   toSfError,
 } from '@staticflux/core';
 import type { KeyCombo, ShortcutScopeDef } from '@staticflux/a11y';
 import { allowAllDecide, type DecidePort, type GateResource } from '@staticflux/ui';
 import { CommandFailedError, CommandUnavailableError, DuplicateContributionError, UnknownCommandError } from './errors.js';
 import { SHELL_SUBSYSTEM, shellMetrics } from './telemetry.js';
+import { CommandsToken } from './tokens.js';
 
 export type CommandId = `${string}/${string}`;
 
@@ -56,8 +56,6 @@ export function defineCommand(init: Omit<CommandDef, 'kind'>): CommandDef {
   return Object.freeze({ ...init, kind: 'command' });
 }
 
-export const CommandsToken = token('shell/commands').multi<CommandDef>();
-export const CommandRegistryToken = token('shell/command-registry').type<CommandRegistry>();
 
 export function commandContribution(command: CommandDef) {
   return contribution({ id: `${command.id}-command`, provides: CommandsToken, scope: 'app', create: () => command });

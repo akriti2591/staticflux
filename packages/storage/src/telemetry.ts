@@ -9,10 +9,10 @@ import { createCursor } from './base.js';
 import type { AsyncStore } from './types.js';
 
 export const StorageMetrics = {
-  ops: metric.counter('storage/ops', { description: 'Storage operations by op and store.' }),
-  duration: metric.histogram('storage/op-duration', { unit: 'ms', description: 'Storage operation duration.' }),
-  failures: metric.counter('storage/failures', { description: 'Failed storage operations by error code.' }),
-  seekEntries: metric.histogram('storage/seek-entries', { description: 'Entries returned per seek.' }),
+  ops: /* @__PURE__ */ metric.counter('storage/ops', { description: 'Storage operations by op and store.' }),
+  duration: /* @__PURE__ */ metric.histogram('storage/op-duration', { unit: 'ms', description: 'Storage operation duration.' }),
+  failures: /* @__PURE__ */ metric.counter('storage/failures', { description: 'Failed storage operations by error code.' }),
+  seekEntries: /* @__PURE__ */ metric.histogram('storage/seek-entries', { description: 'Entries returned per seek.' }),
 } as const;
 
 export const STORAGE_SUBSYSTEM = 'storage/store' satisfies Subsystem;

@@ -13,7 +13,7 @@ import { html, nothing, type TemplateResult } from 'lit';
 import { AsyncDirective, directive, type ElementPart, type PartInfo, PartType } from 'lit/async-directive.js';
 import { repeat } from 'lit/directives/repeat.js';
 import type { CoachTarget, SurfaceId } from './surface.js';
-import { SurfaceManagerToken } from './units.js';
+import { SurfaceManagerToken } from './tokens.js';
 
 const outletSpec = component({
   tag: 'sf-surface-outlet',

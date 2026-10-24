@@ -16,7 +16,7 @@ import { LoginRoute } from '../app/routes.js';
 export interface LoginReturnPort {
   prepare(href: string, signal: AbortSignal): Promise<string>;
 }
-export const LoginReturnPortToken = token('studio/login-return-port').type<LoginReturnPort>();
+export const LoginReturnPortToken = /* @__PURE__ */ token('studio/login-return-port').type<LoginReturnPort>();
 
 export const authBoundaryPluginUnit = contribution({
   id: 'studio/auth-boundary-plugin-unit',

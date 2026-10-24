@@ -14,17 +14,17 @@ import { createMarketingCapture, type MarketingCapture, MarketingParams } from '
 import { createRafScheduler, type FrameScheduler } from './scheduler.js';
 import { createUrlSync, type UrlSync } from './sync.js';
 
-export const HistoryPortToken = token('urlstate/history').type<HistoryPort>();
-export const FrameSchedulerToken = token('urlstate/frame-scheduler').type<FrameScheduler>();
-export const UrlDeclarationsToken = token('urlstate/declarations').multi<UrlDeclaration>();
-export const IntentDefinitionsToken = token('urlstate/intents').multi<AnyIntentDef>();
+export const HistoryPortToken = /* @__PURE__ */ token('urlstate/history').type<HistoryPort>();
+export const FrameSchedulerToken = /* @__PURE__ */ token('urlstate/frame-scheduler').type<FrameScheduler>();
+export const UrlDeclarationsToken = /* @__PURE__ */ token('urlstate/declarations').multi<UrlDeclaration>();
+export const IntentDefinitionsToken = /* @__PURE__ */ token('urlstate/intents').multi<AnyIntentDef>();
 /** Zero or one hold port (first wins); provide one to carry intents through login. */
-export const IntentHoldPortsToken = token('urlstate/intent-hold').multi<IntentHoldPort>();
-export const UrlDeclarationRegistryToken = token('urlstate/declaration-registry').type<UrlDeclarationRegistry>();
-export const UrlSyncToken = token('urlstate/sync').type<UrlSync>();
-export const IntentServiceToken = token('urlstate/intent-service').type<IntentService>();
-export const MarketingCaptureToken = token('urlstate/marketing').type<MarketingCapture>();
-export const DialogUrlToken = token('urlstate/dialog-url').type<DialogUrl>();
+export const IntentHoldPortsToken = /* @__PURE__ */ token('urlstate/intent-hold').multi<IntentHoldPort>();
+export const UrlDeclarationRegistryToken = /* @__PURE__ */ token('urlstate/declaration-registry').type<UrlDeclarationRegistry>();
+export const UrlSyncToken = /* @__PURE__ */ token('urlstate/sync').type<UrlSync>();
+export const IntentServiceToken = /* @__PURE__ */ token('urlstate/intent-service').type<IntentService>();
+export const MarketingCaptureToken = /* @__PURE__ */ token('urlstate/marketing').type<MarketingCapture>();
+export const DialogUrlToken = /* @__PURE__ */ token('urlstate/dialog-url').type<DialogUrl>();
 
 type NoDeps = Record<never, never>;
 
@@ -52,12 +52,14 @@ export const rafSchedulerUnit = unit({
 });
 
 /** Contribute a URL declaration (binding, intent or reserved keys). */
+/* @__NO_SIDE_EFFECTS__ */
 export function urlDeclarationUnit(declaration: UrlDeclaration): UnitDefinition<readonly UrlDeclaration[], NoDeps, 'urlstate/declarations'> {
   const name = declaration.kind === 'url-binding' ? declaration.key : declaration.kind === 'intent' ? declaration.id : declaration.owner;
   return unit({ id: `urlstate/declaration:${name}`, provides: UrlDeclarationsToken, scope: 'app', create: () => declaration as never });
 }
 
 /** Contribute an intent (also registers its keys as a declaration). */
+/* @__NO_SIDE_EFFECTS__ */
 export function intentUnit(intent: AnyIntentDef): UnitDefinition<readonly AnyIntentDef[], NoDeps, 'urlstate/intents'> {
   return unit({ id: `urlstate/intent:${intent.id}`, provides: IntentDefinitionsToken, scope: 'app', create: () => intent as never });
 }

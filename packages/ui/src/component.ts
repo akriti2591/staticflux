@@ -111,6 +111,7 @@ export type DepsOf<S> = S extends ComponentSpec<infer D> ? D : never;
 const DEFAULT_TIMING: Record<DepKind, InitTiming> = { render: 'eager', lazy: 'on-arrival', functional: 'on-demand' };
 
 /** Declare a component spec (data). Compile error if a key appears in more than one dependency kind. */
+/* @__NO_SIDE_EFFECTS__ */
 export function component<const D extends ComponentDepsDeclaration = Record<never, never>>(
   init: ComponentSpecInit<D> &
     ([DuplicateComponentDepKeys<D>] extends [never] ? unknown : { __duplicateDepKeys: DuplicateComponentDepKeys<D> }),

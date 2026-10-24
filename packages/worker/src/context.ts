@@ -40,6 +40,7 @@ export interface ContextKey<T, Id extends ContextId = ContextId> {
 export type AnyContextKey = ContextKey<any, ContextId>;
 export type ContextValue<K> = K extends ContextKey<infer T, ContextId> ? T : never;
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineContext<const Id extends ContextId>(id: Id): { type<T>(): ContextKey<T, Id> } {
   return { type: <T>() => Object.freeze({ kind: 'context', id }) as ContextKey<T, Id> };
 }

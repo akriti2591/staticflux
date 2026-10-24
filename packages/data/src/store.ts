@@ -201,6 +201,7 @@ function isThenable(value: unknown): boolean {
   return typeof value === 'object' && value !== null && typeof (value as { then?: unknown }).then === 'function';
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineStore<S, const A extends ActionMap<S>>(init: StoreInit<S, A>): StoreDefinition<S, A> {
   const { id, schema } = init;
   const schemaVersion = init.version;

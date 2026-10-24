@@ -24,8 +24,8 @@ import { createSupervisedWorker, type SupervisedWorker, type WorkerSpec } from '
 import { createTokenBroker, type TokenBroker, type TokenBrokerOptions } from './broker.js';
 import { DuplicateContextError } from './errors.js';
 
-export const ContextHubToken = token('worker/context-hub').type<ContextHub>();
-export const TokenBrokerToken = token('worker/token-broker').type<TokenBroker>();
+export const ContextHubToken = /* @__PURE__ */ token('worker/context-hub').type<ContextHub>();
+export const TokenBrokerToken = /* @__PURE__ */ token('worker/token-broker').type<TokenBroker>();
 /**
  * Core-context entries for the hub, one contribution per context (R11.1). Each
  * contribution declares its own deps, so sources are injected services:
@@ -40,7 +40,7 @@ export const TokenBrokerToken = token('worker/token-broker').type<TokenBroker>()
  * });
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const CoreContextsToken = token('worker/core-contexts').multi<ContextEntry<any>>();
+export const CoreContextsToken = /* @__PURE__ */ token('worker/core-contexts').multi<ContextEntry<any>>();
 
 export interface SupervisedWorkerUnitOptions<P extends AnyProtocol, Id extends TokenId> {
   readonly id: TokenId;

@@ -101,6 +101,7 @@ const catalog = new Map<ErrorCode, ErrorDefinition>();
  *   'Move the dependency to a lazy dep, or lower the consumer scope.');
  * return err(ScopeViolation({ units: [a, b] }));
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineError(code: ErrorCode, kind: ErrorKind, summary: string, fix: string): ErrorDefinition {
   const existing = catalog.get(code);
   if (existing !== undefined) {

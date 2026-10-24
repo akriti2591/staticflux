@@ -14,7 +14,7 @@ import {
   preferenceFactsUnit,
   ShortcutRegistryToken,
   shortcutRegistryUnit,
-} from './units.js';
+} from './index.js';
 import { defineShortcut } from './shortcuts.js';
 
 interface FakeList extends MediaQueryList {

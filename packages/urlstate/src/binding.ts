@@ -65,6 +65,7 @@ export interface DefineUrlBindingInput<K extends UrlParamKey> {
   readonly description?: string;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineUrlBinding<const K extends UrlParamKey>(input: DefineUrlBindingInput<K>): UrlBinding<K, UrlParamValue<K>> {
   return Object.freeze({
     kind: 'url-binding',
@@ -122,6 +123,7 @@ export interface DefineIntentInput<Id extends string, Keys extends UrlParamKey, 
  *     required: ['panel'],
  *   });
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineIntent<const Id extends `${string}/${string}`, const Keys extends UrlParamKey, const Req extends Keys = Keys>(
   input: DefineIntentInput<Id, Keys, Req>,
 ): IntentDef<Id, IntentParams<Keys, Req>> {
@@ -145,6 +147,7 @@ export interface ReservedParams {
   readonly keys: readonly string[];
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function reserveParams(owner: string, keys: readonly string[]): ReservedParams {
   return Object.freeze({ kind: 'reserved-params', owner, keys: Object.freeze([...keys]) });
 }

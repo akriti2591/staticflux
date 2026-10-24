@@ -37,7 +37,7 @@ export const NextChunkPoint = defineDecisionPoint({
   description: 'Which feature chunk the user opens next (warmup order only).',
 });
 
-export const NextChunkModelToken = token('studio/next-chunk-model').type<MarkovModel>();
+export const NextChunkModelToken = /* @__PURE__ */ token('studio/next-chunk-model').type<MarkovModel>();
 
 export const advisorStorageUnit = unit({
   id: 'studio/advisor-storage-unit',
@@ -61,7 +61,7 @@ export const nextChunkAdvisorUnits = markovAdvisorUnits({
 export interface ChunkCursor {
   current: string;
 }
-export const ChunkCursorToken = token('studio/chunk-cursor').type<ChunkCursor>();
+export const ChunkCursorToken = /* @__PURE__ */ token('studio/chunk-cursor').type<ChunkCursor>();
 export const chunkCursorUnit = unit({ id: 'studio/chunk-cursor-unit', provides: ChunkCursorToken, scope: 'app', create: (): ChunkCursor => ({ current: NO_FEATURE }) });
 
 export const advisorWarmupRankerUnit = contribution({

@@ -21,6 +21,7 @@ export interface FactDef<T extends FactValue = FactValue, Id extends FactId = Fa
 }
 
 /** Declare a fact: `defineFact('billing/plan').type<'free' | 'pro'>()`. */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineFact<const Id extends FactId>(id: Id, description?: string): { type<T extends FactValue>(): FactDef<T, Id> } {
   return { type: <T extends FactValue>() => Object.freeze({ kind: 'fact', id, description }) as FactDef<T, Id> };
 }
@@ -56,6 +57,7 @@ export const GateFacts = {
 } as const;
 
 /** Fact for a feature flag value (flags are owned by @staticflux/config; gate only reads the value). */
+/* @__NO_SIDE_EFFECTS__ */
 export function flagFact<T extends FactPrimitive = boolean>(flagId: `${string}/${string}`): FactDef<T> {
   return defineFact(`flag:${flagId}`).type<T>();
 }

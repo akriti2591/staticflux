@@ -15,13 +15,13 @@ import { type FactSource, type GateClock, systemGateClock } from './facts.js';
 import { type MeterBackend, type MeterDef, MeterMetrics, type MeterRegistry, createMeterRegistry, localMeterBackend } from './meters.js';
 import type { PolicySet } from './policy.js';
 
-export const PolicySetsToken = token('gate/policy-sets').multi<PolicySet>();
-export const FactSourcesToken = token('gate/fact-sources').multi<FactSource>();
-export const MeterDefinitionsToken = token('gate/meter-definitions').multi<MeterDef>();
-export const MeterBackendToken = token('gate/meter-backend').type<MeterBackend>();
-export const GateClockToken = token('gate/clock').type<GateClock>();
-export const MeterRegistryToken = token('gate/meters').type<MeterRegistry>();
-export const GateToken = token('gate/engine').type<Gate>();
+export const PolicySetsToken = /* @__PURE__ */ token('gate/policy-sets').multi<PolicySet>();
+export const FactSourcesToken = /* @__PURE__ */ token('gate/fact-sources').multi<FactSource>();
+export const MeterDefinitionsToken = /* @__PURE__ */ token('gate/meter-definitions').multi<MeterDef>();
+export const MeterBackendToken = /* @__PURE__ */ token('gate/meter-backend').type<MeterBackend>();
+export const GateClockToken = /* @__PURE__ */ token('gate/clock').type<GateClock>();
+export const MeterRegistryToken = /* @__PURE__ */ token('gate/meters').type<MeterRegistry>();
+export const GateToken = /* @__PURE__ */ token('gate/engine').type<Gate>();
 
 export const systemGateClockUnit = unit({
   id: 'gate/system-clock-unit',
@@ -51,6 +51,7 @@ export const meterRegistryUnit = unit({
   },
 });
 
+/* @__NO_SIDE_EFFECTS__ */
 export function createGateUnit(config: { readonly unmatched?: 'allow' | 'deny' } = {}) {
   return unit({
     id: 'gate/engine-unit',
@@ -77,6 +78,7 @@ export const gateUnit = createGateUnit();
 export const gateUnits = [systemGateClockUnit, localMeterBackendUnit, meterRegistryUnit, gateUnit] as const;
 
 /** Contribute a policy set (multi token). */
+/* @__NO_SIDE_EFFECTS__ */
 export function policySetUnit(id: `${string}/${string}`, set: PolicySet) {
   return contribution({ id, provides: PolicySetsToken, scope: 'app', create: () => set });
 }
@@ -87,6 +89,7 @@ export function factSourceUnit(id: `${string}/${string}`, create: () => FactSour
 }
 
 /** Contribute a meter definition (multi token). */
+/* @__NO_SIDE_EFFECTS__ */
 export function meterDefinitionUnit(id: `${string}/${string}`, meter: MeterDef) {
   return contribution({ id, provides: MeterDefinitionsToken, scope: 'app', create: () => meter });
 }

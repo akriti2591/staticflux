@@ -38,9 +38,10 @@ export interface SlotContribution {
 }
 
 /** Multi token: every slot contribution of the app. */
-export const SlotContributionsToken = token('shell/slot-contributions').multi<SlotContribution>();
+export const SlotContributionsToken = /* @__PURE__ */ token('shell/slot-contributions').multi<SlotContribution>();
 
 /** Declare a slot contribution as a DI unit (one item of `SlotContributionsToken`). */
+/* @__NO_SIDE_EFFECTS__ */
 export function slotContribution(item: SlotContribution) {
   return contribution({
     id: `${item.id}-slot`,

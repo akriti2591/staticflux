@@ -67,10 +67,10 @@ export const providerMachine = defineMachine({
 export type ProviderStatus = (typeof providerMachine.states)[number];
 type ProviderEventName = 'ready' | 'stale' | 'reconcile' | 'error' | 'fatal' | 'dispose';
 
-export const evaluationErrors = metric.counter('config/evaluation-errors', {
+export const evaluationErrors = /* @__PURE__ */ metric.counter('config/evaluation-errors', {
   description: 'Flag evaluations where a layer errored or supplied an invalid value.',
 });
-export const providerInitDuration = metric.histogram('config/provider-init-duration', {
+export const providerInitDuration = /* @__PURE__ */ metric.histogram('config/provider-init-duration', {
   unit: 'ms',
   description: 'Time for a flag provider to initialize.',
 });

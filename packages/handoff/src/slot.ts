@@ -58,6 +58,7 @@ export interface DefineHandoffInput<T> {
   readonly description?: string;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineHandoff<T>(input: DefineHandoffInput<T>): HandoffSlot<T> {
   if (!Number.isInteger(input.version) || input.version < 1) {
     throw new TypeError(`defineHandoff("${input.key}"): version must be a positive integer.`);

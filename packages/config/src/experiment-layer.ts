@@ -22,6 +22,7 @@ export interface ExperimentDefinition<T = unknown> {
   readonly include?: (context: EvaluationContext) => boolean;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineExperiment<T>(definition: {
   readonly flag: FlagDefinition<T>;
   readonly allocation: Readonly<Partial<Record<VariantKey<T>, number>>>;

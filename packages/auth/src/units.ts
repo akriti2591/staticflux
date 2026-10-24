@@ -18,17 +18,17 @@ import { type AuthorizedTransport, createAuthorizedTransport } from './broker.js
 import { AuthMetrics, type SessionStore, type SessionStoreOptions, createSessionStore } from './session.js';
 import { type AuthTransport, fetchTransport } from './transport.js';
 
-export const AuthEnvironmentToken = token('auth/environment').type<AuthEnvironment>();
-export const AuthTransportToken = token('auth/transport').type<AuthTransport>();
-export const IdentityProviderToken = token('auth/identity-provider').type<IdentityProvider>();
+export const AuthEnvironmentToken = /* @__PURE__ */ token('auth/environment').type<AuthEnvironment>();
+export const AuthTransportToken = /* @__PURE__ */ token('auth/transport').type<AuthTransport>();
+export const IdentityProviderToken = /* @__PURE__ */ token('auth/identity-provider').type<IdentityProvider>();
 /** Multi: things reacting to session changes (the runtime contributes one that calls `refresh('epoch')`). */
-export const SessionListenersToken = token('auth/session-listeners').multi<SessionListener>();
+export const SessionListenersToken = /* @__PURE__ */ token('auth/session-listeners').multi<SessionListener>();
 /** Multi: guest → user handoff hooks (R6.4), e.g. from @staticflux/handoff. */
-export const GuestUpgradeHooksToken = token('auth/guest-upgrade-hooks').multi<GuestUpgradeHook>();
-export const SessionToken = token('auth/session').type<SessionStore>();
-export const AuthorizedTransportToken = token('auth/authorized-transport').type<AuthorizedTransport>();
+export const GuestUpgradeHooksToken = /* @__PURE__ */ token('auth/guest-upgrade-hooks').multi<GuestUpgradeHook>();
+export const SessionToken = /* @__PURE__ */ token('auth/session').type<SessionStore>();
+export const AuthorizedTransportToken = /* @__PURE__ */ token('auth/authorized-transport').type<AuthorizedTransport>();
 /** Host bridge port (provided by the platform host-bridge plugin in embedded modes). */
-export const AuthHostBridgeToken = token('auth/host-bridge').type<AuthHostBridge>();
+export const AuthHostBridgeToken = /* @__PURE__ */ token('auth/host-bridge').type<AuthHostBridge>();
 
 export const browserAuthEnvironmentUnit = unit({
   id: 'auth/browser-environment-unit',
@@ -93,6 +93,7 @@ export const embedHostProviderUnit = unit({
 export type SessionUnitConfig = Pick<SessionStoreOptions, 'channelName' | 'refreshLeewayMs' | 'exposeRawToken'>;
 
 /** The session store unit (scope app). `init` starts the silent probe but never waits for it (R6.3). */
+/* @__NO_SIDE_EFFECTS__ */
 export function createSessionUnit(config: SessionUnitConfig = {}) {
   return unit({
     id: 'auth/session-unit',

@@ -9,7 +9,7 @@ import { HandoffSlotsToken, HandoffStoreToken } from '@staticflux/handoff';
 import { GuestDraftSlot } from '../app/contracts.js';
 
 /** The guest's draft (home view input). */
-export const GuestDraftToken = token('studio/guest-draft').type<Box<string>>();
+export const GuestDraftToken = /* @__PURE__ */ token('studio/guest-draft').type<Box<string>>();
 
 export const guestDraftUnit = unit({ id: 'studio/guest-draft-unit', provides: GuestDraftToken, scope: 'app', create: () => box('') });
 
@@ -24,13 +24,16 @@ export const guestDraftUpgradeHookUnit = contribution({
   id: 'studio/guest-draft-upgrade-hook-unit',
   provides: GuestUpgradeHooksToken,
   scope: 'app',
-  deps: { required: { store: HandoffStoreToken, draft: GuestDraftToken } },
+  // Functional: the handoff store (deferred chunk) loads only when there is a draft to carry.
+  deps: { required: { draft: GuestDraftToken }, functional: { store: HandoffStoreToken } },
   create: ({ store, draft }): GuestUpgradeHook => ({
     id: 'studio/guest-draft',
     async beforeUpgrade() {
       const title = draft.get().trim();
       if (title === '') return ok();
-      const put = await store.put(GuestDraftSlot, { title });
+      const handoff = await store.get();
+      if (!handoff.ok) return handoff;
+      const put = await handoff.value.put(GuestDraftSlot, { title });
       return put.ok ? ok() : put;
     },
   }),

@@ -4,24 +4,18 @@
  * with bindings driven by the app lifecycle (refresh → epoch, pause → pause).
  *
  *   createInjector({ units: [mockTransportUnit((m) => m.route(DocGet, …)), epochSourceUnit, pauseControlUnit, dataClientUnit, resourcesUnit] })
+ *
+ * Tokens are in `tokens.ts`; `resourcesUnit` / `userDataUnit` live in their own modules so an
+ * app can load the resource cache or user data after first paint without bundling them at boot.
  */
-import { type ScopeLevel, type Token, type TokenId, token, unit, type UnitDefinition } from '@staticflux/core';
+import { type ScopeLevel, type Token, type TokenId, unit, type UnitDefinition } from '@staticflux/core';
 import { createDataClient, type DataClient, type DataClientOptions } from './client.js';
-import { createEpochSource, type EpochSource } from './epoch.js';
+import { createEpochSource } from './epoch.js';
 import { createMockTransport, type MockTransport, type MockTransportOptions } from './mock-transport.js';
-import { createPauseControl, type PauseControl } from './pause.js';
-import { createResources, type Resources } from './resources.js';
+import { createPauseControl } from './pause.js';
 import type { ActionMap, OwnerStore, StoreDefinition } from './store.js';
+import { DataClientToken, DataTransportToken, EpochSourceToken, PauseControlToken } from './tokens.js';
 import type { Transport } from './transport.js';
-import { createUserData, type UserData, type UserDataOptions } from './user-data.js';
-
-export const DataTransportToken = token('data/transport').type<Transport>();
-export const EpochSourceToken = token('data/epoch-source').type<EpochSource>();
-export const PauseControlToken = token('data/pause-control').type<PauseControl>();
-export const DataClientToken = token('data/client').type<DataClient>();
-export const ResourcesToken = token('data/resources').type<Resources>();
-export const UserDataConfigToken = token('data/user-data-config').type<Omit<UserDataOptions, 'telemetry'>>();
-export const UserDataToken = token('data/user-data').type<UserData>();
 
 /** Standalone epoch source seeded from the injector epoch. Replace with a runtime-driven binding. */
 export const epochSourceUnit = unit({
@@ -41,6 +35,7 @@ export const pauseControlUnit = unit({
 });
 
 /** The data client with extra slot bindings (`transports`) and defaults (retry, breaker, timeout). */
+/* @__NO_SIDE_EFFECTS__ */
 export function dataClientUnitWith(
   extra: Omit<DataClientOptions, 'transport' | 'epoch' | 'pause' | 'telemetry'> = {},
 ): UnitDefinition<DataClient> {
@@ -61,33 +56,6 @@ export function dataClientUnitWith(
 
 export const dataClientUnit = dataClientUnitWith();
 
-/** Resource cache. Session-scoped so logout drops cached user data with the session scope. */
-export const resourcesUnit = unit({
-  id: 'data/resources-unit',
-  provides: ResourcesToken,
-  scope: 'session',
-  deps: { required: { client: DataClientToken } },
-  create: ({ client }, ctx) => {
-    const resources = createResources({ client });
-    ctx.scope.defer(() => resources.dispose());
-    return resources;
-  },
-  description: 'Keyed SWR cache, dedup, optimistic updates, epoch-aware refetch.',
-});
-
-export const userDataUnit = unit({
-  id: 'data/user-data-unit',
-  provides: UserDataToken,
-  scope: 'app',
-  deps: { required: { config: UserDataConfigToken } },
-  create: ({ config }, ctx) => {
-    const userData = createUserData({ ...config, telemetry: ctx.telemetry });
-    ctx.scope.defer(() => userData.dispose());
-    return userData;
-  },
-  description: 'User-data document: typed slices, offline-first persistence, remote sync, logout policy.',
-});
-
 /** Provide `DataTransportToken` with a configured mock transport (example app, tests). */
 export function mockTransportUnit(configure: (mock: MockTransport) => void, options: MockTransportOptions = {}): UnitDefinition<Transport> {
   const definition = unit({
@@ -104,6 +72,7 @@ export function mockTransportUnit(configure: (mock: MockTransport) => void, opti
 }
 
 /** A unit owning one store instance (epoch-tagged patches, telemetry from the injector). */
+/* @__NO_SIDE_EFFECTS__ */
 export function storeUnit<S, A extends ActionMap<S>, const P extends TokenId>(options: {
   readonly id: TokenId;
   readonly store: StoreDefinition<S, A>;

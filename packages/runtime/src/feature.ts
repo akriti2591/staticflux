@@ -156,6 +156,7 @@ export interface FeatureModule {
 }
 
 /** Declare a feature manifest (typed identity; the declaration is data). */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineFeature<const Id extends FeatureId>(
   manifest: Omit<FeatureManifest<Id>, 'kind'> & { readonly kind?: 'feature' },
 ): FeatureManifest<Id> {
@@ -167,6 +168,7 @@ export function defineFeature<const Id extends FeatureId>(
 }
 
 /** Declare a feature module (typed identity). */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineFeatureModule<const M extends FeatureModule>(module: M): M {
   return module;
 }

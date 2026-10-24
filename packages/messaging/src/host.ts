@@ -20,7 +20,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { deepActiveElement, focusFirst, inertSiblings, trapTab } from './focus.js';
 import type { SurfaceHandle, SurfaceManager } from './manager.js';
 import { MODAL_KINDS } from './surface.js';
-import { SurfaceManagerToken } from './units.js';
+import { SurfaceManagerToken } from './tokens.js';
 
 const hostSpec = component({
   tag: 'sf-surface-host',

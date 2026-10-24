@@ -1,13 +1,13 @@
 /**
  * DI units for the runtime services. Apps register them (e.g. `...runtimeUnits`)
- * and override any of them with `bind(..., { precedence: 'app' })`.
+ * and override any of them with `bind(..., { precedence: 'app' })`. The resource-manager units
+ * live in `resource-units.ts` so apps can load them after boot.
  */
-import { box, contribution, err, NoProviderError, ok, unit, type UnitDefinition } from '@staticflux/core';
+import { contribution, err, NoProviderError, ok, unit } from '@staticflux/core';
 import { StoreRegistryToken } from '@staticflux/storage';
 import { archiveStoreFromStore, createMemoryArchiveStore } from './archive.js';
 import { createFeatureHost, type FeatureLoader, manifestFeatureLoader } from './feature-host.js';
-import type { MemoryPressure, ReactiveInput, ResourceBudgets, ResourceManager } from './resource-manager.js';
-import { createResourceManager } from './resource-manager.js';
+import { nominalMemoryPressureUnit, resourceManagerUnit } from './resource-units.js';
 import { createFrameScheduler, type FrameScheduler } from './scheduler.js';
 import { defineSubsystem, type Subsystem } from './subsystem.js';
 import {
@@ -17,8 +17,6 @@ import {
   FeatureLoaderToken,
   FeatureManifestsToken,
   FrameSchedulerToken,
-  MemoryPressureToken,
-  ResourceManagerToken,
   SubsystemsToken,
   SupervisorToken,
 } from './tokens.js';
@@ -78,14 +76,6 @@ export const registryArchiveStoreUnit = unit({
   description: 'ArchiveStore persisted through the storage registry (device scope).',
 });
 
-export const nominalMemoryPressureUnit = unit({
-  id: 'runtime/nominal-memory-pressure-unit',
-  provides: MemoryPressureToken,
-  scope: 'app',
-  create: (): ReactiveInput<MemoryPressure> => box<MemoryPressure>('nominal'),
-  description: 'Default memory-pressure fact (always nominal). The platform package binds the real one.',
-});
-
 export const featureHostUnit = unit({
   id: 'runtime/feature-host-unit',
   provides: FeatureHostToken,
@@ -117,41 +107,6 @@ export const featureHostUnit = unit({
   },
   description: 'Feature host: feature lifecycle, feature injectors, ref-counting, archive. Loads modules via FeatureLoaderToken when bound.',
 });
-
-export interface ResourceManagerUnitOptions {
-  readonly budgets?: Partial<ResourceBudgets>;
-  readonly pressureBudgets?: { readonly moderate?: Partial<ResourceBudgets>; readonly critical?: Partial<ResourceBudgets> };
-}
-
-export type ResourceManagerUnit = UnitDefinition<
-  ResourceManager,
-  { readonly required: { readonly host: typeof FeatureHostToken; readonly pressure: typeof MemoryPressureToken } },
-  'runtime/resource-manager'
->;
-
-/** A resource-manager unit with app-specific framework budgets (e.g. per device tier). */
-export function resourceManagerUnitWith(options: ResourceManagerUnitOptions = {}): ResourceManagerUnit {
-  return unit({
-    id: 'runtime/resource-manager-unit',
-    provides: ResourceManagerToken,
-    scope: 'app',
-    deps: { required: { host: FeatureHostToken, pressure: MemoryPressureToken } },
-    create: ({ host, pressure }, ctx) => {
-      const manager = createResourceManager({
-        host,
-        pressure,
-        telemetry: ctx.telemetry,
-        ...(options.budgets === undefined ? {} : { budgets: options.budgets }),
-        ...(options.pressureBudgets === undefined ? {} : { pressureBudgets: options.pressureBudgets }),
-      });
-      ctx.scope.defer(() => manager.dispose());
-      return manager;
-    },
-    description: 'Resource manager: demotion by weight/retention, LRU, budgets, memory pressure.',
-  });
-}
-
-export const resourceManagerUnit = resourceManagerUnitWith();
 
 /** Every runtime service unit with defaults. `bootApp` provides SupervisorToken and AppInjectorToken. */
 export const runtimeUnits = [

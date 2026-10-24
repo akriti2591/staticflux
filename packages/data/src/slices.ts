@@ -49,6 +49,7 @@ export interface SliceInit<T> {
 
 export const DEFAULT_SLICE_BUDGET = 16 * 1024;
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineSlice<T>(init: SliceInit<T>): SliceDefinition<T> {
   return Object.freeze({
     kind: 'slice',

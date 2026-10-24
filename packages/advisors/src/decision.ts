@@ -89,6 +89,7 @@ export function stableKey(value: unknown): string {
     .join(',')}}`;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineDecisionPoint<Q, const O extends string, const Id extends DecisionPointId>(
   options: DecisionPointOptions<Q, O, Id>,
 ): DecisionPoint<Q, O, Id> {

@@ -48,10 +48,10 @@ export type HandoffEntryState = (typeof HandoffEntryMachine.states)[number];
 type EntryEvent = 'put' | 'take' | 'expire' | 'discard' | 'invalidate';
 
 export const HandoffMetrics = {
-  put: metric.counter('handoff/put', { description: 'Handoff entries written.' }),
-  consumed: metric.counter('handoff/consumed', { description: 'Handoff entries taken.' }),
-  expired: metric.counter('handoff/expired', { description: 'Handoff entries found expired.' }),
-  invalid: metric.counter('handoff/invalid', { description: 'Handoff entries discarded as malformed/unmigratable.' }),
+  put: /* @__PURE__ */ metric.counter('handoff/put', { description: 'Handoff entries written.' }),
+  consumed: /* @__PURE__ */ metric.counter('handoff/consumed', { description: 'Handoff entries taken.' }),
+  expired: /* @__PURE__ */ metric.counter('handoff/expired', { description: 'Handoff entries found expired.' }),
+  invalid: /* @__PURE__ */ metric.counter('handoff/invalid', { description: 'Handoff entries discarded as malformed/unmigratable.' }),
 } as const;
 
 const SUBSYSTEM = 'handoff/store';

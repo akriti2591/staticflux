@@ -9,10 +9,10 @@ import { createNoopTelemetry, metric, type Telemetry } from '@staticflux/core';
 import { FrameBudgetExceededError } from './errors.js';
 
 export const SurfaceMetrics = {
-  frameTime: metric.histogram('surface/frame-time', { unit: 'ms', description: 'Engine work per frame (window average)' }),
-  frameTimeMax: metric.gauge('surface/frame-time-max', { unit: 'ms', description: 'Worst frame in the window' }),
-  droppedFrames: metric.counter('surface/dropped-frames', { description: 'Frames missed against the target frame time' }),
-  inputLatency: metric.histogram('surface/input-latency', { unit: 'ms', description: 'Input timestamp → frame that consumed it' }),
+  frameTime: /* @__PURE__ */ metric.histogram('surface/frame-time', { unit: 'ms', description: 'Engine work per frame (window average)' }),
+  frameTimeMax: /* @__PURE__ */ metric.gauge('surface/frame-time-max', { unit: 'ms', description: 'Worst frame in the window' }),
+  droppedFrames: /* @__PURE__ */ metric.counter('surface/dropped-frames', { description: 'Frames missed against the target frame time' }),
+  inputLatency: /* @__PURE__ */ metric.histogram('surface/input-latency', { unit: 'ms', description: 'Input timestamp → frame that consumed it' }),
 } as const;
 
 export interface SurfaceBudget {

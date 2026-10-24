@@ -21,7 +21,7 @@ interface Progress {
   readonly step: number;
   readonly done: boolean;
 }
-const ProgressToken = token('onboarding/progress').type<SliceHandle<Progress>>();
+const ProgressToken = /* @__PURE__ */ token('onboarding/progress').type<SliceHandle<Progress>>();
 
 const progressUnit = unit({
   id: 'onboarding/progress-unit',

@@ -1,23 +1,18 @@
 /**
- * DI tokens and units of @staticflux/messaging.
+ * DI units of @staticflux/messaging (tokens: `tokens.ts`, so boot code can name them while the
+ * surface stack loads later).
  *
  * Apps register `messagingUnits` (with `uiUnits`), contribute routable dialogs via
  * `routableSurface(def)`, and bind `SeenStoreToken` to a per-user store
  * (an `@staticflux/storage` AsyncStore fits structurally).
  */
-import { contribution, token, unit } from '@staticflux/core';
+import { contribution, unit } from '@staticflux/core';
 import { DecideToken, VisibilityObserverToken } from '@staticflux/ui';
-import { createSurfaceManager, type SurfaceManager } from './manager.js';
-import { createMemoryKeyValue, type KeyValuePort } from './ports.js';
-import { createRoutableDialogBridge, type RoutableDialogBridge } from './routable.js';
+import { createSurfaceManager } from './manager.js';
+import { createMemoryKeyValue } from './ports.js';
+import { createRoutableDialogBridge } from './routable.js';
 import type { AnySurfaceDef } from './surface.js';
-
-export const SurfaceManagerToken = token('messaging/surface-manager').type<SurfaceManager>();
-export const RoutableDialogBridgeToken = token('messaging/routable-dialogs').type<RoutableDialogBridge>();
-/** Multi: routable dialog surfaces (registered with the bridge). */
-export const RoutableSurfacesToken = token('messaging/routable-surfaces').multi<AnySurfaceDef>();
-/** Coach-mark seen-once persistence (async KV). */
-export const SeenStoreToken = token('messaging/seen-store').type<KeyValuePort<boolean>>();
+import { RoutableDialogBridgeToken, RoutableSurfacesToken, SeenStoreToken, SurfaceManagerToken } from './tokens.js';
 
 export const memorySeenStoreUnit = unit({
   id: 'messaging/memory-seen-store-unit',

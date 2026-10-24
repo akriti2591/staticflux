@@ -14,7 +14,7 @@ import { type ScopeLevel, type Token, type TokenId, token, unit, type UnitContex
 import { createTabCoordinator, type TabCoordinator, type TabCoordinatorOptions } from './coordinator.js';
 
 /** Default token for apps with one coordinator. */
-export const TabCoordinatorToken = token('worker/tab-coordinator').type<TabCoordinator>();
+export const TabCoordinatorToken = /* @__PURE__ */ token('worker/tab-coordinator').type<TabCoordinator>();
 
 export interface TabCoordinatorUnitOptions<Id extends TokenId> {
   readonly id: TokenId;

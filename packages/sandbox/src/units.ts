@@ -11,7 +11,7 @@ import { CapabilityRegistryToken } from '@staticflux/capabilities';
 import { type ScopeLevel, type Token, type TokenId, token, unit, type UnitContext, type UnitDefinition } from '@staticflux/core';
 import { createPluginHost, type LoadOptions, type PluginHost, type PluginHostOptions, type PluginInstance } from './host.js';
 
-export const PluginHostToken = token('sandbox/plugin-host').type<PluginHost>();
+export const PluginHostToken = /* @__PURE__ */ token('sandbox/plugin-host').type<PluginHost>();
 
 export interface PluginHostUnitOptions {
   readonly id?: TokenId;

@@ -85,6 +85,7 @@ export type ChunkOptions =
  * export const StudioChunk = chunk('feature:studio-desktop', { tier: 'on-demand', budget: { category: 'heavy' } });
  * export const ShellChunk = chunk('lib:shell', { load: 'eager', reason: 'Shell frame renders before core-ready' });
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function chunk<const Id extends ChunkId>(id: Id, options: ChunkOptions = {}): ChunkDeclaration<Id> {
   const tier = options.tier ?? 'on-demand';
   if (options.load === 'eager') {

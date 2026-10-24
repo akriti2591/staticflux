@@ -11,12 +11,12 @@ import type { FlagHook } from './hooks.js';
 import type { FlagLayerProvider } from './layer.js';
 import { createFlagResolver, type FlagResolver } from './resolver.js';
 
-export const FlagResolverToken = token('config/flags').type<FlagResolver>();
-export const FlagLayersToken = token('config/layers').multi<FlagLayerProvider>();
-export const FlagDefinitionsToken = token('config/flag-definitions').multi<AnyFlag>();
-export const FlagHooksToken = token('config/hooks').multi<FlagHook>();
-export const EvaluationContextToken = token('config/evaluation-context').type<EvaluationContextSource>();
-export const FlagBinderToken = token('config/flag-binder').type<FlagBinder>();
+export const FlagResolverToken = /* @__PURE__ */ token('config/flags').type<FlagResolver>();
+export const FlagLayersToken = /* @__PURE__ */ token('config/layers').multi<FlagLayerProvider>();
+export const FlagDefinitionsToken = /* @__PURE__ */ token('config/flag-definitions').multi<AnyFlag>();
+export const FlagHooksToken = /* @__PURE__ */ token('config/hooks').multi<FlagHook>();
+export const EvaluationContextToken = /* @__PURE__ */ token('config/evaluation-context').type<EvaluationContextSource>();
+export const FlagBinderToken = /* @__PURE__ */ token('config/flag-binder').type<FlagBinder>();
 
 export interface FlagResolverUnitOptions {
   readonly initTimeoutMs?: number;
@@ -24,6 +24,7 @@ export interface FlagResolverUnitOptions {
 }
 
 /** The resolver. Critical: variant bindings and pre-auth flags are read during boot. */
+/* @__NO_SIDE_EFFECTS__ */
 export function flagResolverUnit(options: FlagResolverUnitOptions = {}): AnyUnit {
   const resolverUnit = unit({
     id: 'config/flag-resolver-unit',
@@ -58,6 +59,7 @@ export function flagResolverUnit(options: FlagResolverUnitOptions = {}): AnyUnit
 }
 
 /** Attaches the resolver to a binder so `binder.variants(…)` bindings can read flags. */
+/* @__NO_SIDE_EFFECTS__ */
 export function flagBinderUnit(binder: FlagBinder): AnyUnit {
   const binderUnit = unit({
     id: 'config/flag-binder-unit',
@@ -85,6 +87,7 @@ export function evaluationContextUnit(source: EvaluationContextSource = staticCo
 }
 
 /** Contribute a layer provider. */
+/* @__NO_SIDE_EFFECTS__ */
 export function layerUnit(provider: FlagLayerProvider): AnyUnit {
   const contribution = unit({
     id: `config/layer:${provider.id}` as TokenId,
@@ -97,6 +100,7 @@ export function layerUnit(provider: FlagLayerProvider): AnyUnit {
 }
 
 /** Contribute a package's flag declarations (for devtools inspect, snapshots, duplicate checks). */
+/* @__NO_SIDE_EFFECTS__ */
 export function flagDefinitionUnits(flags: readonly AnyFlag[]): readonly AnyUnit[] {
   return flags.map((flag) => {
     const contribution = unit({

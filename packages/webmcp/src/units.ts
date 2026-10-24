@@ -13,8 +13,8 @@ import { CapabilityRegistryToken } from '@staticflux/capabilities';
 import { detectModelContext, type ModelContextAdapter } from './adapter.js';
 import { createWebMcpPublisher, WebMcpMetrics, type WebMcpPublisher } from './publisher.js';
 
-export const ModelContextAdapterToken = token('webmcp/model-context').type<ModelContextAdapter>();
-export const WebMcpPublisherToken = token('webmcp/publisher').type<WebMcpPublisher>();
+export const ModelContextAdapterToken = /* @__PURE__ */ token('webmcp/model-context').type<ModelContextAdapter>();
+export const WebMcpPublisherToken = /* @__PURE__ */ token('webmcp/publisher').type<WebMcpPublisher>();
 
 export const modelContextAdapterUnit = unit({
   id: 'webmcp/model-context-unit',

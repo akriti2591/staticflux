@@ -18,7 +18,7 @@ import { handoffStoragesFromStores, handoffStorageFromStore } from './async-stor
 import { createEnvelope } from './envelope.js';
 import { defineHandoff } from './slot.js';
 import { createHandoffStore } from './store.js';
-import { HandoffStoragesToken, registryHandoffStoragesUnit } from './units.js';
+import { HandoffStoragesToken, registryHandoffStoragesUnit } from './index.js';
 
 const DraftSlot = defineHandoff<{ title: string }>({ key: 'studio/guest-draft', version: 1, lifetime: 'one-shot', scope: 'tab' });
 const WorkspaceSlot = defineHandoff<string>({ key: 'shell/workspace', version: 1, lifetime: 'session', scope: 'origin' });

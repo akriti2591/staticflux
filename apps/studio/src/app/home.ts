@@ -17,13 +17,13 @@ export interface HomeDocs {
   /** A guest draft carried through login (consume-once). */
   takeGuestDraft(): Promise<Result<string | undefined>>;
 }
-export const HomeDocsToken = token('studio/home-docs').type<HomeDocs>();
+export const HomeDocsToken = /* @__PURE__ */ token('studio/home-docs').type<HomeDocs>();
 
 export const homeDocsUnit = unit({
   id: 'studio/home-docs-unit',
   provides: HomeDocsToken,
   scope: 'app',
-  deps: { required: { scopes: SessionScopeToken, session: SessionToken, handoff: HandoffStoreToken } },
+  deps: { required: { scopes: SessionScopeToken, session: SessionToken }, functional: { handoff: HandoffStoreToken } },
   create: ({ scopes, session, handoff }, ctx): HomeDocs => {
     const list = box<PaginatedHandle<DocsPage, DocSummary> | undefined>(undefined);
     watch(
@@ -43,7 +43,9 @@ export const homeDocsUnit = unit({
         return list.get();
       },
       async takeGuestDraft() {
-        const draft = await handoff.take(GuestDraftSlot);
+        const store = await handoff.get(); // deferred handoff chunk
+        if (!store.ok) return store;
+        const draft = await store.value.take(GuestDraftSlot);
         return draft.ok ? ok(draft.value?.title) : draft;
       },
     };

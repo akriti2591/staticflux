@@ -35,7 +35,7 @@ export const epochRefreshListenerUnit = contribution({
   description: 'Session change → app-wide refresh (epoch).',
 });
 
-export const SessionScopeToken = token('studio/session-scope').type<SessionScopeHost>();
+export const SessionScopeToken = /* @__PURE__ */ token('studio/session-scope').type<SessionScopeHost>();
 
 export function sessionScopeUnit(units: readonly Registration[]) {
   return unit({

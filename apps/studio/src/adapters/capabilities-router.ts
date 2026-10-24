@@ -4,15 +4,14 @@
  * opens `/d/upgrade` (R13.9 "denied → upsell surface"); other results pass through.
  * Agents invoke the registry directly (their denials are reported in the chat).
  */
-import { type Result, token, unit } from '@staticflux/core';
-import { type AnyCapability, type CapabilityInput, type CapabilityOutput, CapabilityRegistryToken } from '@staticflux/capabilities';
+import { unit } from '@staticflux/core';
+import { CapabilityRegistryToken } from '@staticflux/capabilities';
 import { RouterToken } from '@staticflux/router';
+import { type CapabilityInvoker, CapabilityInvokerToken } from '../app/contracts.js';
 import { UpgradeDialog } from '../app/routes.js';
 
-export interface CapabilityInvoker {
-  invoke<C extends AnyCapability>(capability: C, input: CapabilityInput<C>, options?: { readonly signal?: AbortSignal; readonly channel?: string }): Promise<Result<CapabilityOutput<C>>>;
-}
-export const CapabilityInvokerToken = token('studio/capability-invoker').type<CapabilityInvoker>();
+// The token lives in contracts.ts (boot code names it; this unit loads with the capabilities chunk).
+export { type CapabilityInvoker, CapabilityInvokerToken } from '../app/contracts.js';
 
 export const upsellInvokerUnit = unit({
   id: 'studio/upsell-invoker-unit',

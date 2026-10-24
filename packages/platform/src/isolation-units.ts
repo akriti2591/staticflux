@@ -31,19 +31,19 @@ import {
 import { type IsolationReporting, type IsolationReportingOptions, startIsolationReporting } from './isolation-reporting.js';
 import { PlatformEnvToken } from './units.js';
 
-export const IsolationDeclarationToken = token('platform/isolation-declaration').type<IsolationDeclaration>();
-export const IsolationPolicyToken = token('platform/isolation-policy').type<IsolationPolicy>();
-export const IsolationReportingToken = token('platform/isolation-reporting').type<IsolationReporting>();
+export const IsolationDeclarationToken = /* @__PURE__ */ token('platform/isolation-declaration').type<IsolationDeclaration>();
+export const IsolationPolicyToken = /* @__PURE__ */ token('platform/isolation-policy').type<IsolationPolicy>();
+export const IsolationReportingToken = /* @__PURE__ */ token('platform/isolation-reporting').type<IsolationReporting>();
 
 // Mirrors of ports declared elsewhere (same token ids → the injector binds them).
 /** Same id/shape as `@staticflux/ui` `IsolationPolicyToken`. */
-export const UiIsolationPolicyPortToken = token('ui/isolation-policy').type<UiCrossOriginPort>();
+export const UiIsolationPolicyPortToken = /* @__PURE__ */ token('ui/isolation-policy').type<UiCrossOriginPort>();
 /** Same id/shape as `@staticflux/loader` `LoaderIsolationPolicyToken`. */
-export const LoaderIsolationPolicyPortToken = token('loader/isolation-policy').type<LoaderCrossOriginPort>();
+export const LoaderIsolationPolicyPortToken = /* @__PURE__ */ token('loader/isolation-policy').type<LoaderCrossOriginPort>();
 /** Same id/shape as `@staticflux/surface` `SurfaceImagePolicyToken`. */
-export const SurfaceImagePolicyPortToken = token('surface/image-policy').type<SurfaceImageCorsPort>();
+export const SurfaceImagePolicyPortToken = /* @__PURE__ */ token('surface/image-policy').type<SurfaceImageCorsPort>();
 /** Same id/shape as `@staticflux/worker` `IsolationFactsToken`. */
-export const WorkerIsolationFactsPortToken = token('worker/isolation-facts').type<WorkerIsolationFactsPort>();
+export const WorkerIsolationFactsPortToken = /* @__PURE__ */ token('worker/isolation-facts').type<WorkerIsolationFactsPort>();
 
 export function isolationDeclarationUnit(declaration: IsolationDeclaration): AnyUnit {
   const contribution = unit({

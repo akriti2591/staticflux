@@ -14,11 +14,12 @@
  * one eagerness step each (conservative − 1 = off). Gates apply in the loader (I-8).
  */
 import { createNoopTelemetry, type Scope, type Telemetry } from '@staticflux/core';
-import { defaultTimer, rankCandidates, type TimerFn, type WarmupAdvisor } from './advisor.js';
+import { rankCandidates, type TimerFn, type WarmupAdvisor } from './advisor.js';
 import type { ChunkIdShape } from './chunk.js';
 import type { ChunkLoader } from './loader.js';
 import { LOADER_SUBSYSTEMS, loaderMetrics } from './telemetry.js';
-import { NOMINAL_WARMUP_FACTS, warmupAllowance, type WarmupFacts } from './warmup.js';
+import { warmupAllowance, type WarmupFacts } from './warmup.js';
+import { defaultIntersectionObserver, defaultTimer, NOMINAL_WARMUP_FACTS } from './defaults.js';
 
 export const EAGERNESS_LEVELS = ['immediate', 'eager', 'moderate', 'conservative'] as const;
 export type Eagerness = (typeof EAGERNESS_LEVELS)[number];
@@ -37,6 +38,7 @@ export interface SpeculationRule<Id extends string = string> {
   readonly description?: string;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineSpeculationRule<const Id extends string>(rule: {
   readonly id: Id;
   readonly chunks: readonly ChunkIdShape[];
@@ -108,11 +110,7 @@ export interface SpeculationEngine {
 }
 
 /** IntersectionObserver factory when available (Baseline), else undefined. */
-export function defaultIntersectionObserver(): IntersectionObserverFactory | undefined {
-  const ctor = (globalThis as { IntersectionObserver?: new (cb: (e: readonly { isIntersecting: boolean }[]) => void) => { observe(t: unknown): void; disconnect(): void } }).IntersectionObserver;
-  if (typeof ctor !== 'function') return undefined;
-  return (callback) => new ctor(callback);
-}
+export { defaultIntersectionObserver } from './defaults.js';
 
 export function createSpeculationEngine(options: SpeculationEngineOptions): SpeculationEngine {
   const telemetry = options.telemetry ?? createNoopTelemetry();

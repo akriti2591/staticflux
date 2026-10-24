@@ -56,10 +56,10 @@ const RETRY_CEILING_MS = 30_000;
 
 /** Metrics produced by the session store (declare them in `informs`). */
 export const AuthMetrics = {
-  refreshes: metric.counter('auth/session.refreshes', { description: 'Provider refresh calls (after single-flight coalescing).' }),
-  refreshFailures: metric.counter('auth/session.refresh-failures'),
-  loginDuration: metric.histogram('auth/session.login-duration', { unit: 'ms' }),
-  transitions: metric.counter('auth/session.transitions'),
+  refreshes: /* @__PURE__ */ metric.counter('auth/session.refreshes', { description: 'Provider refresh calls (after single-flight coalescing).' }),
+  refreshFailures: /* @__PURE__ */ metric.counter('auth/session.refresh-failures'),
+  loginDuration: /* @__PURE__ */ metric.histogram('auth/session.login-duration', { unit: 'ms' }),
+  transitions: /* @__PURE__ */ metric.counter('auth/session.transitions'),
 } as const;
 
 export const DEFAULT_SESSION_CHANNEL = 'sf-auth/session';

@@ -128,6 +128,7 @@ export type RegistryCheck<K extends FlagKey, T> = K extends RegisteredFlagKey
     : { readonly __flagRegistryMismatch: { readonly key: K; readonly registered: FlagRegistry[K]; readonly declared: T } }
   : unknown;
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineFlag<T, const K extends FlagKey>(
   declaration: FlagDeclaration<T, K> & RegistryCheck<K, T>,
 ): FlagDefinition<T, K> {

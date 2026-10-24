@@ -107,6 +107,7 @@ export interface ProtocolDefinition<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyProtocol = ProtocolDefinition<ChannelId, any, any>;
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineProtocol<
   const Id extends ChannelId,
   const Rq extends Readonly<Record<string, AnyRequestDefinition>> = Record<never, never>,

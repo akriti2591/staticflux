@@ -18,10 +18,10 @@ export interface AdvisorEnvironmentPort {
   read(): AdvisorEnvironment;
 }
 
-export const AdvisorsToken = token('advisors/advisors').multi<Advisor>();
-export const AdvisorEnvironmentToken = token('advisors/environment').type<AdvisorEnvironmentPort>();
-export const AdvisorStorageToken = token('advisors/storage').type<AdvisorStoragePort>();
-export const AdvisorServiceToken = token('advisors/service').type<AdvisorService>();
+export const AdvisorsToken = /* @__PURE__ */ token('advisors/advisors').multi<Advisor>();
+export const AdvisorEnvironmentToken = /* @__PURE__ */ token('advisors/environment').type<AdvisorEnvironmentPort>();
+export const AdvisorStorageToken = /* @__PURE__ */ token('advisors/storage').type<AdvisorStoragePort>();
+export const AdvisorServiceToken = /* @__PURE__ */ token('advisors/service').type<AdvisorService>();
 
 interface NavigatorHints {
   readonly deviceMemory?: number;
@@ -106,6 +106,7 @@ export interface MarkovAdvisorUnitsConfig<Q, O extends string, Id extends Decisi
 }
 
 /** A persisted Markov model unit + the statistical advisor contribution using it. */
+/* @__NO_SIDE_EFFECTS__ */
 export function markovAdvisorUnits<Q, O extends string, Id extends DecisionPointId, M extends TokenId>(
   config: MarkovAdvisorUnitsConfig<Q, O, Id, M>,
 ) {

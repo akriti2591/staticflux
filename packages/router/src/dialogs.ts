@@ -39,6 +39,7 @@ export interface DialogDef<Id extends DialogId = DialogId, Key extends string = 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyDialog = DialogDef<DialogId, string>;
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineDialog<const Id extends DialogId, const Key extends string>(config: {
   readonly id: Id;
   readonly key: Key;

@@ -49,8 +49,8 @@ export interface StoreRegistry {
   dispose(): Promise<void>;
 }
 
-export const StoreFactoryToken = token('storage/store-factories').multi<StoreFactory>();
-export const StoreRegistryToken = token('storage/registry').type<StoreRegistry>();
+export const StoreFactoryToken = /* @__PURE__ */ token('storage/store-factories').multi<StoreFactory>();
+export const StoreRegistryToken = /* @__PURE__ */ token('storage/registry').type<StoreRegistry>();
 
 export function createStoreRegistry(factories: readonly StoreFactory[]): StoreRegistry {
   const stores = new Map<string, { scope: StoreScope; namespace: string; store: ReturnType<typeof fallback<unknown>> }>();
@@ -101,6 +101,7 @@ export const storeRegistryUnit = unit({
 });
 
 /** Contribute one factory. */
+/* @__NO_SIDE_EFFECTS__ */
 export function storeFactoryUnit(factory: StoreFactory): UnitDefinition<readonly StoreFactory[], Record<never, never>, 'storage/store-factories'> {
   return contribution({
     id: `storage/factory:${factory.scope}:${factory.id}`,

@@ -57,6 +57,7 @@ export type IntentsOf<D> = D extends ReplicaDefinition<ChannelId, unknown, infer
  * Declare a replicated store id with its state and intent types.
  * @example export const DocReplica = defineReplica('studio/document').type<DocView, DocIntents>();
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineReplica<const Id extends ChannelId>(
   id: Id,
 ): { type<S, I extends IntentMap = Record<never, never>>(): ReplicaDefinition<Id, S, I> } {

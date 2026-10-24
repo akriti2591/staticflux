@@ -6,9 +6,10 @@ import { type ChannelId, defineReplica, type ReplicaDefinition } from '@staticfl
 import type { CollaborationTransport } from './collab.js';
 import { createDocumentEngine, type DocumentEngine, type DocumentEngineOptions, type DocumentIntents, type DocumentView } from './engine.js';
 
-export const CollaborationTransportToken = token('document/collaboration-transport').type<CollaborationTransport>();
+export const CollaborationTransportToken = /* @__PURE__ */ token('document/collaboration-transport').type<CollaborationTransport>();
 
 /** Replica definition for a document view (one per document channel). */
+/* @__NO_SIDE_EFFECTS__ */
 export function documentReplica<const Id extends ChannelId>(id: Id): ReplicaDefinition<Id, DocumentView, DocumentIntents> {
   return defineReplica(id).type<DocumentView, DocumentIntents>();
 }

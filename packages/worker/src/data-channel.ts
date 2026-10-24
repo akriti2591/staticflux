@@ -66,8 +66,8 @@ export interface DataChannel<M> {
 }
 
 export const DataChannelMetrics = {
-  bytesSent: metric.counter('worker/data-channel-bytes-sent', { unit: 'By', description: 'Bytes transferred by data channels' }),
-  bytesReceived: metric.counter('worker/data-channel-bytes-received', { unit: 'By' }),
+  bytesSent: /* @__PURE__ */ metric.counter('worker/data-channel-bytes-sent', { unit: 'By', description: 'Bytes transferred by data channels' }),
+  bytesReceived: /* @__PURE__ */ metric.counter('worker/data-channel-bytes-received', { unit: 'By' }),
 } as const;
 
 /** True when `buffer` is detached (transferred away). */

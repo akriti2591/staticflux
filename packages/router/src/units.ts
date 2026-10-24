@@ -37,6 +37,7 @@ export interface RouterUnitOptions {
 }
 
 /** The router unit with app config (not-found route, redirect limit). */
+/* @__NO_SIDE_EFFECTS__ */
 export function routerUnitWith(config: RouterUnitOptions = {}) {
   return unit({
     id: 'router/router-unit',
@@ -101,6 +102,7 @@ export const routerSubsystemUnit = contribution({
   create: ({ router }) => routerSubsystem(router),
 });
 
+/* @__NO_SIDE_EFFECTS__ */
 export function memoryHistoryUnitWith(options: MemoryHistoryOptions = {}) {
   return unit({
     id: 'router/memory-history-unit',
@@ -131,6 +133,7 @@ export const browserHistoryUnit = unit({
   description: 'Browser history: Navigation API (feature-detected) or History API fallback.',
 });
 
+/* @__NO_SIDE_EFFECTS__ */
 export function featureHostDriverUnitWith(options: { readonly targetFor?: (route: AnyRoute, feature: FeatureId) => unknown } = {}) {
   return unit({
     id: 'router/feature-host-driver-unit',
@@ -144,6 +147,7 @@ export function featureHostDriverUnitWith(options: { readonly targetFor?: (route
 
 export const featureHostDriverUnit = featureHostDriverUnitWith();
 
+/* @__NO_SIDE_EFFECTS__ */
 export function profileUnit(predicate: ProfilePredicate) {
   return unit({ id: 'router/profile-unit', provides: RouteProfileToken, scope: 'app', create: () => predicate });
 }
@@ -151,11 +155,13 @@ export function profileUnit(predicate: ProfilePredicate) {
 export const allModesProfileUnit = profileUnit(allModesAvailable);
 
 /** Contribute one route. */
+/* @__NO_SIDE_EFFECTS__ */
 export function routeUnit(route: AnyRoute) {
   return contribution({ id: `${route.id}-route`, provides: RoutesToken, scope: 'app', create: () => route });
 }
 
 /** Contribute one routable dialog. */
+/* @__NO_SIDE_EFFECTS__ */
 export function dialogUnit(dialog: AnyDialog) {
   return contribution({ id: `${dialog.id}-dialog`, provides: DialogsToken, scope: 'app', create: () => dialog });
 }

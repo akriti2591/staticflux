@@ -257,9 +257,9 @@ export function createAiFactsStore(
 // ---------------------------------------------------------------- telemetry helpers
 
 export const AiMetrics = {
-  requests: metric.counter('ai/requests', { description: 'AI requests by provider, task and outcome.' }),
-  latency: metric.histogram('ai/latency', { unit: 'ms', description: 'AI request latency by provider and task.' }),
-  downloads: metric.counter('ai/downloads', { description: 'Model downloads started/completed/failed.' }),
+  requests: /* @__PURE__ */ metric.counter('ai/requests', { description: 'AI requests by provider, task and outcome.' }),
+  latency: /* @__PURE__ */ metric.histogram('ai/latency', { unit: 'ms', description: 'AI request latency by provider and task.' }),
+  downloads: /* @__PURE__ */ metric.counter('ai/downloads', { description: 'Model downloads started/completed/failed.' }),
 } as const;
 
 /** Run one provider request inside a span with metrics; thrown errors become Results. */

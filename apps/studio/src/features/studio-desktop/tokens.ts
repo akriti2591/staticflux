@@ -5,4 +5,4 @@ export interface PdfExporter {
   export(): Promise<Result<{ readonly url: string }>>;
 }
 /** Functional dependency: resolved (and pre-warmed on hover) only when the user exports. */
-export const ExportPdfToken = token('studio/export-pdf').type<PdfExporter>();
+export const ExportPdfToken = /* @__PURE__ */ token('studio/export-pdf').type<PdfExporter>();

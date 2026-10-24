@@ -18,17 +18,17 @@ export const ROUTER_SUBSYSTEMS = {
 
 export const routerMetrics = {
   /** Navigation start mark (attrs: kind, trigger, start: cold|soft). */
-  navStart: metric.mark('router/nav-start', { description: 'Navigation pipeline started.' }),
+  navStart: /* @__PURE__ */ metric.mark('router/nav-start', { description: 'Navigation pipeline started.' }),
   /** Navigation commit mark (attrs: kind, route, start). */
-  navCommit: metric.mark('router/nav-commit', { description: 'Navigation committed (URL + route state updated).' }),
+  navCommit: /* @__PURE__ */ metric.mark('router/nav-commit', { description: 'Navigation committed (URL + route state updated).' }),
   /** Pipeline duration (attrs: kind, outcome). */
-  navDuration: metric.histogram('router/nav-duration', { unit: 'ms', description: 'Navigation pipeline duration.' }),
+  navDuration: /* @__PURE__ */ metric.histogram('router/nav-duration', { unit: 'ms', description: 'Navigation pipeline duration.' }),
   /** Stage duration (attrs: stage, kind). */
-  stageDuration: metric.histogram('router/stage-duration', { unit: 'ms', description: 'Navigation stage duration.' }),
+  stageDuration: /* @__PURE__ */ metric.histogram('router/stage-duration', { unit: 'ms', description: 'Navigation stage duration.' }),
   /** Finished navigations (attrs: kind, outcome). */
-  navigations: metric.counter('router/navigations', { description: 'Navigations by outcome.' }),
+  navigations: /* @__PURE__ */ metric.counter('router/navigations', { description: 'Navigations by outcome.' }),
   /** Sub-route view transition duration (R12.7 ≤ 150 ms). */
-  viewTransition: metric.histogram('router/view-transition', { unit: 'ms', description: 'Light (view) pipeline duration.' }),
+  viewTransition: /* @__PURE__ */ metric.histogram('router/view-transition', { unit: 'ms', description: 'Light (view) pipeline duration.' }),
 } as const;
 
 export const NAVIGATION_STATES = ['idle', 'running', 'committed', 'cancelled', 'redirected', 'blocked', 'failed'] as const;

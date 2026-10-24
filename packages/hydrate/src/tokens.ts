@@ -25,17 +25,17 @@ export interface SnapshotRegistryConfig {
 }
 
 // Islands
-export const IslandEnvToken = token('hydrate/island-env').type<IslandEnv>();
-export const IslandGateToken = token('hydrate/island-gate').type<IslandGate>();
-export const IslandMarksToken = token('hydrate/island-marks').multi<IslandMarksPort>();
-export const IslandHydratorConfigToken = token('hydrate/island-config').type<IslandHydratorConfig>();
-export const IslandHydratorToken = token('hydrate/island-hydrator').type<IslandHydrator>();
+export const IslandEnvToken = /* @__PURE__ */ token('hydrate/island-env').type<IslandEnv>();
+export const IslandGateToken = /* @__PURE__ */ token('hydrate/island-gate').type<IslandGate>();
+export const IslandMarksToken = /* @__PURE__ */ token('hydrate/island-marks').multi<IslandMarksPort>();
+export const IslandHydratorConfigToken = /* @__PURE__ */ token('hydrate/island-config').type<IslandHydratorConfig>();
+export const IslandHydratorToken = /* @__PURE__ */ token('hydrate/island-hydrator').type<IslandHydrator>();
 
 // Snapshots
 /** The AsyncStore snapshots live in (bind e.g. storage `namespacedStoreUnit({ storeScope: 'device', namespace: 'snapshots' })`). */
-export const SnapshotStoreToken = token('hydrate/snapshot-store').type<AsyncStore>();
-export const SnapshotSourcesToken = token('hydrate/snapshot-sources').multi<SnapshotSource>();
+export const SnapshotStoreToken = /* @__PURE__ */ token('hydrate/snapshot-store').type<AsyncStore>();
+export const SnapshotSourcesToken = /* @__PURE__ */ token('hydrate/snapshot-sources').multi<SnapshotSource>();
 /** Current identity key (opaque hash); default: always anonymous (identity-bound sources never saved). */
-export const SnapshotIdentityToken = token('hydrate/snapshot-identity').type<() => string | undefined>();
-export const SnapshotRegistryConfigToken = token('hydrate/snapshot-config').type<SnapshotRegistryConfig>();
-export const SnapshotRegistryToken = token('hydrate/snapshot-registry').type<SnapshotRegistry>();
+export const SnapshotIdentityToken = /* @__PURE__ */ token('hydrate/snapshot-identity').type<() => string | undefined>();
+export const SnapshotRegistryConfigToken = /* @__PURE__ */ token('hydrate/snapshot-config').type<SnapshotRegistryConfig>();
+export const SnapshotRegistryToken = /* @__PURE__ */ token('hydrate/snapshot-registry').type<SnapshotRegistry>();

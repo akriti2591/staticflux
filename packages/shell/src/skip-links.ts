@@ -51,7 +51,7 @@ export const defaultShellMessages: ShellMessages = Object.freeze({
 });
 
 /** Optional binding: localized shell strings (app-provided, e.g. from its i18n catalog). */
-export const ShellMessagesToken = token('shell/messages').type<ShellMessages>();
+export const ShellMessagesToken = /* @__PURE__ */ token('shell/messages').type<ShellMessages>();
 
 // ---------------------------------------------------------------- skip targets
 

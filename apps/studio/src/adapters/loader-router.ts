@@ -12,7 +12,7 @@ import { featureChunks } from '../app/features.js';
 import { ChunkCursorToken, NextChunkModelToken, NO_FEATURE } from './advisors-loader.js';
 
 /** Registered late (post-boot) with the supervisor; warmup is never on the boot path. */
-export const NavigationWarmupToken = token('studio/navigation-warmup').type<Subsystem>();
+export const NavigationWarmupToken = /* @__PURE__ */ token('studio/navigation-warmup').type<Subsystem>();
 
 export const navigationWarmupSubsystemUnit = unit({
   id: 'studio/navigation-warmup-subsystem-unit',

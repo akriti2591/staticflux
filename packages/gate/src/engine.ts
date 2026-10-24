@@ -46,9 +46,9 @@ import { AccessAction, type GateAction, type GateLevel, type GateResource, type 
 const SUBSYSTEM = 'gate/decisions' as const;
 
 export const GateMetrics = {
-  recomputes: metric.counter('gate/recomputes', { description: 'Decision entries re-evaluated after fact changes.' }),
-  changes: metric.counter('gate/decision-changes'),
-  compileDuration: metric.histogram('gate/compile-duration', { unit: 'ms' }),
+  recomputes: /* @__PURE__ */ metric.counter('gate/recomputes', { description: 'Decision entries re-evaluated after fact changes.' }),
+  changes: /* @__PURE__ */ metric.counter('gate/decision-changes'),
+  compileDuration: /* @__PURE__ */ metric.histogram('gate/compile-duration', { unit: 'ms' }),
 } as const;
 
 export interface DecideOptions {

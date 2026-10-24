@@ -46,8 +46,8 @@ export const publisherMachine = defineMachine({
 export type PublisherState = (typeof publisherMachine.states)[number];
 
 export const WebMcpMetrics = {
-  toolCalls: metric.counter('webmcp/tool-calls', { description: 'WebMCP tool calls by tool and outcome.' }),
-  tools: metric.gauge('webmcp/tools', { description: 'Currently registered WebMCP tools.' }),
+  toolCalls: /* @__PURE__ */ metric.counter('webmcp/tool-calls', { description: 'WebMCP tool calls by tool and outcome.' }),
+  tools: /* @__PURE__ */ metric.gauge('webmcp/tools', { description: 'Currently registered WebMCP tools.' }),
 } as const;
 
 /** Detail payload of the `webmcp` invocation origin (read by confirm ports). */

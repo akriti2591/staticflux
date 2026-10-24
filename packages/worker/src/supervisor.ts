@@ -113,9 +113,9 @@ export type WorkerLifecycleEvent =
   | 'terminate';
 
 export const WorkerMetrics = {
-  restarts: metric.counter('worker/restarts', { description: 'Worker respawns after a crash.' }),
-  handshakeMs: metric.histogram('worker/handshake-ms', { unit: 'ms', description: 'Spawn → ready, incl. replica sync.' }),
-  missedHeartbeats: metric.counter('worker/missed-heartbeats'),
+  restarts: /* @__PURE__ */ metric.counter('worker/restarts', { description: 'Worker respawns after a crash.' }),
+  handshakeMs: /* @__PURE__ */ metric.histogram('worker/handshake-ms', { unit: 'ms', description: 'Spawn → ready, incl. replica sync.' }),
+  missedHeartbeats: /* @__PURE__ */ metric.counter('worker/missed-heartbeats'),
 } as const;
 
 // ---------------------------------------------------------------- spec

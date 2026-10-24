@@ -34,19 +34,19 @@ export interface PwaOptions {
   readonly checkOnStart?: boolean;
 }
 
-export const PwaPageEnvToken = token('pwa/page-env').type<PwaPageEnv>();
-export const PwaOptionsToken = token('pwa/options').type<PwaOptions>();
+export const PwaPageEnvToken = /* @__PURE__ */ token('pwa/page-env').type<PwaPageEnv>();
+export const PwaOptionsToken = /* @__PURE__ */ token('pwa/options').type<PwaOptions>();
 /** Runtime supervisor `reinitialize` port; the first contribution is used. None → reload. */
-export const ReinitializePortsToken = token('pwa/reinitialize-ports').multi<ReinitializePort>();
+export const ReinitializePortsToken = /* @__PURE__ */ token('pwa/reinitialize-ports').multi<ReinitializePort>();
 /** Messaging prompt port; the first contribution is used. None → only `onUpdateAvailable` listeners. */
-export const UpdatePromptsToken = token('pwa/update-prompts').multi<UpdatePromptPort>();
+export const UpdatePromptsToken = /* @__PURE__ */ token('pwa/update-prompts').multi<UpdatePromptPort>();
 /** Where launch/share/file/notification intents go (bind an urlstate adapter). */
-export const LaunchIntentPortToken = token('pwa/launch-intent-port').type<LaunchIntentPort>();
-export const PwaUpdaterToken = token('pwa/updater').type<PwaUpdater>();
-export const SwWarmupToken = token('pwa/sw-warmup').type<SwWarmup>();
+export const LaunchIntentPortToken = /* @__PURE__ */ token('pwa/launch-intent-port').type<LaunchIntentPort>();
+export const PwaUpdaterToken = /* @__PURE__ */ token('pwa/updater').type<PwaUpdater>();
+export const SwWarmupToken = /* @__PURE__ */ token('pwa/sw-warmup').type<SwWarmup>();
 /** True when `launchQueue` is supported and consumed. */
-export const LaunchQueueToken = token('pwa/launch-queue').type<{ readonly supported: boolean }>();
-export const MutationQueueToken = token('pwa/mutation-queue').type<MutationQueueClient>();
+export const LaunchQueueToken = /* @__PURE__ */ token('pwa/launch-queue').type<{ readonly supported: boolean }>();
+export const MutationQueueToken = /* @__PURE__ */ token('pwa/mutation-queue').type<MutationQueueClient>();
 
 export const browserPwaPageEnvUnit = unit({
   id: 'pwa/browser-page-env-unit',

@@ -11,11 +11,11 @@ export const UI_SUBSYSTEMS = {
 
 export const uiMetrics = {
   /** Update passes per component (attrs: tag, outcome, reason). */
-  renders: metric.counter('ui/renders', { description: 'Component update passes.' }),
+  renders: /* @__PURE__ */ metric.counter('ui/renders', { description: 'Component update passes.' }),
   /** Synchronous update duration (attrs: tag). */
-  renderDuration: metric.histogram('ui/render-duration', { unit: 'ms', description: 'Component update duration.' }),
+  renderDuration: /* @__PURE__ */ metric.histogram('ui/render-duration', { unit: 'ms', description: 'Component update duration.' }),
   /** Connect → first real content (attrs: tag). */
-  timeToContent: metric.histogram('ui/time-to-content', {
+  timeToContent: /* @__PURE__ */ metric.histogram('ui/time-to-content', {
     unit: 'ms',
     description: 'Component connected → first content commit (placeholder time).',
   }),

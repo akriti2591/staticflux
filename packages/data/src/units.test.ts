@@ -26,7 +26,7 @@ import {
   UserDataConfigToken,
   UserDataToken,
   userDataUnit,
-} from './units.js';
+} from './index.js';
 import { unit } from '@staticflux/core';
 
 describe('schema', () => {

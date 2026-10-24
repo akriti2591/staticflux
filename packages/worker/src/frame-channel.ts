@@ -487,8 +487,8 @@ export const FrameChannelLifecycle = defineMachine({
 export type FrameChannelState = (typeof FrameChannelLifecycle.states)[number];
 
 export const FrameChannelMetrics = {
-  dropped: metric.counter('worker/frame-channel-dropped', { description: 'Frames the producer could not write' }),
-  skipped: metric.counter('worker/frame-channel-skipped', { description: 'Frames the consumer skipped (latest wins)' }),
+  dropped: /* @__PURE__ */ metric.counter('worker/frame-channel-dropped', { description: 'Frames the producer could not write' }),
+  skipped: /* @__PURE__ */ metric.counter('worker/frame-channel-skipped', { description: 'Frames the consumer skipped (latest wins)' }),
 } as const;
 
 export interface FrameProducer extends FrameWriter {

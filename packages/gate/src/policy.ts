@@ -42,6 +42,7 @@ export interface GateAction<Id extends ActionId = ActionId> {
   readonly destructive: boolean;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function defineAction<const Id extends ActionId>(id: Id, options: { readonly destructive?: boolean } = {}): GateAction<Id> {
   return Object.freeze({ kind: 'action', id, destructive: options.destructive ?? false });
 }
@@ -189,6 +190,7 @@ export interface PolicySet {
 }
 
 /** Package defaults: `definePolicySet('studio/policies', [...])`. */
+/* @__NO_SIDE_EFFECTS__ */
 export function definePolicySet(id: `${string}/${string}`, policies: readonly PolicyIR[]): PolicySet {
   return { id, layer: 'default', policies };
 }

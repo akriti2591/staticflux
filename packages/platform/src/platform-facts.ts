@@ -73,10 +73,10 @@ export const WATCHED_MEDIA_QUERIES: readonly string[] = [
   '(orientation: portrait)',
 ];
 
-export const factChanges = metric.counter('platform/fact-changes', {
+export const factChanges = /* @__PURE__ */ metric.counter('platform/fact-changes', {
   description: 'Platform fact group changes (input, network, preferences, display, …).',
 });
-export const aiProbeDuration = metric.histogram('platform/ai-probe-duration', {
+export const aiProbeDuration = /* @__PURE__ */ metric.histogram('platform/ai-probe-duration', {
   unit: 'ms',
   description: 'Time to probe built-in AI availability.',
 });

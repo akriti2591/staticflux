@@ -30,7 +30,7 @@ import {
 import { type SlotContribution, SlotContributionsToken, type SlotId } from './slots.js';
 import { ThemeControllerToken } from './theme.js';
 import { withViewTransition } from './transitions.js';
-import { CommandShortcutBindingsToken } from './shortcuts.js';
+import { CommandShortcutBindingsToken } from './tokens.js';
 import { arrangeSlots, WorkspaceManagerToken, type WorkspaceId } from './workspace.js';
 import type { WorkspaceDef } from './workspace.js';
 

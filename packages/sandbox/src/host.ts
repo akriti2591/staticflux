@@ -131,10 +131,10 @@ export type PluginState = (typeof PluginLifecycle.states)[number];
 type PluginLifecycleEvent = 'load' | 'loaded' | 'ready' | 'crash' | 'restart' | 'give-up' | 'kill' | 'stop';
 
 export const SandboxMetrics = {
-  calls: metric.counter('sandbox/calls', { description: 'Plugin capability calls by plugin, capability and outcome.' }),
-  callDuration: metric.histogram('sandbox/call-duration', { unit: 'ms', description: 'Plugin capability call time.' }),
-  violations: metric.counter('sandbox/violations', { description: 'Plugin violations by plugin and kind.' }),
-  crashes: metric.counter('sandbox/crashes', { description: 'Plugin realm crashes.' }),
+  calls: /* @__PURE__ */ metric.counter('sandbox/calls', { description: 'Plugin capability calls by plugin, capability and outcome.' }),
+  callDuration: /* @__PURE__ */ metric.histogram('sandbox/call-duration', { unit: 'ms', description: 'Plugin capability call time.' }),
+  violations: /* @__PURE__ */ metric.counter('sandbox/violations', { description: 'Plugin violations by plugin and kind.' }),
+  crashes: /* @__PURE__ */ metric.counter('sandbox/crashes', { description: 'Plugin realm crashes.' }),
 } as const;
 
 export type ViolationKind =

@@ -8,10 +8,10 @@ import { AppInjectorToken } from '@staticflux/runtime';
 import type { Devtools, InspectableStore } from './devtools.js';
 import { type DevtoolsInstallation, installDevtools, type InstallDevtoolsOptions } from './install.js';
 
-export const DevtoolsInstallationToken = token('devtools/installation').type<DevtoolsInstallation>();
-export const DevtoolsToken = token('devtools/handle').type<Devtools>();
+export const DevtoolsInstallationToken = /* @__PURE__ */ token('devtools/installation').type<DevtoolsInstallation>();
+export const DevtoolsToken = /* @__PURE__ */ token('devtools/handle').type<Devtools>();
 /** Stores shown in the Stores tab. */
-export const DevtoolsStoresToken = token('devtools/stores').multi<InspectableStore>();
+export const DevtoolsStoresToken = /* @__PURE__ */ token('devtools/stores').multi<InspectableStore>();
 
 export type DevtoolsUnitOptions = Omit<InstallDevtoolsOptions, 'injector' | 'telemetry' | 'stores'>;
 
