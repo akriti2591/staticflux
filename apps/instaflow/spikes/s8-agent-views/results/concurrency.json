@@ -1,0 +1,32 @@
+{
+  "flyer": {
+    "rounds": 200,
+    "humanWrites": 349,
+    "agentOps": 705,
+    "applied": 596,
+    "staleFlagged": 109,
+    "clobbered": 0,
+    "lostAgentOps": 0,
+    "textLost": 0
+  },
+  "deck": {
+    "rounds": 100,
+    "humanWrites": 172,
+    "agentOps": 354,
+    "applied": 283,
+    "staleFlagged": 71,
+    "clobbered": 0,
+    "lostAgentOps": 0,
+    "textLost": 0
+  },
+  "naiveBaselineFlyer": {
+    "rounds": 200,
+    "humanWrites": 349,
+    "agentOps": 705,
+    "applied": 545,
+    "staleFlagged": 0,
+    "clobbered": 237,
+    "lostAgentOps": 0,
+    "textLost": 9
+  }
+}
