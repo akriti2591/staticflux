@@ -55,7 +55,12 @@ export function intersectionVisibility(ctor: IntersectionObserverCtor, rootMargi
       waiting.set(element, callbacks);
       ensure().observe(element);
     }
-    const once = (): void => onVisible();
+    // `detach` removes the abort listener once the island became visible (no listener left on `signal`).
+    const detach = new AbortController();
+    const once = (): void => {
+      detach.abort();
+      onVisible();
+    };
     callbacks.add(once);
     signal.addEventListener('abort', () => {
       const set = waiting.get(element);
@@ -65,7 +70,7 @@ export function intersectionVisibility(ctor: IntersectionObserverCtor, rootMargi
         waiting.delete(element);
         observer?.unobserve(element);
       }
-    }, { once: true });
+    }, { once: true, signal: detach.signal });
   };
 }
 

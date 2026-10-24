@@ -38,6 +38,17 @@ leader election and SharedWorker helpers (R11.9). Requirements: R11.1–R11.7, R
 - `control.ts` — handshake/heartbeat/lifecycle message shapes on `sf/control`.
 - `units.ts` — `supervisedWorkerUnit`, `contextHubUnit` (`ContextHubToken`), `tokenBrokerUnit` (`TokenBrokerToken`).
 - `errors.ts` — `SF-WK-001` … `SF-WK-018`.
+- `coordinator.ts` — **multi-tab coordinator** (R11.9, research §6 Notion pattern): `createTabCoordinator({ id, owned, transport:
+  'shared-worker'|'leader-tab'|'auto', sharedWorker?, locks?, broadcast?, lifecycle?, snapshots?, tabId?, clock? })` →
+  `TabCoordinator` (`role`, `transport`, `term`, `leaderId`, `isLeader`, `start`, `replica(def)`, `intent(def, action, args,
+  { timeoutMs, idempotent })`, `whenReady`, `stepDown`, `onRoleChange`, `inspect`, `dispose`); `ownedResource(def, create)`;
+  `createCoordinatorHost({ id, owned, term, restore, snapshots })` (runs in the SharedWorker: `acceptSharedConnections(self,
+  (p) => host.connect(p))`, or in the leader tab); `CoordinatorRoleLifecycle`, `TabCoordinatorMetrics`;
+  ports `BroadcastChannelLike`/`detectBroadcastChannel`, `TabLifecyclePort`/`documentTabLifecycle`, `SnapshotStore`/`createMemorySnapshotStore`.
+- `coordinator-unit.ts` — `tabCoordinatorUnit({ id, provides, options })`, `TabCoordinatorToken`.
+- `coordinator-errors.ts` — `SF-WK-027` stopped, `SF-WK-028` unknown resource, `SF-WK-029` transport unavailable, `SF-WK-030` stale term.
+- `coordinator-fakes.ts` — test-only (not exported): `createMemoryLocks` (per-tab views, `crashTab`), `createMemoryBroadcastHub`
+  (per-tab `freeze/thaw`, `crashTab`, `inject`), `createFakeTabLifecycle`.
 
 ## Lifecycle (LIFECYCLES §3, as implemented)
 `idle → spawning → handshaking → ready ⇄ busy`; `ready|busy → unresponsive → crashed` (and `unresponsive → ready`
@@ -45,6 +56,21 @@ when a heartbeat recovers); `crashed → respawning → spawning` with backoff; 
 `periodMs` reach `intensity` (fallback activated, SF-WK-005); `* → draining → terminated`; `failed → spawning` via `restart()`.
 On respawn: hello carries contexts + `rehydrate()`; replicas re-handshake (new owner epoch → snapshot);
 idempotent in-flight requests are retried, others fail with SF-WK-004.
+
+## Tab coordinator (`worker/tab-coordinator`, mirror into docs/LIFECYCLES.md §14)
+`idle → candidate → leader | follower`; `follower → follower` (new term) `| candidate` (leader lost: `bye`, SharedWorker port
+closed); `leader → stepping-down → candidate` (`stepDown()`, `freeze`/`pagehide`, split brain); `* → stopped`.
+- Local reads always go through a `Replica` (the leader attaches its own replicas over an in-memory pair), so feature code is
+  role-agnostic; the replica object survives failovers.
+- Leader-tab bus: BroadcastChannel `sf-tabs:<id>` carrying `announce | join | bye | stale | data` with `{ from, to?, term }`;
+  `data` frames are virtual point-to-point ports, so `Link` + `createPublisher`/`createReplica` run unchanged.
+- Terms: new leader = known term + 1; frames from another term are dropped (SF-WK-030 event + `worker/tabs-stale-dropped`).
+  A leader told of a higher term (`stale` reply, or a `join` carrying one) re-keys to term + 1 keeping owner state.
+- Failover restores each owner from the new leader's replica state (plain-JSON copy) or the `SnapshotStore`.
+- Suspended tabs do not queue for the lock; leaders step down on suspend; replicas resync on resume.
+- Without Web Locks or BroadcastChannel: `single-tab` (this tab owns). `'auto'` falls back from SharedWorker to leader-tab when the
+  spawner fails or reconnects are exhausted (`maxReconnects`).
+- `intent()` waits for an owner during failover (bounded by `timeoutMs`); it resends only when `idempotent: true`.
 
 ## Rules
 - Replicas never mutate (I-9): writes go through `replica.intent()`; dev guards throw SF-WK-002.

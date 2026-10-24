@@ -17,7 +17,5 @@ export * from './supervisor.js';
 export * from './runtime.js';
 export * from './units.js';
 export * from './isolation.js';
-export * from './coordinator-errors.js';
-export * from './coordinator.js';
-export * from './coordinator-unit.js';
 // Binary layouts, data and frame channels: import from '@staticflux/worker/channels' (kept off the boot path).
+// Multi-tab coordinator: import from '@staticflux/worker/coordinator' (opt-in, kept off the boot path).

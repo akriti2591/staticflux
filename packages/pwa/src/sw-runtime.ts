@@ -490,6 +490,8 @@ export function createServiceWorkerRuntime(options: ServiceWorkerRuntimeOptions)
   const attach = (scope?: Scope): (() => void) => {
     const removers: (() => void)[] = [];
     const on = <K extends SwEventType>(type: K, listener: (event: SwEventMap[K]) => void): void => {
+      // Paired with a remover returned from attach(); SW global listeners live as long as the runtime.
+      // sf-lint-disable-next-line no-bare-listener
       env.self.addEventListener(type, listener);
       removers.push(() => env.self.removeEventListener(type, listener));
     };

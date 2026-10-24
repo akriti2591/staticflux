@@ -12,6 +12,10 @@
     "./channels": {
       "types": "./dist/channels.d.ts",
       "import": "./dist/channels.js"
+    },
+    "./coordinator": {
+      "types": "./dist/coordinator-entry.d.ts",
+      "import": "./dist/coordinator-entry.js"
     }
   },
   "files": [

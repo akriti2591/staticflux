@@ -1989,6 +1989,54 @@
       "fix": "Deploy the worker bundle together with the main bundle; bump protocol versions on breaking changes."
     },
     {
+      "code": "SF-WK-019",
+      "kind": "validation",
+      "summary": "A binary layout declaration is invalid (bad field name, type, count or alignment).",
+      "fix": "Use identifier field names, one of the scalar types (f32 f64 i8 u8 i16 u16 i32 u32 i64 u64), integer `count` ≥ 1 and a power-of-two `align`."
+    },
+    {
+      "code": "SF-WK-020",
+      "kind": "validation",
+      "summary": "A layout view does not fit its buffer (misaligned byte offset, buffer too small, or big-endian platform).",
+      "fix": "Allocate the buffer with `layout.byteLength(count)` / `columnsByteLength(...)` and pass a byteOffset that is a multiple of `layout.align` (Wasm: allocate with that alignment)."
+    },
+    {
+      "code": "SF-WK-021",
+      "kind": "invariant",
+      "summary": "An ArrayBuffer was used after its ownership was transferred to another thread (it is detached).",
+      "fix": "After `send()` the buffer belongs to the receiver. Allocate a new buffer, or wait for the receiver to transfer it back."
+    },
+    {
+      "code": "SF-WK-022",
+      "kind": "validation",
+      "summary": "A data-channel buffer is not transferable (SharedArrayBuffer, duplicate entry, or not an ArrayBuffer).",
+      "fix": "Data channels move ArrayBuffers; share memory through a frame channel / ring buffer instead, and list each buffer once."
+    },
+    {
+      "code": "SF-WK-023",
+      "kind": "validation",
+      "summary": "A frame is larger than the frame channel slot size.",
+      "fix": "Raise `frameBytes` in the frame channel definition (layout.byteLength(maxCount)), or split the frame."
+    },
+    {
+      "code": "SF-WK-024",
+      "kind": "aborted",
+      "summary": "The frame channel was closed.",
+      "fix": "Expected during shutdown/respawn. Reconnect the consumer with `connectFrameConsumer()` after the producer reopens."
+    },
+    {
+      "code": "SF-WK-025",
+      "kind": "unavailable",
+      "summary": "Shared memory was required, but the page is not cross-origin isolated (or SharedArrayBuffer/Atomics are missing).",
+      "fix": "Serve the app with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` (or `credentialless`), or drop `require: \"shared\"` so the transfer fallback is used."
+    },
+    {
+      "code": "SF-WK-026",
+      "kind": "invariant",
+      "summary": "The frame channel producer and consumer disagree (different id, frame size, or unknown ring buffer format).",
+      "fix": "Use the same `defineFrameChannel(...)` definition on both sides and deploy both bundles together."
+    },
+    {
       "code": "SF-WK-027",
       "kind": "aborted",
       "summary": "The tab coordinator was stopped (disposed) before the operation completed.",

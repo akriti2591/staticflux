@@ -230,9 +230,10 @@
       "@lit/context",
       "@staticflux/core",
       "@staticflux/ui",
-      "@staticflux/messaging"
+      "@staticflux/messaging",
+      "@staticflux/a11y"
     ],
-    "limit": "9 KB"
+    "limit": "9.5 KB"
   },
   {
     "name": "@staticflux/worker/channels",
@@ -285,5 +286,58 @@
       "@staticflux/storage"
     ],
     "limit": "7 KB"
+  },
+  {
+    "name": "@staticflux/sandbox (host)",
+    "path": "packages/sandbox/dist/index.js",
+    "import": "{ createPluginHost }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/capabilities",
+      "@staticflux/worker"
+    ],
+    "limit": "8 KB"
+  },
+  {
+    "name": "@staticflux/worker/coordinator",
+    "path": "packages/worker/dist/coordinator-entry.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "14 KB"
+  },
+  {
+    "name": "@staticflux/pwa (page: updater + warm bridge)",
+    "path": "packages/pwa/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/loader",
+      "@staticflux/storage"
+    ],
+    "limit": "6 KB",
+    "import": "{ createPwaUpdater, createSwWarmup }"
+  },
+  {
+    "name": "@staticflux/pwa/sw (service worker runtime)",
+    "path": "packages/pwa/dist/sw.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/loader",
+      "@staticflux/storage"
+    ],
+    "limit": "8.5 KB"
+  },
+  {
+    "name": "@staticflux/platform (full)",
+    "path": "packages/platform/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "14 KB"
   }
 ]

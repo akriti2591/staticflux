@@ -8,20 +8,23 @@ import { captureIo, type TempDir, tempDir } from './test-helpers.js';
 
 const load = async (): Promise<{ mount(): void }> => ({ mount: () => undefined });
 
+// Fixture ids are intentionally un-namespaced to exercise sf's structural reading; cast for the typed APIs.
+const fid = (id: string): `${string}/${string}` => id as `${string}/${string}`;
+
 // Real router/runtime values: the structural shapes sf reads must match them.
 const features = [
-  defineFeature({ id: 'studio-desktop', weight: 'heavy', modes: ['expanded'], load }),
-  defineFeature({ id: 'studio-compact', weight: 'warm', modes: ['compact'], load }),
-  defineFeature({ id: 'chat', weight: 'cheap', load }),
-  defineFeature({ id: 'chat-embed', weight: 'cheap', modes: ['embed-iframe'], load }),
-  defineFeature({ id: 'telemetry-panel', weight: 'cheap', headless: true, load }),
-  defineFeature({ id: 'onboarding', weight: 'cheap', load }),
+  defineFeature({ id: fid('studio-desktop'), weight: 'heavy', modes: ['expanded'], load }),
+  defineFeature({ id: fid('studio-compact'), weight: 'warm', modes: ['compact'], load }),
+  defineFeature({ id: fid('chat'), weight: 'cheap', load }),
+  defineFeature({ id: fid('chat-embed'), weight: 'cheap', modes: ['embed-iframe'], load }),
+  defineFeature({ id: fid('telemetry-panel'), weight: 'cheap', headless: true, load }),
+  defineFeature({ id: fid('onboarding'), weight: 'cheap', load }),
 ];
 const root = defineRoute({ id: 'app/root', path: '/', abstract: true });
 const routes = [
   root,
-  defineRoute({ id: 'studio/editor', path: 'studio/:doc', parent: root, feature: bindCapability('studio/editor', [{ feature: featureRef('studio-desktop') }, { feature: featureRef('studio-compact') }]) }),
-  defineRoute({ id: 'chat/thread', path: 'chat', parent: root, feature: bindCapability('chat/thread', [{ feature: featureRef('chat') }, { feature: featureRef('chat-embed') }]) }),
+  defineRoute({ id: 'studio/editor', path: 'studio/:doc', parent: root, feature: bindCapability('studio/editor', [{ feature: featureRef(fid('studio-desktop')) }, { feature: featureRef(fid('studio-compact')) }]) }),
+  defineRoute({ id: 'chat/thread', path: 'chat', parent: root, feature: bindCapability('chat/thread', [{ feature: featureRef(fid('chat')) }, { feature: featureRef(fid('chat-embed')) }]) }),
 ];
 const profiles = ['web:expanded', 'web:compact', 'web:medium'];
 

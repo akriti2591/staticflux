@@ -429,6 +429,16 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
+    devDependencies:
+      '@staticflux/loader':
+        specifier: workspace:*
+        version: link:../../packages/loader
+      '@staticflux/router':
+        specifier: workspace:*
+        version: link:../../packages/router
+      '@staticflux/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
 
   tooling/vite-plugin:
     dependencies:

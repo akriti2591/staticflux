@@ -20,7 +20,28 @@ injectable `PlatformEnv`, so tests are deterministic.
 - `profile.ts` — `createAppProfile(...)` → `Result<AppProfileSource>` (`current`, `hostMode`, effective `capabilities`/`has`, `force`, `loadBridge` (single-flight, cached, scope-disposed), `onChange`); `matchesProfile`, `profileKey`, `effectiveCapabilities`; metric `platform/profile-changes`.
 - `fake-env.ts` — `createFakePlatformEnv(...)` (controllable media/viewport/online/connection, `listenerCount()`), `SAMPLE_USER_AGENTS`.
 - `units.ts` — tokens `PlatformEnvToken`, `PlatformOptionsToken`, `HostModesToken` (multi), `FormFactorsToken` (multi), `PlatformFactsToken`, `AppProfileToken`; units `browserEnvUnit`, `platformEnvUnit(env)`, `platformOptionsUnit(opts)`, `platformFactsUnit`, `appProfileUnit` (both critical), `hostModeUnit(def)`, `formFactorUnit(def)`, `platformUnits(opts, env?)`.
-- `errors.ts` — `SF-PLAT-001` unknown mode override, `-002` duplicate host mode, `-003` AI probe failed, `-004` no host bridge, `-005` bridge load failed.
+- `isolation.ts` — R11.16a/b: `IsolationDeclaration { mode: 'required'|'preferred'|'off', coep: 'require-corp'|'credentialless', origin, credentialedOrigins }`,
+  `readIsolationFacts(env)` (`crossOriginIsolated`, embedded, SAB+Atomics, `credentialless` iframes), `createIsolationPolicy(decl, facts, env?)` →
+  `IsolationPolicy { mode, coep, isolated, sharedMemory, status: isolated|off|fallback|blocked, reason, gateReason, crossOriginAttr(url, kind),
+  fetchInit(url), iframeAttrs(url), imageCors(url), check() }`, `offIsolationPolicy`; structural port adapters `toUiIsolationPolicy` (ui
+  `IsolationPolicyToken`), `toLoaderIsolationPolicy` (loader `LoaderIsolationPolicyToken`), `toSurfaceImagePolicy` (surface
+  `SurfaceImagePolicyToken`), `toWorkerIsolationFacts` (worker `IsolationFactsToken`).
+- `isolation-reporting.ts` — dev-mode `startIsolationReporting({ env, telemetry, scope, dev, attribute })` (feature-detected `ReportingObserver`,
+  types `coep`/`coop`) → one conformance `violation` event per report (subsystem `platform/isolation`, attrs `code, fix, severity, message,
+  details`); `violationFromReport`, `reportIsolationViolation`.
+- `isolation-units.ts` — tokens `IsolationDeclarationToken`, `IsolationPolicyToken`, `IsolationReportingToken` and same-id mirrors
+  `UiIsolationPolicyPortToken` (`ui/isolation-policy`), `LoaderIsolationPolicyPortToken` (`loader/isolation-policy`),
+  `SurfaceImagePolicyPortToken` (`surface/image-policy`), `WorkerIsolationFactsPortToken` (`worker/isolation-facts`); units
+  `isolationDeclarationUnit`, `isolationPolicyUnit` (critical; `init` = `check()` → boot-blocking `SF-PLAT-006`), `isolationReportingUnit`,
+  `uiIsolationPolicyUnit`, `loaderIsolationPolicyUnit`, `surfaceImageIsolationPolicyUnit`, `workerIsolationFactsUnit`;
+  `isolationPortBindings()` (precedence `app`), `isolationUnits(decl, { dev })`.
+- `errors.ts` — `SF-PLAT-001` unknown mode override, `-002` duplicate host mode, `-003` AI probe failed, `-004` no host bridge, `-005` bridge load failed,
+  `-006` isolation required but not isolated, `-007` COEP/CORP violation, `-008` COOP violation.
+
+## Isolation semantics
+- `off` is a no-op binding (attributes, fetch init, iframe attrs all empty; no shared memory). `imageCors` is always CORS cross-origin (canvas taint), any mode.
+- `crossorigin` / `mode: 'cors'` are added only while COEP is in force (`crossOriginIsolated`); under `credentialless`, anonymous media needs no attribute.
+- Embedded hosts always fall back (`status: fallback`, never `blocked`). `gateReason` explains why isolation-dependent features are gated off.
 
 ## Rules
 - Never touch `window`/`navigator`/`matchMedia` directly — only through `PlatformEnv`.

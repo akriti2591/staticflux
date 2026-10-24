@@ -103,6 +103,8 @@ function waitForAbort(signal: AbortSignal): Promise<never> {
   return new Promise((_, reject) => {
     const fail = (): void => reject(signal.reason instanceof Error ? signal.reason : new Error('aborted'));
     if (signal.aborted) fail();
+    // Test helper: the promise and listener live for one contract case only.
+    // sf-lint-disable-next-line no-bare-listener
     else signal.addEventListener('abort', fail, { once: true });
   });
 }

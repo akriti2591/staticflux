@@ -219,7 +219,7 @@ describe('createPluginHost — capability calls', () => {
     expect(client.grants).toEqual(['test/echo', 'test/slow', 'test/wipe']);
     expect(client.events).toEqual(['studio/selection']); // the host does not offer studio/private
     expect(await client.invoke(Echo, { text: 'hi' })).toEqual(ok({ text: 'hi' }));
-    expect(h.calls).toEqual([{ subject: 'agent', plugin: 'acme/counter' }]);
+    expect(h.calls).toEqual([{ subject: 'plugin', plugin: 'acme/counter' }]);
     const spans = h.sink.records.filter((r) => r.type === 'span' && r.name === 'sandbox.call');
     expect(spans).toHaveLength(1);
     const capSpan = h.sink.records.find((r) => r.type === 'span-start' && r.name === 'capability.invoke');
@@ -244,7 +244,7 @@ describe('createPluginHost — capability calls', () => {
     const client = h.clients[0] as PluginClient;
     expect(await client.invoke(Wipe, {})).toEqual(ok({ wiped: true }));
     expect(confirm).toHaveBeenCalledTimes(1);
-    expect(confirm.mock.calls[0]?.[0]).toMatchObject({ subject: 'agent', reason: 'destructive', origin: { channel: 'sandbox/plugin' } });
+    expect(confirm.mock.calls[0]?.[0]).toMatchObject({ subject: 'plugin', reason: 'destructive', origin: { channel: 'sandbox/plugin' } });
     const denied = await client.invoke(Echo, { text: 'x' });
     expect(!denied.ok && denied.error.code).toBe('SF-CAP-003');
     await h.host.dispose();

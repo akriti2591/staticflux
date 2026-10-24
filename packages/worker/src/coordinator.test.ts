@@ -2,23 +2,25 @@ import { createInjector, createMemorySink, createTelemetry, createMachine, err, 
 import { describe, expect, it } from 'vitest';
 import { createFakeTabLifecycle, createMemoryBroadcastHub, createMemoryLocks } from './coordinator-fakes.js';
 import {
-  CoordinatorRoleLifecycle,
-  createCoordinatorHost,
   createJsonSource,
-  createMemorySnapshotStore,
   createPortPair,
-  createTabCoordinator,
   defineReplica,
-  documentTabLifecycle,
   inMemorySpawner,
-  ownedResource,
   type Port,
   type Spawner,
+  WorkerUnsupportedError,
+} from './index.js';
+import {
+  createMemorySnapshotStore,
+  documentTabLifecycle,
+  ownedResource,
+  CoordinatorRoleLifecycle,
+  createCoordinatorHost,
+  createTabCoordinator,
   type TabCoordinator,
   type TabCoordinatorOptions,
   tabCoordinatorUnit,
-  WorkerUnsupportedError,
-} from './index.js';
+} from './coordinator-entry.js';
 
 interface Todos {
   readonly items: readonly string[];

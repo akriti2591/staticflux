@@ -223,3 +223,7 @@ Every `SfError` carries: `code` (stable), `message` (one line), `units` involved
 | `storage/tiered-flush` | clean → dirty → flushing → clean \| failed (retry) | `packages/storage/AGENTS.md` |
 | `hydrate/island` | static → scheduled → loading → hydrating → interactive; any → failed (retryable) \| skipped (gate denied / never) | `packages/hydrate/AGENTS.md` |
 | `hydrate/snapshots` | idle → restoring → restored → saving ⇄ restored; restore skipped on epoch change | `packages/hydrate/AGENTS.md` |
+| `worker/tab-coordinator` | candidate → leader \| follower; leader → stepping-down → candidate; follower → candidate (leader lost); terms numbered, stale terms dropped | `packages/worker/AGENTS.md` |
+| `sandbox/plugin` | loading → handshaking → running ⇄ restarting → failed \| killed \| stopped | `packages/sandbox/AGENTS.md` |
+| `pwa/sw-lifecycle` | installing → installed → activating → activated → redundant | `packages/pwa/AGENTS.md` |
+| `pwa/update` | idle → checking → available → activating → activated \| failed; reload fallback on framework-major change | `packages/pwa/AGENTS.md` |

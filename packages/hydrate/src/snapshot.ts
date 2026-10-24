@@ -320,11 +320,13 @@ export function createSnapshotRegistry(options: SnapshotRegistryOptions): Snapsh
       timedOut = true;
       timer.abort(new DOMException('restore timeout', 'TimeoutError'));
     }, timeoutMs);
+    const settled = new AbortController();
     const abortedOutcome = new Promise<'aborted'>((resolve) => {
       if (combined.aborted) resolve('aborted');
-      combined.addEventListener('abort', () => resolve('aborted'), { once: true });
+      combined.addEventListener('abort', () => resolve('aborted'), { once: true, signal: settled.signal });
     });
     const reads = await Promise.race([Promise.all(ids.map((id) => read(id, combined))), abortedOutcome]);
+    settled.abort();
     if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
 
     const finish = (status: 'ok' | 'cancelled'): RestoreReport => {

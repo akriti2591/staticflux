@@ -419,6 +419,8 @@ export function createIslandHydrator(options: IslandHydratorOptions): IslandHydr
             signal?.removeEventListener('abort', onAbort);
           };
           terminalWaiters.add(waiter);
+          // Removed by the waiter when the island settles (paired removeEventListener above).
+          // sf-lint-disable-next-line no-bare-listener
           signal?.addEventListener('abort', onAbort, { once: true });
         });
       },

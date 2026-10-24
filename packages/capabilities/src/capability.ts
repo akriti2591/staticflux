@@ -29,7 +29,8 @@ import { toJsonSchema } from './schema.js';
 export type CapabilityId = `${string}/${string}`;
 
 /** Policy subjects (R6.17). Agents are distinct, narrower subjects. */
-export type CapabilitySubject = 'user' | 'agent' | 'guest' | 'system';
+/** Who is invoking. `plugin` = an untrusted sandboxed plugin (@staticflux/sandbox); never more privileged than `agent`. */
+export type CapabilitySubject = 'user' | 'agent' | 'plugin' | 'guest' | 'system';
 
 /** Reference to the owning feature (structurally compatible with runtime `featureRef`). */
 export interface CapabilityFeatureRef {

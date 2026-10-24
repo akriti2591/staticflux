@@ -174,7 +174,7 @@ export interface PluginHostOptions {
   readonly events?: readonly PluginEvent[];
   /** Ceiling for every plugin's limits. Default `DEFAULT_PLUGIN_LIMITS`. */
   readonly limits?: PluginLimits;
-  /** Policy subject for plugin calls. Default `'agent'` (non-user: destructive capabilities need confirmation). */
+  /** Policy subject for plugin calls. Default `'plugin'` (non-user: destructive capabilities need confirmation). */
   readonly subject?: CapabilitySubject;
   /** Initial grants. Default: everything the manifest requests (`autoGrant`), or `[]` when `autoGrant: false`. */
   readonly grantPolicy?: (manifest: PluginManifest) => readonly CapabilityId[];
@@ -291,7 +291,7 @@ function idOf(capability: AnyCapability | CapabilityId): CapabilityId {
 function createInstance(manifest: PluginManifest, load: LoadOptions, host: HostContext): PluginInstance {
   const { options, telemetry, clock } = host;
   const limits = effectiveLimits(manifest, host.ceiling);
-  const subject = options.subject ?? 'agent';
+  const subject = options.subject ?? 'plugin';
   const pluginSubject: PluginSubject = Object.freeze({ kind: 'plugin', id: manifest.id, version: manifest.version });
   const events = manifest.events.filter((e) => host.offered.has(e));
   const handshakeTimeoutMs = options.handshakeTimeoutMs ?? 10_000;

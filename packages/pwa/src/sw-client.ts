@@ -48,6 +48,8 @@ export function askServiceWorker<T extends SwToPageMessage['type']>(
     if (options.signal !== undefined) {
       const signal = options.signal;
       const onAbort = (): void => finish(err(AbortedError({ cause: signal.reason })));
+      // Removed via `cleanups` when the request finishes.
+      // sf-lint-disable-next-line no-bare-listener
       signal.addEventListener('abort', onAbort, { once: true });
       cleanups.push(() => signal.removeEventListener('abort', onAbort));
     }
