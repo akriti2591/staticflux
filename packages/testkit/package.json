@@ -2,6 +2,7 @@
   "name": "@staticflux/testkit",
   "version": "0.1.0",
   "description": "Testing toolkit: test injector, deterministic clocks/schedulers, fake session, re-exported package fakes, shared contract suites.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

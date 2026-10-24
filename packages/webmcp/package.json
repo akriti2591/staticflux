@@ -2,6 +2,7 @@
   "name": "@staticflux/webmcp",
   "version": "0.1.0",
   "description": "Publishes capabilities as WebMCP tools through gating and confirmation.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

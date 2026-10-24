@@ -2,6 +2,7 @@
   "name": "@staticflux/storage",
   "version": "0.1.0",
   "description": "One async key-value interface over any backend (memory, web storage, cookies, IndexedDB, OPFS, remote) with composable middleware.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

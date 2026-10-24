@@ -2,6 +2,7 @@
   "name": "@staticflux/ai",
   "version": "0.1.0",
   "description": "Model provider port over browser built-in AI, on-device, decision and remote models.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

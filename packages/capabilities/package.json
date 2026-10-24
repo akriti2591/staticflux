@@ -2,6 +2,7 @@
   "name": "@staticflux/capabilities",
   "version": "0.1.0",
   "description": "Capability registry: typed, schema-described actions callable by UI, command palette, agents and WebMCP.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

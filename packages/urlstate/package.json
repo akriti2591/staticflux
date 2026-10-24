@@ -2,6 +2,7 @@
   "name": "@staticflux/urlstate",
   "version": "0.1.0",
   "description": "URL-state kinds (view/intent/sticky/dialog), declared bindings, URL \u21c4 store sync.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

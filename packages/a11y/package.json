@@ -2,6 +2,7 @@
   "name": "@staticflux/a11y",
   "version": "0.1.0",
   "description": "Focus management, live-region announcer, shortcut registry, preference facts.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

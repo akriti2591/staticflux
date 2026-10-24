@@ -2,6 +2,7 @@
   "name": "@staticflux/advisors",
   "version": "0.1.0",
   "description": "Decision points and pluggable advisors (heuristic, statistical, model, remote).",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

@@ -2,6 +2,7 @@
   "name": "@staticflux/rspack-plugin",
   "version": "0.1.0",
   "description": "Rspack plugin: logical chunk naming, sf-manifest emission, per-profile preloads, SW precache list, Module Federation 2.0 remote mapping, budget report.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

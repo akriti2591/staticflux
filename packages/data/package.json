@@ -2,6 +2,7 @@
   "name": "@staticflux/data",
   "version": "0.1.0",
   "description": "Transports, resources, caching/SWR, batching, schema-first stores with patches, user-data slices.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

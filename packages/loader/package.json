@@ -2,6 +2,7 @@
   "name": "@staticflux/loader",
   "version": "0.1.0",
   "description": "Logical chunk ids, manifest runtime, warmup tiers, speculation, boot plans.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

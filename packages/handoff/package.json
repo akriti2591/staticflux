@@ -2,6 +2,7 @@
   "name": "@staticflux/handoff",
   "version": "0.1.0",
   "description": "Boundary-surviving state with lifetimes; shared snapshot format.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

@@ -2,6 +2,7 @@
   "name": "@staticflux/shell",
   "version": "0.1.0",
   "description": "Layout slots, theming tokens, workspaces, command palette, error boundaries.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

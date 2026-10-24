@@ -2,6 +2,7 @@
   "name": "@staticflux/i18n",
   "version": "0.1.0",
   "description": "Typed message catalogs, ICU-style formatting, lazy locales, RTL.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

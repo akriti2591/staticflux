@@ -2,6 +2,7 @@
   "name": "@staticflux/router",
   "version": "0.1.0",
   "description": "Async navigation pipeline with named stages, typed routes, sub-route view state.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

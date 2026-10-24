@@ -2,6 +2,7 @@
   "name": "@staticflux/worker",
   "version": "0.1.0",
   "description": "Typed envelopes, supervised workers, store replication, core-context sync.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

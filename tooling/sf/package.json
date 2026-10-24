@@ -2,6 +2,7 @@
   "name": "@staticflux/sf",
   "version": "0.1.0",
   "description": "StaticFlux CLI: dependency-graph checks, budget reports, error catalog and manifest generation.",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "sf": "./dist/cli.js"

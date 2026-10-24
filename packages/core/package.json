@@ -2,6 +2,7 @@
   "name": "@staticflux/core",
   "version": "0.1.0",
   "description": "StaticFlux core: tokens, units, injector, scopes, Result, async primitives, telemetry, state machines, reactivity port.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

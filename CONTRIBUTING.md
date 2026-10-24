@@ -297,3 +297,7 @@ form. When you delegate work to an AI agent:
   codes up instead of guessing, and the package `AGENTS.md` files are the API reference.
 - Package gaps found while building an app are worked around in that app's adapter with a `PACKAGE GAP` /
   `WORKAROUND` comment and fixed upstream in a separate change.
+
+## License
+
+By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE).
