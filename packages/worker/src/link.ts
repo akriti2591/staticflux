@@ -222,6 +222,8 @@ export function createLink(options: LinkOptions): Link {
     }
   });
 
+  let unsubscribePortClose: () => void = () => undefined;
+
   const link: Link = {
     name,
     get closed() {
@@ -327,6 +329,7 @@ export function createLink(options: LinkOptions): Link {
       if (closed) return;
       closed = true;
       unsubscribeMessage();
+      unsubscribePortClose();
       for (const settle of [...pending.values()]) settle(err(PortClosedError({ cause: reason, details: { link: name } })));
       pending.clear();
       for (const controller of incoming.values()) controller.abort(reason);
@@ -336,6 +339,7 @@ export function createLink(options: LinkOptions): Link {
       closeListeners.clear();
     },
   };
+  unsubscribePortClose = port.onClose(() => link.close());
   return link;
 }
 

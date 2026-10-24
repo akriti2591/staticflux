@@ -11,6 +11,8 @@ export interface Port {
   onMessage(listener: (data: unknown) => void): () => void;
   /** Listen to transport errors (worker `error`, `messageerror`, simulated crash). */
   onError(listener: (error: SfError) => void): () => void;
+  /** Called once when the port closes (locally, by the peer where detectable, or on crash). */
+  onClose(listener: () => void): () => void;
   /** Stop listening and release the port. Does not terminate a worker (see SpawnedWorker). */
   close(): void;
 }
@@ -18,10 +20,11 @@ export interface Port {
 interface Listeners {
   readonly message: Set<(data: unknown) => void>;
   readonly error: Set<(error: SfError) => void>;
+  readonly close: Set<() => void>;
 }
 
 function createListeners(): Listeners {
-  return { message: new Set(), error: new Set() };
+  return { message: new Set(), error: new Set(), close: new Set() };
 }
 
 function emitAll<T>(set: Set<(value: T) => void>, value: T): void {
@@ -48,11 +51,14 @@ function fromTarget(target: MessageTargetLike, extra: { start?: () => void; clos
   const onMessageError = (): void => {
     emitAll(listeners.error, toSfError(new Error('messageerror: message could not be deserialized')));
   };
+  const onPeerClose = (): void => port.close();
   target.addEventListener('message', onMessage);
   target.addEventListener('messageerror', onMessageError);
+  // MessagePort 'close' (newer Chromium) tells us the peer went away.
+  target.addEventListener('close', onPeerClose);
   (extra.errorTarget ?? target).addEventListener('error', onError);
   extra.start?.();
-  return {
+  const port: Port = {
     postMessage(message, transfer = []) {
       if (closed) return;
       target.postMessage(message, [...transfer]);
@@ -65,17 +71,26 @@ function fromTarget(target: MessageTargetLike, extra: { start?: () => void; clos
       listeners.error.add(listener);
       return () => listeners.error.delete(listener);
     },
+    onClose(listener) {
+      listeners.close.add(listener);
+      return () => listeners.close.delete(listener);
+    },
     close() {
       if (closed) return;
       closed = true;
       target.removeEventListener('message', onMessage);
       target.removeEventListener('messageerror', onMessageError);
+      target.removeEventListener('close', onPeerClose);
       (extra.errorTarget ?? target).removeEventListener('error', onError);
+      const closeListeners = [...listeners.close];
       listeners.message.clear();
       listeners.error.clear();
+      listeners.close.clear();
       extra.close?.();
+      for (const listener of closeListeners) listener();
     },
   };
+  return port;
 }
 
 /** Adapter for a MessagePort (MessageChannel ends, SharedWorker.port, connect-event ports). */
@@ -154,6 +169,7 @@ export function createPortPair(options: PortPairOptions = {}): PortPair {
     peer: InternalSide | undefined;
     receive(data: unknown): void;
     emitError(error: SfError): void;
+    emitClose(): void;
   }
   const makeSide = (): InternalSide => {
     const listeners = createListeners();
@@ -188,6 +204,19 @@ export function createPortPair(options: PortPairOptions = {}): PortPair {
       },
       emitError(error: SfError) {
         emitAll(listeners.error, error);
+      },
+      emitClose() {
+        const closeListeners = [...listeners.close];
+        listeners.close.clear();
+        for (const listener of closeListeners) listener();
+      },
+      onClose(listener: () => void) {
+        if (closed) {
+          listener();
+          return () => undefined;
+        }
+        listeners.close.add(listener);
+        return () => listeners.close.delete(listener);
       },
       onMessage(listener: (data: unknown) => void) {
         listeners.message.add(listener);
@@ -224,7 +253,10 @@ export function createPortPair(options: PortPairOptions = {}): PortPair {
       pair.close();
     },
     close() {
+      if (closed) return;
       closed = true;
+      a.emitClose();
+      b.emitClose();
     },
   };
   return pair;

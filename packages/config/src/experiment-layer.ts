@@ -66,12 +66,12 @@ export function assignVariant(experiment: ExperimentDefinition, targetingKey: st
 
 export interface ExperimentLayerOptions {
   readonly id?: string;
-  readonly experiments: readonly ExperimentDefinition<never>[] | readonly ExperimentDefinition[];
+  readonly experiments: readonly ExperimentDefinition[];
 }
 
 export function createExperimentLayer(options: ExperimentLayerOptions): FlagLayerProvider {
   const byKey = new Map<string, ExperimentDefinition>();
-  for (const experiment of options.experiments as readonly ExperimentDefinition[]) byKey.set(experiment.flag.key, experiment);
+  for (const experiment of options.experiments) byKey.set(experiment.flag.key, experiment);
   return {
     id: options.id ?? 'config/experiments',
     layer: 'experiment',

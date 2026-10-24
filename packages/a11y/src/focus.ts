@@ -126,6 +126,8 @@ function isFocusable(el: Element): boolean {
 
 interface InertRecord {
   count: number;
+  /** Traps on top whose container lies inside this element: inertness is lifted while > 0. */
+  lifted: number;
   readonly attr: 'inert' | 'aria-hidden';
   readonly previous: string | null;
 }
@@ -146,25 +148,52 @@ export function createFocusManager(options: FocusManagerOptions): FocusManager {
     return doc.activeElement === el;
   };
 
+  const apply = (el: Element, record: InertRecord): void => {
+    if (record.count > 0 && record.lifted === 0) el.setAttribute(record.attr, record.attr === 'inert' ? '' : 'true');
+    else if (record.previous === null) el.removeAttribute(record.attr);
+    else el.setAttribute(record.attr, record.previous);
+  };
+
   const makeInert = (el: Element): void => {
-    const existing = inert.get(el);
-    if (existing !== undefined) {
-      existing.count += 1;
-      return;
+    let record = inert.get(el);
+    if (record === undefined) {
+      const attr = supportsInert ? 'inert' : 'aria-hidden';
+      record = { count: 0, lifted: 0, attr, previous: el.getAttribute(attr) };
+      inert.set(el, record);
     }
-    const attr = supportsInert ? 'inert' : 'aria-hidden';
-    inert.set(el, { count: 1, attr, previous: el.getAttribute(attr) });
-    el.setAttribute(attr, attr === 'inert' ? '' : 'true');
+    record.count += 1;
+    apply(el, record);
   };
 
   const releaseInert = (el: Element): void => {
     const record = inert.get(el);
     if (record === undefined) return;
     record.count -= 1;
-    if (record.count > 0) return;
-    inert.delete(el);
-    if (record.previous === null) el.removeAttribute(record.attr);
-    else el.setAttribute(record.attr, record.previous);
+    apply(el, record);
+    if (record.count <= 0 && record.lifted <= 0) inert.delete(el);
+  };
+
+  /** A trap opened inside an element a lower trap made inert lifts that inertness while it is open. */
+  const liftAround = (container: Element): Element[] => {
+    const lifted: Element[] = [];
+    for (let node: Element | null = container; node !== null; node = node.parentElement) {
+      const record = inert.get(node);
+      if (record === undefined) continue;
+      record.lifted += 1;
+      apply(node, record);
+      lifted.push(node);
+    }
+    return lifted;
+  };
+
+  const unlift = (elements: readonly Element[]): void => {
+    for (const el of elements) {
+      const record = inert.get(el);
+      if (record === undefined) continue;
+      record.lifted -= 1;
+      apply(el, record);
+      if (record.count <= 0 && record.lifted <= 0) inert.delete(el);
+    }
   };
 
   /** Siblings of the container and of each of its ancestors, up to <body>. */
@@ -186,6 +215,7 @@ export function createFocusManager(options: FocusManagerOptions): FocusManager {
     readonly scope: Scope;
     readonly background: Element[];
     readonly previous: Element | null;
+    lifted: Element[] = [];
     constructor(
       readonly container: HTMLElement,
       readonly label: string,
@@ -208,6 +238,7 @@ export function createFocusManager(options: FocusManagerOptions): FocusManager {
       const index = stack.indexOf(this);
       if (index >= 0) stack.splice(index, 1);
       for (const el of this.background) releaseInert(el);
+      unlift(this.lifted);
       void this.scope.dispose();
       if (wasTop) {
         const next = stack[stack.length - 1];
@@ -299,6 +330,7 @@ export function createFocusManager(options: FocusManagerOptions): FocusManager {
       if (top !== undefined && top.machine.state === 'active') top.machine.send('pause');
       const trap = new TrapImpl(container, label, trapOptions);
       stack.push(trap);
+      trap.lifted = liftAround(container);
       for (const el of trap.background) makeInert(el);
       trap.scope.listen(doc, 'keydown', (event) => trap.onKeydown(event as KeyboardEvent), { capture: true });
       trap.scope.listen(doc, 'focusin', (event) => trap.onFocusIn(event as FocusEvent), { capture: true });

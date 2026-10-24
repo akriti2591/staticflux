@@ -18,9 +18,9 @@ export interface LockManagerLike {
 
 /** `navigator.locks` when available. */
 export function detectLocks(): LockManagerLike | undefined {
-  const nav = (globalThis as { navigator?: { locks?: LockManagerLike } }).navigator;
+  const nav = (globalThis as { navigator?: { locks?: LockManagerLike | null } }).navigator;
   const locks = nav?.locks;
-  return locks !== undefined && typeof locks.request === 'function' ? locks : undefined;
+  return locks !== undefined && locks !== null && typeof locks.request === 'function' ? locks : undefined;
 }
 
 export type LeaderMode = 'web-locks' | 'single-tab';

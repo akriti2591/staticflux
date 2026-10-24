@@ -2,10 +2,10 @@
  * DI units for the runtime services. Apps register them (e.g. `...runtimeUnits`)
  * and override any of them with `bind(..., { precedence: 'app' })`.
  */
-import { type AnyUnit, box, ok, unit } from '@staticflux/core';
+import { box, ok, unit, type UnitDefinition } from '@staticflux/core';
 import { createMemoryArchiveStore } from './archive.js';
 import { createFeatureHost } from './feature-host.js';
-import type { MemoryPressure, ReactiveInput, ResourceBudgets } from './resource-manager.js';
+import type { MemoryPressure, ReactiveInput, ResourceBudgets, ResourceManager } from './resource-manager.js';
 import { createResourceManager } from './resource-manager.js';
 import { createFrameScheduler, type FrameScheduler } from './scheduler.js';
 import { defineSubsystem, type Subsystem } from './subsystem.js';
@@ -41,7 +41,8 @@ export function frameSchedulerSubsystem(scheduler: FrameScheduler): Subsystem {
     start: () => undefined,
     pause: () => scheduler.pause(),
     resume: () => scheduler.resume(),
-    stop: () => scheduler.dispose(),
+    // Disposal belongs to the unit scope; a reinitialize must leave the scheduler usable.
+    stop: () => scheduler.resume(),
     description: 'Pauses/resumes the frame scheduler with the app.',
   });
 }
@@ -51,7 +52,8 @@ export const frameSchedulerSubsystemUnit = unit({
   provides: SubsystemsToken,
   scope: 'app',
   deps: { required: { scheduler: FrameSchedulerToken } },
-  create: ({ scheduler }) => frameSchedulerSubsystem(scheduler),
+  // Multi-token contribution: each unit contributes one item (core types the value as the list).
+  create: ({ scheduler }) => frameSchedulerSubsystem(scheduler) as never,
 });
 
 export const memoryArchiveStoreUnit = unit({
@@ -97,8 +99,14 @@ export interface ResourceManagerUnitOptions {
   readonly pressureBudgets?: { readonly moderate?: Partial<ResourceBudgets>; readonly critical?: Partial<ResourceBudgets> };
 }
 
+export type ResourceManagerUnit = UnitDefinition<
+  ResourceManager,
+  { readonly required: { readonly host: typeof FeatureHostToken; readonly pressure: typeof MemoryPressureToken } },
+  'runtime/resource-manager'
+>;
+
 /** A resource-manager unit with app-specific framework budgets (e.g. per device tier). */
-export function resourceManagerUnitWith(options: ResourceManagerUnitOptions = {}): AnyUnit {
+export function resourceManagerUnitWith(options: ResourceManagerUnitOptions = {}): ResourceManagerUnit {
   return unit({
     id: 'runtime/resource-manager-unit',
     provides: ResourceManagerToken,

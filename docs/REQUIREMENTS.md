@@ -212,6 +212,8 @@
 - **R11.15** Wasm runs in workers by default; main-thread Wasm only by explicit declaration for tiny synchronous work, with a budget.
 - **R11.16** Wasm feature facts (SIMD, threads, memory64, exceptions, GC) and **cross-origin isolation** are platform facts; variants pick builds (e.g. SIMD vs scalar). Everything needing `SharedArrayBuffer` has a non-shared fallback (embedded hosts cannot set COOP/COEP).
 
+- **R11.16a** **Isolation is a per-app choice**: apps declare `isolation: 'required' | 'preferred' | 'off'`. `crossOriginIsolated` is a platform fact; channels, Wasm builds and features select shared vs transfer paths automatically with no feature-code changes. `required` but not isolated → boot error with a stable code and fix (add COOP/COEP), and isolation-dependent features gated off with a reason. Embedded modes always fall back. Optional plugin: service-worker-injected COOP/COEP for static hosts (costs one reload on first visit).
+
 ### Channels between threads
 - **R11.17** Three channel classes: **control** (structured-clone envelopes: lifecycle, intents, patches), **data** (transferable ArrayBuffers: snapshots, images, meshes), **frame** (SharedArrayBuffer ring buffers + Atomics when isolated; double-buffered transfer otherwise).
 - **R11.18** **Declared binary layouts**: one schema generates typed-array views (TS) and a matching struct layout for Wasm — zero-decode per frame. Protobuf/FlatBuffers only as transport/persistence codecs (plugins), never in the render loop.

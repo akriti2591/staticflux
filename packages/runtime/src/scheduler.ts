@@ -181,6 +181,10 @@ function defaultRaf(callback: (time: number) => void): unknown {
 
 // ---------------------------------------------------------------- implementation
 
+function isAborted(signal: AbortSignal | undefined): boolean {
+  return signal?.aborted === true;
+}
+
 interface QueuedTask {
   readonly run: () => void;
   readonly cancel: (error: SfError) => void;
@@ -430,7 +434,8 @@ export function createFrameScheduler(options: FrameSchedulerOptions = {}): Frame
       if (disposed) return err(SchedulerDisposedError());
       if (signal?.aborted === true) return err(AbortedError({ cause: signal.reason }));
       await yieldFn();
-      if (signal?.aborted === true) return err(AbortedError({ cause: signal.reason }));
+      // Re-read after the await (the signal may have aborted meanwhile).
+      if (isAborted(signal)) return err(AbortedError({ cause: signal?.reason }));
       return waitForResume(signal);
     },
     idleUntilUrgent<T>(fn: () => T, idleOptions: { readonly signal?: AbortSignal } = {}): IdleUntilUrgent<T> {

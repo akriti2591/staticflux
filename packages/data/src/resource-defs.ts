@@ -133,7 +133,7 @@ export function defineSubscription<I, C, V>(init: {
   return Object.freeze({
     ...init,
     kind: 'subscription',
-    reconnect: init.reconnect ?? { attempts: 5, baseDelayMs: 500, maxDelayMs: 15_000, jitter: 'full' },
+    reconnect: init.reconnect ?? { attempts: 5, baseDelayMs: 500, maxDelayMs: 15_000, jitter: 'full' as const },
   });
 }
 

@@ -8,6 +8,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./flag": {
+      "types": "./dist/flag.d.ts",
+      "import": "./dist/flag.js"
     }
   },
   "files": [
