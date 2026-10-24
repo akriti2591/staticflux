@@ -122,7 +122,7 @@ export function isEmbedded(env: PlatformEnv): boolean {
   const win = env.window;
   if (win === undefined) return false;
   try {
-    return win.self !== undefined && win.top !== undefined && win.self !== win.top;
+    return win.self !== win.top;
   } catch {
     return true;
   }

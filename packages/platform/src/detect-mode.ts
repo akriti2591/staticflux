@@ -10,7 +10,7 @@
  * Precedence: dev URL flag (`?sf-mode=embed-agent-host:compact`) > config override > detection.
  */
 import { isEmbedded, mediaMatches, type PlatformEnv, readGlobal } from './env.js';
-import { BUILT_IN_FORM_FACTORS, computeFormFactor, type FormFactorDefinition, type FormFactorId } from './form-factor.js';
+import { BUILT_IN_FORM_FACTORS, type FormFactorDefinition, type FormFactorId } from './form-factor.js';
 
 /** Open set of host mode ids; extend via declaration merging (R18.3a). */
 export interface HostModeRegistry {
@@ -129,21 +129,23 @@ export function parseModeOverride(
   formFactors: readonly FormFactorId[],
   param: string = DEFAULT_MODE_PARAM,
 ): { readonly override: ModeOverride; readonly ignored: readonly string[] } {
-  const raw = new URLSearchParams(search).get(param);
-  if (raw === null || raw === '') return { override: {}, ignored: [] };
-  let hostMode: HostModeId | undefined;
-  let formFactor: FormFactorId | undefined;
+  const raw = new URLSearchParams(search).get(param) ?? '';
+  const override: { hostMode?: HostModeId; formFactor?: FormFactorId } = {};
   const ignored: string[] = [];
   for (const part of raw.split(/[:,]/)) {
     if (part === '') continue;
-    if ((hostModes as readonly string[]).includes(part)) hostMode = part as HostModeId;
-    else if ((formFactors as readonly string[]).includes(part)) formFactor = part as FormFactorId;
+    if ((hostModes as readonly string[]).includes(part)) override.hostMode = part as HostModeId;
+    else if ((formFactors as readonly string[]).includes(part)) override.formFactor = part as FormFactorId;
     else ignored.push(part);
   }
-  return {
-    override: { ...(hostMode === undefined ? {} : { hostMode }), ...(formFactor === undefined ? {} : { formFactor }) },
-    ignored,
-  };
+  return { override, ignored };
+}
+
+/** Widest class whose `minWidth` fits (no hysteresis: there is no previous value at boot). */
+export function rawFormFactor(width: number, formFactors: readonly FormFactorDefinition[]): FormFactorId {
+  let best: FormFactorDefinition | undefined;
+  for (const f of formFactors) if (width >= f.minWidth && (best === undefined || f.minWidth > best.minWidth)) best = f;
+  return best?.id ?? 'compact';
 }
 
 /** Detect the app profile before boot. Pure function of `env` and options. */
@@ -151,21 +153,18 @@ export function detectMode(env: PlatformEnv, options: DetectModeOptions = {}): D
   const detectors = options.detectors ?? BUILT_IN_DETECTORS;
   const formFactors = options.formFactors ?? BUILT_IN_FORM_FACTORS;
   const param = options.urlParam ?? DEFAULT_MODE_PARAM;
-  const url =
-    param === false
-      ? { override: {} as ModeOverride, ignored: [] as readonly string[] }
-      : parseModeOverride(
-          env.window?.location?.search ?? '',
-          detectors.map((d) => d.id),
-          formFactors.map((f) => f.id),
-          param,
-        );
+  const url = parseModeOverride(
+    param === false ? '' : (env.window?.location?.search ?? ''),
+    detectors.map((d) => d.id),
+    formFactors.map((f) => f.id),
+    param === false ? DEFAULT_MODE_PARAM : param,
+  );
   const config = options.override ?? {};
   const pick = <T>(fromUrl: T | undefined, fromConfig: T | undefined, detect: () => T): [T, ModeSource] =>
     fromUrl !== undefined ? [fromUrl, 'url'] : fromConfig !== undefined ? [fromConfig, 'config'] : [detect(), 'detected'];
   const [hostMode, hostModeSource] = pick(url.override.hostMode, config.hostMode, () => detectHostMode(env, detectors));
   const [formFactor, formFactorSource] = pick(url.override.formFactor, config.formFactor, () =>
-    computeFormFactor(env.window?.innerWidth ?? 0, formFactors),
+    rawFormFactor(env.window?.innerWidth ?? 0, formFactors),
   );
   return { hostMode, formFactor, hostModeSource, formFactorSource, ignored: url.ignored };
 }

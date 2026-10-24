@@ -1,15 +1,17 @@
-import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 // Tests import workspace packages from source, so no build is needed to test.
+// `@staticflux/<pkg>` → packages/<pkg>/src/index.ts; `@staticflux/<pkg>/<sub>` → packages/<pkg>/src/<sub>.ts
 const packagesDir = fileURLToPath(new URL('./packages', import.meta.url));
-const alias = Object.fromEntries(
-  readdirSync(packagesDir).map((name) => [`@staticflux/${name}`, `${packagesDir}/${name}/src/index.ts`]),
-);
 
 export default defineConfig({
-  resolve: { alias: [{ find: '@staticflux/core/graph', replacement: `${packagesDir}/core/src/graph.ts` }, ...Object.entries(alias).map(([find, replacement]) => ({ find, replacement }))] },
+  resolve: {
+    alias: [
+      { find: /^@staticflux\/([^/]+)\/(.+)$/, replacement: `${packagesDir}/$1/src/$2.ts` },
+      { find: /^@staticflux\/([^/]+)$/, replacement: `${packagesDir}/$1/src/index.ts` },
+    ],
+  },
   test: {
     include: ['packages/*/src/**/*.test.ts', 'tooling/*/src/**/*.test.ts', 'apps/*/src/**/*.test.ts'],
     environment: 'happy-dom',

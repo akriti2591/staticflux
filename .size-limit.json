@@ -2,14 +2,23 @@
   {
     "name": "@staticflux/core (full runtime surface)",
     "path": "packages/core/dist/index.js",
-    "ignore": ["mobx"],
+    "ignore": [
+      "mobx"
+    ],
     "limit": "9.5 KB"
   },
   {
     "name": "@staticflux/core (typical boot: injector + units + telemetry)",
     "path": "packages/core/dist/index.js",
     "import": "{ createInjector, unit, token, createTelemetry, ok, err }",
-    "ignore": ["mobx"],
+    "ignore": [
+      "mobx"
+    ],
     "limit": "7.5 KB"
+  },
+  {
+    "name": "@staticflux/platform detect-mode (inline boot detector)",
+    "path": "packages/platform/dist/detect-mode.js",
+    "limit": "1.1 KB"
   }
 ]

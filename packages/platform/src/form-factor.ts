@@ -35,9 +35,13 @@ export function defineFormFactor<const Id extends FormFactorId>(definition: Form
   return definition;
 }
 
-export const compactFormFactor = defineFormFactor({ id: 'compact', minWidth: 0, description: 'Phones, narrow windows.' });
-export const mediumFormFactor = defineFormFactor({ id: 'medium', minWidth: 600, description: 'Tablets portrait, foldables.' });
-export const expandedFormFactor = defineFormFactor({ id: 'expanded', minWidth: 840, description: 'Tablets landscape, desktops.' });
+// Descriptions live in comments, not data: these ship in the inline detector (< 1 KB).
+/** Phones, narrow windows. */
+export const compactFormFactor = defineFormFactor({ id: 'compact', minWidth: 0 });
+/** Tablets in portrait, foldables, split windows. */
+export const mediumFormFactor = defineFormFactor({ id: 'medium', minWidth: 600 });
+/** Tablets in landscape, desktops. */
+export const expandedFormFactor = defineFormFactor({ id: 'expanded', minWidth: 840 });
 
 export const BUILT_IN_FORM_FACTORS: readonly FormFactorDefinition[] = [compactFormFactor, mediumFormFactor, expandedFormFactor];
 

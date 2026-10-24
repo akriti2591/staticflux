@@ -186,3 +186,11 @@ reserve → denied(quota | rate)
 ## 13. Error format
 
 Every `SfError` carries: `code` (stable), `message` (one line), `units` involved, `scope`, `traceId`, `fix` (suggested remedy), `docs` (link into the machine-readable catalog `docs/errors.json`). Agents look codes up instead of guessing.
+
+## 14. Package-level machines (added during implementation)
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `platform/ai-probe` | unknown → probing → available \| downloadable \| downloading \| unavailable | `packages/platform/src` |
+| `platform/facts-source` | idle → listening → disposed | `packages/platform/src` |
+| `config/provider` | not-ready → ready ⇄ stale; ready → error → ready; any → fatal | `packages/config/src/resolver.ts` header |
