@@ -206,8 +206,6 @@ describe('supervised worker', () => {
   it('crash → respawn: idempotent in-flight requests retry, others fail with SF-WK-004', async () => {
     const h = harness();
     const worker = supervise(h);
-    const telemetry = createTelemetry();
-    void telemetry;
     await worker.start();
     const states: string[] = [];
     worker.onStateChange((r) => states.push(r.to));
@@ -220,7 +218,7 @@ describe('supervised worker', () => {
     const lostResult = await lost;
     expect(!lostResult.ok && lostResult.error.code).toBe('SF-WK-004');
     expect(await retried).toEqual(ok({ text: 'again', attempt: 2, epoch: 0 }));
-    expect(states.slice(0, 6)).toEqual(['crashed', 'respawning', 'spawning', 'handshaking', 'ready', 'busy']);
+    expect(states.slice(0, 7)).toEqual(['busy', 'crashed', 'respawning', 'spawning', 'handshaking', 'ready', 'busy']);
     expect(worker.inspect()).toMatchObject({ attempt: 2, restarts: 1, state: 'ready' });
     expect(h.hooks.setupSession).toEqual(['authenticated', 'authenticated']);
   });

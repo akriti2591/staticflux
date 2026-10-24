@@ -390,11 +390,12 @@ export function createFlagResolver(options: FlagResolverOptions = {}): FlagResol
       send(entry, 'ready');
       span.end('ok');
       if (usedKey !== currentKey) reconcile(entry, usedContext, currentContext);
-    } else if (result.error.kind === 'aborted') {
+    } else if (toSfError(result.error).kind === 'aborted') {
       entry.initStarted = false;
-      span.end('cancelled', result.error);
+      span.end('cancelled', toSfError(result.error));
     } else {
-      const error = result.error.code.startsWith('SF-CFG-') ? result.error : ProviderInitFailedError({ cause: result.error, details: { provider: entry.provider.id } });
+      const cause = toSfError(result.error);
+      const error = cause.code.startsWith('SF-CFG-') ? cause : ProviderInitFailedError({ cause, details: { provider: entry.provider.id } });
       entry.error.set(error);
       send(entry, 'error');
       span.end('error', error);
