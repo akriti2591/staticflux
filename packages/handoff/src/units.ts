@@ -5,6 +5,8 @@
  * logout/sweep cover them.
  */
 import { ok, token, unit, type UnitDefinition } from '@staticflux/core';
+import { StoreRegistryToken } from '@staticflux/storage';
+import { handoffStoragesFromStores } from './async-store.js';
 import type { AnyHandoffSlot } from './slot.js';
 import { detectHandoffStorages, type HandoffStorages, memoryHandoffStorages } from './storage.js';
 import { createHandoffStore, type HandoffStore } from './store.js';
@@ -29,6 +31,30 @@ export const memoryHandoffStoragesUnit = unit({
   scope: 'app',
   create: () => memoryHandoffStorages(),
   description: 'Memory-only storages (embedded hosts without storage, tests).',
+});
+
+/**
+ * Storages from the `@staticflux/storage` registry (R9.0d): `tab` = session-scope
+ * store, `origin` = device-scope store, both namespace `handoff`. Scopes the
+ * registry had to back with memory are reported as degraded.
+ */
+export const registryHandoffStoragesUnit = unit({
+  id: 'handoff/registry-storages-unit',
+  provides: HandoffStoragesToken,
+  scope: 'app',
+  deps: { required: { registry: StoreRegistryToken } },
+  create: ({ registry }) => {
+    const tab = registry.open('session', 'handoff');
+    const origin = registry.open('device', 'handoff');
+    const report = registry.report();
+    const degraded = (scope: 'session' | 'device'): boolean => report.some((r) => r.scope === scope && r.namespace === 'handoff' && r.degraded);
+    return handoffStoragesFromStores({
+      tab,
+      origin,
+      degraded: [...(degraded('session') ? (['tab'] as const) : []), ...(degraded('device') ? (['origin'] as const) : [])],
+    });
+  },
+  description: 'Handoff storages over the storage registry (session → tab, device → origin).',
 });
 
 /** Contribute a slot declaration. */

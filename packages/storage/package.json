@@ -14,7 +14,7 @@
     "dist"
   ],
   "staticflux": {
-    "layer": "vertical"
+    "layer": "runtime"
   },
   "dependencies": {
     "@staticflux/core": "workspace:*"

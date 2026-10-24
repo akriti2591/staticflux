@@ -463,12 +463,12 @@ describe('gate: performance sanity', () => {
     }
     const decideMs = performance.now() - start;
     expect(allowed).toBeGreaterThan(0);
-    expect(decideMs).toBeLessThan(50);
+    expect(decideMs).toBeLessThan(250) // generous: CI runs many test files in parallel; locally ~5 ms;
     expect(compileMs).toBeLessThan(500);
     // Changing one fact recomputes only entries that read it.
     const recomputeStart = performance.now();
     facts.set(GateFacts.plan, 'pro');
-    expect(performance.now() - recomputeStart).toBeLessThan(50);
+    expect(performance.now() - recomputeStart).toBeLessThan(250);
     expect(gate.decide('ui-slot', 'r3')).toMatchObject({ effect: 'allow' });
     expect(gate.decide('feature', 'r0')).toMatchObject({ effect: 'deny', reason: 'quota' }); // costed, balance unknown → fail closed
   });

@@ -1,6 +1,6 @@
 # @staticflux/data — AGENTS.md
 
-**Layer:** vertical (depends only on `@staticflux/core`; no MobX import — reactivity goes through core's port).
+**Layer:** vertical (depends on `@staticflux/core` and `@staticflux/storage` (types + adapters for R9.0d); no MobX import — reactivity goes through core's port).
 **Budget:** counts toward the ≤ 45 KB framework boot budget (R12.7). Boot path = `client` + `resources` + one transport
 (≈ 17 KB gzip unminified with comments, est. 7–8 KB minified). SSE/WS/IndexedDB/mock adapters are separate modules and tree-shake away.
 
@@ -28,7 +28,9 @@ Requirements: R9.1–R9.12, R4.3/R4.6/R4.7 (epoch, pause, SWR on refresh), R10.1
 - `patches.ts` — `PatchOp`, `createTransaction`, `applyPatchOps`, `produceWithPatches`, `PATCH_FORMAT_VERSION`.
 - `store.ts` — `defineStore({ id, version, schema, initial, actions })` → `.create()` (owner) / `.replica({ sink })`.
 - `slices.ts` — `defineSlice`, `SliceMachine` (LIFECYCLES §10), `migrateRecord`. `storage.ts` — memory / IndexedDB backends,
-  `detectLocalBackend`, `RemoteSyncPort` + `createMockRemoteSync`. `user-data.ts` — `createUserData` (slice handles, flush, sync,
+  `detectLocalBackend`, `RemoteSyncPort` + `createMockRemoteSync`. `async-store.ts` (R9.0d) — `sliceBackendFromStore(asyncStore, { id })`
+  (local `SliceBackend` over any `@staticflux/storage` `AsyncStore`; one flush = one `batch`; failures `SF-DATA-054` with `details.code`;
+  non-record/undecodable entries read as absent), `remoteSyncFromStore(asyncStore)` (`RemoteSyncPort`; failures `SF-DATA-056`), `isSliceRecord`. `user-data.ts` — `createUserData` (slice handles, flush, sync,
   `setIdentity`, `logout`, `document()`).
 - `units.ts` — tokens `DataTransportToken`, `EpochSourceToken`, `PauseControlToken`, `DataClientToken`, `ResourcesToken`
   (session scope), `UserDataConfigToken`, `UserDataToken`; units `epochSourceUnit`, `pauseControlUnit`, `dataClientUnit`/`dataClientUnitWith`,

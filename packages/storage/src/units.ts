@@ -9,7 +9,7 @@
  * units: [storeRegistryUnit, ...browserStoreFactoryUnits(), namespacedStoreUnit({
  *   id: 'studio/prefs-store-unit', provides: PrefsStoreToken, storeScope: 'device', namespace: 'studio/prefs' })]
  */
-import { contribution, type Result, type ScopeLevel, type Token, type TokenId, token, unit, type UnitDefinition } from '@staticflux/core';
+import { contribution, ok, type Result, type ScopeLevel, type Token, type TokenId, token, unit, type UnitDefinition } from '@staticflux/core';
 import { borrowed } from './create.js';
 import { fallback, type StoreCandidate } from './fallback.js';
 import { createIndexedDbStore, type IndexedDbStoreOptions } from './indexeddb.js';
@@ -133,7 +133,7 @@ export function webStorageStoreFactory(scope: StoreScope): StoreFactory {
 }
 
 export function memoryStoreFactory(scope: StoreScope): StoreFactory {
-  return { scope, id: 'memory', priority: 0, create: (namespace) => ({ ok: true, value: createMemoryStore({ id: `memory(${scope}/${namespace})` }) }) };
+  return { scope, id: 'memory', priority: 0, create: (namespace) => ok(createMemoryStore({ id: `memory(${scope}/${namespace})` })) };
 }
 
 /**

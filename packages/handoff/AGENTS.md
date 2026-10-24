@@ -1,6 +1,6 @@
 # @staticflux/handoff — AGENTS.md
 
-**Layer:** vertical (depends only on `@staticflux/core`).
+**Layer:** vertical (depends on `@staticflux/core` and `@staticflux/storage` for the R9.0d adapter).
 **Budget:** full surface ≤ 5.5 KB brotli (measured 5.1 KB minified, core external).
 
 ## Purpose
@@ -15,12 +15,15 @@ host↔embed, sub-route/view and mode changes — with declared lifetimes
 - `slot.ts` — `defineHandoff<T>({ key, version, lifetime: 'one-shot'|'session'|{ttlMs}, scope: 'memory'|'tab'|'origin', schema?, migrations?, maxAgeMs? })`, `lifetimeKind`, `effectiveTtl`.
 - `storage.ts` — `HandoffStorage` port (async; IndexedDB/OPFS adapters implement the same interface), `createMemoryStorage`, `createWebStorage`, `probeWebStorage`,
   `detectHandoffStorages()` (degrades to memory; reports `degraded`), `memoryHandoffStorages()`, `STORAGE_PREFIX`; `SF-HANDOFF-006`.
+- `async-store.ts` (R9.0d) — `handoffStorageFromStore(asyncStore, { kind, durable })` (the port over any `@staticflux/storage` `AsyncStore`;
+  errors → `SF-HANDOFF-006` with `details.code`; undecodable `SF-STORE-003` entries read as non-envelopes and are discarded), `handoffStoragesFromStores({ memory?, tab?, origin?, degraded? })`
+  (missing scopes → memory, reported degraded). The storage `envelopeCodec` writes this package's envelope format, so both sides read each other.
 - `store.ts` — `createHandoffStore({ storages, slots, now, telemetry })` → `register`, `put`, `take` (consume), `peek`, `peekEnvelope`, `discard`, `clear({ lifetime, scope })`, `sweep`, `isDegraded`, `inspect`;
   machine `HandoffEntryMachine` (`handoff/entry`); `HandoffMetrics`; `SF-HANDOFF-007` slot key collision.
 - `redirect.ts` — `prepareLoginRedirect(store, { returnTo, carry: [carry(slot, data)], nonce? })` / `completeLoginRedirect(store, { nonce, slots })`, `LoginReturnSlot`, `isSafeReturnPath`;
   guest migration `GuestMigrationSlot`, `stageGuestMigration`, `takeGuestMigration`; `createSlotHold(store, slot)` (implements urlstate's `IntentHoldPort`); `SF-HANDOFF-008…010`.
 - `view.ts` — `createViewStateHandoff(store, { key, version, scope?, schema? })` → `remember/recall/forget` (per view) and `pass/receive` (one-shot to the next view/variant); `persistOnHide({ document, window }, scope, save)`.
-- `units.ts` — tokens `HandoffStoragesToken`, `HandoffSlotsToken` (multi), `HandoffStoreToken`; units `browserHandoffStoragesUnit`, `memoryHandoffStoragesUnit`, `handoffSlotUnit(slot)`, `handoffStoreUnit` (sweeps on init).
+- `units.ts` — tokens `HandoffStoragesToken`, `HandoffSlotsToken` (multi), `HandoffStoreToken`; units `browserHandoffStoragesUnit`, `memoryHandoffStoragesUnit`, `registryHandoffStoragesUnit` (storage registry: session scope → tab, device scope → origin, namespace `handoff`), `handoffSlotUnit(slot)`, `handoffStoreUnit` (sweeps on init).
 
 ## Rules
 - Payloads are small and serializable (ids, drafts, scroll) — documents go to an IndexedDB-backed storage.

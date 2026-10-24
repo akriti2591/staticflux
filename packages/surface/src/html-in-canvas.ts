@@ -78,7 +78,7 @@ export interface Affine {
 
 export const IDENTITY: Affine = Object.freeze({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
 
-/** Minimal 2D context used by the adapter. */
+/** What the adapter reads from a 2D context (`draw` accepts any 2D context object). */
 export interface Drawable2D {
   getTransform?(): Affine;
 }
@@ -97,7 +97,7 @@ export interface HtmlInCanvasAdapter {
    * Draw `element` at (x, y) in the context's coordinate space. Native: calls the draw API and syncs
    * the returned hit-testing transform; overlay: positions the element over the canvas.
    */
-  draw(context: Drawable2D, element: HTMLElement, x: number, y: number, width?: number, height?: number): void;
+  draw(context: object, element: HTMLElement, x: number, y: number, width?: number, height?: number): void;
   /** Upload `element` into a GPU texture (native only); `args` are passed to the API as-is. */
   drawToTexture(api: 'webgl' | 'webgpu', target: unknown, element: HTMLElement, ...args: readonly unknown[]): Result<void>;
   /** Position `element` for hit testing / overlay at a canvas-space transform (3D: project the quad yourself). */
@@ -204,7 +204,7 @@ export function createHtmlInCanvas(options: HtmlInCanvasOptions): Result<HtmlInC
         return;
       }
       syncOverlay();
-      const m = context.getTransform?.() ?? IDENTITY;
+      const m = (context as Drawable2D).getTransform?.() ?? IDENTITY;
       place(element, { a: m.a, b: m.b, c: m.c, d: m.d, e: m.a * x + m.c * y + m.e, f: m.b * x + m.d * y + m.f }, width, height);
     },
     drawToTexture(api, target, element, ...args) {

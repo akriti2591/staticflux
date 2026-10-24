@@ -1,6 +1,6 @@
 # @staticflux/runtime — AGENTS.md
 
-**Layer:** runtime (depends only on `@staticflux/core`).
+**Layer:** runtime (depends on `@staticflux/core`; `@staticflux/storage` only for the archive adapter/unit, R9.0d).
 **Budget:** boot surface (`createSupervisor`, `bootApp`, `createFrameScheduler`, tokens) ≈ 12 KB gzip measured
 (tsc output, unminified); feature host + resource manager ≈ 8.5 KB gzip more, loadable after core-ready.
 Counts toward the 45 KB "framework runtime at boot" budget (R12.7). No size-limit entry yet.
@@ -27,7 +27,9 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
 - `feature-host.ts` — `createFeatureHost({ injector, archive, gate, load })`: `register`, `load`, `activate`, `mount`,
   `hide`, `show`, `unmount`, `deactivate`, `archive`, `evict`, `handle` (reactive), `info`, `list`, `refCount`,
   `touch`, `mark` (readiness marks), `onTransition`, `onSettled`, `dispose`.
-- `archive.ts` — `ArchiveStore` port, `SnapshotEnvelope` (`sf-snapshot/1`, shared with handoff), `createMemoryArchiveStore`.
+- `archive.ts` — `ArchiveStore` port, `SnapshotEnvelope` (`sf-snapshot/1`, shared with handoff), `createMemoryArchiveStore`,
+  `archiveStoreFromStore(asyncStore)` (R9.0d: any `@staticflux/storage` `AsyncStore`, e.g. IndexedDB/OPFS; snapshots keyed by feature id;
+  backend errors and non-`sf-snapshot/1` entries → `SF-FT-009` with `details.code`, bad entries deleted).
 - `resource-manager.ts` — `createResourceManager({ host, budgets, pressureBudgets, pressure, rank })`, `MemoryPressure`,
   `ResourceBudgets`, `DEFAULT_BUDGETS`, `DEFAULT_PRESSURE_BUDGETS`.
 - `scheduler.ts` — `createFrameScheduler(env)`: `schedule` (coalesced update jobs), `measure`, `mutate`, `postTask`
@@ -36,7 +38,7 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
 - `tokens.ts` — `SupervisorToken`, `AppInjectorToken` (both provided by `bootApp`), `FrameSchedulerToken`,
   `FeatureHostToken`, `ResourceManagerToken`, `ArchiveStoreToken`, `MemoryPressureToken`, `CommandPolicyToken`,
   `PausedRequestPolicyToken`, `FeatureManifestsToken` (multi), `SubsystemsToken` (multi), `BOOT_PROVIDED_TOKENS`.
-- `units.ts` — `runtimeUnits` (all defaults), `frameSchedulerUnit`, `frameSchedulerSubsystemUnit`, `memoryArchiveStoreUnit`,
+- `units.ts` — `runtimeUnits` (all defaults), `frameSchedulerUnit`, `frameSchedulerSubsystemUnit`, `memoryArchiveStoreUnit`, `registryArchiveStoreUnit` (storage registry, device scope, namespace `runtime/archive`),
   `nominalMemoryPressureUnit`, `featureHostUnit`, `resourceManagerUnit`, `resourceManagerUnitWith(budgets)`, `frameSchedulerSubsystem`.
 - `errors.ts` — `SF-APP-001…007`, `SF-FT-001…009`, `SF-SCHED-001`.
 - `telemetry.ts` — `RUNTIME_SUBSYSTEMS` (`runtime/app|feature|resources|scheduler`), `runtimeMetrics`, `traceMachine`.
@@ -52,7 +54,7 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
 - Resource manager never demotes features in use (mounted, referenced, busy, explicit headless); budgets beat priorities.
 
 ## Rules
-- Only `@staticflux/core` imports. No platform APIs except feature-detected scheduler primitives (all injectable).
+- Only `@staticflux/core` imports (plus `@staticflux/storage` in `archive.ts`/`units.ts` for R9.0d). No platform APIs except feature-detected scheduler primitives (all injectable).
 - Every lifecycle change goes through its machine (`machines.ts`); keep tables in sync with docs/LIFECYCLES.md.
 - Every new error via `defineError('SF-APP|FT|SCHED-NNN', …)` with a concrete `fix`.
 - Hooks (`start`, `activate`, `mount`, …) may return nothing, a `Result`, or a promise of either; throws are captured.

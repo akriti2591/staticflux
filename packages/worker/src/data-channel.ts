@@ -20,6 +20,7 @@ import {
   type Telemetry,
 } from '@staticflux/core';
 import { BufferDetachedError, NotTransferableError } from './channel-errors.js';
+import { PortClosedError } from './errors.js';
 import type { ChannelId } from './envelope.js';
 import type { Link, MessageContext, SendOptions } from './link.js';
 
@@ -166,7 +167,7 @@ export function createDataChannel<M>(
   return {
     id: definition.id,
     send(meta, buffers, sendOptions = {}) {
-      if (closed) return err(NotTransferableError({ message: 'The data channel is closed.', details: { channel: definition.id } }));
+      if (closed) return err(PortClosedError({ message: 'The data channel is closed.', details: { channel: definition.id } }));
       for (const buffer of buffers) {
         if (buffer instanceof ArrayBuffer && given.has(buffer)) {
           return err(BufferDetachedError({ message: 'This buffer was already sent on this channel.', details: { channel: definition.id } }));

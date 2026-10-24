@@ -1,28 +1,32 @@
 import { createInjector, createMemorySink, createTelemetry, unwrap } from '@staticflux/core';
 import { describe, expect, it } from 'vitest';
 import {
+  createLink,
+  createMessageChannelPorts,
+  createPortPair,
+  detectIsolationFacts,
+  IsolationFactsToken,
+  isolationFactsUnit,
+  sharedMemoryAvailable,
+  type Clock,
+} from './index.js';
+import {
   attachRingBuffer,
   BufferDetachedError,
   checkTransferable,
   COLUMN_ALIGN,
   connectFrameConsumer,
   createDataChannel,
-  createLink,
-  createMessageChannelPorts,
-  createPortPair,
   createRingBuffer,
   createSlotViews,
   defineDataChannel,
   defineFrameChannel,
   defineLayout,
   detachBuffer,
-  detectIsolationFacts,
   FrameChannelClosedError,
   FrameChannelMismatchError,
   FrameTooLargeError,
-  IsolationFactsToken,
   isDetached,
-  isolationFactsUnit,
   LayoutInvalidError,
   LayoutViewError,
   NotTransferableError,
@@ -30,11 +34,9 @@ import {
   type ReadSlot,
   ringByteLength,
   selectFrameMode,
-  SharedMemoryUnavailableError,
-  sharedMemoryAvailable,
   slotStride,
-  type Clock,
-} from './index.js';
+  SharedMemoryUnavailableError,
+} from './channels.js';
 
 const tick = (ms = 0): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 

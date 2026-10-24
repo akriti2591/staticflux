@@ -1,11 +1,12 @@
 /**
  * Archive port for heavy features (R5.3): a feature provides `snapshot()`/`restore()`,
  * the host persists the snapshot through an `ArchiveStore`. Backends (IndexedDB, OPFS)
- * live in other packages; this package ships the in-memory implementation.
+ * come from `@staticflux/storage` via `archiveStoreFromStore(store)`; this package also ships the in-memory implementation.
  *
  * The envelope format is shared with handoff (R19.3): `{ format, id, version, createdAt, epoch, data }`.
  */
-import { err, ok, type Result } from '@staticflux/core';
+import { err, ok, type Result, type SfError } from '@staticflux/core';
+import type { AsyncStore } from '@staticflux/storage';
 import { ArchiveFailedError } from './errors.js';
 import type { FeatureId } from './feature.js';
 
@@ -58,6 +59,54 @@ export function createMemoryArchiveStore(): ArchiveStore & { readonly size: numb
     },
     async keys() {
       return ok([...entries.keys()]);
+    },
+  };
+}
+
+// ---------------------------------------------------------------- AsyncStore adapter (R9.0d)
+
+function isSnapshotEnvelope(value: unknown, id: FeatureId): value is SnapshotEnvelope {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return v['format'] === SNAPSHOT_FORMAT && v['id'] === id && typeof v['version'] === 'number' && typeof v['createdAt'] === 'number' && typeof v['epoch'] === 'number' && 'data' in v;
+}
+
+/**
+ * Back the archive port with any `@staticflux/storage` `AsyncStore`
+ * (IndexedDB/OPFS for heavy snapshots). Snapshots are stored as values under the
+ * feature id. Backend errors and entries that are not `sf-snapshot/1` envelopes
+ * for that id → `SF-FT-009` (the host then activates fresh); a bad entry is deleted.
+ */
+export function archiveStoreFromStore(store: AsyncStore<unknown>): ArchiveStore {
+  const failed = (error: SfError, id: FeatureId | undefined, op: string): Result<never> =>
+    err(
+      ArchiveFailedError({
+        cause: error,
+        units: id === undefined ? [] : [id],
+        message: `Archive ${op}${id === undefined ? '' : ` of "${id}"`} failed: ${error.message}`,
+        details: { code: error.code, op },
+      }),
+    );
+  return {
+    async put(snapshot, signal) {
+      const written = await store.set(snapshot.id, snapshot, signal === undefined ? {} : { signal });
+      return written.ok ? written : failed(written.error, snapshot.id, 'put');
+    },
+    async get(id, signal) {
+      const read = await store.get(id, signal === undefined ? {} : { signal });
+      if (!read.ok) return failed(read.error, id, 'get');
+      if (read.value === undefined) return ok(undefined);
+      if (isSnapshotEnvelope(read.value, id)) return ok(read.value);
+      await store.delete(id);
+      return err(ArchiveFailedError({ units: [id], message: `Stored archive for "${id}" is not an ${SNAPSHOT_FORMAT} envelope; discarded.` }));
+    },
+    async delete(id) {
+      const removed = await store.delete(id);
+      return removed.ok ? removed : failed(removed.error, id, 'delete');
+    },
+    async keys() {
+      const keys = await store.seek().keys();
+      return keys.ok ? ok(keys.value.filter((k): k is FeatureId => k.includes('/'))) : failed(keys.error, undefined, 'keys');
     },
   };
 }

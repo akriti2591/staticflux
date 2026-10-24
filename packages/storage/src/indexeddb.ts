@@ -177,7 +177,9 @@ export function createIndexedDbStore<V = unknown>(options: IndexedDbStoreOptions
         }
         return db;
       } catch (error) {
-        lastError = error; // VersionError: another store upgraded concurrently; retry from the current version
+        // VersionError: another namespace upgraded concurrently; retry from the current version
+        if ((error as { name?: unknown } | null)?.name !== 'VersionError') throw error;
+        lastError = error;
       }
     }
     throw lastError;

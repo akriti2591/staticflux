@@ -5,7 +5,13 @@
  */
 module.exports = {
   forbidden: [
-    { name: 'no-circular', severity: 'error', from: {}, to: { circular: true } },
+    {
+      name: 'no-circular',
+      comment: 'Runtime import cycles are errors; type-only cycles (erased at compile time) are allowed.',
+      severity: 'error',
+      from: {},
+      to: { circular: true, viaOnly: { dependencyTypesNot: ['type-only'] } },
+    },
     {
       name: 'no-deep-imports',
       comment: 'Import packages through their exports map only (no /src/ reach-ins).',

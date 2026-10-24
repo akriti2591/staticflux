@@ -1,5 +1,6 @@
 import { createInjector, createMemorySink, createTelemetry, err, ok, token, unwrap } from '@staticflux/core';
-import { defineLayout, isolationFactsUnit } from '@staticflux/worker';
+import { isolationFactsUnit } from '@staticflux/worker';
+import { defineLayout } from '@staticflux/worker/channels';
 import { describe, expect, it } from 'vitest';
 import {
   createWasmModule,
@@ -17,6 +18,7 @@ import {
   WasmEnvironmentToken,
   wasmEnvironmentUnit,
   WasmExportMissingError,
+  type WasmExports,
   type WasmExportsOf,
   type WasmFeatureFacts,
   WasmFeatureMissingError,
@@ -478,7 +480,7 @@ describe('fetching', () => {
 
   it('maps HTTP errors, network errors, missing fetch, body errors and aborts', async () => {
     const Remote = defineWasmModule({ id: 'test/net', source: { url: '/x.wasm' } });
-    const make = (fetch: WasmEnvironment['fetch']): WasmModuleHandle<Record<string, never>> =>
+    const make = (fetch: WasmEnvironment['fetch']): WasmModuleHandle<WasmExports> =>
       createWasmModule(Remote, { environment: env({ fetch }), facts: allFacts() });
     const notFound = await make(() => Promise.resolve(response(ADD_WASM, {}, 404))).load();
     expect(notFound.ok ? undefined : notFound.error.details).toMatchObject({ status: 404 });

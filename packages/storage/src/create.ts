@@ -136,8 +136,12 @@ export function borrowed<V>(store: AsyncStore<V>): AsyncStore<V> {
   const unsubscribes = new Set<() => void>();
   const closed = (): Promise<Result<never>> => Promise.resolve(err(StoreDisposedError({ details: { store: store.id } })));
   return {
-    id: store.id,
-    capabilities: store.capabilities,
+    get id() {
+      return store.id;
+    },
+    get capabilities() {
+      return store.capabilities;
+    },
     get: (key, options) => (disposed ? closed() : store.get(key, options)),
     set: (key, value, options) => (disposed ? closed() : store.set(key, value, options)),
     delete: (key, options) => (disposed ? closed() : store.delete(key, options)),

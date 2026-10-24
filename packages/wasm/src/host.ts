@@ -24,7 +24,7 @@ import {
   type Telemetry,
   toSfError,
 } from '@staticflux/core';
-import type { ColumnSet, Layout, LayoutFields, StructView } from '@staticflux/worker';
+import type { ColumnSet, Layout, LayoutFields, StructView } from '@staticflux/worker/channels';
 import {
   WasmBudgetExceededError,
   WasmCompileError,

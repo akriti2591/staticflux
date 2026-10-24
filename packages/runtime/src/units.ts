@@ -3,7 +3,8 @@
  * and override any of them with `bind(..., { precedence: 'app' })`.
  */
 import { box, contribution, ok, unit, type UnitDefinition } from '@staticflux/core';
-import { createMemoryArchiveStore } from './archive.js';
+import { StoreRegistryToken } from '@staticflux/storage';
+import { archiveStoreFromStore, createMemoryArchiveStore } from './archive.js';
 import { createFeatureHost } from './feature-host.js';
 import type { MemoryPressure, ReactiveInput, ResourceBudgets, ResourceManager } from './resource-manager.js';
 import { createResourceManager } from './resource-manager.js';
@@ -61,6 +62,19 @@ export const memoryArchiveStoreUnit = unit({
   scope: 'app',
   create: () => createMemoryArchiveStore(),
   description: 'In-memory ArchiveStore (bind an IndexedDB/OPFS store in production).',
+});
+
+/**
+ * ArchiveStore over the `@staticflux/storage` registry: device scope, namespace
+ * `runtime/archive` (IndexedDB with the browser factories; memory fallback reported by the registry).
+ */
+export const registryArchiveStoreUnit = unit({
+  id: 'runtime/registry-archive-store-unit',
+  provides: ArchiveStoreToken,
+  scope: 'app',
+  deps: { required: { registry: StoreRegistryToken } },
+  create: ({ registry }) => archiveStoreFromStore(registry.open('device', 'runtime/archive')),
+  description: 'ArchiveStore persisted through the storage registry (device scope).',
 });
 
 export const nominalMemoryPressureUnit = unit({

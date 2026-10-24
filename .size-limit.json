@@ -27,7 +27,8 @@
     "import": "{ bootApp, createSupervisor, createFrameScheduler }",
     "ignore": [
       "mobx",
-      "@staticflux/core"
+      "@staticflux/core",
+      "@staticflux/storage"
     ],
     "limit": "8.5 KB"
   },
@@ -36,7 +37,8 @@
     "path": "packages/runtime/dist/index.js",
     "ignore": [
       "mobx",
-      "@staticflux/core"
+      "@staticflux/core",
+      "@staticflux/storage"
     ],
     "limit": "14.5 KB"
   },
@@ -64,7 +66,8 @@
     "import": "{ createDataClient, createFetchTransport, createResources }",
     "ignore": [
       "mobx",
-      "@staticflux/core"
+      "@staticflux/core",
+      "@staticflux/storage"
     ],
     "limit": "9.5 KB"
   },
@@ -111,7 +114,8 @@
     "path": "packages/handoff/dist/index.js",
     "ignore": [
       "mobx",
-      "@staticflux/core"
+      "@staticflux/core",
+      "@staticflux/storage"
     ],
     "limit": "6 KB"
   },
@@ -229,5 +233,44 @@
       "@staticflux/messaging"
     ],
     "limit": "9 KB"
+  },
+  {
+    "name": "@staticflux/worker/channels",
+    "path": "packages/worker/dist/channels.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "9.5 KB"
+  },
+  {
+    "name": "@staticflux/wasm (full)",
+    "path": "packages/wasm/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker"
+    ],
+    "limit": "5.5 KB"
+  },
+  {
+    "name": "@staticflux/surface (full)",
+    "path": "packages/surface/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker"
+    ],
+    "limit": "10.5 KB"
+  },
+  {
+    "name": "@staticflux/storage (boot: createStore + IndexedDB + memory)",
+    "path": "packages/storage/dist/index.js",
+    "import": "{ createStore, createMemoryStore, createIndexedDbStore }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "6 KB"
   }
 ]

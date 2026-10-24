@@ -13,8 +13,9 @@
  *
  * Flush lifecycle: `TieredFlushMachine` (idle → flushing → idle | failed).
  */
-import { createMachine, defineMachine, ok, type Result, type SfError } from '@staticflux/core';
+import { createMachine, defineMachine, err, ok, type Result, type SfError } from '@staticflux/core';
 import { createCursor, createWatchers, filterEntries, guard, inRange, validateBatch, validateKey, validateValue } from './base.js';
+import { StoreUnsupportedError } from './errors.js';
 import type { AsyncStore, BatchOp, Entry, OpOptions, StoreChange } from './types.js';
 
 export type TieredMode = 'write-through' | 'write-back';
@@ -123,6 +124,9 @@ export function tiered<V>(options: TieredOptions<V>): TieredStore<V> {
     return ready.ok ? validateKey(key) : ready;
   };
 
+  const unsupportedTtl = (): Result<never> =>
+    err(StoreUnsupportedError({ message: `ttlMs needs both tiers to support TTL; wrap them with withTtl().`, details: { store: id } }));
+
   const read = async (key: string, opOptions: OpOptions): Promise<Result<V | undefined>> => {
     const cached = await local.get(key, opOptions);
     if (cached.ok && cached.value !== undefined) return cached;
@@ -164,6 +168,7 @@ export function tiered<V>(options: TieredOptions<V>): TieredStore<V> {
       if (!valid.ok) return valid;
       const validValue = validateValue(key, value);
       if (!validValue.ok) return validValue;
+      if (opOptions.ttlMs !== undefined && !store.capabilities.ttl) return unsupportedTtl();
       if (mode === 'write-through') {
         const pushed = await remote.set(key, value, opOptions);
         if (!pushed.ok) return pushed;
@@ -227,6 +232,7 @@ export function tiered<V>(options: TieredOptions<V>): TieredStore<V> {
       if (!ready.ok) return ready;
       const valid = validateBatch(ops);
       if (!valid.ok) return valid;
+      if (!store.capabilities.ttl && ops.some((op) => op.type === 'set' && op.ttlMs !== undefined)) return unsupportedTtl();
       if (mode === 'write-through') {
         const pushed = await remote.batch(ops, opOptions);
         if (!pushed.ok) return pushed;

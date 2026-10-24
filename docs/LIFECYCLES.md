@@ -215,3 +215,9 @@ Every `SfError` carries: `code` (stable), `message` (one line), `units` involved
 | `advisors/consultation` | idle → asking → answered \| timed-out (default used) \| failed | `packages/advisors/AGENTS.md` |
 | `ai/model-availability` | unknown → unavailable \| downloadable → downloading → available | `packages/ai/AGENTS.md` |
 | `webmcp/publisher` | unsupported \| idle → publishing → published → unpublished | `packages/webmcp/AGENTS.md` |
+| `worker/frame-channel` | idle → handshaking → open → closed (mode: shared ring buffer \| double-buffered transfer) | `packages/worker/src/frame-channel.ts` |
+| `wasm/module` | declared → detecting → compiling → instantiating → ready; any → failed | `packages/wasm/AGENTS.md` |
+| `surface/lifecycle` | created → attached → (resizing) → detached → disposed | `packages/surface/AGENTS.md` |
+| `surface/frame-loop` | stopped → running ⇄ paused → stopped | `packages/surface/AGENTS.md` |
+| `storage/idb-connection` | closed → opening → open → blocked \| closed | `packages/storage/AGENTS.md` |
+| `storage/tiered-flush` | clean → dirty → flushing → clean \| failed (retry) | `packages/storage/AGENTS.md` |

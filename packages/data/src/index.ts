@@ -17,5 +17,6 @@ export * from './patches.js';
 export * from './store.js';
 export * from './slices.js';
 export * from './storage.js';
+export * from './async-store.js';
 export * from './user-data.js';
 export * from './units.js';
