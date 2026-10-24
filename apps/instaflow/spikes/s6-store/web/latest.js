@@ -14,11 +14,11 @@ export class LatestStore {
   /** serialise all I/O of this store (appends and compactions) */
   run(fn) { const p = this.io.then(async () => { const t = performance.now(); try { return await fn(); } finally { this.busyMs += performance.now() - t; } }); this.io = p.catch(() => {}); return p; }
 
-  #add(id, part) {
+  #add(id, part, fromSnapshot = false) {
     if (this.ids.has(id)) return false;
     this.ids.add(id);
     let s = this.parts.get(part); if (!s) this.parts.set(part, (s = new Set()));
-    s.add(id); this.dirty.add(part); return true;
+    s.add(id); if (!fromSnapshot) this.dirty.add(part); return true;
   }
 
   async recover() {
@@ -34,7 +34,7 @@ export class LatestStore {
       const bytes = await getBlob(this.be, hex);
       if (!bytes) { rep.partsMissing++; continue; }
       if (await sha256Hex(bytes) !== hex) { rep.partsBadDigest++; continue; }
-      for (const id of JSON.parse(dec.decode(bytes)).ids) this.#add(id, part);
+      for (const id of JSON.parse(dec.decode(bytes)).ids) this.#add(id, part, true);
       rep.partsLoaded++;
     }
     let maxNum = this.head.logFrom;
@@ -52,7 +52,7 @@ export class LatestStore {
     // everything recovered from the log is not yet in a snapshot
     this.segNo = maxNum + 1;
     await this.#openSegment();
-    rep.recoveredIds = this.ids.size; rep.ms = performance.now() - t0;
+    rep.recoveredIds = this.ids.size; rep.dirtyParts = this.dirty.size; rep.ms = performance.now() - t0;
     return rep;
   }
 

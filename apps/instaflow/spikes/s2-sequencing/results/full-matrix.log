@@ -1,0 +1,1 @@
+results/_tmp_none-split-raf.json         split/none pace=4 g=10000 rec=54133 | correct=true bad=0 (snap 0, dbl 0) cam=0 mono=0 torn=0 gaps=0 final=true | frames=11950 raf=16.67 budget=20.67 present p50/p95 all=32.35/32.81 pan=32.36/32.83 zoom=32.38/32.83 ptr=32.34/32.81 | submit=16.35/19.17 vf=0.12/16.61 draw=0/0.01 e4stale=1908/4695
