@@ -150,7 +150,12 @@ export function createPortPair(options: PortPairOptions = {}): PortPair {
   const deliver = options.deliver ?? ((fn: () => void) => queueMicrotask(fn));
   let closed = false;
 
-  const makeSide = (): MemoryPort & { receive(data: unknown): void; emitError(error: SfError): void; peer?: ReturnType<typeof makeSide> } => {
+  interface InternalSide extends MemoryPort {
+    peer: InternalSide | undefined;
+    receive(data: unknown): void;
+    emitError(error: SfError): void;
+  }
+  const makeSide = (): InternalSide => {
     const listeners = createListeners();
     const queue: unknown[] = [];
     let frozen = false;
@@ -158,8 +163,8 @@ export function createPortPair(options: PortPairOptions = {}): PortPair {
     const drain = (): void => {
       while (!frozen && !closed && queue.length > 0) emitAll(listeners.message, queue.shift());
     };
-    const side = {
-      peer: undefined as ReturnType<typeof makeSide> | undefined,
+    const side: InternalSide = {
+      peer: undefined,
       get closed() {
         return closed;
       },

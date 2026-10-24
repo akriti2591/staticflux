@@ -462,11 +462,16 @@ export function createSessionStore(options: SessionStoreOptions): SessionStore {
       if (provider.watch !== undefined) unsubscribers.push(provider.watch(onProviderEvent));
       const combined = anySignal(signal, internal.signal);
       starting = (async (): Promise<Result<StartOutcome>> => {
-        const callback = await completeLogin(env.currentUrl(), combined);
-        if (callback.ok && callback.value.handled) return ok({ returnTo: callback.value.returnTo, callbackError: undefined });
+        let callbackError: SfError | undefined;
+        // Without a callback handler the silent probe starts synchronously (state is `authenticating` immediately).
+        if (provider.handleCallback !== undefined) {
+          const callback = await completeLogin(env.currentUrl(), combined);
+          if (callback.ok && callback.value.handled) return ok({ returnTo: callback.value.returnTo, callbackError: undefined });
+          if (!callback.ok) callbackError = callback.error;
+        }
         const restored = await restoreSilently(combined, 'restore');
         if (!restored.ok) return restored;
-        return ok({ returnTo: undefined, callbackError: callback.ok ? undefined : callback.error });
+        return ok({ returnTo: undefined, callbackError });
       })();
       return starting;
     },
@@ -477,7 +482,7 @@ export function createSessionStore(options: SessionStoreOptions): SessionStore {
         const s = snapshotBox.get().state;
         return s !== 'authenticating' && s !== 'refreshing';
       };
-      if (settled()) return snapshotBox.get();
+      if (settled() || signal?.aborted === true) return snapshotBox.get();
       return new Promise<SessionSnapshot>((resolve) => {
         const stop = watch(
           () => settled(),

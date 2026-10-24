@@ -26,6 +26,7 @@ import {
   type Result,
   type Scope,
   type SfError,
+  type Span,
   type Telemetry,
   toSfError,
 } from '@staticflux/core';
@@ -336,7 +337,7 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
     return ok();
   };
 
-  const failActivation = async (record: FeatureRecord, cause: SfError, span: { end(s: 'error', e: SfError): void }): Promise<Result<Injector>> => {
+  const failActivation = async (record: FeatureRecord, cause: SfError, span: Span): Promise<Result<Injector>> => {
     const error =
       cause.code === FeatureLoadFailedError.code || cause.code === FeatureDependencyError.code
         ? cause
@@ -412,7 +413,7 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
       const stored = await archive.get(manifest.id, signal);
       if (!stored.ok) {
         telemetry.event('feature.archive-read-failed', { subsystem: SUB, level: 'critical', attrs: { feature: manifest.id } });
-      } else if (stored.value !== undefined && module.restore !== undefined) {
+      } else if (stored.value !== undefined) {
         const snapshot = stored.value;
         const restored = await runHook(() => module.restore?.(snapshot.data, snapshot.version, context));
         if (!restored.ok) return failActivation(record, restored.error, span);
@@ -663,17 +664,13 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
     }
     for (const dependent of dependentsOf(id)) {
       if (!dependent.machine.is(...LOGIC_ALIVE_STATES)) continue;
-      const released = await deactivateInternal(dependent, false, false);
+      const released = await deactivateInternal(dependent, false);
       if (!released.ok) return released;
     }
     return ok();
   };
 
-  const deactivateInternal = async (record: FeatureRecord, capture: boolean, useGate: boolean): Promise<Result<void>> => {
-    if (useGate) {
-      const allowed = gate('feature.deactivate');
-      if (!allowed.ok) return err(allowed.error);
-    }
+  const deactivateInternal = async (record: FeatureRecord, capture: boolean): Promise<Result<void>> => {
     const released = await releaseDependents(record.manifest.id);
     if (!released.ok) return released;
     return enqueue(record, () => doDeactivate(record, capture));
@@ -802,14 +799,14 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
     async deactivate(id) {
       const found = lookup(id, 'deactivate');
       if (!found.ok) return err(found.error);
-      return deactivateInternal(found.value, false, false);
+      return deactivateInternal(found.value, false);
     },
     async archive(id) {
       const found = lookup(id, 'archive');
       if (!found.ok) return err(found.error);
       const record = found.value;
       if (record.machine.is(...LOGIC_ALIVE_STATES)) {
-        const deactivated = await deactivateInternal(record, true, false);
+        const deactivated = await deactivateInternal(record, true);
         if (!deactivated.ok) return deactivated;
       }
       return enqueue(record, () => doArchive(record));
@@ -819,7 +816,7 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
       if (!found.ok) return err(found.error);
       const record = found.value;
       if (record.machine.is(...LOGIC_ALIVE_STATES)) {
-        const deactivated = await deactivateInternal(record, false, false);
+        const deactivated = await deactivateInternal(record, false);
         if (!deactivated.ok) return deactivated;
       }
       return enqueue(record, () => doEvict(record));
@@ -846,7 +843,7 @@ export function createFeatureHost(options: FeatureHostOptions): FeatureHost {
       disposed = true;
       // Dependents first: repeatedly tear down features nobody alive depends on.
       let alive = [...records.values()].filter((r) => r.machine.is(...LOGIC_ALIVE_STATES));
-      while (alive.length > 0) {
+      for (let round = 0; alive.length > 0 && round <= records.size; round += 1) {
         const leaves = alive.filter((r) => refCount(r.manifest.id) === 0);
         const batch = leaves.length > 0 ? leaves : alive;
         for (const record of batch) await enqueue(record, () => doDeactivateForced(record));

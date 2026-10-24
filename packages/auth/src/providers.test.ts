@@ -281,11 +281,8 @@ describe('passkey provider', () => {
     expect(restored.ok && restored.value?.principal.id).toBe('u9');
     expect((await provider.register(signal)).ok).toBe(true);
     expect(transport.calls.find((c) => c.url === '/pk/reg/verify')?.headers).toMatchObject({ 'X-CSRF': 'csrf-1' });
-    const refreshed = await provider.refresh(
-      { principal: { id: 'u9' }, expiresAt: undefined, embedded: false },
-      signal,
-    );
-    expect(refreshed.ok).toBe(true);
+    const refreshed = await provider.refresh?.({ principal: { id: 'u9' }, expiresAt: undefined, embedded: false }, signal);
+    expect(refreshed?.ok).toBe(true);
     expect((await provider.logout(undefined, signal)).ok).toBe(true);
   });
 
