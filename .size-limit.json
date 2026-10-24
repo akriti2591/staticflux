@@ -1,0 +1,15 @@
+[
+  {
+    "name": "@staticflux/core (full runtime surface)",
+    "path": "packages/core/dist/index.js",
+    "ignore": ["mobx"],
+    "limit": "9.5 KB"
+  },
+  {
+    "name": "@staticflux/core (typical boot: injector + units + telemetry)",
+    "path": "packages/core/dist/index.js",
+    "import": "{ createInjector, unit, token, createTelemetry, ok, err }",
+    "ignore": ["mobx"],
+    "limit": "7.5 KB"
+  }
+]

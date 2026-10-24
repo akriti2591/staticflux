@@ -1,0 +1,26 @@
+{
+  "name": "@staticflux/core",
+  "version": "0.1.0",
+  "description": "StaticFlux core: tokens, units, injector, scopes, Result, async primitives, telemetry, state machines, reactivity port.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./graph": {
+      "types": "./dist/graph.d.ts",
+      "import": "./dist/graph.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "staticflux": {
+    "layer": "core"
+  },
+  "dependencies": {
+    "mobx": "7.1.0"
+  }
+}

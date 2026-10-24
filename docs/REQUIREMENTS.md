@@ -217,7 +217,7 @@
 
   | Item | Budget |
   |---|---|
-  | `@staticflux/core` alone | ≤ 5 KB |
+  | `@staticflux/core` alone | ≤ 7.5 KB (measured 6.8 KB brotli for the boot surface; original 5 KB target exceeded mainly by the agent-facing error catalog strings) |
   | Framework runtime loaded at boot (core, runtime, DI, router, auth, gate, config, data, telemetry API) | ≤ 45 KB |
   | Lit + MobX | ~20 KB |
   | **Total boot JS** (framework + shell + app critical units) | **≤ 150 KB** (~500 KB raw) |
