@@ -21,3 +21,4 @@ apps/instaflow/spikes/**/build/
 apps/instaflow/spikes/**/target*/
 apps/instaflow/spikes/**/.tools/
 apps/instaflow/spikes/**/fixtures/
+apps/instaflow/spikes/**/*.iflow
