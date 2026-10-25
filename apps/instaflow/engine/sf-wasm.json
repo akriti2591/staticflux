@@ -2,5 +2,9 @@
   "format": "sf-wasm/1",
   "outDir": "dist",
   "simd": true,
-  "crates": [{ "name": "render" }, { "name": "authoring" }]
+  "crates": [
+    { "name": "render" },
+    { "name": "authoring" },
+    { "name": "authoring-complex", "package": "authoring", "features": ["complex-scripts"] }
+  ]
 }

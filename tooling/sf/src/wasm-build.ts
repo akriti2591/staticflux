@@ -12,6 +12,11 @@
  * Cargo.lock, rust-toolchain.toml, `sf-wasm.json`, rustc and wasm-opt versions).
  * When it matches and the artifacts exist, the build is skipped.
  *
+ * **Feature builds:** a crate entry with `package` and/or `features` (e.g. the lazy `authoring-complex` chunk:
+ * `{ "name": "authoring-complex", "package": "authoring", "features": ["complex-scripts"] }`) is built by its
+ * own `cargo build -p <package> --features …` into `target/sf-variants/<name>`, so its features never unify
+ * with the plain crates' build (cargo unifies features within one invocation).
+ *
  * **No Rust locally:** a missing toolchain skips the build with a warning;
  * with `requireRust` (`SF_REQUIRE_RUST=1`, CI) it is an error (SF-TOOL-008).
  */
@@ -44,8 +49,22 @@ export const DEFAULT_WASM_OPT_ARGS: readonly string[] = [
 const HASH_LENGTH = 16;
 
 export interface WasmCrateConfig {
-  /** Cargo package name; the cdylib's output file is the name with `-` → `_`. */
+  /** Artifact name (the output stem is the name with `-` → `_`); also the cargo package unless `package` is set. */
   readonly name: string;
+  /** Cargo package to build when it differs from `name` (a feature build of another crate). */
+  readonly package?: string;
+  /** Cargo features for this artifact; built in its own cargo invocation and target dir. */
+  readonly features?: readonly string[];
+}
+
+/** True when the entry needs its own cargo invocation (features or another package). */
+export function isVariantCrate(crate: WasmCrateConfig): boolean {
+  return (crate.features !== undefined && crate.features.length > 0) || (crate.package !== undefined && crate.package !== crate.name);
+}
+
+/** Target dir of a variant build, relative to the engine dir. */
+export function variantTargetDir(crate: WasmCrateConfig): string {
+  return join('target', 'sf-variants', crate.name);
 }
 
 export interface WasmBuildConfig {
@@ -108,8 +127,13 @@ export function parseWasmConfig(json: unknown, source = WASM_CONFIG_FILE): Resul
   if (!Array.isArray(crates) || crates.length === 0) problems.push('"crates" must be a non-empty array');
   else
     crates.forEach((crate: unknown, i) => {
-      const name = (crate as { name?: unknown } | null)?.name;
+      const entry = crate as { name?: unknown; package?: unknown; features?: unknown } | null;
+      const name = entry?.name;
       if (typeof name !== 'string' || !/^[A-Za-z0-9_-]+$/.test(name)) problems.push(`crates[${i}].name must be a cargo package name`);
+      if (entry?.package !== undefined && (typeof entry.package !== 'string' || !/^[A-Za-z0-9_-]+$/.test(entry.package))) problems.push(`crates[${i}].package must be a cargo package name`);
+      if (entry?.features !== undefined && !(Array.isArray(entry.features) && entry.features.every((f) => typeof f === 'string' && /^[A-Za-z0-9_/-]+$/.test(f)))) {
+        problems.push(`crates[${i}].features must be an array of cargo feature names`);
+      }
     });
   if (problems.length > 0) return err(InvalidJson({ message: `${source}: ${problems.join('; ')}.` }));
   return ok(c as unknown as WasmBuildConfig);
@@ -228,11 +252,20 @@ export async function buildWasm(options: WasmBuildOptions): Promise<Result<WasmB
     return ok({ status: 'up-to-date', manifest: previous, outDir });
   }
 
-  const cargoArgs = ['build', '--target', WASM_TARGET, '--release', ...config.crates.flatMap((c) => ['-p', c.name]), ...(options.requireRust === true ? ['--locked'] : [])];
-  log(`cargo ${cargoArgs.join(' ')}  (RUSTFLAGS="${rustflags}")`);
-  const cargo = await runner.run('cargo', cargoArgs, engineDir, { ...run, env: { RUSTFLAGS: rustflags } });
-  if (aborted()) return err(ToolAborted());
-  if (cargo.code !== 0) return err(failed('cargo', cargoArgs, engineDir, cargo.stderr));
+  const locked = options.requireRust === true ? ['--locked'] : [];
+  const plain = config.crates.filter((c) => !isVariantCrate(c));
+  const invocations: string[][] = [];
+  if (plain.length > 0) invocations.push(['build', '--target', WASM_TARGET, '--release', ...plain.flatMap((c) => ['-p', c.name]), ...locked]);
+  for (const crate of config.crates.filter(isVariantCrate)) {
+    const features = crate.features ?? [];
+    invocations.push(['build', '--target', WASM_TARGET, '--release', '-p', crate.package ?? crate.name, ...(features.length > 0 ? ['--features', features.join(',')] : []), '--target-dir', variantTargetDir(crate), ...locked]);
+  }
+  for (const cargoArgs of invocations) {
+    log(`cargo ${cargoArgs.join(' ')}  (RUSTFLAGS="${rustflags}")`);
+    const cargo = await runner.run('cargo', cargoArgs, engineDir, { ...run, env: { RUSTFLAGS: rustflags } });
+    if (aborted()) return err(ToolAborted());
+    if (cargo.code !== 0) return err(failed('cargo', cargoArgs, engineDir, cargo.stderr));
+  }
 
   const lock = readText(join(engineDir, 'Cargo.lock'));
   if (!lock.ok) return lock;
@@ -249,7 +282,8 @@ export async function buildWasm(options: WasmBuildOptions): Promise<Result<WasmB
   const artifacts: WasmArtifact[] = [];
   for (const crate of config.crates) {
     const stem = crate.name.replace(/-/g, '_');
-    const input = join(engineDir, 'target', WASM_TARGET, 'release', `${stem}.wasm`);
+    const packageStem = (crate.package ?? crate.name).replace(/-/g, '_');
+    const input = isVariantCrate(crate) ? join(engineDir, variantTargetDir(crate), WASM_TARGET, 'release', `${packageStem}.wasm`) : join(engineDir, 'target', WASM_TARGET, 'release', `${stem}.wasm`);
     const bindgenArgs = ['--target', 'web', '--no-typescript', '--out-dir', scratch, '--out-name', stem, input];
     const bg = await runner.run(bindgen.value, bindgenArgs, engineDir, run);
     if (aborted()) return err(ToolAborted());

@@ -1,6 +1,6 @@
 [package]
 name = "authoring"
-description = "Instaflow authoring engine (Parley text layout). Stub until B2."
+description = "Instaflow authoring engine: Parley text layout (B2; IF-7.6, IF-21.x). B1 adds geometry and booleans."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,5 +9,17 @@ publish.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = []
+# ICU4X dictionary segmenters (Thai, Lao, Khmer, Myanmar line breaks; CJ word segmentation). S3: +1.9 MB brotli,
+# so it is only built into the lazy `authoring-complex` chunk (sf-wasm.json), never into `authoring`.
+complex-scripts = ["parley/complex-scripts"]
+
 [dependencies]
 wasm-bindgen = { workspace = true }
+parley = { workspace = true }
+
+# Host-only test helpers: the render crate's IR writer and vello_cpu reference renders (text goldens).
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+render = { path = "../render" }
+vello_common = { workspace = true }
