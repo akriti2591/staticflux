@@ -31,7 +31,8 @@ entries at the top of **Journal**.
 | B8 Studio integration | Merged; editor on the main thread until B9 | `main` | #20 |
 | B9 Editor in the worker | Merged; owner IME re-check pending | `main` | #21 |
 | Site refresh | Merged | `main` | #22 |
-| B10a Transform tools, basics | PR open (full check 4,241 tests; smoke green in both topologies) | working branch | #23 |
+| B10a Transform tools, basics | Merged | `main` | #23 |
+| C0 Home route | PR open (full check 4,314 tests; Studio and Home smokes green) | working branch | #24 |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
@@ -61,6 +62,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** #23 (B10a) merged. C0 done (b176c83): Home at `/`, recents, templates, quick actions as capabilities;
+  designs persist (IndexedDB adapter passing the store contract). Full check caught one gap: B6's audit-coverage guard
+  didn't list the new Home element (its own test already audits it). Registered; all checks pass. Next: C1 Export.
 - **2026-10-25** #22 (site refresh) merged. B10a done (03116b4): flip, skew, pivot, numeric transform bar, Mod+T session
   (plus a "Free transform" HUD action: Chrome reserves Mod+T in a normal window). Mod on a side handle now skews
   (B3 change). Next: C0 Home.
