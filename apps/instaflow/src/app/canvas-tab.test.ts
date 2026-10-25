@@ -105,10 +105,23 @@ describe.skipIf(!authoringBuilt)('canvas tab: B3 tools, creation tools, B2 text 
     expect(unwrap(readTextBlock(f.document.part('p1') as never, text)).text).toBe('Hello');
     expect(f.document.view.value(text, P.w) as number).toBeGreaterThan(50);
     expect(f.document.view.value(text, P.h) as number).toBeGreaterThan(30);
+    // B6: the TextInput host is the textbox while editing; the projected node of the element steps aside.
+    expect(tab.a11y.mount.layer.element(text)?.getAttribute('aria-hidden')).toBe('true');
     input.emit({ kind: 'key', key: 'Escape', shift: false, mod: false, alt: false });
     expect(tab.editing).toBeUndefined();
+    expect(tab.a11y.mount.layer.element(text)?.getAttribute('aria-hidden')).toBeNull();
     expect(input.disposed).toBe(true);
     expect(tab.text.nodes).toContain(text);
+
+    // Duplicate keeps the rich text (B2 handoff fix) and offsets the copy; one undo step takes it back.
+    tab.view.select([text]);
+    unwrap(tab.duplicateSelection());
+    const copy = tab.view.selection[0] as string;
+    expect(copy).not.toBe(text);
+    expect(unwrap(readTextBlock(f.document.part('p1') as never, copy)).text).toBe('Hello');
+    expect(f.document.view.value(copy, P.x)).toBe((f.document.view.value(text, P.x) as number) + 24);
+    unwrap(await tab.undo());
+    expect(f.document.view.read(copy)).toBeUndefined();
 
     // Undo takes back the typing (text and box size in one step), then the text element itself.
     unwrap(await tab.undo());

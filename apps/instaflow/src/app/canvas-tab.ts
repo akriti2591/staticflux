@@ -27,6 +27,7 @@ import type { TextInput } from '@staticflux/surface/text-input';
 import { render as renderLit } from 'lit';
 import { type CanvasA11y, createCanvasA11y } from '../a11y/canvas-a11y.js';
 import { partTextSource } from '../a11y/text-source.js';
+import { commitEdit, duplicate } from '../elements/actions.js';
 import { createElementRenderSource, ElementProjection } from '../elements/projection.js';
 import type { ToolId } from '../spec/contributions.js';
 import { STRUCTURE_PATHS } from '../lenses/structure.js';
@@ -102,6 +103,8 @@ export interface CanvasTab {
   stopEditing(): void;
   /** Delete the selection (one undo step). */
   deleteSelection(): Result<void>;
+  /** Duplicate the selection (B1 `duplicate`: match keys, rich text kept), select the copies (one undo step). */
+  duplicateSelection(): Result<void>;
   undo(): Promise<Result<void>>;
   redo(): Promise<Result<void>>;
   /** Fit the page in the viewport. */
@@ -111,6 +114,10 @@ export interface CanvasTab {
 const Undo = /* @__PURE__ */ defineShortcut({ id: 'instaflow/undo', keys: ['Mod+Z'], scope: CanvasToolsShortcutScope, description: 'Undo' });
 const Redo = /* @__PURE__ */ defineShortcut({ id: 'instaflow/redo', keys: ['Mod+Shift+Z'], scope: CanvasToolsShortcutScope, description: 'Redo' });
 const Delete = /* @__PURE__ */ defineShortcut({ id: 'instaflow/delete', keys: ['Delete', 'Backspace'], scope: CanvasToolsShortcutScope, description: 'Delete the selection' });
+const Duplicate = /* @__PURE__ */ defineShortcut({ id: 'instaflow/duplicate', keys: ['Mod+D'], scope: CanvasToolsShortcutScope, description: 'Duplicate the selection' });
+
+/** Where a duplicate lands, relative to its source (page units). */
+export const DUPLICATE_OFFSET: readonly [number, number] = [24, 24];
 
 const microtask = (fn: () => void): void => queueMicrotask(fn);
 
@@ -253,6 +260,7 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
       actor: options.actor,
       onExit: (reason) => {
         editing = undefined;
+        a11y.value.mount.layer.element(node)?.removeAttribute('aria-hidden');
         publish();
         if (reason !== 'stopped') options.surface.focus();
       },
@@ -262,6 +270,8 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
     if (!started.ok) return started;
     editing = started.value;
     view.select([node]);
+    // B6: while editing, the TextInput host is the element's `textbox`; its projected node steps aside.
+    a11y.value.mount.layer.element(node)?.setAttribute('aria-hidden', 'true');
     return ok();
   };
 
@@ -273,6 +283,15 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
     const ops: PartOp[] = nodes.map((node) => ({ op: 'delete', node }));
     const done = document.commitOps(page, options.actor(), nodes.length === 1 ? 'Delete' : `Delete ${nodes.length} elements`, ops);
     if (done.ok) view.clear();
+    return done;
+  };
+  const duplicateSelection = (): Result<void> => {
+    const nodes = view.selection.filter((n) => document.view.read(n) !== undefined && !document.view.isDerived(n));
+    if (nodes.length === 0) return ok();
+    const copied = duplicate(document.context(), nodes, DUPLICATE_OFFSET);
+    if (!copied.ok) return copied;
+    const done = commitEdit(tools.target, options.actor(), 'Duplicate', ok(copied.value.ops));
+    if (done.ok) view.select(nodes.flatMap((n) => copied.value.copies.get(n) ?? []));
     return done;
   };
   const step = async (run: 'undo' | 'redo'): Promise<Result<void>> => {
@@ -291,6 +310,7 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
       [Undo, () => void step('undo').then(report)],
       [Redo, () => void step('redo').then(report)],
       [Delete, () => report(deleteSelection())],
+      [Duplicate, () => report(duplicateSelection())],
     ] as const) {
       const registered = registry.register(def, run, { scope });
       if (!registered.ok) return registered;
@@ -350,6 +370,7 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
     editText,
     stopEditing: () => editing?.stop(),
     deleteSelection,
+    duplicateSelection,
     undo: () => step('undo'),
     redo: () => step('redo'),
     fit,

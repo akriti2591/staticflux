@@ -13,7 +13,7 @@
 import { type BlobStore, createBlobStore, createMemoryObjectStore } from '@staticflux/blob';
 import { err, ok, type Result, type Scope, type SfError } from '@staticflux/core';
 import { createLoroEngine } from '@staticflux/document/loro-crdt';
-import { type CrdtEngine, createDocumentRepo, createMemoryDocumentStore, type DocumentCRDTv2, type DocumentRepo, type DocumentStore, type NodeId, type OpenDocument, type PartId, type PartOp, type PeerId } from '@staticflux/document/v2';
+import { type CrdtEngine, createDocumentRepo, createMemoryDocumentStore, type DocumentCRDTv2, type DocumentRepo, type DocumentStore, type NodeId, type OpenDocument, type PartId, type PartOp, type PeerId, type RichTextValue } from '@staticflux/document/v2';
 import { type Actor, createPartsDocument, createSessionLayer, createStage, createStaticAssets, createUndoService, type SessionLayer, type Stage, stageWriteGuard, type UndoService } from '@staticflux/stage';
 import type { EditTarget } from '../elements/actions.js';
 import { type BrandKitSpec, type BrandKitView, brandKitOps, brandRuleGuard, composeGuards, elementStageRules, readBrandKit, stageRuleContext } from '../elements/brand-kit.js';
@@ -165,6 +165,18 @@ export async function openStudioDocument(options: StudioDocumentOptions): Promis
   const undo = createUndoService({ doc, guard: composeGuards(stageWriteGuard(base), brandRuleGuard(() => stageRuleContext(base, kit))) });
   scope.defer(() => undo.dispose());
   const view = createRepeatStage({ stage: base, geometry, kit, scope });
+  /** Rich texts of a node from its page part (B2 content; `duplicate` copies them). */
+  const texts = (node: NodeId): Readonly<Record<string, RichTextValue>> | undefined => {
+    const part = [...loaded.values()].find((p) => p.has(node));
+    const record = part?.node(node);
+    if (part === undefined || record === undefined || record.texts.length === 0) return undefined;
+    const out: Record<string, RichTextValue> = {};
+    for (const path of record.texts) {
+      const value = part.text(node, path);
+      if (value !== undefined) out[path] = value;
+    }
+    return out;
+  };
   let ids = 0;
   const salt = doc.peer.slice(-4);
   const newId = (): NodeId => `n${salt}_${(ids += 1).toString(36)}`;
@@ -180,7 +192,7 @@ export async function openStudioDocument(options: StudioDocumentOptions): Promis
     geometry,
     part: (page) => loaded.get(page),
     target: (page) => ({ undo, stage: view, part: pagePart(page) }),
-    context: () => ({ stage: view, geometry, kit, newId }),
+    context: () => ({ stage: view, geometry, kit, newId, texts }),
     newId,
     commitOps(page, actor, label, ops, options = {}) {
       if (ops.length === 0) return ok();
