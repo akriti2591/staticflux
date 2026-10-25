@@ -116,6 +116,8 @@ Fixes from this run (v3 prompts):
   explicit empty body clears. Regression test added. Sonnet rescored: both fragment styles 100%.
 - **Stack docs:** the worked example used D06's own numbers (it leaked the answer). It now uses neutral numbers and
   says that `ids[0]` keeps its position, so set it first to move the group.
+- **Sonnet on v3 prompts** (fresh blind run, `results/eval-sonnet-v3.txt`): markup.rel **100%**, json.rel **100%**
+  (json.rel up from 95%: the v2 miss on D02 did not recur). Qwen on v3 is the next owner run.
 
 ## Surprises and findings
 1. **Reading Loro, not projecting, is the cost.** `tree.toJSON()` on one 201-node page takes **5–11 ms** (about 30–55 µs per node at the JS↔Wasm boundary, the same as S4). Lazy handles (`getNodes()`) only look cheap: reading each node's map costs the same. Projection from the JS mirror takes about 1 ms. Rule: views read the editor worker's mirror (or the world cache), never Loro. Keeping the mirror fresh costs **0.02 ms** after a property edit. Before tree ops were applied incrementally, a structural edit cost 12.5 ms because the mirror was rebuilt; now it costs 1.6 ms.

@@ -1,0 +1,960 @@
+{
+  "dir": "responses-sonnet-v3",
+  "scored": 40,
+  "summary": [
+    {
+      "combo": "markup.rel",
+      "tasks": 20,
+      "success": 20,
+      "rate": 100,
+      "parseErrors": 0,
+      "opErrors": 0,
+      "staleFlagged": 2,
+      "clobbered": 0,
+      "promptTokO200kAvg": 2170,
+      "promptTokChars4Avg": 1675,
+      "respTokO200kAvg": 58
+    },
+    {
+      "combo": "json.rel",
+      "tasks": 20,
+      "success": 20,
+      "rate": 100,
+      "parseErrors": 0,
+      "opErrors": 0,
+      "staleFlagged": 2,
+      "clobbered": 0,
+      "promptTokO200kAvg": 2218,
+      "promptTokChars4Avg": 1752,
+      "respTokO200kAvg": 55
+    }
+  ],
+  "rows": [
+    {
+      "task": "F01",
+      "doc": "flyer",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 13.48,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 22,
+        "o200k": 35
+      },
+      "promptTokens": {
+        "chars4": 1774,
+        "o200k": 2314
+      }
+    },
+    {
+      "task": "F01",
+      "doc": "flyer",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 4.94,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 22,
+        "o200k": 35
+      },
+      "promptTokens": {
+        "chars4": 1859,
+        "o200k": 2365
+      }
+    },
+    {
+      "task": "F02",
+      "doc": "flyer",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 3.96,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 17,
+        "o200k": 25
+      },
+      "promptTokens": {
+        "chars4": 1772,
+        "o200k": 2312
+      }
+    },
+    {
+      "task": "F02",
+      "doc": "flyer",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 3.18,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 17,
+        "o200k": 25
+      },
+      "promptTokens": {
+        "chars4": 1858,
+        "o200k": 2363
+      }
+    },
+    {
+      "task": "F03",
+      "doc": "flyer",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 4.62,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 28,
+        "o200k": 38
+      },
+      "promptTokens": {
+        "chars4": 1782,
+        "o200k": 2325
+      }
+    },
+    {
+      "task": "F03",
+      "doc": "flyer",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 3.37,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 28,
+        "o200k": 38
+      },
+      "promptTokens": {
+        "chars4": 1867,
+        "o200k": 2376
+      }
+    },
+    {
+      "task": "F04",
+      "doc": "flyer",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 3.87,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 27,
+        "o200k": 37
+      },
+      "promptTokens": {
+        "chars4": 1770,
+        "o200k": 2309
+      }
+    },
+    {
+      "task": "F04",
+      "doc": "flyer",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 4.94,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 27,
+        "o200k": 37
+      },
+      "promptTokens": {
+        "chars4": 1855,
+        "o200k": 2360
+      }
+    },
+    {
+      "task": "F05",
+      "doc": "flyer",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 8.96,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 23,
+        "o200k": 33
+      },
+      "promptTokens": {
+        "chars4": 1767,
+        "o200k": 2309
+      }
+    },
+    {
+      "task": "F05",
+      "doc": "flyer",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 3.2,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 23,
+        "o200k": 33
+      },
+      "promptTokens": {
+        "chars4": 1852,
+        "o200k": 2360
+      }
+    },
+    {
+      "task": "F06",
+      "doc": "flyer",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 3.81,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 18,
+        "o200k": 27
+      },
+      "promptTokens": {
+        "chars4": 1759,
+        "o200k": 2301
+      }
+    },
+    {
+      "task": "F06",
+      "doc": "flyer",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 2.77,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 18,
+        "o200k": 27
+      },
+      "promptTokens": {
+        "chars4": 1844,
+        "o200k": 2352
+      }
+    },
+    {
+      "task": "F07",
+      "doc": "flyer",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 4.22,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 13,
+        "o200k": 19
+      },
+      "promptTokens": {
+        "chars4": 1764,
+        "o200k": 2304
+      }
+    },
+    {
+      "task": "F07",
+      "doc": "flyer",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 2.31,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 13,
+        "o200k": 19
+      },
+      "promptTokens": {
+        "chars4": 1849,
+        "o200k": 2355
+      }
+    },
+    {
+      "task": "F08",
+      "doc": "flyer",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 7.28,
+      "ops": 5,
+      "applied": 5,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 160,
+        "o200k": 210
+      },
+      "promptTokens": {
+        "chars4": 1800,
+        "o200k": 2344
+      }
+    },
+    {
+      "task": "F08",
+      "doc": "flyer",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 4.31,
+      "ops": 2,
+      "applied": 2,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 107,
+        "o200k": 142
+      },
+      "promptTokens": {
+        "chars4": 1885,
+        "o200k": 2395
+      }
+    },
+    {
+      "task": "F09",
+      "doc": "flyer",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 3.49,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 16,
+        "o200k": 24
+      },
+      "promptTokens": {
+        "chars4": 1763,
+        "o200k": 2303
+      }
+    },
+    {
+      "task": "F09",
+      "doc": "flyer",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 2.32,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 16,
+        "o200k": 24
+      },
+      "promptTokens": {
+        "chars4": 1848,
+        "o200k": 2354
+      }
+    },
+    {
+      "task": "F10",
+      "doc": "flyer",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 2.67,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 20,
+        "o200k": 31
+      },
+      "promptTokens": {
+        "chars4": 1788,
+        "o200k": 2326
+      }
+    },
+    {
+      "task": "F10",
+      "doc": "flyer",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 2.49,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 20,
+        "o200k": 31
+      },
+      "promptTokens": {
+        "chars4": 1873,
+        "o200k": 2377
+      }
+    },
+    {
+      "task": "D01",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 3.11,
+      "ops": 2,
+      "applied": 2,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 32,
+        "o200k": 49
+      },
+      "promptTokens": {
+        "chars4": 1967,
+        "o200k": 2634
+      }
+    },
+    {
+      "task": "D01",
+      "doc": "deck",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 2.95,
+      "ops": 2,
+      "applied": 2,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 28,
+        "o200k": 41
+      },
+      "promptTokens": {
+        "chars4": 2101,
+        "o200k": 2724
+      }
+    },
+    {
+      "task": "D02",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 1.75,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 20,
+        "o200k": 32
+      },
+      "promptTokens": {
+        "chars4": 1275,
+        "o200k": 1567
+      }
+    },
+    {
+      "task": "D02",
+      "doc": "deck",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 1.8,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 20,
+        "o200k": 32
+      },
+      "promptTokens": {
+        "chars4": 1296,
+        "o200k": 1574
+      }
+    },
+    {
+      "task": "D03",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 5.05,
+      "ops": 5,
+      "applied": 4,
+      "status": "applied",
+      "errors": [],
+      "stale": [
+        "n12.x",
+        "n12.y"
+      ],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 124,
+        "o200k": 154
+      },
+      "promptTokens": {
+        "chars4": 1970,
+        "o200k": 2637
+      }
+    },
+    {
+      "task": "D03",
+      "doc": "deck",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 4.78,
+      "ops": 5,
+      "applied": 4,
+      "status": "applied",
+      "errors": [],
+      "stale": [
+        "n12.x",
+        "n12.y"
+      ],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 125,
+        "o200k": 149
+      },
+      "promptTokens": {
+        "chars4": 2104,
+        "o200k": 2727
+      }
+    },
+    {
+      "task": "D04",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 4.59,
+      "ops": 4,
+      "applied": 4,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 59,
+        "o200k": 88
+      },
+      "promptTokens": {
+        "chars4": 1961,
+        "o200k": 2630
+      }
+    },
+    {
+      "task": "D04",
+      "doc": "deck",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 4.28,
+      "ops": 4,
+      "applied": 4,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 59,
+        "o200k": 88
+      },
+      "promptTokens": {
+        "chars4": 2095,
+        "o200k": 2720
+      }
+    },
+    {
+      "task": "D05",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 1.58,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 12,
+        "o200k": 19
+      },
+      "promptTokens": {
+        "chars4": 1313,
+        "o200k": 1626
+      }
+    },
+    {
+      "task": "D05",
+      "doc": "deck",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 3.13,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 12,
+        "o200k": 19
+      },
+      "promptTokens": {
+        "chars4": 1339,
+        "o200k": 1643
+      }
+    },
+    {
+      "task": "D06",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 2.41,
+      "ops": 2,
+      "applied": 2,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 35,
+        "o200k": 53
+      },
+      "promptTokens": {
+        "chars4": 1396,
+        "o200k": 1729
+      }
+    },
+    {
+      "task": "D06",
+      "doc": "deck",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 2.86,
+      "ops": 3,
+      "applied": 3,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 45,
+        "o200k": 68
+      },
+      "promptTokens": {
+        "chars4": 1432,
+        "o200k": 1754
+      }
+    },
+    {
+      "task": "D07",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 1.78,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 19,
+        "o200k": 31
+      },
+      "promptTokens": {
+        "chars4": 1297,
+        "o200k": 1605
+      }
+    },
+    {
+      "task": "D07",
+      "doc": "deck",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 1.68,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 19,
+        "o200k": 31
+      },
+      "promptTokens": {
+        "chars4": 1322,
+        "o200k": 1618
+      }
+    },
+    {
+      "task": "D08",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 1.68,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 27,
+        "o200k": 37
+      },
+      "promptTokens": {
+        "chars4": 1259,
+        "o200k": 1542
+      }
+    },
+    {
+      "task": "D08",
+      "doc": "deck",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 1.67,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 27,
+        "o200k": 37
+      },
+      "promptTokens": {
+        "chars4": 1276,
+        "o200k": 1551
+      }
+    },
+    {
+      "task": "D09",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 1.79,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 22,
+        "o200k": 38
+      },
+      "promptTokens": {
+        "chars4": 1345,
+        "o200k": 1658
+      }
+    },
+    {
+      "task": "D09",
+      "doc": "deck",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 1.78,
+      "ops": 1,
+      "applied": 1,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 22,
+        "o200k": 38
+      },
+      "promptTokens": {
+        "chars4": 1372,
+        "o200k": 1675
+      }
+    },
+    {
+      "task": "D10",
+      "doc": "deck",
+      "view": "markup",
+      "style": "rel",
+      "applyMs": 7.83,
+      "ops": 10,
+      "applied": 10,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 131,
+        "o200k": 180
+      },
+      "promptTokens": {
+        "chars4": 1973,
+        "o200k": 2634
+      }
+    },
+    {
+      "task": "D10",
+      "doc": "deck",
+      "view": "json",
+      "style": "rel",
+      "applyMs": 7.47,
+      "ops": 10,
+      "applied": 10,
+      "status": "applied",
+      "errors": [],
+      "stale": [],
+      "clobbered": 0,
+      "ok": true,
+      "unexpectedStale": [],
+      "respTokens": {
+        "chars4": 131,
+        "o200k": 180
+      },
+      "promptTokens": {
+        "chars4": 2108,
+        "o200k": 2724
+      }
+    }
+  ]
+}
