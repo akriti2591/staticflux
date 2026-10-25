@@ -1,0 +1,41 @@
+ 19:57:12 up  5:10,  0 user,  load average: 6.18, 6.16, 7.00
+projection (ms), 200-element page, pooled over 5 processes × 300
+┌────────────────┬────────┬────────┬──────┐
+│ (index)        │ median │ p95    │ n    │
+├────────────────┼────────┼────────┼──────┤
+│ cold           │ 14.35  │ 39.381 │ 1500 │
+│ coldWorldCache │ 4.842  │ 14.51  │ 1500 │
+│ coldModel      │ 0.518  │ 1.019  │ 1500 │
+│ warm           │ 0.068  │ 0.15   │ 1500 │
+│ warmNoMemo     │ 1.113  │ 2.12   │ 1500 │
+│ oneChange      │ 1.656  │ 3.685  │ 1500 │
+│ structural     │ 1.618  │ 4.266  │ 1500 │
+│ serializeOnly  │ 0.4    │ 0.723  │ 1500 │
+│ hashOnly       │ 0.135  │ 0.277  │ 1500 │
+│ jsonView       │ 0.456  │ 1.087  │ 1500 │
+│ canonical      │ 7.692  │ 17.816 │ 1500 │
+│ compile2       │ 0.32   │ 0.615  │ 1500 │
+│ validate500    │ 15.835 │ 34.119 │ 150  │
+└────────────────┴────────┴────────┴──────┘
+┌─────────┬─────────┬────────────────────┬──────────────────┬───────┬───────────┬──────────┐
+│ (index) │ seed    │ scope              │ view             │ chars │ tokChars4 │ tokO200k │
+├─────────┼─────────┼────────────────────┼──────────────────┼───────┼───────────┼──────────┤
+│ 0       │ 'flyer' │ 'page:fl-page'     │ 'markup'         │ 2623  │ 656       │ 1002     │
+│ 1       │ 'flyer' │ 'page:fl-page'     │ 'json'           │ 2971  │ 743       │ 1055     │
+│ 2       │ 'flyer' │ 'page:fl-page'     │ 'canonical-json' │ 5862  │ 1466      │ 1899     │
+│ 3       │ 'deck'  │ 'doc'              │ 'markup'         │ 3396  │ 849       │ 1319     │
+│ 4       │ 'deck'  │ 'doc'              │ 'json'           │ 3940  │ 985       │ 1411     │
+│ 5       │ 'deck'  │ 'doc'              │ 'canonical-json' │ 8382  │ 2096      │ 2758     │
+│ 6       │ 'deck'  │ 'page:dk-s3'       │ 'markup'         │ 651   │ 163       │ 262      │
+│ 7       │ 'deck'  │ 'page:dk-s3'       │ 'json'           │ 738   │ 185       │ 271      │
+│ 8       │ 'deck'  │ 'page:dk-s3'       │ 'canonical-json' │ 1740  │ 435       │ 588      │
+│ 9       │ 'reel'  │ 'page:rl-page'     │ 'timeline'       │ 2056  │ 514       │ 807      │
+│ 10      │ 'reel'  │ 'page:rl-page'     │ 'markup'         │ 2244  │ 561       │ 916      │
+│ 11      │ 'reel'  │ 'page:rl-page'     │ 'json'           │ 2529  │ 632       │ 969      │
+│ 12      │ 'reel'  │ 'page:rl-page'     │ 'canonical-json' │ 6105  │ 1526      │ 2035     │
+│ 13      │ 'reel'  │ 'flow:fw-captions' │ 'graph'          │ 1017  │ 254       │ 341      │
+│ 14      │ 'big'   │ 'page:bp-page'     │ 'markup'         │ 27262 │ 6816      │ 10304    │
+│ 15      │ 'big'   │ 'page:bp-page'     │ 'json'           │ 30651 │ 7663      │ 11058    │
+│ 16      │ 'big'   │ 'page:bp-page'     │ 'canonical-json' │ 60640 │ 15160     │ 19718    │
+└─────────┴─────────┴────────────────────┴──────────────────┴───────┴───────────┴──────────┘
+ 19:58:53 up  5:12,  0 user,  load average: 4.56, 5.67, 6.74

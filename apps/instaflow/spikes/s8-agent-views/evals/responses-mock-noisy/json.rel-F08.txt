@@ -1,0 +1,3 @@
+```json
+{"ops":[{"op":"insert","tempId":"new:badge","parent":"n1","el":{"kind":"ellipse","name":"free entry badge","role":"badge","x":893,"y":40,"w":160,"h":160,"fill":"@accent"}},{"op":"insert","tempId":"new:badgeText","parent":"n1","after":"new:badge","el":{"kind":"text","name":"badge text","role":"badge","x":880,"y":100,"w":160,"h":40,"size":28,"weight":700,"fill":"#FFFFFF","align":"center","text":"Free entry"}}]}
+```

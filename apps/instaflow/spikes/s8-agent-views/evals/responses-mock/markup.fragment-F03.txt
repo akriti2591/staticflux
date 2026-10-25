@@ -1,0 +1,4 @@
+```xml
+<text id="n9" name="bullet 2" role="bullet" x="721" y="604" w="300" h="40" size="30" fill="@ink">3 live stages</text>
+<text id="n10" name="bullet 3" role="bullet" x="721" y="668" w="300" h="40" size="30" fill="@ink">Free kids zone</text>
+```

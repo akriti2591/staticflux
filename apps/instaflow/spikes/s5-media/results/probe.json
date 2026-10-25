@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "hardwareConcurrency": 4,
+    "crossOriginIsolated": true,
+    "date": "2026-10-24T19:00:45.501Z"
+  },
+  "audio": {
+    "state": "running",
+    "sampleRate": 48000,
+    "baseLatency": 0.010020833333333333,
+    "outputLatency": 0,
+    "outputTimestamp": {
+      "contextTime": 0,
+      "performanceTime": 0
+    },
+    "after500ms": {
+      "currentTime": 0.512,
+      "outputTimestamp": {
+        "contextTime": 0.47105566666666676,
+        "performanceTime": 694.179999999702
+      },
+      "outputLatency": 0.032
+    }
+  },
+  "worker": {
+    "workerRAF": true,
+    "crossOriginIsolated": true,
+    "codecs": {
+      "decode avc1.640028 1080p": true,
+      "decode vp09.00.40.08 1080p": true,
+      "decode av01.0.08M.08 1080p": true,
+      "encode avc1.640028 1080p": true,
+      "encode vp09.00.40.08 1080p": true,
+      "encode av01.0.08M.08 1080p": true,
+      "decode opus": true,
+      "decode mp4a.40.2 (AAC)": true,
+      "encode opus": true,
+      "encode mp4a.40.2 (AAC)": false
+    },
+    "webgpu": {
+      "vendor": "google",
+      "architecture": "swiftshader",
+      "description": ""
+    },
+    "importExternalTexture": true
+  }
+}

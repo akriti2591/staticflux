@@ -1,0 +1,7 @@
+```json
+{"ops":[
+{"op":"reorder","id":"n6","to":"back"},
+{"op":"set","id":"n6","attrs":{"y":300}},
+{"op":"stack","ids":["n6","n4","n5","n7"],"direction":"vertical","gap":24}
+]}
+```

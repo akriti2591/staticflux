@@ -1,0 +1,3 @@
+```json
+{"upsert":[{"id":"n6","kind":"text","name":"date","role":"date","x":93,"y":439,"w":920,"h":44,"size":36,"weight":600,"fill":"@primary","align":"center","text":"Sun 15 Nov · 6–11 pm"}]}
+```

@@ -1,0 +1,5 @@
+```xml
+<text id="n4" name="agenda item Highlights" role="bullet" x="160" y="380" w="1200" h="56" size="44" fill="@ink">Highlights</text>
+<text id="n5" name="agenda item Metrics" role="bullet" x="160" y="460" w="1200" h="56" size="44" fill="@ink">Metrics</text>
+<text id="n6" name="agenda item Pricing" role="bullet" x="160" y="300" w="1200" h="56" size="44" fill="@ink">Pricing</text>
+```

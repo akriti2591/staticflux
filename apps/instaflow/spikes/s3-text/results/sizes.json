@@ -1,0 +1,50 @@
+[
+  {
+    "file": "s3_text.base.noopt.wasm",
+    "raw_KB": 871,
+    "gz_KB": 332.3,
+    "br_KB": 265.3
+  },
+  {
+    "file": "s3_text.base.wasm",
+    "raw_KB": 768.3,
+    "gz_KB": 329.1,
+    "br_KB": 266.8
+  },
+  {
+    "file": "s3_text.complex+outlines.noopt.wasm",
+    "raw_KB": 4153.7,
+    "gz_KB": 2597.7,
+    "br_KB": 2220
+  },
+  {
+    "file": "s3_text.complex+outlines.wasm",
+    "raw_KB": 3958.9,
+    "gz_KB": 2587.5,
+    "br_KB": 2217.9
+  },
+  {
+    "file": "s3_text.complex.noopt.wasm",
+    "raw_KB": 3855.2,
+    "gz_KB": 2502.3,
+    "br_KB": 2152
+  },
+  {
+    "file": "s3_text.complex.wasm",
+    "raw_KB": 3748.5,
+    "gz_KB": 2503.5,
+    "br_KB": 2154.5
+  },
+  {
+    "file": "s3_text.outlines.noopt.wasm",
+    "raw_KB": 1169.6,
+    "gz_KB": 428.2,
+    "br_KB": 334.2
+  },
+  {
+    "file": "s3_text.outlines.wasm",
+    "raw_KB": 978.7,
+    "gz_KB": 412.6,
+    "br_KB": 329.5
+  }
+]

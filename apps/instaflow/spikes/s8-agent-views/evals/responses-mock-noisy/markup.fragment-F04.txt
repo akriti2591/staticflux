@@ -1,0 +1,5 @@
+```xml
+<group id="n11" name="ticket button" role="cta" x="230" y="1010" w="300" h="90"/>
+<rect id="n12" name="button shape" x="230" y="1010" w="300" h="90" fill="@primary" radius="45"/>
+<text id="n13" name="button label" role="cta" x="230" y="1032" w="300" h="46" size="36" weight="700" fill="#FFFFFF" align="center">Get tickets</text>
+```

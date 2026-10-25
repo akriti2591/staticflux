@@ -1,0 +1,3 @@
+```json
+{"upsert":[{"id":"n9","kind":"text","name":"bullet 2","role":"bullet","x":721,"y":604,"w":300,"h":40,"size":30,"fill":"@ink","text":"3 live stages"},{"id":"n10","kind":"text","name":"bullet 3","role":"bullet","x":721,"y":668,"w":300,"h":40,"size":30,"fill":"@ink","text":"Free kids zone"}]}
+```

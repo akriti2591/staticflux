@@ -1,0 +1,3 @@
+```xml
+<text id="n6">Sun 15 Nov · 6–11 pm</text>
+```

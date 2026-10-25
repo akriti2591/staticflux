@@ -1,0 +1,3 @@
+```xml
+<image id="n4" name="revenue chart" role="chart" x="1040" y="80" w="800" h="920" src="as_chart"/>
+```

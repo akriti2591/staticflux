@@ -1,0 +1,4 @@
+```xml
+<ellipse id="new:badge circle" parent="n1" after="n16" name="free entry badge" role="badge" x="880" y="40" w="160" h="160" fill="@accent"/>
+<text id="new:badge label" parent="n1" after="new:badge circle" name="free entry label" role="badge" x="880" y="100" w="160" h="40" size="30" weight="700" fill="#FFFFFF" align="center">Free entry</text>
+```

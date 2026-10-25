@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>S6 leader tab</title>
+<style>body{font:13px ui-monospace,monospace;margin:16px}</style>
+<h3>S6 leader-tab client</h3>
+<p>Open this URL in several tabs; kill the leader tab and watch another take over.
+Params: <code>?ws=&amp;backend=sync|async&amp;rate=ms&amp;mode=verify</code></p>
+<pre id="out"></pre>
+<script type="module">
+const q = new URLSearchParams(location.search);
+const ws = q.get('ws') ?? 'ws_manual';
+const backend = q.get('backend') ?? 'sync';
+const rate = Number(q.get('rate') ?? 10);
+const verify = q.get('mode') === 'verify';
+const peer = 'p' + crypto.randomUUID().slice(0, 8);
+const out = document.getElementById('out');
+const log = (m) => { out.textContent = (JSON.stringify(m).slice(0, 300) + '\n' + out.textContent).slice(0, 8000); };
+const report = (m) => { m.peer = peer; m.t = Date.now(); if (window.__report) window.__report(m); else log(m); };
+
+const w = new Worker('web/store-worker.js', { type: 'module' });
+let stopped = false, n = 0, hot = 0, pendingCb = null;
+window.__role = 'follower';
+w.onmessage = (e) => {
+  const m = e.data;
+  if (m.type === 'leader') window.__role = 'leader';
+  if (m.type === 'pending') { pendingCb?.(m); return; }
+  if (m.type === 'stats' && !window.__report) { log(m); return; }
+  report(m);
+};
+w.postMessage({ type: 'init', ws, backend, peer, asset: 'as_spike', verify, compactEveryMs: Number(q.get('compact') ?? 150), slowHead: q.get('slowHead') === '1' });
+window.__stop = () => { stopped = true; };
+window.__pending = () => new Promise((r) => { pendingCb = r; w.postMessage({ type: 'pending' }); });
+if (!verify) {
+  const gen = () => {
+    if (stopped) return;
+    const k = n++;
+    if (k % 50 === 0) hot = Math.floor(Math.random() * 200);    // a user edits one page at a time
+    w.postMessage({ type: 'commit', c: { id: `${peer}:${k}`, part: `page:${hot}`, v: k } });
+    setTimeout(gen, rate * (0.5 + Math.random()));
+  };
+  setTimeout(gen, 50);
+}
+report({ type: 'hello', verify });
+</script>

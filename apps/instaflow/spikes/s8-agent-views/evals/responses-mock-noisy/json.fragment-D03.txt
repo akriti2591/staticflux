@@ -1,0 +1,3 @@
+```json
+{"upsert":[{"id":"n4","kind":"image","name":"logo slide 1","role":"logo","x":1720,"y":980,"w":160,"h":60,"src":"as_logo_flux"},{"id":"n12","kind":"image","name":"logo slide 2","role":"logo","x":1720,"y":980,"w":160,"h":60,"src":"as_logo_flux"},{"id":"n17","kind":"image","name":"logo slide 3","role":"logo","x":1720,"y":980,"w":160,"h":60,"src":"as_logo_flux"},{"id":"n23","kind":"image","name":"logo slide 4","role":"logo","x":1720,"y":980,"w":160,"h":60,"src":"as_logo_flux"},{"id":"n29","kind":"image","name":"logo slide 5","role":"logo","x":1720,"y":980,"w":160,"h":60,"src":"as_logo_flux"}]}
+```

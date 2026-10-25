@@ -1,0 +1,302 @@
+{
+  "node": "v22.22.0",
+  "procs": 5,
+  "iters": 300,
+  "page": "200 elements (bigPageSeed)",
+  "stats": {
+    "cold": {
+      "n": 1500,
+      "median": 16.201,
+      "p95": 44.101,
+      "perProcessMedian": [
+        18.872,
+        16.204,
+        14.25,
+        16.25,
+        16.609
+      ]
+    },
+    "coldWorldCache": {
+      "n": 1500,
+      "median": 5.086,
+      "p95": 17.735,
+      "perProcessMedian": [
+        6.136,
+        5.255,
+        4.447,
+        4.947,
+        5.176
+      ]
+    },
+    "coldModel": {
+      "n": 1500,
+      "median": 0.535,
+      "p95": 1.103,
+      "perProcessMedian": [
+        0.561,
+        0.543,
+        0.472,
+        0.542,
+        0.548
+      ]
+    },
+    "warm": {
+      "n": 1500,
+      "median": 0.072,
+      "p95": 0.157,
+      "perProcessMedian": [
+        0.078,
+        0.077,
+        0.061,
+        0.073,
+        0.078
+      ]
+    },
+    "warmNoMemo": {
+      "n": 1500,
+      "median": 1.105,
+      "p95": 2.707,
+      "perProcessMedian": [
+        1.163,
+        1.151,
+        1.025,
+        1.121,
+        1.122
+      ]
+    },
+    "oneChange": {
+      "n": 1500,
+      "median": 1.654,
+      "p95": 5.682,
+      "perProcessMedian": [
+        1.757,
+        1.72,
+        1.52,
+        1.662,
+        1.718
+      ]
+    },
+    "structural": {
+      "n": 1500,
+      "median": 1.632,
+      "p95": 5.393,
+      "perProcessMedian": [
+        1.803,
+        1.63,
+        1.477,
+        1.589,
+        1.731
+      ]
+    },
+    "serializeOnly": {
+      "n": 1500,
+      "median": 0.406,
+      "p95": 0.719,
+      "perProcessMedian": [
+        0.424,
+        0.412,
+        0.384,
+        0.406,
+        0.412
+      ]
+    },
+    "hashOnly": {
+      "n": 1500,
+      "median": 0.138,
+      "p95": 0.267,
+      "perProcessMedian": [
+        0.152,
+        0.139,
+        0.131,
+        0.139,
+        0.14
+      ]
+    },
+    "jsonView": {
+      "n": 1500,
+      "median": 0.468,
+      "p95": 1.039,
+      "perProcessMedian": [
+        0.511,
+        0.483,
+        0.428,
+        0.458,
+        0.485
+      ]
+    },
+    "canonical": {
+      "n": 1500,
+      "median": 8.764,
+      "p95": 19.943,
+      "perProcessMedian": [
+        10.807,
+        9.172,
+        7.162,
+        9.161,
+        8.782
+      ]
+    },
+    "compile2": {
+      "n": 1500,
+      "median": 0.328,
+      "p95": 0.592,
+      "perProcessMedian": [
+        0.369,
+        0.321,
+        0.296,
+        0.329,
+        0.342
+      ]
+    },
+    "validate500": {
+      "n": 150,
+      "median": 16.666,
+      "p95": 38.431,
+      "perProcessMedian": [
+        18.831,
+        16.575,
+        16.465,
+        17.874,
+        16.343
+      ]
+    }
+  },
+  "tokens": [
+    {
+      "seed": "flyer",
+      "scope": "page:fl-page",
+      "view": "markup",
+      "chars": 2623,
+      "tokChars4": 656,
+      "tokO200k": 1002
+    },
+    {
+      "seed": "flyer",
+      "scope": "page:fl-page",
+      "view": "json",
+      "chars": 2971,
+      "tokChars4": 743,
+      "tokO200k": 1055
+    },
+    {
+      "seed": "flyer",
+      "scope": "page:fl-page",
+      "view": "canonical-json",
+      "chars": 5862,
+      "tokChars4": 1466,
+      "tokO200k": 1899
+    },
+    {
+      "seed": "deck",
+      "scope": "doc",
+      "view": "markup",
+      "chars": 3396,
+      "tokChars4": 849,
+      "tokO200k": 1319
+    },
+    {
+      "seed": "deck",
+      "scope": "doc",
+      "view": "json",
+      "chars": 3940,
+      "tokChars4": 985,
+      "tokO200k": 1411
+    },
+    {
+      "seed": "deck",
+      "scope": "doc",
+      "view": "canonical-json",
+      "chars": 8382,
+      "tokChars4": 2096,
+      "tokO200k": 2758
+    },
+    {
+      "seed": "deck",
+      "scope": "page:dk-s3",
+      "view": "markup",
+      "chars": 651,
+      "tokChars4": 163,
+      "tokO200k": 262
+    },
+    {
+      "seed": "deck",
+      "scope": "page:dk-s3",
+      "view": "json",
+      "chars": 738,
+      "tokChars4": 185,
+      "tokO200k": 271
+    },
+    {
+      "seed": "deck",
+      "scope": "page:dk-s3",
+      "view": "canonical-json",
+      "chars": 1740,
+      "tokChars4": 435,
+      "tokO200k": 588
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "timeline",
+      "chars": 2056,
+      "tokChars4": 514,
+      "tokO200k": 807
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "markup",
+      "chars": 2244,
+      "tokChars4": 561,
+      "tokO200k": 916
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "json",
+      "chars": 2529,
+      "tokChars4": 632,
+      "tokO200k": 969
+    },
+    {
+      "seed": "reel",
+      "scope": "page:rl-page",
+      "view": "canonical-json",
+      "chars": 6105,
+      "tokChars4": 1526,
+      "tokO200k": 2035
+    },
+    {
+      "seed": "reel",
+      "scope": "flow:fw-captions",
+      "view": "graph",
+      "chars": 1017,
+      "tokChars4": 254,
+      "tokO200k": 341
+    },
+    {
+      "seed": "big",
+      "scope": "page:bp-page",
+      "view": "markup",
+      "chars": 27262,
+      "tokChars4": 6816,
+      "tokO200k": 10304
+    },
+    {
+      "seed": "big",
+      "scope": "page:bp-page",
+      "view": "json",
+      "chars": 30651,
+      "tokChars4": 7663,
+      "tokO200k": 11058
+    },
+    {
+      "seed": "big",
+      "scope": "page:bp-page",
+      "view": "canonical-json",
+      "chars": 60640,
+      "tokChars4": 15160,
+      "tokO200k": 19718
+    }
+  ]
+}

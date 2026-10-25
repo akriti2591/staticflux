@@ -1,0 +1,97 @@
+kill 10/100: acked=2318 gen=19 failover=370ms
+kill 20/100: acked=5159 gen=30 failover=504ms
+kill 30/100: acked=7988 gen=39 failover=630ms
+kill 40/100: acked=11249 gen=51 failover=657ms
+kill 50/100: acked=14425 gen=58 failover=564ms
+kill 60/100: acked=18445 gen=64 failover=785ms
+kill 70/100: acked=22664 gen=72 failover=759ms
+kill 80/100: acked=27163 gen=84 failover=872ms
+kill 90/100: acked=31805 gen=96 failover=651ms
+kill 100/100: acked=36168 gen=109 failover=1059ms
+{
+  "config": {
+    "kills": 100,
+    "pages": 4,
+    "backend": "async",
+    "rateMs": 10,
+    "compactEveryMs": 50,
+    "slowHead": false,
+    "chromium": "153.0.8010.12"
+  },
+  "kills": {
+    "close": 50,
+    "crash": 50
+  },
+  "collateralCrashes": 0,
+  "ackedCommits": 36721,
+  "recoveredCommits": 36840,
+  "missingAcked": 0,
+  "missingSample": [],
+  "drained": true,
+  "recoveries": {
+    "count": 100,
+    "headTorn": 0,
+    "headMissing": 0,
+    "partsMissing": 0,
+    "partsBadDigest": 0,
+    "tornLogTails": 0,
+    "staleSegmentsCleaned": 728,
+    "tmpHeadsCleaned": 3,
+    "generationMonotonic": true,
+    "finalGeneration": 112
+  },
+  "finalVerify": {
+    "headStatus": "ok",
+    "liveSegments": 0,
+    "recoveryMs": 437.3850000016391,
+    "tornTails": 0,
+    "partsMissing": 0,
+    "partsBadDigest": 0
+  },
+  "headProbe": {
+    "reads": 10341,
+    "ok": 10337,
+    "torn": 0,
+    "regress": 0,
+    "missing": 31
+  },
+  "failoverMs": {
+    "median": 623,
+    "p95": 873,
+    "max": 1059
+  },
+  "recoveryMs": {
+    "median": 584.2750000003725,
+    "p95": 827.3449999988079,
+    "max": 967.7050000000745,
+    "partsLoadMedian": 425.76999999955297,
+    "logReplayMedian": 72.59999999962747
+  },
+  "lockHandoffMs": {
+    "median": 55.59999999962747,
+    "p95": 115.3300000000745
+  },
+  "commitAckLatencyMs": {
+    "medianOfPerSecondMedians": 117.76,
+    "p95OfPerSecondP95": 870.19
+  },
+  "leaderDutyCycle": 1.0997935650300479,
+  "compactionsPerLeader": 3,
+  "leaderStatsLast": [
+    {
+      "generation": 5,
+      "compactions": 5,
+      "appended": 262,
+      "casConflicts": 0
+    },
+    {
+      "generation": 112,
+      "compactions": 3,
+      "appended": 553,
+      "casConflicts": 0
+    }
+  ],
+  "errors": [],
+  "errorCount": 0,
+  "pass": true
+}

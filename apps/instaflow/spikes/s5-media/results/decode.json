@@ -1,0 +1,102 @@
+{
+  "meta": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "hardwareConcurrency": 4,
+    "crossOriginIsolated": true,
+    "date": "2026-10-24T19:00:49.690Z"
+  },
+  "decode": {
+    "demux": {
+      "packetsPerSec": 14022,
+      "mbPerSec": 481,
+      "keyframeIndexMs": 27,
+      "keyframes": 120,
+      "packets": 1800,
+      "gopSec": 0.5
+    },
+    "h264 1080p x1": {
+      "streams": 1,
+      "framesPerStream": 300,
+      "ms": 3386,
+      "fpsPerStream": 88.6,
+      "aggregateFps": 88.6,
+      "codec": "avc1.640028",
+      "size": "1920x1080",
+      "allAggregateFps": [
+        86.6,
+        88.6,
+        95
+      ]
+    },
+    "h264 540p x1": {
+      "streams": 1,
+      "framesPerStream": 300,
+      "ms": 819,
+      "fpsPerStream": 366.2,
+      "aggregateFps": 366.2,
+      "codec": "avc1.64001f",
+      "size": "960x540",
+      "allAggregateFps": [
+        351.4,
+        366.2,
+        414.9
+      ]
+    },
+    "vp9 1080p x1": {
+      "streams": 1,
+      "framesPerStream": 290,
+      "ms": 6462,
+      "fpsPerStream": 44.9,
+      "aggregateFps": 44.9,
+      "codec": "vp09.00.40.08.01.02.02.02.00",
+      "size": "1920x1080",
+      "allAggregateFps": [
+        42.5,
+        44.9,
+        47.6
+      ]
+    },
+    "av1 1080p x1": {
+      "streams": 1,
+      "framesPerStream": 290,
+      "ms": 3843,
+      "fpsPerStream": 75.5,
+      "aggregateFps": 75.5,
+      "codec": "av01.0.08M.08.0.111.01.01.01.0",
+      "size": "1920x1080",
+      "allAggregateFps": [
+        74.3,
+        75.5,
+        77.4
+      ]
+    },
+    "h264 1080p x3": {
+      "streams": 3,
+      "framesPerStream": 300,
+      "ms": 8659,
+      "fpsPerStream": 34.6,
+      "aggregateFps": 103.9,
+      "codec": "avc1.640028",
+      "size": "1920x1080",
+      "allAggregateFps": [
+        99.4,
+        103.9,
+        109.3
+      ]
+    },
+    "h264 540p x3": {
+      "streams": 3,
+      "framesPerStream": 300,
+      "ms": 2740,
+      "fpsPerStream": 109.5,
+      "aggregateFps": 328.4,
+      "codec": "avc1.64001f",
+      "size": "960x540",
+      "allAggregateFps": [
+        263.9,
+        328.4,
+        333.7
+      ]
+    }
+  }
+}

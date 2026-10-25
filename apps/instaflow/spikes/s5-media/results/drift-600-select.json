@@ -1,0 +1,135 @@
+{
+  "meta": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "hardwareConcurrency": 4,
+    "crossOriginIsolated": true,
+    "date": "2026-10-24T20:09:46.771Z"
+  },
+  "durationSec": 598,
+  "canvasSize": [
+    1920,
+    1080
+  ],
+  "audio": {
+    "sampleRate": 48000,
+    "decodedFrames": 28699848,
+    "trimmedFrames": 0,
+    "paddedFrames": 0,
+    "ringFillMaxFrames": 21576,
+    "ringFillMinWhilePlayingFrames": 5640,
+    "consumedFrames": 28690176,
+    "underrunFrames": 0,
+    "ctxElapsedSec": 597.712,
+    "consumedSec": 597.712,
+    "outputLatency": 0.032,
+    "baseLatency": 0.010020833333333333,
+    "beepsDetected": 598,
+    "currentTimeMinusOutputTimestampMs": {
+      "n": 5000,
+      "min": 21.1,
+      "median": 36.3,
+      "max": 42.3
+    },
+    "beepOnsetErrorSamples": {
+      "n": 598,
+      "min": 4,
+      "median": 4,
+      "max": 4
+    }
+  },
+  "video": {
+    "playedSec": 598,
+    "present": "select",
+    "catchup": true,
+    "resyncs": 0,
+    "displayLeadMs": 16.666666666666668,
+    "latencies": {
+      "outputLatency": 0.032,
+      "baseLatency": 0.010020833333333333
+    },
+    "tickMs": {
+      "n": 35850,
+      "min": 1.39,
+      "median": 16.67,
+      "p95": 17.19,
+      "p99": 18.6,
+      "max": 232.75,
+      "mean": 16.68
+    },
+    "presented": 17913,
+    "dropped": 16,
+    "late": 0,
+    "wrongFrameForClock": 0,
+    "flashOnsetOffsetMs": {
+      "n": 597,
+      "min": 1.1,
+      "median": 7.24,
+      "p95": 14.73,
+      "p99": 26.57,
+      "max": 31.44,
+      "mean": 7.91
+    },
+    "flashAbsMaxMs": 31.44,
+    "flashTrendMsPerMin": 0.029,
+    "flashMeanFirst30s": 3.63,
+    "flashMeanLast30s": 11.77,
+    "presentedOffsetMs": {
+      "n": 17913,
+      "min": 0.04,
+      "median": 7.32,
+      "p95": 14.86,
+      "p99": 25.25,
+      "max": 32.63,
+      "mean": 8.04
+    },
+    "gpuSubmitToDoneMs": {
+      "n": 0
+    },
+    "audioVsWallSkew": [
+      {
+        "wallSec": 9,
+        "audioMinusWallMs": 0
+      },
+      {
+        "wallSec": 70,
+        "audioMinusWallMs": -30.02
+      },
+      {
+        "wallSec": 130,
+        "audioMinusWallMs": -240.56
+      },
+      {
+        "wallSec": 190,
+        "audioMinusWallMs": -240.48
+      },
+      {
+        "wallSec": 250,
+        "audioMinusWallMs": -250.5
+      },
+      {
+        "wallSec": 310,
+        "audioMinusWallMs": -260.55
+      },
+      {
+        "wallSec": 370,
+        "audioMinusWallMs": -330.73
+      },
+      {
+        "wallSec": 430,
+        "audioMinusWallMs": -330.7
+      },
+      {
+        "wallSec": 490,
+        "audioMinusWallMs": -330.74
+      },
+      {
+        "wallSec": 550,
+        "audioMinusWallMs": -330.69
+      },
+      {
+        "wallSec": 590,
+        "audioMinusWallMs": -350.74
+      }
+    ]
+  }
+}

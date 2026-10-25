@@ -1,0 +1,18 @@
+{
+  "name": "instaflow-spike-s1-s7-render",
+  "private": true,
+  "description": "Phase 0 spikes S1 (render) + S7 (export parity): vello_gpu/wgpu in a worker on OffscreenCanvas vs vello_cpu, SVG, krilla",
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "build:pdf": "bash scripts/build-pdf.sh",
+    "sizes": "node scripts/sizes.mjs",
+    "run": "bash scripts/run.sh swiftshader",
+    "run:gpu": "QUERY='frames=120&variant=gpu_simd' bash scripts/run.sh realgpu --real-gpu --headed",
+    "serve": "node ../_harness/serve-and-run.cjs web index.html --serve-only",
+    "parity:native": "cd rust && cargo run --profile native -p native -- ../results/native"
+  },
+  "devDependencies": {
+    "binaryen": "^132.0.0",
+    "canvaskit-wasm": "0.42.0"
+  }
+}

@@ -1,0 +1,3 @@
+```json
+{"upsert":[{"id":"n4","kind":"image","name":"photo Ben","role":"photo","x":760,"y":340,"w":400,"h":400,"src":"as_ben"}]}
+```

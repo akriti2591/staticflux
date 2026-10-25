@@ -1,0 +1,19 @@
+{
+  "name": "s9-matte-spike",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.1.1",
+    "onnxruntime-web": "1.30.0"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "serve": "node scripts/run.cjs \"\" --serve-only --port=5299",
+    "bench:cloud": "node scripts/run.cjs \"preset=cloud\" --name=cloud",
+    "bench:owner": "node scripts/run.cjs \"preset=owner\" --name=owner-gpu --real-gpu --headed --chrome",
+    "owner": "node scripts/setup.mjs && node scripts/run.cjs \"preset=owner\" --name=owner-gpu --real-gpu --headed --chrome"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

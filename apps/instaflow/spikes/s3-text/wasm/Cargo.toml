@@ -1,0 +1,27 @@
+[package]
+name = "s3_text"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = []
+complex = ["parley/complex-scripts"]
+outlines = ["dep:skrifa"]
+
+[dependencies]
+parley = { version = "=0.12.0", default-features = false, features = ["std"] }
+
+skrifa = { version = "0.44", default-features = false, features = ["std"], optional = true }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[workspace]

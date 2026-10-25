@@ -1,0 +1,11 @@
+[package]
+name = "native"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+ir = { path = "../ir" }
+cpu = { path = "../cpu" }
+pdf = { path = "../pdf", features = ["text"] }
+resvg = "=0.48.1"
+png = "0.18"

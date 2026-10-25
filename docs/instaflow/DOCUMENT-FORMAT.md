@@ -349,7 +349,7 @@ taken over the canonical bytes, and storage uses `encoding: 'deflate-raw'`.
 ```ts
 export interface ExportRecord {                          // records/ex/…
   readonly schema: 'instaflow.export/1';
-  readonly id: ExportId; readonly asset: AssetId; readonly milestone: MilestoneId;   // always from a milestone (IF-5.10)
+  readonly id: ExportId; readonly asset: AssetId; readonly snapshot: SnapshotRef;   // frozen at export start (IF-5.10, D10); kept only by Releases
   readonly format: 'png' | 'pdf' | 'svg' | 'mp4' | 'webm' | 'gif' | 'viewer-html' | 'iflow';
   readonly preset: Record<string, JsonValue>;            // size, variant selection, range, codec
   readonly resolved: Readonly<Record<AssetId, Digest>>;  // following references at export time

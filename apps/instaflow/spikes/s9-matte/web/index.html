@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S9 Matte Bench</title>
+<style>
+  :root { --bg: #fff; --fg: #111; --muted: #666; --line: #ddd; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111; --fg: #eee; --muted: #999; --line: #333; } }
+  body { background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; margin: 16px; }
+  table { border-collapse: collapse; font-size: 12px; } td, th { border: 1px solid var(--line); padding: 3px 6px; text-align: right; }
+  td:first-child, th:first-child { text-align: left; }
+  figure { margin: 8px 0; } figcaption { color: var(--muted); font-size: 12px; } canvas { margin-right: 4px; border: 1px solid var(--line); }
+  pre { background: rgba(127,127,127,.1); padding: 8px; max-height: 300px; overflow: auto; font-size: 11px; }
+  button { font-size: 14px; padding: 6px 12px; margin-right: 6px; }
+</style>
+</head>
+<body>
+<h1>S9 Matte Bench</h1>
+<p>ORT Web (WebGPU / WASM) matte models + MediaPipe fallback on synthetic 1280×720 footage, with motion-gated EMA + guided-filter smoothing.
+Runs automatically with <code>?preset=owner</code>, <code>?preset=cloud</code> or <code>?runs=model:ep:frames,…</code>.</p>
+<p id="buttons"><button data-p="owner">Run owner preset (~5–15 min)</button><button data-p="quick">Quick: BiRefNet-lite WebGPU only</button></p>
+<div id="table"></div>
+<div id="previews"></div>
+<h3>Log</h3><pre id="log"></pre>
+<h3>Result JSON</h3><pre id="json"></pre>
+<script type="module">
+  import { main } from './main.js';
+  const q = new URLSearchParams(location.search);
+  if (q.has('preset') || q.has('runs')) main();
+  for (const b of document.querySelectorAll('button[data-p]')) b.onclick = () => {
+    location.search = b.dataset.p === 'quick' ? '?runs=birefnet_lite:webgpu:20,birefnet_lite_fp16:webgpu:20&seqs=static,moving' : `?preset=${b.dataset.p}`;
+  };
+</script>
+</body>
+</html>

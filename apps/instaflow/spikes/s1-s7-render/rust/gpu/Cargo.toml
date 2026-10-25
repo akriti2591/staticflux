@@ -1,0 +1,21 @@
+[package]
+name = "gpu"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = []
+# build variant to measure the size cost of glyph support (not used by the scene)
+text = ["vello_gpu/text"]
+
+[dependencies]
+ir = { path = "../ir" }
+vello_gpu = { workspace = true }
+wgpu = { workspace = true }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true }

@@ -6,3 +6,19 @@ coverage/
 .size-results.json
 test-results/
 playwright-report/
+# Instaflow spikes: build outputs, downloaded fonts/models/media
+apps/instaflow/spikes/**/target/
+apps/instaflow/spikes/**/pkg/
+apps/instaflow/spikes/**/dist/
+apps/instaflow/spikes/**/fonts/
+apps/instaflow/spikes/**/models/
+apps/instaflow/spikes/**/media/
+apps/instaflow/spikes/**/*.wasm
+apps/instaflow/spikes/**/*.onnx
+apps/instaflow/spikes/**/*.mp4
+apps/instaflow/spikes/**/*.webm
+apps/instaflow/spikes/**/build/
+apps/instaflow/spikes/**/target*/
+apps/instaflow/spikes/**/.tools/
+apps/instaflow/spikes/**/fixtures/
+apps/instaflow/spikes/**/*.iflow

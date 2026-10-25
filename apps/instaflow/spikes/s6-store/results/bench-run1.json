@@ -1,0 +1,1147 @@
+{
+  "config": {
+    "tests": [
+      "probe",
+      "cas",
+      "fault",
+      "milestone",
+      "zip",
+      "gc"
+    ],
+    "backends": [
+      "sync",
+      "async"
+    ],
+    "iters": 20,
+    "gcRuns": 5,
+    "wantBundle": true,
+    "cleanup": true
+  },
+  "probe": {
+    "api": {
+      "FileSystemHandle.prototype.move": false,
+      "FileSystemFileHandle.prototype.move": true,
+      "FileSystemDirectoryHandle.prototype.move": false,
+      "moveOwner": "FileSystemFileHandle",
+      "FileSystemHandle.prototype.remove": true,
+      "createSyncAccessHandle": true,
+      "createWritable": true,
+      "FileSystemObserver": true,
+      "navigator.locks": true,
+      "BroadcastChannel": true,
+      "CompressionStream_deflateRaw": true,
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36"
+    },
+    "moveOverwritesExisting": true,
+    "sourceGoneAfterMove": true,
+    "fileSnapshotAfterTargetReplaced": "throws NotReadableError",
+    "moveOntoTargetWithOpenSyncHandle": "throws NoModificationAllowedError",
+    "moveSourceWithOpenSyncHandle": "throws NoModificationAllowedError",
+    "syncHandleModeOption": "readwrite-unsafe",
+    "opsMs": {
+      "syncWriteRaw4k": {
+        "n": 200,
+        "median": 2.77,
+        "p95": 4.31,
+        "min": 2.08,
+        "max": 7.93
+      },
+      "syncWriteAtomic4k_tmpMove": {
+        "n": 200,
+        "median": 5.09,
+        "p95": 10.54,
+        "min": 3.11,
+        "max": 15.12
+      },
+      "asyncWriteRaw4k_createWritable": {
+        "n": 200,
+        "median": 4.73,
+        "p95": 12.95,
+        "min": 2.85,
+        "max": 38.67
+      },
+      "asyncWriteAtomic4k_tmpMove": {
+        "n": 200,
+        "median": 6.08,
+        "p95": 11.71,
+        "min": 3.76,
+        "max": 22.57
+      },
+      "existsHit": {
+        "n": 200,
+        "median": 0.58,
+        "p95": 0.95,
+        "min": 0.43,
+        "max": 5.42
+      },
+      "existsMiss": {
+        "n": 200,
+        "median": 0.43,
+        "p95": 1.09,
+        "min": 0.27,
+        "max": 6.32
+      },
+      "sha256_4k": {
+        "n": 500,
+        "median": 0.03,
+        "p95": 0.07,
+        "min": 0.02,
+        "max": 6.14
+      }
+    },
+    "sha256_MBps": 138.66
+  },
+  "sync": {
+    "cas": {
+      "sequential": {
+        "firstOk": true,
+        "staleRejected": true,
+        "nextOk": true
+      },
+      "race16_withLock": {
+        "winners": 1,
+        "conflicts": 15
+      },
+      "race16_withoutLock": {
+        "winnersThatBelievedTheyWon": 16,
+        "moveErrors": 0,
+        "errorNames": []
+      },
+      "finalHeadOk": true,
+      "pass": true
+    },
+    "fault": {
+      "afterBlobs": {
+        "crashed": true,
+        "headStatus": "ok",
+        "generation": 1,
+        "recovered": 100,
+        "acked": 100,
+        "missing": 0,
+        "tmpCleaned": 0,
+        "staleSegments": 0,
+        "pass": true
+      },
+      "beforeMove": {
+        "crashed": true,
+        "headStatus": "ok",
+        "generation": 1,
+        "recovered": 100,
+        "acked": 100,
+        "missing": 0,
+        "tmpCleaned": 1,
+        "staleSegments": 0,
+        "pass": true
+      },
+      "afterHead": {
+        "crashed": true,
+        "headStatus": "ok",
+        "generation": 2,
+        "recovered": 100,
+        "acked": 100,
+        "missing": 0,
+        "tmpCleaned": 0,
+        "staleSegments": 1,
+        "pass": true
+      },
+      "tornLogTail": {
+        "tornTails": 1,
+        "goodKept": true,
+        "tornDropped": true,
+        "allAckedKept": true,
+        "pass": true
+      },
+      "tornInPlaceHeadDetected": true,
+      "pass": true
+    },
+    "milestone": {
+      "doc": {
+        "parts": 201,
+        "canonicalBytes": 3849713
+      },
+      "first": {
+        "ms": {
+          "canonicalize": 93.41000000014901,
+          "hash": 13.290000000968575,
+          "blobs": 1655.969999998808,
+          "recordAndHead": 20.27500000037253,
+          "total": 1782.945000000298
+        },
+        "newBlobs": 201,
+        "bytesWritten": 774592
+      },
+      "changed": {
+        "k0": {
+          "n": 5,
+          "totalMs": {
+            "n": 5,
+            "median": 236.63,
+            "p95": 319.6,
+            "min": 202.24,
+            "max": 319.6
+          },
+          "canonicalizeMs": {
+            "n": 5,
+            "median": 112.56,
+            "p95": 238.53,
+            "min": 105.98,
+            "max": 238.53
+          },
+          "hashMs": {
+            "n": 5,
+            "median": 13.45,
+            "p95": 14.08,
+            "min": 12.61,
+            "max": 14.08
+          },
+          "blobsMs": {
+            "n": 5,
+            "median": 63.82,
+            "p95": 100.03,
+            "min": 41.87,
+            "max": 100.03
+          },
+          "recordHeadMs": {
+            "n": 5,
+            "median": 25.74,
+            "p95": 34.37,
+            "min": 16,
+            "max": 34.37
+          },
+          "newBlobs": {
+            "n": 5,
+            "median": 0,
+            "p95": 0,
+            "min": 0,
+            "max": 0
+          },
+          "bytesWritten": {
+            "n": 5,
+            "median": 39427,
+            "p95": 39567,
+            "min": 39287,
+            "max": 39567
+          },
+          "filesWritten": {
+            "n": 5,
+            "median": 2,
+            "p95": 2,
+            "min": 2,
+            "max": 2
+          }
+        },
+        "k1": {
+          "n": 10,
+          "totalMs": {
+            "n": 10,
+            "median": 214.03,
+            "p95": 415.45,
+            "min": 189.43,
+            "max": 415.45
+          },
+          "canonicalizeMs": {
+            "n": 10,
+            "median": 117.42,
+            "p95": 254.66,
+            "min": 92.44,
+            "max": 254.66
+          },
+          "hashMs": {
+            "n": 10,
+            "median": 13.08,
+            "p95": 32.02,
+            "min": 12.15,
+            "max": 32.02
+          },
+          "blobsMs": {
+            "n": 10,
+            "median": 67.36,
+            "p95": 101.52,
+            "min": 48.32,
+            "max": 101.52
+          },
+          "recordHeadMs": {
+            "n": 10,
+            "median": 25.89,
+            "p95": 41.94,
+            "min": 19.54,
+            "max": 41.94
+          },
+          "newBlobs": {
+            "n": 10,
+            "median": 1,
+            "p95": 1,
+            "min": 1,
+            "max": 1
+          },
+          "bytesWritten": {
+            "n": 10,
+            "median": 42545,
+            "p95": 42904,
+            "min": 42149,
+            "max": 42904
+          },
+          "filesWritten": {
+            "n": 10,
+            "median": 3,
+            "p95": 3,
+            "min": 3,
+            "max": 3
+          }
+        },
+        "k5": {
+          "n": 20,
+          "totalMs": {
+            "n": 20,
+            "median": 253.73,
+            "p95": 347.16,
+            "min": 208.96,
+            "max": 350.54
+          },
+          "canonicalizeMs": {
+            "n": 20,
+            "median": 121.1,
+            "p95": 152.16,
+            "min": 94.86,
+            "max": 157.67
+          },
+          "hashMs": {
+            "n": 20,
+            "median": 13.54,
+            "p95": 18.96,
+            "min": 12.29,
+            "max": 23.54
+          },
+          "blobsMs": {
+            "n": 20,
+            "median": 87.28,
+            "p95": 133.38,
+            "min": 70.34,
+            "max": 211.21
+          },
+          "recordHeadMs": {
+            "n": 20,
+            "median": 20.5,
+            "p95": 43.74,
+            "min": 15.54,
+            "max": 62.66
+          },
+          "newBlobs": {
+            "n": 20,
+            "median": 5,
+            "p95": 5,
+            "min": 5,
+            "max": 5
+          },
+          "bytesWritten": {
+            "n": 20,
+            "median": 56370,
+            "p95": 56956,
+            "min": 55248,
+            "max": 57509
+          },
+          "filesWritten": {
+            "n": 20,
+            "median": 7,
+            "p95": 7,
+            "min": 7,
+            "max": 7
+          }
+        },
+        "k20": {
+          "n": 5,
+          "totalMs": {
+            "n": 5,
+            "median": 356.56,
+            "p95": 422.67,
+            "min": 326.08,
+            "max": 422.67
+          },
+          "canonicalizeMs": {
+            "n": 5,
+            "median": 140.09,
+            "p95": 171.14,
+            "min": 98.23,
+            "max": 171.14
+          },
+          "hashMs": {
+            "n": 5,
+            "median": 13.59,
+            "p95": 21.02,
+            "min": 12.68,
+            "max": 21.02
+          },
+          "blobsMs": {
+            "n": 5,
+            "median": 202.46,
+            "p95": 242.87,
+            "min": 149.25,
+            "max": 242.87
+          },
+          "recordHeadMs": {
+            "n": 5,
+            "median": 25.88,
+            "p95": 29.03,
+            "min": 18.7,
+            "max": 29.03
+          },
+          "newBlobs": {
+            "n": 5,
+            "median": 20,
+            "p95": 20,
+            "min": 20,
+            "max": 20
+          },
+          "bytesWritten": {
+            "n": 5,
+            "median": 113495,
+            "p95": 113905,
+            "min": 112639,
+            "max": 113905
+          },
+          "filesWritten": {
+            "n": 5,
+            "median": 22,
+            "p95": 22,
+            "min": 22,
+            "max": 22
+          }
+        },
+        "k200": {
+          "n": 3,
+          "totalMs": {
+            "n": 3,
+            "median": 1444.5,
+            "p95": 2106.96,
+            "min": 1267.91,
+            "max": 2106.96
+          },
+          "canonicalizeMs": {
+            "n": 3,
+            "median": 111.38,
+            "p95": 137.68,
+            "min": 102.75,
+            "max": 137.68
+          },
+          "hashMs": {
+            "n": 3,
+            "median": 16.38,
+            "p95": 18.19,
+            "min": 15.4,
+            "max": 18.19
+          },
+          "blobsMs": {
+            "n": 3,
+            "median": 1296.55,
+            "p95": 1919.84,
+            "min": 1125.43,
+            "max": 1919.84
+          },
+          "recordHeadMs": {
+            "n": 3,
+            "median": 21.55,
+            "p95": 33.06,
+            "min": 21.17,
+            "max": 33.06
+          },
+          "newBlobs": {
+            "n": 3,
+            "median": 200,
+            "p95": 200,
+            "min": 199,
+            "max": 200
+          },
+          "bytesWritten": {
+            "n": 3,
+            "median": 775591,
+            "p95": 775737,
+            "min": 772320,
+            "max": 775737
+          },
+          "filesWritten": {
+            "n": 3,
+            "median": 202,
+            "p95": 202,
+            "min": 201,
+            "max": 202
+          }
+        }
+      },
+      "writesOnlyChangedParts": true,
+      "lastMilestone": "ms_84af8056dc26ddccee1af660975237b7a062397c7b684b112a98652fe5f3e352"
+    },
+    "zip": {
+      "bundleBytes": 821288,
+      "entries": 204,
+      "exportMs": {
+        "n": 5,
+        "median": 1623.29,
+        "p95": 1747.02,
+        "min": 1242.27,
+        "max": 1747.02
+      },
+      "importMs": {
+        "n": 5,
+        "median": 1603.15,
+        "p95": 1714.77,
+        "min": 1499.88,
+        "max": 1714.77
+      },
+      "firstImport": {
+        "ok": true,
+        "blobsWritten": 201,
+        "blobsDeduped": 0,
+        "bytesWritten": 811432,
+        "ms": 1603.1500000003725
+      },
+      "reimportSameTarget": {
+        "ok": true,
+        "blobsWritten": 0,
+        "blobsDeduped": 201,
+        "bytesWritten": 37079,
+        "ms": 818.8999999985099
+      },
+      "importIntoSourceWorkspace": {
+        "ok": true,
+        "blobsWritten": 0,
+        "blobsDeduped": 201,
+        "bytesWritten": 37077,
+        "ms": 878.4249999988824
+      },
+      "notABundle": "IF-BUNDLE-001",
+      "pass": true
+    },
+    "gc": {
+      "blobsAtStart": 10000,
+      "setupMs": 39076.14,
+      "runs": 5,
+      "deletedPerRun": {
+        "n": 5,
+        "median": 3000,
+        "p95": 3000,
+        "min": 3000,
+        "max": 3000
+      },
+      "scannedPerRun": {
+        "n": 5,
+        "median": 10000,
+        "p95": 10000,
+        "min": 10000,
+        "max": 10000
+      },
+      "sequentialRun": {
+        "mark": 365.4950000010431,
+        "list": 1201.0800000000745,
+        "delete": 2549.379999998957,
+        "sweep": 3750.4599999990314,
+        "total": 4115.9550000000745
+      },
+      "parallel16": {
+        "markMs": {
+          "n": 4,
+          "median": 219.54,
+          "p95": 265.95,
+          "min": 148.67,
+          "max": 265.95
+        },
+        "listMs": {
+          "n": 4,
+          "median": 518.44,
+          "p95": 548.05,
+          "min": 481.24,
+          "max": 548.05
+        },
+        "deleteMs": {
+          "n": 4,
+          "median": 696.03,
+          "p95": 734.57,
+          "min": 682.13,
+          "max": 734.57
+        },
+        "totalMs": {
+          "n": 4,
+          "median": 1417.07,
+          "p95": 1510.52,
+          "min": 1402.01,
+          "max": 1510.52
+        }
+      },
+      "inventoryVariant": {
+        "deletedPerRun": {
+          "n": 5,
+          "median": 3000,
+          "p95": 3000,
+          "min": 3000,
+          "max": 3000
+        },
+        "markMs": {
+          "n": 5,
+          "median": 175.27,
+          "p95": 246.13,
+          "min": 136.52,
+          "max": 246.13
+        },
+        "deleteMs": {
+          "n": 5,
+          "median": 625.18,
+          "p95": 826.97,
+          "min": 532.85,
+          "max": 826.97
+        },
+        "totalMs": {
+          "n": 5,
+          "median": 843.64,
+          "p95": 1004.68,
+          "min": 673.94,
+          "max": 1004.68
+        }
+      },
+      "liveMissing": 0,
+      "garbageLeft": 0,
+      "graceRun": {
+        "young": 3000,
+        "deleted": 0,
+        "ms": {
+          "mark": 249.44500000029802,
+          "list": 526.6699999999255,
+          "delete": 990.7250000014901,
+          "sweep": 1517.3950000014156,
+          "total": 1766.8400000017136
+        }
+      },
+      "pass": true
+    }
+  },
+  "async": {
+    "cas": {
+      "sequential": {
+        "firstOk": true,
+        "staleRejected": true,
+        "nextOk": true
+      },
+      "race16_withLock": {
+        "winners": 1,
+        "conflicts": 15
+      },
+      "race16_withoutLock": {
+        "winnersThatBelievedTheyWon": 3,
+        "moveErrors": 13,
+        "errorNames": [
+          "NoModificationAllowedError"
+        ]
+      },
+      "finalHeadOk": true,
+      "pass": true
+    },
+    "fault": {
+      "afterBlobs": {
+        "crashed": true,
+        "headStatus": "ok",
+        "generation": 1,
+        "recovered": 100,
+        "acked": 100,
+        "missing": 0,
+        "tmpCleaned": 0,
+        "staleSegments": 0,
+        "pass": true
+      },
+      "beforeMove": {
+        "crashed": true,
+        "headStatus": "ok",
+        "generation": 1,
+        "recovered": 100,
+        "acked": 100,
+        "missing": 0,
+        "tmpCleaned": 1,
+        "staleSegments": 0,
+        "pass": true
+      },
+      "afterHead": {
+        "crashed": true,
+        "headStatus": "ok",
+        "generation": 2,
+        "recovered": 100,
+        "acked": 100,
+        "missing": 0,
+        "tmpCleaned": 0,
+        "staleSegments": 5,
+        "pass": true
+      },
+      "tornLogTail": {
+        "tornTails": 1,
+        "goodKept": true,
+        "tornDropped": true,
+        "allAckedKept": true,
+        "pass": true
+      },
+      "tornInPlaceHeadDetected": true,
+      "pass": true
+    },
+    "milestone": {
+      "doc": {
+        "parts": 201,
+        "canonicalBytes": 3849713
+      },
+      "first": {
+        "ms": {
+          "canonicalize": 110.08500000089407,
+          "hash": 12.884999999776483,
+          "blobs": 1035.300000000745,
+          "recordAndHead": 28.259999999776483,
+          "total": 1186.530000001192
+        },
+        "newBlobs": 201,
+        "bytesWritten": 774591
+      },
+      "changed": {
+        "k0": {
+          "n": 5,
+          "totalMs": {
+            "n": 5,
+            "median": 208.59,
+            "p95": 267.6,
+            "min": 183.3,
+            "max": 267.6
+          },
+          "canonicalizeMs": {
+            "n": 5,
+            "median": 134.19,
+            "p95": 150.12,
+            "min": 97.82,
+            "max": 150.12
+          },
+          "hashMs": {
+            "n": 5,
+            "median": 16.53,
+            "p95": 18.71,
+            "min": 13.17,
+            "max": 18.71
+          },
+          "blobsMs": {
+            "n": 5,
+            "median": 36.64,
+            "p95": 73.59,
+            "min": 28.63,
+            "max": 73.59
+          },
+          "recordHeadMs": {
+            "n": 5,
+            "median": 26.19,
+            "p95": 32.61,
+            "min": 24.86,
+            "max": 32.61
+          },
+          "newBlobs": {
+            "n": 5,
+            "median": 0,
+            "p95": 0,
+            "min": 0,
+            "max": 0
+          },
+          "bytesWritten": {
+            "n": 5,
+            "median": 39426,
+            "p95": 39567,
+            "min": 39287,
+            "max": 39567
+          },
+          "filesWritten": {
+            "n": 5,
+            "median": 2,
+            "p95": 2,
+            "min": 2,
+            "max": 2
+          }
+        },
+        "k1": {
+          "n": 10,
+          "totalMs": {
+            "n": 10,
+            "median": 223.36,
+            "p95": 276.54,
+            "min": 174.5,
+            "max": 276.54
+          },
+          "canonicalizeMs": {
+            "n": 10,
+            "median": 112.88,
+            "p95": 166.95,
+            "min": 94.24,
+            "max": 166.95
+          },
+          "hashMs": {
+            "n": 10,
+            "median": 16.4,
+            "p95": 21.96,
+            "min": 12.76,
+            "max": 21.96
+          },
+          "blobsMs": {
+            "n": 10,
+            "median": 42.28,
+            "p95": 58.78,
+            "min": 32.54,
+            "max": 58.78
+          },
+          "recordHeadMs": {
+            "n": 10,
+            "median": 33.23,
+            "p95": 77.82,
+            "min": 23.56,
+            "max": 77.82
+          },
+          "newBlobs": {
+            "n": 10,
+            "median": 1,
+            "p95": 1,
+            "min": 1,
+            "max": 1
+          },
+          "bytesWritten": {
+            "n": 10,
+            "median": 42544,
+            "p95": 42904,
+            "min": 42149,
+            "max": 42904
+          },
+          "filesWritten": {
+            "n": 10,
+            "median": 3,
+            "p95": 3,
+            "min": 3,
+            "max": 3
+          }
+        },
+        "k5": {
+          "n": 20,
+          "totalMs": {
+            "n": 20,
+            "median": 206.07,
+            "p95": 274.1,
+            "min": 169.46,
+            "max": 324.47
+          },
+          "canonicalizeMs": {
+            "n": 20,
+            "median": 106.52,
+            "p95": 137.91,
+            "min": 90.81,
+            "max": 171.15
+          },
+          "hashMs": {
+            "n": 20,
+            "median": 13.38,
+            "p95": 15.81,
+            "min": 12.31,
+            "max": 21.95
+          },
+          "blobsMs": {
+            "n": 20,
+            "median": 58.72,
+            "p95": 98.14,
+            "min": 43.89,
+            "max": 99.71
+          },
+          "recordHeadMs": {
+            "n": 20,
+            "median": 24.54,
+            "p95": 31.76,
+            "min": 20.34,
+            "max": 33.23
+          },
+          "newBlobs": {
+            "n": 20,
+            "median": 5,
+            "p95": 5,
+            "min": 5,
+            "max": 5
+          },
+          "bytesWritten": {
+            "n": 20,
+            "median": 56371,
+            "p95": 56956,
+            "min": 55248,
+            "max": 57510
+          },
+          "filesWritten": {
+            "n": 20,
+            "median": 7,
+            "p95": 7,
+            "min": 7,
+            "max": 7
+          }
+        },
+        "k20": {
+          "n": 5,
+          "totalMs": {
+            "n": 5,
+            "median": 354.12,
+            "p95": 388.61,
+            "min": 286.05,
+            "max": 388.61
+          },
+          "canonicalizeMs": {
+            "n": 5,
+            "median": 166.32,
+            "p95": 178.48,
+            "min": 115.32,
+            "max": 178.48
+          },
+          "hashMs": {
+            "n": 5,
+            "median": 13.44,
+            "p95": 23.62,
+            "min": 13.3,
+            "max": 23.62
+          },
+          "blobsMs": {
+            "n": 5,
+            "median": 132.56,
+            "p95": 169.25,
+            "min": 121.96,
+            "max": 169.25
+          },
+          "recordHeadMs": {
+            "n": 5,
+            "median": 32.33,
+            "p95": 37.08,
+            "min": 28.19,
+            "max": 37.08
+          },
+          "newBlobs": {
+            "n": 5,
+            "median": 20,
+            "p95": 20,
+            "min": 20,
+            "max": 20
+          },
+          "bytesWritten": {
+            "n": 5,
+            "median": 113495,
+            "p95": 113907,
+            "min": 112640,
+            "max": 113907
+          },
+          "filesWritten": {
+            "n": 5,
+            "median": 22,
+            "p95": 22,
+            "min": 22,
+            "max": 22
+          }
+        },
+        "k200": {
+          "n": 3,
+          "totalMs": {
+            "n": 3,
+            "median": 1113.37,
+            "p95": 1154.15,
+            "min": 1097.48,
+            "max": 1154.15
+          },
+          "canonicalizeMs": {
+            "n": 3,
+            "median": 133.01,
+            "p95": 166.89,
+            "min": 124.72,
+            "max": 166.89
+          },
+          "hashMs": {
+            "n": 3,
+            "median": 14.35,
+            "p95": 14.39,
+            "min": 13.97,
+            "max": 14.39
+          },
+          "blobsMs": {
+            "n": 3,
+            "median": 941.18,
+            "p95": 949.5,
+            "min": 919.76,
+            "max": 949.5
+          },
+          "recordHeadMs": {
+            "n": 3,
+            "median": 30.75,
+            "p95": 31.73,
+            "min": 24.76,
+            "max": 31.73
+          },
+          "newBlobs": {
+            "n": 3,
+            "median": 200,
+            "p95": 200,
+            "min": 199,
+            "max": 200
+          },
+          "bytesWritten": {
+            "n": 3,
+            "median": 775590,
+            "p95": 775736,
+            "min": 772318,
+            "max": 775736
+          },
+          "filesWritten": {
+            "n": 3,
+            "median": 202,
+            "p95": 202,
+            "min": 201,
+            "max": 202
+          }
+        }
+      },
+      "writesOnlyChangedParts": true,
+      "lastMilestone": "ms_92a63aad3233467a71af825fbf07c1061d7f5856e803383f27f225c337d8128e"
+    },
+    "zip": {
+      "bundleBytes": 821287,
+      "entries": 204,
+      "exportMs": {
+        "n": 5,
+        "median": 1445.61,
+        "p95": 1965.35,
+        "min": 1346.97,
+        "max": 1965.35
+      },
+      "importMs": {
+        "n": 5,
+        "median": 1526.47,
+        "p95": 2171.45,
+        "min": 1330.89,
+        "max": 2171.45
+      },
+      "firstImport": {
+        "ok": true,
+        "blobsWritten": 201,
+        "blobsDeduped": 0,
+        "bytesWritten": 811432,
+        "ms": 1330.8899999987334
+      },
+      "reimportSameTarget": {
+        "ok": true,
+        "blobsWritten": 0,
+        "blobsDeduped": 201,
+        "bytesWritten": 37079,
+        "ms": 1008.3349999990314
+      },
+      "importIntoSourceWorkspace": {
+        "ok": true,
+        "blobsWritten": 0,
+        "blobsDeduped": 201,
+        "bytesWritten": 37077,
+        "ms": 934.5449999999255
+      },
+      "notABundle": "IF-BUNDLE-001",
+      "pass": true
+    },
+    "gc": {
+      "blobsAtStart": 10000,
+      "setupMs": 39211.47,
+      "runs": 5,
+      "deletedPerRun": {
+        "n": 5,
+        "median": 3000,
+        "p95": 3000,
+        "min": 3000,
+        "max": 3000
+      },
+      "scannedPerRun": {
+        "n": 5,
+        "median": 10000,
+        "p95": 10000,
+        "min": 10000,
+        "max": 10000
+      },
+      "sequentialRun": {
+        "mark": 153.0599999986589,
+        "list": 1990.905000001192,
+        "delete": 3010.0099999997765,
+        "sweep": 5000.915000000969,
+        "total": 5153.9749999996275
+      },
+      "parallel16": {
+        "markMs": {
+          "n": 4,
+          "median": 158.61,
+          "p95": 197.49,
+          "min": 133.62,
+          "max": 197.49
+        },
+        "listMs": {
+          "n": 4,
+          "median": 679.98,
+          "p95": 825.19,
+          "min": 596.78,
+          "max": 825.19
+        },
+        "deleteMs": {
+          "n": 4,
+          "median": 1029.86,
+          "p95": 1462.47,
+          "min": 1020.42,
+          "max": 1462.47
+        },
+        "totalMs": {
+          "n": 4,
+          "median": 1912.98,
+          "p95": 2479.81,
+          "min": 1824.13,
+          "max": 2479.81
+        }
+      },
+      "inventoryVariant": {
+        "deletedPerRun": {
+          "n": 5,
+          "median": 3000,
+          "p95": 3000,
+          "min": 3000,
+          "max": 3000
+        },
+        "markMs": {
+          "n": 5,
+          "median": 203.29,
+          "p95": 223.03,
+          "min": 162.34,
+          "max": 223.03
+        },
+        "deleteMs": {
+          "n": 5,
+          "median": 1228.71,
+          "p95": 1316.54,
+          "min": 789.57,
+          "max": 1316.54
+        },
+        "totalMs": {
+          "n": 5,
+          "median": 1457.57,
+          "p95": 1480.76,
+          "min": 959.85,
+          "max": 1480.76
+        }
+      },
+      "liveMissing": 0,
+      "garbageLeft": 0,
+      "graceRun": {
+        "young": 3000,
+        "deleted": 0,
+        "ms": {
+          "mark": 164.44500000029802,
+          "list": 676.105000000447,
+          "delete": 1831.609999999404,
+          "sweep": 2507.714999999851,
+          "total": 2672.160000000149
+        }
+      },
+      "pass": true
+    }
+  },
+  "page": {
+    "showDirectoryPicker": "function",
+    "crossOriginIsolated": true,
+    "persisted": false
+  },
+  "externalZipCheck": {
+    "unzipT": "No errors detected in compressed data of /home/user/staticflux/apps/instaflow/spikes/s6-store/results/sample.iflow.",
+    "pythonZipfile": "ok 204 mimetype 0"
+  }
+}

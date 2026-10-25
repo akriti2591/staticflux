@@ -1,0 +1,3 @@
+```xml
+<text id="n5" fill="@accent"/>
+```

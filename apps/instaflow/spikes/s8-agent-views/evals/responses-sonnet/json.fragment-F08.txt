@@ -1,0 +1,3 @@
+```json
+{"upsert":[{"id":"new:badge circle","kind":"ellipse","parent":"n1","after":"n16","name":"badge circle","role":"badge","x":880,"y":40,"w":160,"h":160,"fill":"@accent"},{"id":"new:badge label","kind":"text","parent":"n1","after":"new:badge circle","name":"badge label","role":"badge","x":880,"y":103,"w":160,"h":34,"size":28,"weight":700,"fill":"#FFFFFF","align":"center","text":"Free entry"}]}
+```

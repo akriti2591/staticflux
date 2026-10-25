@@ -1,0 +1,4 @@
+```xml
+<text id="n5" after="n3" name="subhead" role="subhead" x="80" y="370" w="920" h="56" size="44" fill="@ink" align="center">Street food · Live music · Makers</text>
+<text id="n4" after="n16" name="headline" role="headline" x="80" y="197" w="920" h="150" font="@display" size="140" weight="800" fill="@primary" align="center" lineHeight="1.05">MIDSUMMER NIGHT MARKET</text>
+```

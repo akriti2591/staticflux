@@ -1,0 +1,116 @@
+
+== responses-mock: 140 responses scored ==
+┌─────────┬─────────────────────┬───────┬─────────┬──────┬─────────────┬──────────┬──────────────┬───────────┬───────────────────┬────────────────────┬─────────────────┐
+│ (index) │ combo               │ tasks │ success │ rate │ parseErrors │ opErrors │ staleFlagged │ clobbered │ promptTokO200kAvg │ promptTokChars4Avg │ respTokO200kAvg │
+├─────────┼─────────────────────┼───────┼─────────┼──────┼─────────────┼──────────┼──────────────┼───────────┼───────────────────┼────────────────────┼─────────────────┤
+│ 0       │ 'markup.ops'        │ 20    │ 20      │ 100  │ 0           │ 0        │ 2            │ 0         │ 1815              │ 1380               │ 51              │
+│ 1       │ 'markup.rel'        │ 20    │ 20      │ 100  │ 0           │ 0        │ 2            │ 0         │ 2098              │ 1607               │ 52              │
+│ 2       │ 'markup.fragment'   │ 20    │ 20      │ 100  │ 0           │ 0        │ 2            │ 0         │ 1707              │ 1333               │ 104             │
+│ 3       │ 'json.ops'          │ 20    │ 20      │ 100  │ 0           │ 0        │ 2            │ 0         │ 1863              │ 1457               │ 51              │
+│ 4       │ 'json.rel'          │ 20    │ 20      │ 100  │ 0           │ 0        │ 2            │ 0         │ 2146              │ 1684               │ 52              │
+│ 5       │ 'json.fragment'     │ 20    │ 20      │ 100  │ 0           │ 0        │ 2            │ 0         │ 1723              │ 1374               │ 116             │
+│ 6       │ 'timeline.ops'      │ 10    │ 10      │ 100  │ 0           │ 0        │ 1            │ 0         │ 1774              │ 1299               │ 36              │
+│ 7       │ 'timeline.fragment' │ 10    │ 10      │ 100  │ 0           │ 0        │ 1            │ 0         │ 1594              │ 1191               │ 93              │
+└─────────┴─────────────────────┴───────┴─────────┴──────┴─────────────┴──────────┴──────────────┴───────────┴───────────────────┴────────────────────┴─────────────────┘
+
+== responses-mock-noisy: 140 responses scored ==
+┌─────────┬─────────────────────┬───────┬─────────┬──────┬─────────────┬──────────┬──────────────┬───────────┬───────────────────┬────────────────────┬─────────────────┐
+│ (index) │ combo               │ tasks │ success │ rate │ parseErrors │ opErrors │ staleFlagged │ clobbered │ promptTokO200kAvg │ promptTokChars4Avg │ respTokO200kAvg │
+├─────────┼─────────────────────┼───────┼─────────┼──────┼─────────────┼──────────┼──────────────┼───────────┼───────────────────┼────────────────────┼─────────────────┤
+│ 0       │ 'markup.ops'        │ 20    │ 14      │ 70   │ 0           │ 0        │ 2            │ 0         │ 1815              │ 1380               │ 51              │
+│ 1       │ 'markup.rel'        │ 20    │ 15      │ 75   │ 0           │ 0        │ 2            │ 0         │ 2098              │ 1607               │ 52              │
+│ 2       │ 'markup.fragment'   │ 20    │ 17      │ 85   │ 0           │ 0        │ 2            │ 0         │ 1707              │ 1333               │ 104             │
+│ 3       │ 'json.ops'          │ 20    │ 14      │ 70   │ 0           │ 0        │ 2            │ 0         │ 1863              │ 1457               │ 51              │
+│ 4       │ 'json.rel'          │ 20    │ 15      │ 75   │ 0           │ 0        │ 2            │ 0         │ 2146              │ 1684               │ 52              │
+│ 5       │ 'json.fragment'     │ 20    │ 17      │ 85   │ 0           │ 0        │ 2            │ 0         │ 1723              │ 1374               │ 116             │
+│ 6       │ 'timeline.ops'      │ 10    │ 7       │ 70   │ 0           │ 4        │ 1            │ 0         │ 1774              │ 1299               │ 36              │
+│ 7       │ 'timeline.fragment' │ 10    │ 7       │ 70   │ 0           │ 2        │ 1            │ 0         │ 1594              │ 1191               │ 93              │
+└─────────┴─────────────────────┴───────┴─────────┴──────┴─────────────┴──────────┴──────────────┴───────────┴───────────────────┴────────────────────┴─────────────────┘
+failures: markup.ops-F02: still overflows at size 84
+  markup.rel-F02: still overflows at size 84
+  markup.fragment-F02: box changed
+  json.ops-F02: still overflows at size 84
+  json.rel-F02: still overflows at size 84
+  json.fragment-F02: box changed
+  markup.ops-F05: text="Sun 15 Novx · 6–11 pm"
+  markup.rel-F05: text="Sun 15 Novx · 6–11 pm"
+  json.ops-F05: text="Sun 15 Novx · 6–11 pm"
+  json.rel-F05: text="Sun 15 Novx · 6–11 pm"
+  markup.ops-F08: no 160×160 circle at (880,40)
+  markup.rel-F08: no 160×160 circle at (880,40)
+  markup.fragment-F08: no 160×160 circle at (880,40)
+  json.ops-F08: no 160×160 circle at (880,40)
+  json.rel-F08: no 160×160 circle at (880,40)
+  json.fragment-F08: no 160×160 circle at (880,40)
+  markup.ops-D01: slide 3 title size 85
+  markup.rel-D01: slide 3 title size 85
+  json.ops-D01: slide 3 title size 85
+  json.rel-D01: slide 3 title size 85
+  markup.ops-D04: Q4 missing
+  markup.rel-D04: Q4 missing
+  json.ops-D04: Q4 missing
+  json.rel-D04: Q4 missing
+  markup.ops-D07: gaps 172.79999999999995/147.0999999999999
+  markup.fragment-D07: gaps 172.79999999999995/147.0999999999999
+  json.ops-D07: gaps 172.79999999999995/147.0999999999999
+  json.fragment-D07: gaps 172.79999999999995/147.0999999999999
+  timeline.ops-R03: clip 4 still there
+  timeline.fragment-R03: clip 5 starts 14.07
+  timeline.ops-R06: 1 pieces of clip 1
+  timeline.fragment-R06: 1 pieces of clip 1
+  timeline.ops-R09: starts 19.17
+  timeline.fragment-R09: starts 19.17
+
+== responses-mock-empty: 140 responses scored ==
+┌─────────┬─────────────────────┬───────┬─────────┬──────┬─────────────┬──────────┬──────────────┬───────────┬───────────────────┬────────────────────┬─────────────────┐
+│ (index) │ combo               │ tasks │ success │ rate │ parseErrors │ opErrors │ staleFlagged │ clobbered │ promptTokO200kAvg │ promptTokChars4Avg │ respTokO200kAvg │
+├─────────┼─────────────────────┼───────┼─────────┼──────┼─────────────┼──────────┼──────────────┼───────────┼───────────────────┼────────────────────┼─────────────────┤
+│ 0       │ 'markup.ops'        │ 20    │ 0       │ 0    │ 0           │ 0        │ 0            │ 0         │ 1815              │ 1380               │ 8               │
+│ 1       │ 'markup.rel'        │ 20    │ 0       │ 0    │ 0           │ 0        │ 0            │ 0         │ 2098              │ 1607               │ 8               │
+│ 2       │ 'markup.fragment'   │ 20    │ 0       │ 0    │ 0           │ 0        │ 0            │ 0         │ 1707              │ 1333               │ 4               │
+│ 3       │ 'json.ops'          │ 20    │ 0       │ 0    │ 0           │ 0        │ 0            │ 0         │ 1863              │ 1457               │ 8               │
+│ 4       │ 'json.rel'          │ 20    │ 0       │ 0    │ 0           │ 0        │ 0            │ 0         │ 2146              │ 1684               │ 8               │
+│ 5       │ 'json.fragment'     │ 20    │ 0       │ 0    │ 0           │ 0        │ 0            │ 0         │ 1723              │ 1374               │ 9               │
+│ 6       │ 'timeline.ops'      │ 10    │ 0       │ 0    │ 0           │ 0        │ 0            │ 0         │ 1774              │ 1299               │ 8               │
+│ 7       │ 'timeline.fragment' │ 10    │ 0       │ 0    │ 0           │ 0        │ 0            │ 0         │ 1594              │ 1191               │ 9               │
+└─────────┴─────────────────────┴───────┴─────────┴──────┴─────────────┴──────────┴──────────────┴───────────┴───────────────────┴────────────────────┴─────────────────┘
+failures: markup.ops-F01: fl-sp2 top=1212.85
+  markup.rel-F01: fl-sp2 top=1212.85
+  markup.fragment-F01: fl-sp2 top=1212.85
+  json.ops-F01: fl-sp2 top=1212.85
+  json.rel-F01: fl-sp2 top=1212.85
+  json.fragment-F01: fl-sp2 top=1212.85
+  markup.ops-F02: still overflows at size 140
+  markup.rel-F02: still overflows at size 140
+  markup.fragment-F02: still overflows at size 140
+  json.ops-F02: still overflows at size 140
+  json.rel-F02: still overflows at size 140
+  json.fragment-F02: still overflows at size 140
+  markup.ops-F03: gaps 31.66999999999996, 16.629999999999995
+  markup.rel-F03: gaps 31.66999999999996, 16.629999999999995
+  markup.fragment-F03: gaps 31.66999999999996, 16.629999999999995
+  json.ops-F03: gaps 31.66999999999996, 16.629999999999995
+  json.rel-F03: gaps 31.66999999999996, 16.629999999999995
+  json.fragment-F03: gaps 31.66999999999996, 16.629999999999995
+  markup.ops-F04: y=780.25
+  markup.rel-F04: y=780.25
+  markup.fragment-F04: y=780.25
+  json.ops-F04: y=780.25
+  json.rel-F04: y=780.25
+  json.fragment-F04: y=780.25
+  markup.ops-F05: text="Sat 14 Nov · 6–11 pm"
+  markup.rel-F05: text="Sat 14 Nov · 6–11 pm"
+  markup.fragment-F05: text="Sat 14 Nov · 6–11 pm"
+  json.ops-F05: text="Sat 14 Nov · 6–11 pm"
+  json.rel-F05: text="Sat 14 Nov · 6–11 pm"
+  json.fragment-F05: text="Sat 14 Nov · 6–11 pm"
+  markup.ops-F06: fill is not @accent
+  markup.rel-F06: fill is not @accent
+  markup.fragment-F06: fill is not @accent
+  json.ops-F06: fill is not @accent
+  json.rel-F06: fill is not @accent
+  json.fragment-F06: fill is not @accent
+  markup.ops-F07: placeholder still there
+  markup.rel-F07: placeholder still there
+  markup.fragment-F07: placeholder still there
+  json.ops-F07: placeholder still there

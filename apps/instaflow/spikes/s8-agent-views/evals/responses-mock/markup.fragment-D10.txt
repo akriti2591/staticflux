@@ -1,0 +1,12 @@
+```xml
+<page id="n1" name="Cover" w="1920" h="1080" fill="@dark"/>
+<text id="n2" name="title slide 1" role="title" x="160" y="380" w="1600" h="160" font="@display" size="120" weight="800" fill="@light">Q3 Product Update</text>
+<page id="n5" name="Agenda" w="1920" h="1080" fill="@dark"/>
+<text id="n6" name="title slide 2" role="title" x="160" y="120" w="1600" h="94" font="@display" size="72" weight="700" fill="@light">Agenda</text>
+<page id="n13" name="New editor" w="1920" h="1080" fill="@dark"/>
+<text id="n14" name="title slide 3" role="title" x="160" y="120" w="1600" h="83" font="@display" size="64" weight="700" fill="@light">New editor</text>
+<page id="n18" name="Q3 metrics" w="1920" h="1080" fill="@dark"/>
+<text id="n19" name="title slide 4" role="title" x="160" y="120" w="1600" h="94" font="@display" size="72" weight="700" fill="@light">Q3 metrics</text>
+<page id="n24" name="Team" w="1920" h="1080" fill="@dark"/>
+<text id="n25" name="title slide 5" role="title" x="160" y="120" w="1600" h="104" font="@display" size="80" weight="700" fill="@light">Team</text>
+```

@@ -1,0 +1,590 @@
+{
+  "params": {
+    "mode": "split",
+    "gfx": "none",
+    "gestures": 1000,
+    "pace": 4,
+    "burst": 20,
+    "seed": 1,
+    "naive": 0,
+    "seqlock": 0,
+    "gapEvery": 0,
+    "editorLoad": 0,
+    "align": "raf",
+    "present": "eager",
+    "eagerCap": 0,
+    "eagerDelay": 0,
+    "rafDraw": 1,
+    "latch": 0
+  },
+  "gestures": {
+    "G1-pan": 183,
+    "G2-zoom": 124,
+    "G3-drag1": 270,
+    "G4-drag100": 100,
+    "G5-marquee": 117,
+    "G6-nudge": 206
+  },
+  "records": 5439,
+  "scriptStats": {
+    "remoteMoves": 315,
+    "remoteDels": 22,
+    "remoteMidDrag": 80,
+    "escCancels": 23,
+    "missedTargets": 15
+  },
+  "correctness": {
+    "framesDrawn": 2062,
+    "framesNotEqualOracle": 48,
+    "snapBackFrames": 0,
+    "doubleDrawFrames": 0,
+    "otherMismatch": 48,
+    "framesRenderHashNotEqualEditorHash": 54,
+    "cameraMismatchFrames": 3,
+    "generationNonMonotonic": 2,
+    "firstBad": [
+      {
+        "frame": 173,
+        "inSeq": 389,
+        "docV": 63,
+        "frameDocV": 63
+      },
+      {
+        "frame": 179,
+        "inSeq": 402,
+        "docV": 65,
+        "frameDocV": 65
+      },
+      {
+        "frame": 212,
+        "inSeq": 486,
+        "docV": 82,
+        "frameDocV": 82
+      }
+    ],
+    "overlayAfterCommit": 0,
+    "finalEditorEqualsOracle": true,
+    "finalRenderEqualsOracle": true,
+    "finalHash": {
+      "oracle": 1510600733,
+      "editor": 1510600733,
+      "render": 1510600733
+    },
+    "lastFrame": {
+      "inSeq": 5439,
+      "camSeq": 5439,
+      "equalsOracleFinalDisplay": true
+    },
+    "docVersion": {
+      "oracle": 1042,
+      "editor": 1042,
+      "render": 1042
+    },
+    "commits": {
+      "oracle": 705,
+      "editor": 705
+    },
+    "cancels": {
+      "oracle": {
+        "esc": 23,
+        "targetGone": 12
+      },
+      "editor": {
+        "esc": 23,
+        "targetGone": 12
+      }
+    },
+    "typedErrors": {
+      "oracle": 12,
+      "editor": 12,
+      "sample": {
+        "code": "IF-ENG-001",
+        "gesture": 54,
+        "target": 3135,
+        "fix": "Target was deleted by a collaborator; gesture cancelled."
+      }
+    },
+    "render": {
+      "gaps": 0,
+      "resnapRequests": 0,
+      "snapshotsApplied": 0,
+      "staleEpochSkipped": 0,
+      "waitFrames": 0,
+      "eagerWakes": 3518,
+      "eagerCapped": 0,
+      "ticks": 1357,
+      "draws": 2062,
+      "orderViolations": 0,
+      "overlayAfterCommit": 0,
+      "latchHits": 0,
+      "latchMisses": 0,
+      "seqlockRetries": 0,
+      "tornAccepted": 325,
+      "tornSamples": [
+        {
+          "s1": 27,
+          "s2": 27,
+          "attempt": 0,
+          "copy": [
+            0,
+            14,
+            25,
+            5,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1205418424,
+            0,
+            0,
+            1086616064,
+            0,
+            -1064004608,
+            0,
+            1074790400,
+            297290056,
+            1115297536,
+            -811262509,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "now": [
+            28,
+            14,
+            25,
+            5,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1205418424,
+            0,
+            0,
+            1086616064,
+            0,
+            -1064004608,
+            0,
+            1074790400,
+            297290056,
+            1115297536,
+            -1333380353,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "nT": 0,
+          "nS": 1
+        },
+        {
+          "s1": 43,
+          "s2": 43,
+          "attempt": 0,
+          "copy": [
+            0,
+            22,
+            42,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -2318,
+            408,
+            -2243,
+            461,
+            2054158965,
+            0,
+            0,
+            1086595456,
+            0,
+            -1063823360,
+            0,
+            1074790400,
+            297561498,
+            1115297536,
+            -1976160950,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "now": [
+            44,
+            22,
+            42,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -2318,
+            408,
+            -2243,
+            461,
+            2054158965,
+            0,
+            0,
+            1086595456,
+            0,
+            -1063823360,
+            0,
+            1074790400,
+            297630372,
+            1115297536,
+            2057524146,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "nT": 0,
+          "nS": 0
+        },
+        {
+          "s1": 49,
+          "s2": 49,
+          "attempt": 0,
+          "copy": [
+            0,
+            25,
+            49,
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -2318,
+            408,
+            -2243,
+            461,
+            248751954,
+            0,
+            445671058,
+            1085057666,
+            1124332119,
+            -1065181697,
+            2012937398,
+            1073026942,
+            297630761,
+            1115297536,
+            2085744914,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "now": [
+            49,
+            25,
+            49,
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -2318,
+            408,
+            -2243,
+            461,
+            248751954,
+            0,
+            445671058,
+            1085057666,
+            1124332119,
+            -1065181697,
+            2012937398,
+            1073026942,
+            297630761,
+            1115297536,
+            2085744914,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "nT": 0,
+          "nS": 0
+        },
+        {
+          "s1": 53,
+          "s2": 53,
+          "attempt": 0,
+          "copy": [
+            0,
+            27,
+            53,
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -2318,
+            408,
+            -2243,
+            461,
+            248751954,
+            0,
+            445671058,
+            1085022850,
+            1124332119,
+            -1065193985,
+            2012937398,
+            1073026942,
+            297698632,
+            1115297536,
+            -1950156428,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "now": [
+            53,
+            27,
+            53,
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -2318,
+            408,
+            -2243,
+            461,
+            248751954,
+            0,
+            445671058,
+            1085022850,
+            1124332119,
+            -1065193985,
+            2012937398,
+            1073026942,
+            297766810,
+            1115297536,
+            -300905466,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "nT": 0,
+          "nS": 0
+        }
+      ],
+      "frameReads": 4872
+    },
+    "editor": {
+      "viewFrames": 2617,
+      "deltasWritten": 1042,
+      "deltasDroppedByFault": 0,
+      "snapshots": 0,
+      "batches": 2616,
+      "maxBatch": 5
+    },
+    "pass": false
+  },
+  "latency": {
+    "rafIntervalMs": {
+      "n": 1356,
+      "median": 16.67,
+      "p95": 16.67,
+      "p99": 16.67,
+      "max": 16.67
+    },
+    "budgetMs": 20.67,
+    "inputToPresentEst": {
+      "all": {
+        "n": 5102,
+        "median": 15.72,
+        "p95": 15.9,
+        "p99": 15.96,
+        "max": 16.12
+      },
+      "wheelPan": {
+        "n": 865,
+        "median": 15.72,
+        "p95": 15.89,
+        "p99": 15.95,
+        "max": 16.04
+      },
+      "wheelZoom": {
+        "n": 377,
+        "median": 15.73,
+        "p95": 15.91,
+        "p99": 15.96,
+        "max": 16.08
+      },
+      "pointer": {
+        "n": 3420,
+        "median": 15.71,
+        "p95": 15.9,
+        "p99": 15.96,
+        "max": 16.06
+      },
+      "key": {
+        "n": 440,
+        "median": 15.73,
+        "p95": 15.91,
+        "p99": 15.99,
+        "max": 16.12
+      }
+    },
+    "inputToSubmit": {
+      "all": {
+        "n": 5102,
+        "median": 0.15,
+        "p95": 0.51,
+        "p99": 2.01,
+        "max": 4.17
+      },
+      "wheelPan": {
+        "n": 865,
+        "median": 0.13,
+        "p95": 0.37,
+        "p99": 2,
+        "max": 3.17
+      },
+      "wheelZoom": {
+        "n": 377,
+        "median": 0.14,
+        "p95": 0.41,
+        "p99": 0.6,
+        "max": 2.25
+      },
+      "pointer": {
+        "n": 3420,
+        "median": 0.16,
+        "p95": 0.51,
+        "p99": 2.12,
+        "max": 3.24
+      }
+    },
+    "inputToViewFrameWritten": {
+      "n": 5102,
+      "median": 0.09,
+      "p95": 0.31,
+      "p99": 0.72,
+      "max": 2.91
+    },
+    "inputToGpuDone": {
+      "n": 0,
+      "median": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    "drawCpuMs": {
+      "n": 2062,
+      "median": 0,
+      "p95": 0.01,
+      "p99": 0.01,
+      "max": 0.05
+    },
+    "rafToDrawStartMs": {
+      "n": 2062,
+      "median": 1.11,
+      "p95": 2.12,
+      "p99": 4.15,
+      "max": 18.95
+    },
+    "workerRafAfterMainRafMs": {
+      "n": 1308,
+      "median": 16.66,
+      "p95": 16.67,
+      "p99": 16.67,
+      "max": 33.33
+    },
+    "latchWaitMs": {
+      "n": 0,
+      "median": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    "callbackAfterFrameTs": {
+      "main": {
+        "n": 1307,
+        "median": 0.8,
+        "p95": 1.23,
+        "p99": 2.41,
+        "max": 6.78
+      },
+      "worker": {
+        "n": 1357,
+        "median": 0.74,
+        "p95": 1.03,
+        "p99": 2.59,
+        "max": 17.15
+      }
+    },
+    "inputToPresentFrames": {
+      "median": 0.94,
+      "p95": 0.95
+    },
+    "p95WithinBudget": true
+  },
+  "e4": {
+    "pointerdowns": 472,
+    "displayedCameraStaleAtDown": 114
+  },
+  "gfx": {
+    "kind": "none"
+  },
+  "extra": {
+    "genMs": 55.05499999970198,
+    "driveMs": 21762.91000000015,
+    "maxInputPending": 0
+  },
+  "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36"
+}

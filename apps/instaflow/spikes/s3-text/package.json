@@ -1,0 +1,17 @@
+{
+  "name": "s3-text-spike",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "fonts": "bash fetch-fonts.sh",
+    "build": "bash build.sh",
+    "shaping": "node test/shaping-compare.mjs outlines && node test/shaping-compare.mjs base",
+    "thai": "node test/thai-breaks.mjs",
+    "browser": "NODE_PATH=/opt/node-tools/node_modules node test/run-browser.cjs",
+    "serve": "node ../_harness/serve-and-run.cjs . index.html --serve-only"
+  },
+  "dependencies": {
+    "binaryen": "^132.0.0",
+    "harfbuzzjs": "^1.6.4"
+  }
+}

@@ -1,0 +1,7 @@
+open http://localhost:5468/web/index.html?runs=modnet_int8_288:wasm:3:static
+[page log] env: {"ua":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36","crossOriginIsolated":true,"cores":4,"deviceMemoryGB":16,"webgpu":true,"smooth":{"ema":0.3,"motion":0.04,"gfR":6,"gfEps":0.001,"guided":true},"seqs":["static","bgmotion","moving"],"frameSize":"1280x720","date":"2026-10-24T20:55:47.050Z","adapter":{"vendor":"google","architecture":"swiftshader","description":"","f16":false,"maxBufferMB":1024,"maxStorageBufferMB":1024,"maxStorageBuffersPerShaderStage":10}}
+[page log] run modnet_int8_288 on wasm, 3 frames x static
+[page log]   loaded modnet_int8_288/wasm: 6.63 MB, create 3413 ms, first run 3281 ms
+[page log]   static: {"fpsEndToEndMedian":0.59,"totalMsMedian":1683,"totalMsP95":1918,"inferMsMedian":1286,"inferMsP95":1367,"fpsInferOnly":0.78,"smoothMsMedian":316,"flickerRaw":0.007,"flickerSmoothed":0.0033,"flickerRawEdge":0.0353,"flickerSmoothedEdge":0.0193,"flickerEmaOnly":0.0032,"flickerEmaOnlyEdge":0.0166,"maeEmaOnlyEdge":0.1198,"flickerRawEdgeSteady":0,"flickerSmoothedEdgeSteady":0,"maeRaw":0.032,"maeSmoothed":0.0321,"maeRawEdge":0.1247,"maeSmoothedEdge":0.137,"iouRaw":0.8678,"iouSmoothed":0.8744}
+[page log] done
+wrote /home/user/staticflux/apps/instaflow/spikes/s9-matte/results/mem-modnet_int8_288-wasm.json

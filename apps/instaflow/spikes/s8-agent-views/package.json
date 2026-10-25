@@ -1,0 +1,20 @@
+{
+  "name": "s8-agent-views",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Instaflow Phase 0 spike S8: agent views (layout/timeline/graph codecs), change sets, round-trip, concurrency, eval harness",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "bench": "node bench/project.mjs",
+    "eval:prompts": "node evals/harness.mjs prompts",
+    "eval:mock": "node evals/harness.mjs mock",
+    "eval:score": "node evals/harness.mjs score",
+    "all": "npm test && npm run bench && npm run eval:prompts && npm run eval:mock && npm run eval:score"
+  },
+  "dependencies": {
+    "fast-check": "^4.10.2",
+    "gpt-tokenizer": "^4.1.0",
+    "loro-crdt": "^1.17.1"
+  }
+}

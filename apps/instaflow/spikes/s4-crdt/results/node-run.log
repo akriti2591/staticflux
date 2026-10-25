@@ -1,0 +1,44 @@
+  instantiate done in 0 s
+  instantiate done in 0 s
+  instantiate done in 0 s
+  instantiate done in 0 s
+  instantiate done in 0 s
+  open-loro done in 33 s
+  open-yjs done in 18 s
+  open-loro done in 33 s
+  open-yjs done in 18 s
+  open-loro done in 32 s
+  open-yjs done in 17 s
+  merge1 loro-cold 1000 done in 21 s
+  merge1 loro-cold 1000 done in 22 s
+  merge1 loro-cold 1000 done in 21 s
+  merge1 loro-warm 1000 done in 22 s
+  merge1 loro-warm 1000 done in 20 s
+  merge1 loro-warm 1000 done in 21 s
+  merge1 loro-pages 1000 done in 4 s
+  merge1 loro-pages 1000 done in 5 s
+  merge1 loro-pages 1000 done in 5 s
+  merge1 yjs 1000 done in 13 s
+  merge1 yjs 1000 done in 13 s
+  merge1 yjs 1000 done in 13 s
+  merge1 loro-cold 10000 done in 18 s
+  merge1 loro-cold 10000 done in 18 s
+  merge1 loro-cold 10000 done in 18 s
+  merge1 loro-warm 10000 done in 16 s
+  merge1 loro-warm 10000 done in 16 s
+  merge1 loro-warm 10000 done in 16 s
+  merge1 loro-pages 10000 done in 12 s
+  merge1 loro-pages 10000 done in 11 s
+  merge1 loro-pages 10000 done in 11 s
+  merge1 yjs 10000 done in 20 s
+  merge1 yjs 10000 done in 20 s
+  merge1 yjs 10000 done in 21 s
+  perf history done in 77 s
+  perf history done in 131 s
+  perf history done in 534 s
+  perf gestures done in 5 s
+  perf gestures done in 5 s
+  perf gestures done in 4 s
+  perf build done in 8 s
+  correctness done in 0 s
+wrote results/node.json

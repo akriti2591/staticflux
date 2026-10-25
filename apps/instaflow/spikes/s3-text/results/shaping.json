@@ -1,0 +1,64 @@
+{
+  "parleyVariant": "base",
+  "harfbuzz": "15.0.0",
+  "upem": 1000,
+  "arabic": {
+    "script": "Arabic",
+    "strings": 40,
+    "runs": 46,
+    "glyphs": 788,
+    "glyphIdMatchPct": 100,
+    "glyphIdAndPositionMatchPct": 100,
+    "stringsExactPct": 100,
+    "mismatches": []
+  },
+  "devanagari": {
+    "script": "Devanagari",
+    "strings": 40,
+    "runs": 40,
+    "glyphs": 286,
+    "glyphIdMatchPct": 100,
+    "glyphIdAndPositionMatchPct": 100,
+    "stringsExactPct": 100,
+    "mismatches": []
+  },
+  "fullStack": {
+    "css": "\"Noto Sans\", \"Noto Sans Arabic\", \"Noto Sans Devanagari\"",
+    "arabic": {
+      "script": "Arabic",
+      "strings": 40,
+      "runs": 199,
+      "glyphs": 788,
+      "glyphIdMatchPct": 100,
+      "glyphIdAndPositionMatchPct": 100,
+      "stringsExactPct": 100
+    },
+    "devanagari": {
+      "script": "Devanagari",
+      "strings": 40,
+      "runs": 40,
+      "glyphs": 286,
+      "glyphIdMatchPct": 100,
+      "glyphIdAndPositionMatchPct": 100,
+      "stringsExactPct": 100
+    }
+  },
+  "negativeControl": {
+    "arabicNoJoining": {
+      "glyphIdMatchPct": 49.75,
+      "stringsExactPct": 7.5
+    },
+    "devanagariNoConjuncts": {
+      "glyphIdMatchPct": 36.68,
+      "stringsExactPct": 15
+    }
+  },
+  "sanity": {
+    "arabic": {
+      "stringsWhereShapingChangedGlyphs": "39/40"
+    },
+    "devanagari": {
+      "stringsWhereShapingChangedGlyphs": "39/40"
+    }
+  }
+}
