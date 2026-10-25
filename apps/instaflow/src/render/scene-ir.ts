@@ -12,8 +12,11 @@
  */
 
 export const SCENE_IR_MAGIC = [0x53, 0x46, 0x49, 0x52] as const; // "SFIR"
-/** 3 (B2): FONT / DROP_FONT ops; glyph runs carry synthesis and variation coordinates (2: B1 stacks, effects, masks). */
-export const SCENE_IR_VERSION = 3;
+/**
+ * 4 (C1): glyph runs carry their text and per-glyph cluster ranges (real text in PDF exports). 3 (B2): FONT / DROP_FONT
+ * ops; glyph runs carry synthesis and variation coordinates (2: B1 stacks, effects, masks).
+ */
+export const SCENE_IR_VERSION = 4;
 /** Parent id of top-level nodes. */
 export const SCENE_ROOT = 0;
 /** `index` value that appends a node after its siblings. */
@@ -84,6 +87,8 @@ export type SceneGeometry =
   /**
    * Positioned glyphs (B2): `font` is a font id registered with `font()`; glyphs are `[id, x, y]` pen positions on the
    * baseline. `embolden` / `skew` (degrees) synthesize bold and italic; `coords` are variation coordinates (F2Dot14).
+   * `text` is the run's text and `clusters` the `[start, end)` UTF-16 range of each glyph's cluster in it (v4, C1:
+   * renderers ignore them; exports keep text real).
    */
   | {
       readonly kind: 'glyphs';
@@ -93,6 +98,8 @@ export type SceneGeometry =
       readonly embolden?: boolean;
       readonly skew?: number;
       readonly coords?: readonly number[];
+      readonly text?: string;
+      readonly clusters?: readonly (readonly [number, number])[];
     };
 
 export type GradientStop = readonly [offset: number, color: Rgba8];
@@ -237,6 +244,41 @@ class Bytes {
   }
 }
 
+const UTF8 = /* @__PURE__ */ new TextEncoder();
+
+/** UTF-8 byte offset of every UTF-16 index of `text` (length + 1 entries; inside a surrogate pair: the pair's start). */
+export function utf8Offsets(text: string): Uint32Array {
+  const out = new Uint32Array(text.length + 1);
+  let bytes = 0;
+  for (let i = 0; i < text.length; i++) {
+    out[i] = bytes;
+    const c = text.charCodeAt(i);
+    if (c >= 0xd800 && c < 0xdc00 && i + 1 < text.length && (text.charCodeAt(i + 1) & 0xfc00) === 0xdc00) {
+      out[i + 1] = bytes;
+      bytes += 4;
+      i += 1;
+    } else bytes += c < 0x80 ? 1 : c < 0x800 ? 2 : 3;
+  }
+  out[text.length] = bytes;
+  return out;
+}
+
+/** v4: the run's text (UTF-8) and, when there is text, one UTF-8 byte range per glyph. */
+function glyphText(out: Bytes, text: string, clusters: readonly (readonly [number, number])[], glyphs: number): void {
+  const bytes = UTF8.encode(text);
+  out.u32(bytes.length);
+  out.bytes(bytes);
+  if (bytes.length === 0) return;
+  const at = utf8Offsets(text);
+  const clamp = (i: number): number => at[Math.max(0, Math.min(text.length, Math.trunc(i)))] as number;
+  for (let i = 0; i < glyphs; i++) {
+    const range = clusters[i];
+    const start = range === undefined ? 0 : clamp(range[0]);
+    out.u32(start);
+    out.u32(range === undefined ? bytes.length : Math.max(start, clamp(range[1])));
+  }
+}
+
 function finite(v: number, what: string): number {
   if (!Number.isFinite(v)) throw new RangeError(`scene IR: ${what} must be finite, got ${v}`);
   return v;
@@ -371,6 +413,7 @@ export function createSceneWriter(): SceneWriter {
           out.f32(x);
           out.f32(y);
         }
+        glyphText(out, g.text ?? '', g.clusters ?? [], g.glyphs.length);
         break;
     }
   };

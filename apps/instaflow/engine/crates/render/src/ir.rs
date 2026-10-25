@@ -4,7 +4,7 @@
 //! node tree, world transforms, world bounds and image pixels, so a GPU device loss rebuilds every
 //! texture from here without touching the document (IF-7.11).
 //!
-//! # Wire format (version 3, little-endian)
+//! # Wire format (version 4, little-endian)
 //!
 //! ```text
 //! batch   = "SFIR" version:u16 reserved:u16 op_count:u32 op*
@@ -20,6 +20,7 @@
 //! geometry = GROUP(0) | RECT(1) w h radius:f64 | ELLIPSE(2) w h:f64 | PATH(3) path
 //!          | IMAGE(4) image:u32 w h:f64
 //!          | GLYPHS(5) font:u32 size:f32 flags:u8 skew:f32 coords:u8 (coord:i16)* count:u32 (glyph:u32 x:f32 y:f32)*
+//!                     text_len:u32 utf8[text_len] [(start:u32 end:u32)×count when text_len > 0]
 //!          | RRECT(6) w h tl tr br bl:f64                          (a radius per corner, already fitted)
 //! path     = verbs:u32 verb:u8* points:u32 (x:f64 y:f64)*     verbs: move 0, line 1, quad 2, cubic 3, close 4
 //! paint    = NONE(0) | SOLID(1) rgba8 | LINEAR(2) x0 y0 x1 y1:f64 stops | RADIAL(3) cx cy r:f64 stops | IMAGE(4) image:u32 fit:u8
@@ -54,7 +55,11 @@
 //! `flags` bit 0 = synthetic bold, `skew` = synthetic italic angle in degrees, `coords` = variation coordinates
 //! (F2Dot14, the run's `normalized_coords` from Parley; S3: CJK variable fonts default to weight 100 without
 //! them). Glyph `x, y` are pen positions on the baseline in the node's local space; fill paints them.
-//! Version history: 1 (A6) → 2 (B1: stacks, effects, masks) → 3 (B2: FONT/DROP_FONT ops, synthesis and coords on GLYPHS).
+//! **Text of a run (v4, C1):** the run's characters (UTF-8) and, per glyph, the byte range of the cluster it belongs to
+//! (`start..end` in the run's text). Renderers ignore it; the PDF writer embeds it so exported text stays real text
+//! (selectable, searchable, extractable) and the SVG writer labels runs with it. An empty text means none was sent.
+//! Version history: 1 (A6) → 2 (B1: stacks, effects, masks) → 3 (B2: FONT/DROP_FONT ops, synthesis and coords on GLYPHS)
+//! → 4 (C1: the text and per-glyph cluster ranges of GLYPHS).
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -63,7 +68,7 @@ use vello_common::peniko::{Blob, FontData, ImageAlphaType};
 use vello_common::pixmap::{PixelMetadata, Pixmap};
 
 pub const MAGIC: [u8; 4] = *b"SFIR";
-pub const VERSION: u16 = 3;
+pub const VERSION: u16 = 4;
 pub const ROOT: u32 = 0;
 pub const APPEND: u32 = u32::MAX;
 
@@ -93,12 +98,23 @@ pub struct GlyphRun {
     /// Variation coordinates (F2Dot14 bits).
     pub coords: Vec<i16>,
     pub glyphs: Vec<(u32, f32, f32)>,
+    /// The run's text (UTF-8; empty when the sender sent none, v4).
+    pub text: String,
+    /// Per glyph: the UTF-8 byte range in `text` of the cluster the glyph belongs to (empty when `text` is).
+    pub clusters: Vec<(u32, u32)>,
 }
 
 impl GlyphRun {
-    /// A plain run (no synthesis, default coordinates).
+    /// A plain run (no synthesis, default coordinates, no text).
     pub fn new(font: u32, size: f32, glyphs: Vec<(u32, f32, f32)>) -> Self {
-        GlyphRun { font, size, embolden: false, skew: 0.0, coords: Vec::new(), glyphs }
+        GlyphRun { font, size, embolden: false, skew: 0.0, coords: Vec::new(), glyphs, text: String::new(), clusters: Vec::new() }
+    }
+
+    /// The run with its text and per-glyph cluster ranges (UTF-8 bytes).
+    pub fn with_text(mut self, text: impl Into<String>, clusters: Vec<(u32, u32)>) -> Self {
+        self.text = text.into();
+        self.clusters = clusters;
+        self
     }
 }
 
@@ -460,7 +476,23 @@ impl<'a> Reader<'a> {
                 for _ in 0..n {
                     glyphs.push((self.u32()?, self.f32()?, self.f32()?));
                 }
-                Geometry::Glyphs(GlyphRun { font, size, embolden: flags & 1 == 1, skew, coords, glyphs })
+                let text_len = self.u32()? as usize;
+                let text = match std::str::from_utf8(self.take(text_len)?) {
+                    Ok(t) => t.to_owned(),
+                    Err(_) => return fail("glyph run text is not UTF-8"),
+                };
+                let mut clusters = Vec::new();
+                if text_len > 0 {
+                    clusters.reserve(n.min(1 << 20));
+                    for _ in 0..n {
+                        let (start, end) = (self.u32()?, self.u32()?);
+                        if start > end || end as usize > text_len || !text.is_char_boundary(start as usize) || !text.is_char_boundary(end as usize) {
+                            return fail(format!("glyph cluster {start}..{end} is not a character range of the run's text"));
+                        }
+                        clusters.push((start, end));
+                    }
+                }
+                Geometry::Glyphs(GlyphRun { font, size, embolden: flags & 1 == 1, skew, coords, glyphs, text, clusters })
             }
             6 => Geometry::RRect { w: self.f64()?, h: self.f64()?, radii: [self.f64()?, self.f64()?, self.f64()?, self.f64()?] },
             other => return fail(format!("unknown geometry kind {other}")),
@@ -700,6 +732,11 @@ impl Scene {
     /// Retained font files (each hash once, however many ids alias it).
     pub fn font_files(&self) -> usize {
         self.font_data.len()
+    }
+
+    /// The content hash behind a font id.
+    pub fn font_hash(&self, id: u32) -> Option<&FontHash> {
+        self.fonts.get(&id)
     }
 
     pub fn has_font_hash(&self, hash: &FontHash) -> bool {
@@ -1091,6 +1128,15 @@ impl IrWriter {
                     self.f32(x);
                     self.f32(y);
                 }
+                self.u32(run.text.len() as u32);
+                self.buf.extend_from_slice(run.text.as_bytes());
+                if !run.text.is_empty() {
+                    for i in 0..run.glyphs.len() {
+                        let (start, end) = run.clusters.get(i).copied().unwrap_or((0, run.text.len() as u32));
+                        self.u32(start);
+                        self.u32(end);
+                    }
+                }
             }
         }
         self.u8(node.fills.len() as u8);
@@ -1272,7 +1318,7 @@ mod tests {
             v2,
             leaf(3, 1, Geometry::Ellipse { w: 4.0, h: 6.0 }, Paint::Radial { center: Point::new(2.0, 3.0), radius: 3.0, stops: vec![] }),
             leaf(4, ROOT, Geometry::Image { image: 9, w: 8.0, h: 8.0 }, Paint::Image(9, fit::STRETCH)),
-            leaf(5, ROOT, Geometry::Glyphs(GlyphRun { font: 3, size: 12.0, embolden: true, skew: 14.0, coords: vec![16384, -3], glyphs: vec![(65, 0.0, 12.0)] }), Paint::Solid([0, 0, 0, 255])),
+            leaf(5, ROOT, Geometry::Glyphs(GlyphRun { font: 3, size: 12.0, embolden: true, skew: 14.0, coords: vec![16384, -3], glyphs: vec![(65, 0.0, 12.0), (66, 7.0, 12.0)], text: "Aé".into(), clusters: vec![(0, 1), (1, 3)] }), Paint::Solid([0, 0, 0, 255])),
         ];
         let mut w = IrWriter::new();
         w.image(9, 1, 1, &[1, 2, 3, 255]);
@@ -1314,6 +1360,10 @@ mod tests {
         let mut root = IrWriter::new();
         root.upsert(&group(0, ROOT), APPEND);
         assert!(decode(&root.finish()).is_err());
+        // v4: a cluster range must be a character range of the run's text
+        let mut text = IrWriter::new();
+        text.upsert(&leaf(1, ROOT, Geometry::Glyphs(GlyphRun::new(1, 10.0, vec![(3, 0.0, 10.0)]).with_text("é", vec![(1, 2)])), Paint::Solid([0, 0, 0, 255])), APPEND);
+        assert!(decode(&text.finish()).unwrap_err().0.contains("character range"));
     }
 
     #[test]

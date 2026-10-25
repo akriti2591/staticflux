@@ -137,7 +137,10 @@ export function createTextLayer(options: TextLayerOptions): TextLayer {
       }
       const group = (nextScene += 2);
       const placed: number[] = [group];
+      const source = part();
+      const block = source === undefined ? undefined : readTextBlock(source, node);
       const nodes = textSceneNodes(laid.value, {
+        ...(block?.ok === true ? { text: block.value.text } : {}),
         id: group,
         transform: [...pageTransform(document.context(), node)] as unknown as SceneTransform,
         brushes: brushes(node),

@@ -84,6 +84,26 @@ export interface TextSceneOptions {
   readonly fontId: (authoringFont: number) => number | undefined;
   /** Allocates scene ids for the element's children. */
   readonly nextId: () => number;
+  /**
+   * The laid-out block's text (UTF-16, the indices of the layout's runs and clusters). Given, each glyph run carries
+   * its text and the cluster of every glyph (scene IR v4), so exports keep text real (C1: PDF).
+   */
+  readonly text?: string;
+}
+
+/** A run's text and each glyph's `[start, end)` cluster range in it (UTF-16), from the block text. */
+export function runText(layout: TextLayout, run: ReturnType<TextLayout['runs']>[number], text: string): { readonly text: string; readonly clusters: (readonly [number, number])[] } {
+  const clusters = layout.clusters();
+  const start = Math.max(0, Math.min(text.length, run.start));
+  const end = Math.max(start, Math.min(text.length, run.end));
+  const within = (i: number): number => Math.max(0, Math.min(end - start, i - start));
+  return {
+    text: text.slice(start, end),
+    clusters: run.glyphs.map((g) => {
+      const c = clusters[g.cluster];
+      return c === undefined ? ([0, end - start] as const) : ([within(c.start), Math.max(within(c.start), within(c.end))] as const);
+    }),
+  };
 }
 
 const FALLBACK_BRUSH: TextBrush = { color: [0, 0, 0, 255] };
@@ -106,6 +126,7 @@ export function textSceneNodes(layout: TextLayout, options: TextSceneOptions): S
         ...(run.embolden ? { embolden: true } : {}),
         ...(run.skew !== 0 ? { skew: run.skew } : {}),
         ...(run.coords.length > 0 ? { coords: run.coords } : {}),
+        ...(options.text === undefined ? {} : runText(layout, run, options.text)),
       },
       fill: { kind: 'solid', color: brush.color },
     });

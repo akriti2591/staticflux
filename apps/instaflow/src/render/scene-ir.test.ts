@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { BLEND_MODES, createSceneWriter, PATH_VERBS, SCENE_APPEND, SCENE_IR_VERSION, SCENE_OPS, type SceneNode, type ScenePaint, type SceneTransform } from './scene-ir.js';
+import { BLEND_MODES, createSceneWriter, PATH_VERBS, SCENE_APPEND, SCENE_IR_VERSION, SCENE_OPS, type SceneNode, type ScenePaint, type SceneTransform, utf8Offsets } from './scene-ir.js';
 
 const fixture = (name: string): Uint8Array => new Uint8Array(readFileSync(new URL(`../../engine/crates/render/fixtures/${name}.sfir`, import.meta.url)));
 
@@ -200,7 +200,25 @@ describe('createSceneWriter', () => {
     expect(bytes[g]).toBe(5);
     expect([view.getUint32(g + 1, true), view.getFloat32(g + 5, true), bytes[g + 9], view.getFloat32(g + 10, true), bytes[g + 14]]).toEqual([5, 20, 1, 14, 2]);
     expect([view.getInt16(g + 15, true), view.getInt16(g + 17, true), view.getUint32(g + 19, true)]).toEqual([16384, -3, 1]);
+    // v4: no text → text length 0, no ranges
+    expect(view.getUint32(g + 23 + 12, true)).toBe(0);
+    expect(bytes.length).toBe(g + 23 + 12 + 4 + 1 + 1 + 1);
     expect(() => createSceneWriter().font(1, new Uint8Array(3), new Uint8Array())).toThrow(/sha-256/);
+  });
+
+  it('writes the text of a glyph run with UTF-8 cluster ranges (v4, C1)', () => {
+    const w = createSceneWriter();
+    // "é😀a": é is 2 UTF-8 bytes, the emoji a surrogate pair (2 UTF-16 units, 4 bytes)
+    w.upsert({ id: 1, geometry: { kind: 'glyphs', font: 1, size: 10, glyphs: [[1, 0, 0], [2, 5, 0], [3, 9, 0]], text: 'é😀a', clusters: [[0, 1], [1, 3], [3, 4]] } });
+    const bytes = w.finish();
+    const view = new DataView(bytes.buffer);
+    const g = 12 + 13 + 48 + 4 + 3 + 1;
+    const textAt = g + 15 + 4 + 3 * 12;
+    expect(view.getUint32(textAt, true)).toBe(7);
+    expect(new TextDecoder().decode(bytes.subarray(textAt + 4, textAt + 11))).toBe('é😀a');
+    const ranges = Array.from({ length: 6 }, (_, i) => view.getUint32(textAt + 11 + i * 4, true));
+    expect(ranges).toEqual([0, 2, 2, 6, 6, 7]);
+    expect(utf8Offsets('a😀')).toEqual(Uint32Array.from([0, 1, 1, 5]));
   });
 
   it('rejects invalid input instead of writing a broken batch', () => {
