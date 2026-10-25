@@ -123,6 +123,8 @@ export interface StudioApp {
   readonly library: Library;
   /** Save Latest, then leave for `href` (what the Home link does). */
   leave(href: string): Promise<void>;
+  /** Wait until every edit so far is durable in the workspace store (Latest flushed). */
+  flush(): Promise<Result<void>>;
   /** "Save as template" (C0): one capability run; the title defaults to the design's. */
   saveAsTemplate(title?: string): Promise<Result<unknown>>;
   /** The mirrors the panels read (tests, devtools). */
@@ -450,6 +452,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     workers,
     library: library.library,
     leave,
+    flush: () => latest.flush(signal),
     saveAsTemplate,
     mirrors: hub,
     get view() {

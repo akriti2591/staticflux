@@ -200,7 +200,15 @@ async function scenario(page) {
     const c = (await inspect()).view.camera;
     return [b.x + px * c.zoom + c.tx, b.y + py * c.zoom + c.ty];
   };
-  const undoDepth = async () => (await inspect()).undo;
+  // Undo depth counts durable commits: flush Latest first (the workspace store is IndexedDB since C0, so durability
+  // trails the edit by a few milliseconds).
+  const undoDepth = async () => {
+    await page.evaluate(async () => {
+      const r = await window.__studio.flush();
+      if (!r.ok) throw new Error(r.error.message);
+    });
+    return (await inspect()).undo;
+  };
   const el = async () => (await inspect([rect])).elements[0];
   // Flip (Shift+H on the focused canvas): along the element's own axes, so the rotation stays; twice restores it.
   await surface.focus();

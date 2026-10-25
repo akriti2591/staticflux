@@ -147,6 +147,9 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     .grid > li {
       display: contents;
     }
+    .quick .grid {
+      grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr));
+    }
     .quick sf-card {
       min-block-size: 136px;
     }
