@@ -29,7 +29,7 @@ entries at the top of **Journal**.
 | B2 Text | Merged; IME check passed (D20) | `main` | #16 |
 | B6 Accessibility layer | Merged; not yet wired to Studio's live canvas | `main` | #17 |
 | B8 Studio integration | Merged; editor on the main thread until B9 | `main` | #20 |
-| B9 Editor in the worker | Built; full check passes (4,209 tests). **PR held:** Studio smoke failed 1 in 5 runs (colocated, move lost its y: Shift axis lock suspected); a focused agent is fixing it | `claude/wip-b9-worker` | — |
+| B9 Editor in the worker | PR open (full check 4,210 tests; smoke 30/30 per topology under load) | working branch | #21 |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
@@ -58,6 +58,8 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** B9 smoke failure root-caused (not Shift, not a flake): the selection HUD grew from one to two rows and
+  moved the canvas 40 px under a drag. HUD now has a fixed height (test fails without it); smoke 30/30 per topology.
 - **2026-10-25** B9 done (7a10e9a): editor and render in workers, one by default, two with `?topology=split`; main keeps
   page-side adapters; store stays on main behind a port for now. Full check passes. Studio smoke: 1 failure in 5 runs
   (colocated `move`: +60 x, 0 y, matching the Shift axis lock). Not treated as a flake: a focused agent is proving
