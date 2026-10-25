@@ -494,3 +494,53 @@
   change sets that address a comment (the change set links the comment id, and accepting it offers "resolve").
 - **IF-18.4** Threads, mentions and notifications come with accounts. V1-era comments are single-level notes
   with author, time and open/resolved status.
+
+## 22. Versioning in M1 (work package B5; D2, D9, D10)
+
+Refines §5 for the M1 build (`apps/instaflow/src/versioning`). Errors are `IF-VER-001…010`; lifecycles in
+`docs/LIFECYCLES.md` §23.
+
+- **IF-22.1** The Latest service turns commit acknowledgements into a save state `saving | saved |
+  offline-mirror-behind` for the top bar. `saving` turns `stalled` ("Not saved yet: <cause>") after 2 s without an
+  acknowledgement or on an append failure, and a failed flush is retried until it succeeds (IF-5.2).
+- **IF-22.2** `offline-mirror-behind` is shown only when every commit is durable in the browser store and the folder
+  mirror is paused (permission lapsed) or failing; a mirror that is merely batching shows `saved`.
+- **IF-22.3** Creating a milestone flushes Latest, captures canonical parts, writes the record (its digest is the
+  milestone id), prepends it to `head.app.versioning.milestones` by compare-and-swap with retry, then flushes the folder
+  mirror. A failed mirror flush is reported (`mirrored: false`) but never undoes the milestone. Creations queue (one at
+  a time per document).
+- **IF-22.4** A milestone writes **only changed parts**: a part whose CRDT frontier did not move since the last capture is
+  not re-encoded, and a canonical digest already known (the newest milestone's parts) is not written again.
+- **IF-22.5** Pin and rename are head fields (`pinned`, `names`); they never rewrite an immutable record. Names are 1–120
+  characters after trimming (IF-VER-001); notes at most 2,000.
+- **IF-22.6** Opening a milestone is read-only and reads only its record and the parts actually viewed (lazy, cached
+  per part, `parse → migrate` on read). No CRDT is created.
+- **IF-22.7** Compare opens two read-only documents side by side: two milestones, or a milestone and Latest frozen at that
+  moment (a snapshot, not a milestone). It offers no structural diff.
+- **IF-22.8** **Cost is independent of age:** creating a milestone reads the head and the newest record only (never the
+  list); opening and New document read the record and each part once. A deterministic test holds store operations and
+  bytes equal at ages 3, 20 and 60; a bench file reports the wall-clock numbers.
+- **IF-22.9** New document from milestone writes a new head (generation 1) whose parts are rebuilt from canonical parts
+  with one fresh peer and one commit of history, keeps node ids, and refuses an asset id in use (IF-VER-008). The new
+  asset record carries `createdFrom { asset, milestone, title }` as a label only; nothing in the new head names a source
+  object, so the copy opens and edits with every source object deleted, and edits on either side never reach the other.
+- **IF-22.10** Templates mark slots on existing elements — text, image or colour — as the `slot` component (`name`,
+  `accepts`, `target` path, `required`, `maxChars`). Marking and unmarking are ordinary commits through the stage undo
+  service (one undo step per actor). Slots sharing a name must accept the same kind.
+- **IF-22.11** Using a template is New document from milestone plus slot filling: one fill fills every slot of its name;
+  text keeps the first span's marks; image fills take an asset id, colour fills a hex colour; markers are dropped unless
+  `keepSlots`. Unknown slot names, wrong value types, over-long text (IF-VER-006) and empty required slots (IF-VER-007)
+  fail before anything is written.
+- **IF-22.12** The frozen export snapshot is a content-addressed manifest (`sn_…`) over canonical parts of what is
+  applied in memory when the export starts. It writes blobs only: no record, no head change, no list entry (D10). Its
+  parts dedupe with milestones by digest.
+- **IF-22.13** A `ReleasePort` hook exists for publishing (rendered outputs + frozen snapshot + "published from" label);
+  M1 binds `unavailableReleasePort` (IF-VER-009).
+- **IF-22.14** The Milestones panel (`<if-milestones-panel>`) offers create (name, note), the list (name, date, pinned),
+  open read-only, compare (one with Latest, or two side by side), pin, rename and New document from milestone, built only
+  from kit components under Clean Pop with the design's button variants, fully usable by keyboard, results announced
+  in a polite live region.
+- **IF-22.15** The top bar's save status (`<if-save-status>`) shows the save state in words in a polite live region
+  (kit `<sf-status>`).
+- **IF-22.16** "Milestone" is one capability (`instaflow/create-milestone`, `Mod+Alt+S`) for the top bar, the palette and
+  agents: with a name it creates the milestone as the invoking actor; without one it opens the panel's name field.

@@ -238,3 +238,22 @@ that themes the kit (R13.21–R13.23).
   `<sf-tag tone .color .ink mono>`; the lens colours stay in the app's typed lens palette (`lensTag(lens)`).
 - Dials (Warmth, Exposure): `<sf-slider>` with a thin track, filled part, ringed thumb and the value in a pill.
 
+### versioning: Latest, milestones, new document, templates, export snapshot (Instaflow M1 B5)
+Consumer: Instaflow (`apps/instaflow/src/versioning`; D2, D9, D10; IF-5, IF-22). Built on `DocumentRepo` + the
+`DocumentStore` port and canonical parts (A4), the stage undo service (A8), the kit and Clean Pop (A10, DS1).
+- "There is no save button, but I want to know my work is safe" → a save state from commit acknowledgements
+  (`createLatestService`), shown by `<if-save-status>` over the kit's new **`<sf-status>`** (dot + words in a polite live
+  region, R13.24). "The folder copy is behind" is its own state, not an error.
+- "Keep the version I sent the client, then keep working" → `milestones.create({ name, note, actor })` writes only the
+  changed parts (frontier cache + digest dedupe in `createPartCapture`), costs the same in a document with 60 milestones
+  as in one with 3, and is reachable from the Milestones panel, `Mod+Alt+S` and agents (one capability).
+- "Show me what they saw next to what I have now" → `openComparison(…, milestone, 'latest')`: two read-only documents
+  (canonical parts, no CRDT), the Latest side frozen through an export snapshot; no structural diff in V1.
+- "Start a variant from what they saw next week" → `createDocumentFromMilestone`: a new asset with a detached baseline;
+  the source can be edited or deleted without affecting it.
+- "Use this flyer as a template" → `markSlot` (text, image, colour; undoable) and `createDocumentFromTemplate({ fills })`.
+- "Export while I keep editing" (C1) → `snapshots.freeze()` at export start, `snapshots.open(frozen)` to render; nothing
+  is recorded. Publishing later goes through `ReleasePort`.
+- The editor (B0) mounts everything through contributions (`PanelContribution`, `TopBarContribution`,
+  `CommandContribution`) and the `VersioningHost` port (show read-only, show comparison, open document).
+

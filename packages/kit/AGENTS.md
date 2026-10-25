@@ -21,6 +21,8 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
   accent fill and thumb ring, `surface3` thumb, value in a mono pill, `value` slot), `snapToStep`, `sliderFill`, `defineSlider`.
 - `tag` — `<sf-tag tone=neutral|agent .color .ink mono>` (non-interactive label pill: no role, not focusable; custom colour pairs are the
   caller's to test), `defineTag`.
+- `status` — `<sf-status tone=neutral|success|warning|danger busy>` (non-interactive dot + muted label in a polite live region,
+  `role="status"` unless set; the words carry the state; `busy` pulses, none under reduced motion), `defineStatus`. *(Instaflow B5 save state)*
 - `color-field` — `<sf-color-field label value>` (hex + native picker, validates via ui `normalizeHex`), `pickerValue`, `defineColorField`.
 - `popover` — `<sf-popover label side align .anchor>` (`trigger` slot; non-modal dialog; `sf-toggle`), `firstFocusable`, `definePopover`.
 - `tooltip` — `<sf-tooltip text shortcut side>` (light-DOM `role=tooltip`, `aria-describedby` on the anchor), `defineTooltip`.
@@ -91,6 +93,7 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 | @staticflux/kit/position | 1.5 KB | packages/kit/dist/position.js |
 | @staticflux/kit (full, excl. lit + framework) | 22.5 KB | packages/kit/dist/index.js |
 | @staticflux/kit/tag | 1.1 KB | packages/kit/dist/tag.js |
+| @staticflux/kit/status | 1.1 KB | packages/kit/dist/status.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

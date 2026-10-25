@@ -367,3 +367,30 @@ One worker (`colocated`, default) or two (`split`) is a boot setting; both run t
 | G-5 | A dropped layer is drawn until the tiles under it are fresh (overlay off and committed on in one frame, E-2) | — |
 | G-6 | Frames never rasterize before warm-up (cold pipelines); the snapshot is drawn instead | — |
 | G-7 | Caches are evicted before features are demoted; pinned (visible) tiles are never evicted | SF-MEM-001 |
+
+## 23. Versioning: Latest save state, milestone creation (Instaflow M1 B5; D2, D10)
+
+Latest is saved continuously (no save button); milestones are explicit, immutable full snapshots of canonical parts.
+Both machines live in `apps/instaflow/src/versioning`. The frozen export snapshot and New document from milestone are
+single calls, not machines.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/latest-save` | saved → saving (commit) → saved (acked: the newest commit is durable); saving → stalled (2 s without an ack, or an append failed) → saving (retry after `retryMs`) \| saved (acked); stalled → stalled (commit, stall); any → disposed | `apps/instaflow/src/versioning/latest.ts` |
+| `instaflow/milestone-create` (one per call, queued per document) | queued → flushing (Latest flushed) → capturing (canonical parts; only changed parts encoded and written) → recording (record blob; id = digest) → swapping (head CAS + retry, then mirror flush) → created; any non-terminal → failed | `apps/instaflow/src/versioning/milestones.ts` |
+
+Top-bar status derived from `instaflow/latest-save` and the folder mirror (`blob/folder-mirror`): saving/stalled →
+`saving` (stalled = "Not saved yet: <cause>"); saved + mirror paused, read-only or failing with pending changes →
+`offline-mirror-behind`; otherwise `saved`.
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| V-1 | An acknowledgement only clears `saving` when no newer commit is unacknowledged | `latest.test.ts` |
+| V-2 | A milestone writes only parts whose canonical digest is new; unchanged parts share digests with earlier milestones | `milestones.test.ts` |
+| V-3 | Milestone records are immutable: pin and rename change head fields only | `milestones.test.ts` |
+| V-4 | Creating, opening and branching from a milestone never read older milestones (cost independent of age) | `costs.test.ts`, `versioning.bench.ts` |
+| V-5 | Versioning head updates are CAS with retry and survive the repo's compaction (which adopts the newer head) | IF-VER-004 |
+| V-6 | A new document from a milestone names no source object (fresh peer and history; `createdFrom` is a label) | IF-VER-008; `new-document.test.ts` |
+| V-7 | A frozen snapshot writes no record and no head; later edits never change what it reads | `snapshot.test.ts` |
+| V-8 | A template use with an invalid fill or an empty required slot writes nothing | IF-VER-006, IF-VER-007 |
+

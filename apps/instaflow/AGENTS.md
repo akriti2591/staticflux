@@ -11,6 +11,7 @@ authoritative; M1-PLAN lists the work packages; `design/` is the approved Clean 
 | `src/render/` | Vello `RasterBackend`, render Wasm loader, scene IR encoder (A6); export `@instaflow/app/render` | `src/render/AGENTS.md` |
 | `src/sequencing/` | Editor and render **modules** with fixed ports, the topology boot setting, the S2 protocol rules, the oracle subject (A7, D15) | `src/sequencing/AGENTS.md` |
 | `src/theme/` | Clean Pop theme (`cleanPopTheme`, DS1) and the typed lens palette | `src/theme/AGENTS.md` |
+| `src/versioning/` | Latest save state, milestones, compare, New document from milestone, templates with slots, frozen export snapshot, the Milestones panel / save status / "Milestone" command contributions (B5); exports `@instaflow/app/versioning` and `/versioning/ui` | `src/versioning/AGENTS.md` |
 | `bench/sequencing/` | Bench page for the owner's real-GPU run (`pnpm --filter @instaflow/app bench:build`, then `pnpm gpu:run … --real-gpu --headed`) | `src/sequencing/AGENTS.md` |
 | `test/threads/` | Node `worker_threads` fixtures (TypeScript loaded through the worker package's module hooks) | — |
 | `models/` | Model-weights license registry (A2) | `models/AGENTS.md` |

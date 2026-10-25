@@ -12,6 +12,14 @@
     "./render": {
       "types": "./dist/render/index.d.ts",
       "import": "./dist/render/index.js"
+    },
+    "./versioning": {
+      "types": "./dist/versioning/index.d.ts",
+      "import": "./dist/versioning/index.js"
+    },
+    "./versioning/ui": {
+      "types": "./dist/versioning/ui.d.ts",
+      "import": "./dist/versioning/ui.js"
     }
   },
   "scripts": {
@@ -19,10 +27,14 @@
     "bench:run": "node ../../packages/testkit/dist/gpu-cli.js bench/sequencing/dist index.html"
   },
   "dependencies": {
+    "@staticflux/a11y": "workspace:*",
+    "@staticflux/capabilities": "workspace:*",
     "@staticflux/config": "workspace:*",
     "@staticflux/core": "workspace:*",
     "@staticflux/document": "workspace:*",
+    "@staticflux/i18n": "workspace:*",
     "@staticflux/platform": "workspace:*",
+    "@staticflux/stage": "workspace:*",
     "@staticflux/surface": "workspace:*",
     "@staticflux/worker": "workspace:*",
     "@staticflux/kit": "workspace:*",
