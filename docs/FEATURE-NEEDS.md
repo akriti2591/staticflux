@@ -400,3 +400,19 @@ store-side pieces Home relies on) and their dev entries. New framework API: `<sf
   the navigation pipeline (Home and Studio are separate boots).
 - "Each surface boots only what it needs" (D17) → `@staticflux/loader` `chunk`, `defineBootPlan`, `planChunks`, `validateBootPlan`.
 - "Whole cards are links under Clean Pop" → `@staticflux/kit` `<sf-card href>` (new), `<sf-button>`, `<sf-tag>`.
+
+### Export (Instaflow M1c · C1)
+Consumer: `apps/instaflow/src/export` (service, capability, panel, the export worker and its job) and the export crate
+`apps/instaflow/engine/crates/export`. No new framework API and no new R-ID: C1 composes what A6, B0, B5 and B9 already use.
+- "An export renders what the canvas draws, off the main thread, past the GPU's texture limit" → `@staticflux/surface/raster`
+  `createHeadlessSurface` (chunked region renders with `onProgress`, cancellable) over the app's Vello `RasterBackend`.
+- "Exported PNGs are byte-stable" → `@staticflux/surface/image` `encodePng` (deterministic encoder).
+- "One worker per export, talking a typed protocol, reading the store through main" → `@staticflux/worker` `createLink`,
+  `defineProtocol` / `createProtocolClient`, `fromMessagePort`, `Spawner` (`inMemorySpawner` in tests).
+- "Export from a frozen state that writes nothing" (D10) → B5's export snapshot over `@staticflux/document/v2`
+  (`buildPartFromCanonical`, a read-only `OpenDocument`).
+- "The panel button, a shortcut and agents run one action" → `@staticflux/capabilities` (`defineCapability`, `s.*` schemas),
+  `@staticflux/a11y` `defineShortcut`.
+- "The export panel is keyboard-first under Clean Pop" → `@staticflux/kit` segmented control, button (`pressed`), inspector group,
+  status (polite live region).
+- "The job's steps are a checked state machine" → `@staticflux/core` `defineMachine`, scopes, `AbortedError`.

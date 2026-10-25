@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { ok } from '@staticflux/core';
 import { inMemorySpawner } from '@staticflux/worker';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { authoringBuilt } from '../app/test-helpers.js';
 import type { ExportFile } from './formats.js';
 import { hostExportWorker } from './host.js';
@@ -14,12 +14,23 @@ async function setup() {
   const f = await createExportFixture();
   const delivered: ExportFile[][] = [];
   let spawned = 0;
+  let terminated = 0;
   const service = createExportService({
-    spawn: () =>
-      inMemorySpawner((port) => {
+    spawn: () => {
+      const inner = inMemorySpawner((port) => {
         spawned += 1;
         hostExportWorker({ port, env: { load: async () => ok(f.env) } });
-      }, { clone: false }),
+      }, { clone: false });
+      return async (context) => {
+        const worker = await inner(context);
+        if (!worker.ok) return worker;
+        const terminate = (): void => {
+          terminated += 1;
+          worker.value.terminate();
+        };
+        return ok({ port: worker.value.port, terminate });
+      };
+    },
     assets: ASSETS,
     store: { store: f.studio.workspace.store, blobs: f.blobs },
     target: async () => ok({ snapshot: await f.freeze(), page: 'p1', pages: ['p1', 'p2'], selection: ['star'] }),
@@ -30,14 +41,14 @@ async function setup() {
       return ok();
     },
   });
-  return { f, service, delivered, spawned: () => spawned };
+  return { f, service, delivered, spawned: () => spawned, terminated: () => terminated };
 }
 
 // The whole main → export worker → main path over in-memory ports (the same host the browser runs), with the real
 // composition and writers in Node.
 describe.skipIf(!authoringBuilt || !exportBuilt)('export service (main side, in-process export worker)', () => {
   it('runs one job per worker, posts progress, delivers the files and reports them', { timeout: 60_000 }, async () => {
-    const { service, delivered, spawned } = await setup();
+    const { service, delivered, spawned, terminated } = await setup();
     const statuses: ExportStatus['kind'][] = [];
     const off = service.onChange((s) => statuses.push(s.kind));
     const out = await service.run({ format: 'pdf', scale: 2, transparent: false, scope: 'pages' });
@@ -55,6 +66,8 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('export service (main side, in-
     const png = await service.run({ format: 'png', scale: 1, transparent: true, scope: 'selection' });
     if (!png.ok) throw png.error;
     expect(spawned()).toBe(2);
+    // each worker is stopped and terminated after its job (EXP-2)
+    await vi.waitFor(() => expect(terminated()).toBe(2));
   });
 
   it('refuses a second export while one runs, and cancels', { timeout: 60_000 }, async () => {
