@@ -15,7 +15,7 @@ Status was measured against the UX docs on `claude/wip-ux-research` (#28): "head
 | Capability (REQUIREMENTS § / module) | Milestone | Dedicated UX section | Status |
 |---|---|---|---|
 | Text and fonts (§21, `src/text`) | M1 | none | **in progress**: TEXT-FONTS-UX-SPEC (`claude/wip-ux-text`) |
-| Appearance: fills, gradients, strokes, effects (§20 B1, `src/elements`) | M1 | none (HUD/inspector rows only) | **missing** |
+| Appearance: fills, gradients, strokes, effects (§20 B1, `src/elements`) | M1 | none (HUD/inspector rows only) | **missing**; owner asked for gradients (engine renders linear/radial/conic fills and strokes; no editor: the panel only shows "Linear gradient"). Needs a full gradient editor: type, stops, on-canvas handles, presets, document gradients, in the colour popover, gradient text if the engine allows |
 | Transforms: rotate, skew, flip, pivot (§34 B10a, `src/tools`) | M1 | none (HUD rows only) | **missing** |
 | Groups, components and instances (§20) | M1/M2 | none | **missing** |
 | Boolean operations, masks, corners (§20) | M1 | one each | partial |
