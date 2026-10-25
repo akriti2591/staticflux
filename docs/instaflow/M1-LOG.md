@@ -26,7 +26,7 @@ entries at the top of **Journal**.
 | B4 Library and lenses | Merged | `main` | #12 |
 | B3 Tools and smart guides | Merged | `main` | #13 |
 | B7 Repeat | Merged | `main` | #14 |
-| B2 Text | Merged; owner IME check pending | `main` | #16 |
+| B2 Text | Merged; IME check passed (D20) | `main` | #16 |
 | B6 Accessibility layer | Merged; not yet wired to Studio's live canvas | `main` | #17 |
 | B8 Studio integration | In progress (fresh agent, from `main` after #18) | `claude/wip-b8-studio` | — |
 
@@ -37,12 +37,11 @@ this container.
 1. **B8 Studio integration** (the M1b demo): the first Studio you can click through.
 2. **M1c:** C0 Home → C1 Export → C2 Import → C3 Modes and identity → C4 Hardening (the M1 exit criteria).
 
-Open M1 decisions: Chrome text input (IME check; zip built by `apps/instaflow/src/text/ime-check/pack/pack.sh`);
-which worker mode boots by default (D15 says one; the split becomes default only if it meets the budget after the
-main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, becomes D20); reference iGPU runner (C4).
+Open M1 decisions: which worker mode boots by default (D15 says one; the split becomes default only if it meets the budget after the
+main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D-number); reference iGPU runner (C4).
 
 ## Owed
-- **Owner:** IME check (zip sent 2026-10-25); npm Release rerun (9 packages); deprecate `0.0.0-stage`; set up trusted
+- **Owner:** npm Release rerun (9 packages); deprecate `0.0.0-stage`; set up trusted
   publishing, then delete `NPM_TOKEN`; reference iGPU runs; optional: protect `main` (no force push or deletion,
   require PRs; no required approvals; bypass for the version PR if status checks are required).
 - **Taken by B8:** repeat-aware render source and resource batches ahead of projection deltas (B1, B7); per-tab tool
@@ -54,9 +53,13 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, becomes D20
   outside the container, a guides toggle, remote edit to a dragged element overwritten on release (B3); edits inside a
   repeat re-project every instance (benchmark), nested-repeat key order after expand (B7); colour emoji (B2);
   projection snapshots across the worker boundary, real-browser axe and screen-reader passes (B6); luminance masks
-  approximate where translucent mask shapes overlap (B1); `IF-*` error codes are not in `docs/errors.json`.
+  approximate where translucent mask shapes overlap (B1); CJK text is invisible without local fonts and missing glyphs
+  draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** IME check passed on the owner's Mac (Chrome 155): 8/8 automated, 7/7 by hand, both text inputs →
+  **D20** (keep EditContext on Chrome). Results in `docs/instaflow/checks/`. Findings: no CJK fallback fonts / no
+  .notdef boxes (follow-up); EditContext control bounds grow by a line per key during composition (sent to B8).
 - **2026-10-25** #18 (M1c prep) merged. B8 started: one fresh agent, briefed by `M1-BRIEF.md` + `M1C-NOTES.md`.
 - **2026-10-25** M1c prep: B8 added to the plan; `M1C-NOTES.md` (IDs, order, scope); `M1-BRIEF.md` rewritten for the
   current rules (scoped checks, WIP branches, handoffs, D1–D19); merge helpers moved to `tooling/coordinator/`; IME

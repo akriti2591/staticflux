@@ -28,6 +28,7 @@ Open questions are listed separately and are **not** decisions.
 | D17 | **Three surfaces, one session.** **Home** (no engine), **Chat** (conversation leads, per-turn mini editors, preview then edit) and **Studio** (full editor, chat as a contextual side panel). **The agent is always a choice:** anyone can open Studio directly and edit by hand with no chat at all. The thread is part of the asset; handoff between surfaces keeps every edit. |
 | D18 | **Quick actions are packaged capabilities** (declared input and output, often a flow) available on Home, in chat suggestions, the command palette and the HUD, and callable by agents. |
 | D19 | **Studio is canvas-first.** Pages, timeline and pixel are lenses and specs on top of the infinite canvas. |
+| D20 | **Text input on Chrome stays on EditContext (from the IME check, 2026-10-25).** With real macOS input methods (Japanese, Chinese, Korean) in Chrome 155, EditContext placed the candidate window at the composition every time, across wrapped lines, after Arabic text and under browser zoom; the hidden-textarea adapter passed the same checks. So the platform fact keeps choosing EditContext where it exists, and the hidden textarea stays the fallback for browsers without it (Firefox). No branch on browser in feature code. |
 
 ## Design direction (agreed, details pending)
 

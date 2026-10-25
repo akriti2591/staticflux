@@ -1,0 +1,2532 @@
+{
+  "url": "http://localhost:4174/apps/instaflow/src/text/ime-check/index.html",
+  "chrome": "155.0.8059.85",
+  "when": "2026-10-25T13:39:58.640Z",
+  "runs": [
+    {
+      "variant": "editcontext",
+      "step": "base",
+      "pass": true,
+      "checks": {
+        "compositionReachedThePage": true,
+        "committedText": true,
+        "characterBoundsReported": true,
+        "characterBoundsInsideTheBox": true,
+        "caretBoundsInsideTheBox": true,
+        "textareaAtTheCaret": "n/a",
+        "noProblems": true
+      },
+      "lastCaret": {
+        "x": 252,
+        "y": 166,
+        "width": 1,
+        "height": 38
+      },
+      "problems": [],
+      "log": [
+        {
+          "t": 111,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              185,
+              166,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 112,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 134,
+          "intent": "compose-start",
+          "range": [
+            11,
+            11
+          ]
+        },
+        {
+          "t": 134,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              185,
+              166,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 135,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 135,
+          "intent": "compose-update",
+          "text": "にほんご",
+          "range": [
+            11,
+            11
+          ]
+        },
+        {
+          "t": 142,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              252,
+              166,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 142,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 142,
+          "call": "setCharacterBounds",
+          "args": [
+            11,
+            [
+              [
+                185,
+                166,
+                17,
+                38
+              ],
+              [
+                202,
+                166,
+                17,
+                38
+              ],
+              [
+                219,
+                166,
+                17,
+                38
+              ],
+              [
+                236,
+                166,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 142,
+          "intent": "format"
+        },
+        {
+          "t": 142,
+          "call": "setCharacterBounds",
+          "args": [
+            11,
+            [
+              [
+                185,
+                166,
+                17,
+                38
+              ],
+              [
+                202,
+                166,
+                17,
+                38
+              ],
+              [
+                219,
+                166,
+                17,
+                38
+              ],
+              [
+                236,
+                166,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 396,
+          "intent": "compose-update",
+          "text": "日本語",
+          "range": [
+            11,
+            15
+          ]
+        },
+        {
+          "t": 397,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              236,
+              166,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 397,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 397,
+          "call": "setCharacterBounds",
+          "args": [
+            11,
+            [
+              [
+                185,
+                166,
+                17,
+                38
+              ],
+              [
+                202,
+                166,
+                17,
+                38
+              ],
+              [
+                219,
+                166,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 397,
+          "intent": "format"
+        },
+        {
+          "t": 397,
+          "intent": "compose-commit",
+          "text": "日本語",
+          "range": [
+            11,
+            14
+          ]
+        },
+        {
+          "t": 397,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              236,
+              166,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 398,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              38
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "editcontext",
+      "step": "long-line",
+      "pass": true,
+      "checks": {
+        "compositionReachedThePage": true,
+        "committedText": true,
+        "characterBoundsReported": true,
+        "characterBoundsInsideTheBox": true,
+        "caretBoundsInsideTheBox": true,
+        "textareaAtTheCaret": "n/a",
+        "noProblems": true
+      },
+      "lastCaret": {
+        "x": 566,
+        "y": 204,
+        "width": 1,
+        "height": 38
+      },
+      "problems": [],
+      "log": [
+        {
+          "t": 1470,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              499,
+              204,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 1470,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              76
+            ]
+          ]
+        },
+        {
+          "t": 1471,
+          "intent": "compose-start",
+          "range": [
+            76,
+            76
+          ]
+        },
+        {
+          "t": 1472,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              499,
+              204,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 1472,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              76
+            ]
+          ]
+        },
+        {
+          "t": 1472,
+          "intent": "compose-update",
+          "text": "にほんご",
+          "range": [
+            76,
+            76
+          ]
+        },
+        {
+          "t": 1472,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              566,
+              204,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 1473,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              76
+            ]
+          ]
+        },
+        {
+          "t": 1473,
+          "call": "setCharacterBounds",
+          "args": [
+            76,
+            [
+              [
+                499,
+                204,
+                17,
+                38
+              ],
+              [
+                516,
+                204,
+                17,
+                38
+              ],
+              [
+                533,
+                204,
+                17,
+                38
+              ],
+              [
+                550,
+                204,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 1473,
+          "intent": "format"
+        },
+        {
+          "t": 1473,
+          "call": "setCharacterBounds",
+          "args": [
+            76,
+            [
+              [
+                499,
+                204,
+                17,
+                38
+              ],
+              [
+                516,
+                204,
+                17,
+                38
+              ],
+              [
+                533,
+                204,
+                17,
+                38
+              ],
+              [
+                550,
+                204,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 1729,
+          "intent": "compose-update",
+          "text": "日本語",
+          "range": [
+            76,
+            80
+          ]
+        },
+        {
+          "t": 1730,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              550,
+              204,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 1731,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              76
+            ]
+          ]
+        },
+        {
+          "t": 1731,
+          "call": "setCharacterBounds",
+          "args": [
+            76,
+            [
+              [
+                499,
+                204,
+                17,
+                38
+              ],
+              [
+                516,
+                204,
+                17,
+                38
+              ],
+              [
+                533,
+                204,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 1731,
+          "intent": "format"
+        },
+        {
+          "t": 1731,
+          "intent": "compose-commit",
+          "text": "日本語",
+          "range": [
+            76,
+            79
+          ]
+        },
+        {
+          "t": 1732,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              550,
+              204,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 1732,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              76
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "editcontext",
+      "step": "after-arabic",
+      "pass": true,
+      "checks": {
+        "compositionReachedThePage": true,
+        "committedText": true,
+        "characterBoundsReported": true,
+        "characterBoundsInsideTheBox": true,
+        "caretBoundsInsideTheBox": true,
+        "textareaAtTheCaret": "n/a",
+        "noProblems": true
+      },
+      "lastCaret": {
+        "x": 91,
+        "y": 263,
+        "width": 1,
+        "height": 38
+      },
+      "problems": [],
+      "log": [
+        {
+          "t": 2049,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              616,
+              204,
+              1,
+              59
+            ]
+          ]
+        },
+        {
+          "t": 2050,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              97
+            ]
+          ]
+        },
+        {
+          "t": 2050,
+          "intent": "compose-start",
+          "range": [
+            85,
+            85
+          ]
+        },
+        {
+          "t": 2051,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              616,
+              204,
+              1,
+              59
+            ]
+          ]
+        },
+        {
+          "t": 2051,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              97
+            ]
+          ]
+        },
+        {
+          "t": 2051,
+          "intent": "compose-update",
+          "text": "にほんご",
+          "range": [
+            85,
+            85
+          ]
+        },
+        {
+          "t": 2051,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              91,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2051,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 2051,
+          "call": "setCharacterBounds",
+          "args": [
+            85,
+            [
+              [
+                616,
+                204,
+                17,
+                59
+              ],
+              [
+                41,
+                263,
+                17,
+                38
+              ],
+              [
+                58,
+                263,
+                17,
+                38
+              ],
+              [
+                75,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 2051,
+          "intent": "format"
+        },
+        {
+          "t": 2052,
+          "call": "setCharacterBounds",
+          "args": [
+            85,
+            [
+              [
+                616,
+                204,
+                17,
+                59
+              ],
+              [
+                41,
+                263,
+                17,
+                38
+              ],
+              [
+                58,
+                263,
+                17,
+                38
+              ],
+              [
+                75,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 2309,
+          "intent": "compose-update",
+          "text": "日本語",
+          "range": [
+            85,
+            89
+          ]
+        },
+        {
+          "t": 2310,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2311,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 2311,
+          "call": "setCharacterBounds",
+          "args": [
+            85,
+            [
+              [
+                616,
+                204,
+                17,
+                59
+              ],
+              [
+                41,
+                263,
+                17,
+                38
+              ],
+              [
+                58,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 2311,
+          "intent": "format"
+        },
+        {
+          "t": 2311,
+          "intent": "compose-commit",
+          "text": "日本語",
+          "range": [
+            85,
+            88
+          ]
+        },
+        {
+          "t": 2312,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2313,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "editcontext",
+      "step": "zoomed",
+      "pass": true,
+      "checks": {
+        "compositionReachedThePage": true,
+        "committedText": true,
+        "characterBoundsReported": true,
+        "characterBoundsInsideTheBox": true,
+        "caretBoundsInsideTheBox": true,
+        "textareaAtTheCaret": "n/a",
+        "noProblems": true
+      },
+      "lastCaret": {
+        "x": 142,
+        "y": 263,
+        "width": 1,
+        "height": 38
+      },
+      "problems": [],
+      "log": [
+        {
+          "t": 2921,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2921,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 2922,
+          "intent": "compose-start",
+          "range": [
+            88,
+            88
+          ]
+        },
+        {
+          "t": 2923,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2923,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 2923,
+          "intent": "compose-update",
+          "text": "にほんご",
+          "range": [
+            88,
+            88
+          ]
+        },
+        {
+          "t": 2923,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              142,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2923,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 2923,
+          "call": "setCharacterBounds",
+          "args": [
+            88,
+            [
+              [
+                75,
+                263,
+                17,
+                38
+              ],
+              [
+                91,
+                263,
+                17,
+                38
+              ],
+              [
+                108,
+                263,
+                17,
+                38
+              ],
+              [
+                125,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 2923,
+          "intent": "format"
+        },
+        {
+          "t": 2924,
+          "call": "setCharacterBounds",
+          "args": [
+            88,
+            [
+              [
+                75,
+                263,
+                17,
+                38
+              ],
+              [
+                91,
+                263,
+                17,
+                38
+              ],
+              [
+                108,
+                263,
+                17,
+                38
+              ],
+              [
+                125,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 3181,
+          "intent": "compose-update",
+          "text": "日本語",
+          "range": [
+            88,
+            92
+          ]
+        },
+        {
+          "t": 3182,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              125,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 3183,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 3183,
+          "call": "setCharacterBounds",
+          "args": [
+            88,
+            [
+              [
+                75,
+                263,
+                17,
+                38
+              ],
+              [
+                91,
+                263,
+                17,
+                38
+              ],
+              [
+                108,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 3183,
+          "intent": "format"
+        },
+        {
+          "t": 3183,
+          "intent": "compose-commit",
+          "text": "日本語",
+          "range": [
+            88,
+            91
+          ]
+        },
+        {
+          "t": 3184,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              125,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 3185,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "textarea",
+      "step": "base",
+      "pass": true,
+      "checks": {
+        "compositionReachedThePage": true,
+        "committedText": true,
+        "characterBoundsReported": true,
+        "characterBoundsInsideTheBox": true,
+        "caretBoundsInsideTheBox": true,
+        "textareaAtTheCaret": true,
+        "noProblems": true
+      },
+      "lastCaret": {
+        "x": 185,
+        "y": 166,
+        "width": 17,
+        "height": 38
+      },
+      "textarea": {
+        "x": 185.25,
+        "y": 165.53125,
+        "width": 1,
+        "height": 38
+      },
+      "problems": [],
+      "log": [
+        {
+          "t": 97,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              185,
+              166,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 97,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 97,
+          "intent": "compose-start",
+          "range": [
+            11,
+            11
+          ]
+        },
+        {
+          "t": 98,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              185,
+              166,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 98,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 98,
+          "intent": "compose-update",
+          "text": "にほんご",
+          "range": [
+            11,
+            11
+          ]
+        },
+        {
+          "t": 105,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              252,
+              166,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 106,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 106,
+          "call": "setCharacterBounds",
+          "args": [
+            11,
+            [
+              [
+                185,
+                166,
+                17,
+                38
+              ],
+              [
+                202,
+                166,
+                17,
+                38
+              ],
+              [
+                219,
+                166,
+                17,
+                38
+              ],
+              [
+                236,
+                166,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 106,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              185,
+              166,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 106,
+          "call": "setCharacterBounds",
+          "args": [
+            11,
+            [
+              [
+                185,
+                166,
+                17,
+                38
+              ],
+              [
+                202,
+                166,
+                17,
+                38
+              ],
+              [
+                219,
+                166,
+                17,
+                38
+              ],
+              [
+                236,
+                166,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 106,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              185,
+              166,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 361,
+          "intent": "compose-update",
+          "text": "日本語",
+          "range": [
+            11,
+            15
+          ]
+        },
+        {
+          "t": 361,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              236,
+              166,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 361,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 362,
+          "call": "setCharacterBounds",
+          "args": [
+            11,
+            [
+              [
+                185,
+                166,
+                17,
+                38
+              ],
+              [
+                202,
+                166,
+                17,
+                38
+              ],
+              [
+                219,
+                166,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 362,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              185,
+              166,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 362,
+          "call": "setCharacterBounds",
+          "args": [
+            11,
+            [
+              [
+                185,
+                166,
+                17,
+                38
+              ],
+              [
+                202,
+                166,
+                17,
+                38
+              ],
+              [
+                219,
+                166,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 362,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              185,
+              166,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 362,
+          "intent": "compose-commit",
+          "text": "日本語",
+          "range": [
+            11,
+            14
+          ]
+        },
+        {
+          "t": 362,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              236,
+              166,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 362,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              38
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "textarea",
+      "step": "long-line",
+      "pass": true,
+      "checks": {
+        "compositionReachedThePage": true,
+        "committedText": true,
+        "characterBoundsReported": true,
+        "characterBoundsInsideTheBox": true,
+        "caretBoundsInsideTheBox": true,
+        "textareaAtTheCaret": true,
+        "noProblems": true
+      },
+      "lastCaret": {
+        "x": 499,
+        "y": 204,
+        "width": 17,
+        "height": 38
+      },
+      "textarea": {
+        "x": 499.15625,
+        "y": 203.53125,
+        "width": 1,
+        "height": 38
+      },
+      "problems": [],
+      "log": [
+        {
+          "t": 684,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              499,
+              204,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 684,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              76
+            ]
+          ]
+        },
+        {
+          "t": 687,
+          "intent": "compose-start",
+          "range": [
+            76,
+            76
+          ]
+        },
+        {
+          "t": 688,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              499,
+              204,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 688,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              76
+            ]
+          ]
+        },
+        {
+          "t": 688,
+          "intent": "compose-update",
+          "text": "にほんご",
+          "range": [
+            76,
+            76
+          ]
+        },
+        {
+          "t": 688,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              566,
+              204,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 689,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              76
+            ]
+          ]
+        },
+        {
+          "t": 689,
+          "call": "setCharacterBounds",
+          "args": [
+            76,
+            [
+              [
+                499,
+                204,
+                17,
+                38
+              ],
+              [
+                516,
+                204,
+                17,
+                38
+              ],
+              [
+                533,
+                204,
+                17,
+                38
+              ],
+              [
+                550,
+                204,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 689,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              499,
+              204,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 689,
+          "call": "setCharacterBounds",
+          "args": [
+            76,
+            [
+              [
+                499,
+                204,
+                17,
+                38
+              ],
+              [
+                516,
+                204,
+                17,
+                38
+              ],
+              [
+                533,
+                204,
+                17,
+                38
+              ],
+              [
+                550,
+                204,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 689,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              499,
+              204,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 948,
+          "intent": "compose-update",
+          "text": "日本語",
+          "range": [
+            76,
+            80
+          ]
+        },
+        {
+          "t": 949,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              550,
+              204,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 950,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              76
+            ]
+          ]
+        },
+        {
+          "t": 950,
+          "call": "setCharacterBounds",
+          "args": [
+            76,
+            [
+              [
+                499,
+                204,
+                17,
+                38
+              ],
+              [
+                516,
+                204,
+                17,
+                38
+              ],
+              [
+                533,
+                204,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 950,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              499,
+              204,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 951,
+          "call": "setCharacterBounds",
+          "args": [
+            76,
+            [
+              [
+                499,
+                204,
+                17,
+                38
+              ],
+              [
+                516,
+                204,
+                17,
+                38
+              ],
+              [
+                533,
+                204,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 951,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              499,
+              204,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 951,
+          "intent": "compose-commit",
+          "text": "日本語",
+          "range": [
+            76,
+            79
+          ]
+        },
+        {
+          "t": 952,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              550,
+              204,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 953,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              76
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "textarea",
+      "step": "after-arabic",
+      "pass": true,
+      "checks": {
+        "compositionReachedThePage": true,
+        "committedText": true,
+        "characterBoundsReported": true,
+        "characterBoundsInsideTheBox": true,
+        "caretBoundsInsideTheBox": true,
+        "textareaAtTheCaret": true,
+        "noProblems": true
+      },
+      "lastCaret": {
+        "x": 616,
+        "y": 204,
+        "width": 17,
+        "height": 59
+      },
+      "textarea": {
+        "x": 615.75,
+        "y": 203.53125,
+        "width": 1,
+        "height": 59
+      },
+      "problems": [],
+      "log": [
+        {
+          "t": 1292,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              616,
+              204,
+              1,
+              59
+            ]
+          ]
+        },
+        {
+          "t": 1292,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              97
+            ]
+          ]
+        },
+        {
+          "t": 1292,
+          "intent": "compose-start",
+          "range": [
+            85,
+            85
+          ]
+        },
+        {
+          "t": 1293,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              616,
+              204,
+              1,
+              59
+            ]
+          ]
+        },
+        {
+          "t": 1293,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              97
+            ]
+          ]
+        },
+        {
+          "t": 1293,
+          "intent": "compose-update",
+          "text": "にほんご",
+          "range": [
+            85,
+            85
+          ]
+        },
+        {
+          "t": 1294,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              91,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 1294,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 1294,
+          "call": "setCharacterBounds",
+          "args": [
+            85,
+            [
+              [
+                616,
+                204,
+                17,
+                59
+              ],
+              [
+                41,
+                263,
+                17,
+                38
+              ],
+              [
+                58,
+                263,
+                17,
+                38
+              ],
+              [
+                75,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 1294,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              616,
+              204,
+              17,
+              59
+            ]
+          ]
+        },
+        {
+          "t": 1294,
+          "call": "setCharacterBounds",
+          "args": [
+            85,
+            [
+              [
+                616,
+                204,
+                17,
+                59
+              ],
+              [
+                41,
+                263,
+                17,
+                38
+              ],
+              [
+                58,
+                263,
+                17,
+                38
+              ],
+              [
+                75,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 1294,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              616,
+              204,
+              17,
+              59
+            ]
+          ]
+        },
+        {
+          "t": 1550,
+          "intent": "compose-update",
+          "text": "日本語",
+          "range": [
+            85,
+            89
+          ]
+        },
+        {
+          "t": 1552,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 1553,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 1553,
+          "call": "setCharacterBounds",
+          "args": [
+            85,
+            [
+              [
+                616,
+                204,
+                17,
+                59
+              ],
+              [
+                41,
+                263,
+                17,
+                38
+              ],
+              [
+                58,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 1553,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              616,
+              204,
+              17,
+              59
+            ]
+          ]
+        },
+        {
+          "t": 1554,
+          "call": "setCharacterBounds",
+          "args": [
+            85,
+            [
+              [
+                616,
+                204,
+                17,
+                59
+              ],
+              [
+                41,
+                263,
+                17,
+                38
+              ],
+              [
+                58,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 1554,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              616,
+              204,
+              17,
+              59
+            ]
+          ]
+        },
+        {
+          "t": 1554,
+          "intent": "compose-commit",
+          "text": "日本語",
+          "range": [
+            85,
+            88
+          ]
+        },
+        {
+          "t": 1555,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 1556,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "textarea",
+      "step": "zoomed",
+      "pass": true,
+      "checks": {
+        "compositionReachedThePage": true,
+        "committedText": true,
+        "characterBoundsReported": true,
+        "characterBoundsInsideTheBox": true,
+        "caretBoundsInsideTheBox": true,
+        "textareaAtTheCaret": true,
+        "noProblems": true
+      },
+      "lastCaret": {
+        "x": 75,
+        "y": 263,
+        "width": 17,
+        "height": 38
+      },
+      "textarea": {
+        "x": 74.59375,
+        "y": 262.53125,
+        "width": 1,
+        "height": 38
+      },
+      "problems": [],
+      "log": [
+        {
+          "t": 2168,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2169,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 2170,
+          "intent": "compose-start",
+          "range": [
+            88,
+            88
+          ]
+        },
+        {
+          "t": 2170,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2171,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 2171,
+          "intent": "compose-update",
+          "text": "にほんご",
+          "range": [
+            88,
+            88
+          ]
+        },
+        {
+          "t": 2171,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              142,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2171,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 2171,
+          "call": "setCharacterBounds",
+          "args": [
+            88,
+            [
+              [
+                75,
+                263,
+                17,
+                38
+              ],
+              [
+                91,
+                263,
+                17,
+                38
+              ],
+              [
+                108,
+                263,
+                17,
+                38
+              ],
+              [
+                125,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 2171,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2172,
+          "call": "setCharacterBounds",
+          "args": [
+            88,
+            [
+              [
+                75,
+                263,
+                17,
+                38
+              ],
+              [
+                91,
+                263,
+                17,
+                38
+              ],
+              [
+                108,
+                263,
+                17,
+                38
+              ],
+              [
+                125,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 2172,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2429,
+          "intent": "compose-update",
+          "text": "日本語",
+          "range": [
+            88,
+            92
+          ]
+        },
+        {
+          "t": 2431,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              125,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2431,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        },
+        {
+          "t": 2432,
+          "call": "setCharacterBounds",
+          "args": [
+            88,
+            [
+              [
+                75,
+                263,
+                17,
+                38
+              ],
+              [
+                91,
+                263,
+                17,
+                38
+              ],
+              [
+                108,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 2432,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2432,
+          "call": "setCharacterBounds",
+          "args": [
+            88,
+            [
+              [
+                75,
+                263,
+                17,
+                38
+              ],
+              [
+                91,
+                263,
+                17,
+                38
+              ],
+              [
+                108,
+                263,
+                17,
+                38
+              ]
+            ]
+          ]
+        },
+        {
+          "t": 2432,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              75,
+              263,
+              17,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2433,
+          "intent": "compose-commit",
+          "text": "日本語",
+          "range": [
+            88,
+            91
+          ]
+        },
+        {
+          "t": 2433,
+          "call": "setSelectionBounds",
+          "args": [
+            [
+              125,
+              263,
+              1,
+              38
+            ]
+          ]
+        },
+        {
+          "t": 2433,
+          "call": "setControlBounds",
+          "args": [
+            [
+              41,
+              166,
+              608,
+              135
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "pass": true
+}

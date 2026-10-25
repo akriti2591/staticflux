@@ -149,7 +149,7 @@ editor-only components (HUD, presence chip, proposal card, milestone list, canva
 |---|---|---|
 | A7 | Two workers become the default? (D15) | Main-rAF tick experiment on the owner Mac and a 60/120 Hz display |
 | A3 | Folder mirror flush policy (idle delay, max interval) | S6 numbers; feel in the M1a demo |
-| B2 | Hidden-textarea adapter on Chrome too? | Human IME check |
+| B2 | Hidden-textarea adapter on Chrome too? **Decided: no (D20).** | Human IME check (passed 2026-10-25) |
 | C1 | SVG parity rule | S7 corpus rerun with the chosen metric |
 | C4 | Reference iGPU runner for absolute perf budgets | Hardware availability |
 
