@@ -475,3 +475,23 @@ release commits it as one change set.
 | TL-4 | Broad + narrow hit testing and marquee equal their brute-force references | `hit-test.test.ts` (fast-check parity) |
 | TL-5 | Snapping moves a box by at most the threshold, and a snapped box snaps to itself | `snapping.test.ts` (fast-check) |
 | TL-6 | View state is per tab and never written to the CRDT or the store | `view-state.test.ts` |
+
+## 27. Repeat (Instaflow M1b B7)
+
+A repeat is document data (`repeat.*` on a group); its instances are derived by the repeat view and never stored. Every
+transition except a handle drag's preview is one change set, undoable as one step.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| repeat group (data) | plain group → live repeat (`makeRepeat` wraps siblings, or `repeat.kind` set) ⇄ parameter / generator changes (`setRepeat`); live → plain group (`releaseRepeat`: parameters cleared, source unchanged); live → expanded (`expandRepeat`: real instance groups, the source in the first, deterministic keys; the group stays a plain group) | `apps/instaflow/src/repeat/actions.ts` |
+| derived instance (view) | absent → present (count grows, the repeat becomes live, or a source node is created) → present (source or parameters change: re-derived) → absent (count shrinks, release, expand, source deleted) | `apps/instaflow/src/repeat/stage.ts` |
+| `instaflow/repeat-handle-drag` | dragging → dragging (`move`: session-layer preview) → committed (`commit`: one change set) \| cancelled (`cancel`, Esc, `AbortSignal`, or a commit with nothing to write) \| failed (the commit was refused: locks, values); the session preview is cleared on every exit. Terminal: committed, cancelled, failed | `apps/instaflow/src/repeat/handles.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| REP-1 | Instances are derived: the document holds only the source and the parameters; derived nodes are locked in the view and any write that targets one is refused | IF-REP-004; `stage.test.ts` |
+| REP-2 | The view shows exactly `instanceCount(params)` instance wrappers, each with a full copy of the source; instance 0 is the identity and holds the real source nodes | `stage.test.ts`, `instances.test.ts` (properties) |
+| REP-3 | Editing the source invalidates every copy and the wrappers of every repeat above it; dropped wrappers are invalidated so the projection deletes them | `stage.test.ts`, `actions.test.ts` (incremental projection) |
+| REP-4 | Expand is one undo step and its render equals the live render | `actions.test.ts` (property) |
+| REP-5 | Match keys are deterministic: instance `k` of key `key` is `key~k` live and expanded; re-expanding writes the same keys | `actions.test.ts` (property) |
+| REP-6 | A handle drag writes nothing until commit and leaves no session opinion behind on any exit | IF-REP-005; `handles.test.ts` |

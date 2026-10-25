@@ -35,7 +35,8 @@ Effects inspector.
   (`outline`, `boolean`, `outlineStroke`, `bounds`, `inkBounds`, `hit`, `intersects`, `transform`, `parsePath`, `toSvg`;
   IF-EL-005), `strokeSpec`, `effectSpec`, `GEOMETRY_VERSION`.
 - `layout.ts` — `ElementContext`; `elementBounds` (geometry, ink, centre, transform), `pageTransform`, `localOutline`
-  (booleans derived), `strokeRing`, `maskOf`, `containerBounds` / `containerOf`, `siblingBounds`, `hitElement`,
+  (booleans derived; a plain group is the union of its children, so groups and B7 repeat instances can be boolean operands
+  and clip masks), `strokeRing`, `maskOf`, `containerBounds` / `containerOf`, `siblingBounds`, `hitElement`,
   `gridLines`, `containerGrids`, box helpers.
 - `actions.ts` — `align` (edges × selection | container | page | key), `centerInContainer`, `distribute` (spacing |
   centers), `tidyUp`, `booleanGroup`, `setBooleanOp`, `releaseBoolean`, `flatten`, `outlineStroke`, `useAsMask`, `setMask`,
