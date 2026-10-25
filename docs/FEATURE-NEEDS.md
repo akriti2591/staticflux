@@ -375,3 +375,14 @@ Consumer: `apps/instaflow/src/workers` (the worker host and the editor module) a
   implemented again on the editor side over a message channel; checked with `@staticflux/testkit`'s TextInput contract.
 - "The editor never writes storage" → `DocumentStore` (`@staticflux/document/v2`) served over a typed protocol; checked with
   `@staticflux/testkit`'s DocumentStore and repository contracts. Wire errors with `toWireError` / `fromWireError`.
+
+### Transform tools, basics (Instaflow M1c · B10a)
+Consumer: `apps/instaflow/src/tools` (flip, skew, pivot, transform mode, the numeric transform bar) and its wiring in `apps/instaflow/src/app`
+and `apps/instaflow/src/workers`. No new framework API and no new R-ID: B10a composes what B3 and B9 already use.
+- "A transform session previews many steps and commits them as one undo step" → `@staticflux/stage`'s session layer (previews) and one
+  `commitEdit` change set through the undo service; the session is a `@staticflux/core` machine (`defineMachine`).
+- "Enter and Escape mean apply and cancel only while a session is active" → `@staticflux/a11y` shortcut scopes: a child scope activated for
+  the session's lifetime shadows its parent's bindings (no branch in the handlers).
+- "Agents call every transform with an optional pivot" → `@staticflux/capabilities` schemas with optional nested objects (`s.optional(s.object(…))`).
+- "Skew is part of the position" → `@staticflux/stage` `positionPaths` extended by the app's stage rules (`spatial.skewX`), so locks cover it.
+- "The numeric bar is keyboard-first under Clean Pop" → `@staticflux/kit` text field, button, icon button (`pressed`) and inspector rows.

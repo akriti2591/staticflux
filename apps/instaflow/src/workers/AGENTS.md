@@ -30,7 +30,7 @@ setting into roles and media; the host wires endpoints directly in one worker an
 - `mirror.ts` — **`defineMirror<Shape>(id, initial)`**, `createMirrorServers(emit)` (worker: `serve`, `call`, `repost`),
   `createMirrorHub(call)` (main: `view(def)` → `read`, `ready`, `onChange`, `call`; `apply`), `reportFailure`.
 - `mirrors.ts` — data and types: `TypographyMirror`, `AppearanceMirror`, `RepeatMirror`, `MilestonesMirror`, `LatestMirror`,
-  `StoryMirror` and their shapes.
+  `StoryMirror`, `TransformMirror` (B10a: the numeric transform bar's model, `apply` / `commit` / `cancel`) and their shapes.
 - `store-port.ts` — `StudioStoreProtocol`, `serveStudioStore(link, { store, blobs })` (store side), `remoteDocumentStore(client)`,
   `remoteBlobs(client)` (editor side).
 - `text-port.ts` — `createRemoteTextHost(send, kind)` (editor side: a `TextHostPort` whose TextInputs talk to main),

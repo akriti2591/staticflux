@@ -7,7 +7,7 @@
 // move, resize and rotate by pointer; the overlay matches the content during a paused drag (pixels and the editor's
 // state); the tab hidden then visible keeps its state and draws again; lens switch and page switch; IME composition
 // through Chrome's IME path (CDP) on Studio's text host with character bounds inside the text box.
-// B10a (IF-34.27): flip (Shift+H twice is the identity), skew (Mod+Shift-drag the top handle of the rotated element:
+// B10a (IF-34.21): flip (Shift+H twice is the identity), skew (Mod+Shift-drag the top handle of the rotated element:
 // 15° steps), a numeric-bar edit (W typed + Enter) and transform mode (Mod+T: Escape cancels the session, Enter
 // applies a nudge and a flip as one undo step).
 //

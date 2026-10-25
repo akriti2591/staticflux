@@ -16,7 +16,7 @@ outline stroke, masks, tokens, duplicate with match keys), the render projection
 Effects inspector.
 
 ## Public API (by file)
-- `components.ts` — v2 components `Spatial`, `Geometry`, `Style` (v2, migration from the DOCUMENT-FORMAT draft), `Frame`,
+- `components.ts` — v2 components `Spatial` (B10a added `skewX`, degrees; additive, no version bump), `Geometry`, `Style` (v2, migration from the DOCUMENT-FORMAT draft), `Frame`,
   `ImageFit` (`image`), `Source`, `Mask`, `Lineage` (match key), `Lock`, `Policy`, `Layout` (grids), `Brand`;
   `ELEMENT_COMPONENTS`, `ELEMENT_KINDS`, `ELEMENT_KIND_COMPONENTS`, `ELEMENT_COMMON_COMPONENTS` (B2 reuses), `ELEMENT_ROLES`,
   `createElementRegistry({ components, kinds, roles, version })`, paths `P`, `CORNER_PATHS`, `tokenPath`, enums
