@@ -212,7 +212,8 @@ export class SfSurfaceLayerElement extends SfElement<typeof layerSpec> {
         block-size: min(600px, 90vh);
       }
       /* Takeovers fill the surface (milestone preview, Compare, the blocking error). */
-      dialog.modal:has(sf-takeover) {
+      dialog.modal:has(sf-takeover),
+      dialog.modal:has(sf-blocking-error) {
         inline-size: 100vw;
         max-inline-size: none;
         block-size: 100vh;
@@ -236,7 +237,7 @@ export class SfSurfaceLayerElement extends SfElement<typeof layerSpec> {
       }
       /* Narrow widths (Home < 720 px, OVERLAYS-FEEDBACK §1.6): dialogs become full-height sheets. */
       @media (max-width: 719.98px) {
-        dialog.modal:not(:has(sf-takeover)) {
+        dialog.modal:not(:has(sf-takeover)):not(:has(sf-blocking-error)) {
           inline-size: 100vw;
           max-inline-size: none;
           margin-block-end: 0;

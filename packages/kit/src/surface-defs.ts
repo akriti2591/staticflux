@@ -92,6 +92,77 @@ export function defineConfirmSurface<P = void>(init: ConfirmSurfaceInit<P>): Sur
   });
 }
 
+export interface BlockingErrorProps {
+  readonly heading: string;
+  readonly message: string;
+  /** The primary fix (`Reload`, `Back up workspace`); omitted when there is none beyond Reload. */
+  readonly fixLabel?: string;
+  readonly diagnostics: string;
+  readonly onFix?: () => void;
+  readonly onReload: () => void;
+  readonly onCopyDiagnostics: (text: string) => void;
+}
+
+/**
+ * The blocking full-surface error (OVERLAYS-FEEDBACK §3.1): an urgent, non-dismissible `alertdialog` takeover holding
+ * `<sf-blocking-error>` (load `@staticflux/kit/feedback`). Request it with `replace: true` — it replaces any dialog.
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export function defineBlockingErrorSurface(init: { readonly id: SurfaceDefInit<BlockingErrorProps, never>['id']; readonly scope?: SurfaceDefInit<BlockingErrorProps, never>['scope'] }): SurfaceDef<BlockingErrorProps, never> {
+  return defineSurface<BlockingErrorProps, never>({
+    id: init.id,
+    kind: 'dialog',
+    scope: init.scope ?? 'app',
+    priority: 'urgent',
+    dismissible: false,
+    backdropDismiss: false,
+    alert: true,
+    label: (p) => p.heading,
+    render: ({ props }) =>
+      html`<sf-blocking-error
+        heading=${props.heading}
+        message=${props.message}
+        fix-label=${props.fixLabel ?? ''}
+        .diagnostics=${props.diagnostics}
+        @sf-fix=${() => props.onFix?.()}
+        @sf-reload=${() => props.onReload()}
+        @sf-copy-diagnostics=${() => props.onCopyDiagnostics(props.diagnostics)}
+      ></sf-blocking-error>`,
+  });
+}
+
+export interface HintSurfaceInit {
+  readonly id: SurfaceDefInit<void, never>['id'];
+  /** The tool or region it points at (`coachTarget(target)` on that element). */
+  readonly target: NonNullable<SurfaceDefInit<void, never>['target']>;
+  /** The one sentence. */
+  readonly text: string;
+  readonly scope?: SurfaceDefInit<void, never>['scope'];
+  /** Give up when the target never shows (default 10 s). */
+  readonly targetTimeoutMs?: number;
+}
+
+/**
+ * A first-use hint (OVERLAYS-FEEDBACK §5): a seen-once `coach-mark` rendered as `<sf-hint>` (load
+ * `@staticflux/kit/hint`). Escape does not dismiss it (`dismissible: false`); `×` dismisses with `user` and the timer
+ * with `completed`, so both mark it seen; the app dismisses it with `completed` when the target is used.
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export function defineHintSurface(init: HintSurfaceInit): SurfaceDef<void, never> {
+  return defineSurface<void, never>({
+    id: init.id,
+    kind: 'coach-mark',
+    scope: init.scope ?? 'view',
+    priority: 'low',
+    dismissible: false,
+    once: true,
+    target: init.target,
+    targetTimeoutMs: init.targetTimeoutMs ?? 10_000,
+    label: init.text,
+    render: ({ dismiss }) => html`<sf-hint text=${init.text} @sf-dismiss=${() => dismiss('user')} @sf-expire=${() => dismiss('completed')}></sf-hint>`,
+  });
+}
+
 export interface ToastAction<P> {
   readonly label: (props: P) => string;
   readonly run: (props: P) => void;
