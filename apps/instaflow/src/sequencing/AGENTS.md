@@ -26,7 +26,8 @@ only up to the frame's `docVersion`, draw only at equality. The renderer itself 
   `step()` / `run(signal)` / `stats`; `RemoteUpdatePort`, `scriptedPeer(schedule)` (oracle), `queuedPeer()`.
 - `render-port.ts` — **`RenderPort`** (`draw(frame) → Result`, optional `reset`, `dispose`), `RenderFrame { scene, view,
   docVersion, reason }`, `RenderPortFactory`. The contract is in the file header; A6 implements it.
-- `render-module.ts` — `createRenderModule({ ports: { frames, deltas, port, ticks }, pacing, now, record, digest })` →
+- `render-module.ts` — `createRenderModule({ ports: { frames, deltas, port, ticks }, scene, pacing, now, record, digest })` (`scene`:
+  a `RenderSceneAdapter` — projection + payload decoder; default `SCENE_PROJECTION_ADAPTER`; Studio's element records, B8) →
   `update(reason)` ('drawn' | 'held' | 'unchanged' | 'empty' | 'failed'), `vsync(time)`, `run(signal)`, `presented`
   (`PresentedRecord` log), `stats`, `final`, `dispose`; machine `RenderModuleLifecycle` (`instaflow/render-module`).
 - `pacing.ts` — `RenderPacing { arrival, coalesceMs, tick: 'worker-raf' | 'main-raf', latchMs }`, presets

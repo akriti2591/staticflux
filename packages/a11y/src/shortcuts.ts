@@ -310,6 +310,8 @@ interface Registration {
 function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable || target.getAttribute('contenteditable') === 'true' || target.getAttribute('contenteditable') === '') return true;
+  // An EditContext host (a canvas text editor, e.g. Instaflow's text host) takes typed keys like a text field.
+  if ((target as HTMLElement & { editContext?: unknown }).editContext != null) return true;
   if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
   if (target instanceof HTMLInputElement) {
     return !['button', 'checkbox', 'radio', 'submit', 'reset', 'range', 'color', 'file', 'image'].includes(target.type);

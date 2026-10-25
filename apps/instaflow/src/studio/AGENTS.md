@@ -12,12 +12,16 @@ fully by hand (D17).
 
 ## Public API (by file)
 - `studio.ts` — `createStudio({ registries, decideFor, spec, autonomy, reducedMotion, wait, telemetry })` → `Studio` (`port`,
-  `runtime`, `proposals`, reactive `spec`, `lens`, `density`, `activeTool`; `open`, `switchLens`, `setDensity`, `selectTool`,
+  `runtime`, `proposals`, reactive `spec`, `lens`, `density`, `activeTool`; `open`, `switchLens`, `setDensity`, `setScope` (B8:
+  Studio's scope follows the canvas selection), `selectTool`,
   `togglePin`, `bindShortcuts(registry, targets, scope)`, `dispose`), `StudioShortcutScope`, `PERSON`.
 - `studio-element.ts` — `<if-studio .studio .canvas .shortcuts asset-title project-title home-href>` (`defineStudio()`):
   top bar (home, breadcrumb, lens mode switcher with lens shapes, Saved, agent chip, density, Milestone, Share), side panel,
   tabbed dock, canvas region (tools toolbar, HUD toolbar, canvas surface, zoom, command bar, proposal card), inspector, tray.
   Events: `if-hud-action { action }`, `if-intent { intent: zoom-in | zoom-out | milestone | share }`, `if-command { text }`.
+  B8: `.status` (the top bar's save state, B5's `<if-save-status>`), `zoom` (the readout), tone `more` HUD actions in one
+  `<sf-menu>` "More actions", the HUD capped at two rows, the tools pill sized by its item count, the surface positioned for
+  the canvas layers.
   `focusHud`, `focusCommandBar`, `focusCanvas`, `canvasActive`. `studioMessages`.
 - `canvas.ts` — **`CanvasPort`** (`start(surface, signal) → CanvasSession { forwarded, stop }`), `sequencingCanvas({ boot, env,
   schedule })` (boots A7, forwards surface input into the editor's input ring; IF-SPEC-005 on failure).

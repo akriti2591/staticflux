@@ -33,6 +33,10 @@ export const StudioIds = Object.freeze({
     properties: 'instaflow/properties',
     adjust: 'instaflow/adjust',
     typography: 'instaflow/typography',
+    // B8: the M1b panels Studio places (their contributions live with their features).
+    milestones: 'instaflow/milestones',
+    appearance: 'instaflow/appearance',
+    repeat: 'instaflow/repeat',
   },
   hud: {
     rewrite: 'instaflow/rewrite',
@@ -84,6 +88,7 @@ export const studioPanels: readonly PanelContribution[] = Object.freeze([
   definePanel({ id: P.properties, label: 'Properties', placements: ['inspector'], minDensity: 'pro', render: placeholder('B1 / B2') }),
   definePanel({ id: P.adjust, label: 'Adjust', placements: ['inspector'], minDensity: 'focus', lenses: [L.pixel], render: placeholder('B3') }),
   definePanel({ id: P.typography, label: 'Typography', placements: ['inspector', 'side'], minDensity: 'pro', lenses: [L.canvas, L.pages], render: placeholder('B2') }),
+  definePanel({ id: P.milestones, label: 'Milestones', placements: ['dock', 'side'], minDensity: 'standard', render: placeholder('B5') }),
 ]);
 
 const H = StudioIds.hud;

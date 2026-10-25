@@ -13,7 +13,7 @@
  * Machine `instaflow/render-module` (docs/LIFECYCLES.md): waiting → presenting ⇄ holding; * → disposed.
  */
 import { AbortedError, anySignal, createMachine, defineMachine, ok, type Result, sleep, toSfError } from '@staticflux/core';
-import { createSceneStore, type SceneStore } from '@staticflux/document/render-projection';
+import { createSceneStore, type RenderProjection, type SceneApplyReport, type SceneStore } from '@staticflux/document/render-projection';
 import type { CellReader, DeltaStreamReader } from '@staticflux/worker/pipeline';
 import { committedDigest } from './digest.js';
 import type { RenderPacing, TickSource } from './pacing.js';
@@ -33,10 +33,10 @@ export const RenderModuleLifecycle = defineMachine({
 });
 export type RenderModuleState = (typeof RenderModuleLifecycle.states)[number];
 
-export interface RenderModulePorts {
+export interface RenderModulePorts<F extends string = SceneField> {
   readonly frames: CellReader<ViewFrameFields>;
   readonly deltas: DeltaStreamReader;
-  readonly port: RenderPort;
+  readonly port: RenderPort<F>;
   /** Display ticks (worker rAF or main tick cell); none = draw on arrival only. */
   readonly ticks?: TickSource;
 }
@@ -60,15 +60,37 @@ export interface PresentedRecord {
   presented: number;
 }
 
-export interface RenderModuleOptions {
-  readonly ports: RenderModulePorts;
+/**
+ * How delta-stream payloads become render-side scene state. The default is A7's `SceneProjection` (one projection
+ * payload per record). Studio (B8) uses B1's element adapter, whose records carry a resource batch ahead of the
+ * projection payload in the same record, so resources always arrive before the delta that references them.
+ */
+export interface RenderSceneAdapter<F extends string> {
+  readonly projection: RenderProjection<F>;
+  /** Apply one record payload (`kind`: delta or snapshot) to `store`. */
+  apply(store: SceneStore<F>, payload: Uint8Array, kind: 'delta' | 'snapshot'): Result<SceneApplyReport>;
+  /** Committed-scene digest for `final()` (default 0). */
+  digest?(store: SceneStore<F>): number;
+}
+
+/** A7's adapter: payloads are `SceneProjection` payloads. */
+export const SCENE_PROJECTION_ADAPTER: RenderSceneAdapter<SceneField> = Object.freeze({
+  projection: SceneProjection,
+  apply: (store: SceneStore<SceneField>, payload: Uint8Array) => store.apply(payload),
+  digest: (store: SceneStore<SceneField>) => committedDigest(store),
+});
+
+export interface RenderModuleOptions<F extends string = SceneField> {
+  readonly ports: RenderModulePorts<F>;
+  /** Scene adapter (default `SCENE_PROJECTION_ADAPTER`). */
+  readonly scene?: RenderSceneAdapter<F>;
   readonly pacing: RenderPacing;
   /** Absolute ms clock (timeOrigin + performance.now in browsers). */
   readonly now?: () => number;
   /** Keep a `PresentedRecord` per draw (default false: counters only). */
   readonly record?: boolean;
   /** Digest of a drawn frame for the log (the oracle's fake renderer). */
-  readonly digest?: (frame: RenderFrame) => number;
+  readonly digest?: (frame: RenderFrame<F>) => number;
 }
 
 export interface RenderModuleStats {
@@ -100,8 +122,8 @@ export interface RenderFinal {
   readonly orderViolations: number;
 }
 
-export interface RenderModule {
-  readonly scene: SceneStore<SceneField>;
+export interface RenderModule<F extends string = SceneField> {
+  readonly scene: SceneStore<F>;
   readonly state: RenderModuleState;
   readonly stats: RenderModuleStats;
   readonly presented: readonly PresentedRecord[];
@@ -117,10 +139,11 @@ export interface RenderModule {
 const performanceNow = (): number => (globalThis.performance === undefined ? Date.now() : globalThis.performance.timeOrigin + globalThis.performance.now());
 
 /** Create the render module (see the module header). */
-export function createRenderModule(options: RenderModuleOptions): RenderModule {
+export function createRenderModule<F extends string = SceneField>(options: RenderModuleOptions<F>): RenderModule<F> {
   const { ports, pacing } = options;
   const now = options.now ?? performanceNow;
-  const scene = createSceneStore(SceneProjection);
+  const adapter = options.scene ?? (SCENE_PROJECTION_ADAPTER as unknown as RenderSceneAdapter<F>);
+  const scene = createSceneStore(adapter.projection);
   const machine = createMachine(RenderModuleLifecycle);
   const superseded = new Set<number>();
   const presented: PresentedRecord[] = [];
@@ -151,7 +174,7 @@ export function createRenderModule(options: RenderModuleOptions): RenderModule {
     const view = snapshot.record;
     ports.deltas.apply(
       (record) => {
-        const result = scene.apply(record.payload);
+        const result = adapter.apply(scene, record.payload, record.kind === 'snapshot' ? 'snapshot' : 'delta');
         if (!result.ok) {
           stats.payloadErrors += 1;
           return;
@@ -176,7 +199,7 @@ export function createRenderModule(options: RenderModuleOptions): RenderModule {
     }
     const overlayAfterCommit = view.gestureId !== 0 && view.overlayCount > 0 && superseded.has(view.gestureId);
     if (overlayAfterCommit) stats.overlayAfterCommit += 1;
-    const frame: RenderFrame = { scene, view, docVersion: ports.deltas.version, reason };
+    const frame: RenderFrame<F> = { scene, view, docVersion: ports.deltas.version, reason };
     const drawStart = now();
     const drawn = ports.port.draw(frame);
     const submitted = now();
@@ -289,7 +312,7 @@ export function createRenderModule(options: RenderModuleOptions): RenderModule {
     final() {
       const delta = ports.deltas.stats;
       return {
-        committedDigest: committedDigest(scene),
+        committedDigest: adapter.digest?.(scene) ?? 0,
         docVersion: ports.deltas.version,
         resnapshots: Math.max(0, delta.snapshots - 1),
         gaps: delta.gaps,

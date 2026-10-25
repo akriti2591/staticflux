@@ -13,6 +13,9 @@
  *   and counts the failure (`IF-SEQ-003`).
  * - Overlay targets (`view.targets[0 … overlayCount)`) are drawn at committed + (dx, dy); the
  *   committed copies of those elements are hidden while the overlay is up (lifted layer, E-2).
+ *
+ * The scene store's projection is the render module's scene adapter's (`F`): A7's `SceneProjection` by default,
+ * B1's `ElementProjection` in Studio (B8).
  */
 import type { Result } from '@staticflux/core';
 import type { SceneStore } from '@staticflux/document/render-projection';
@@ -20,16 +23,16 @@ import type { SceneField, ViewFrameRecord } from './protocol.js';
 
 export type DrawReason = 'arrival' | 'tick';
 
-export interface RenderFrame {
-  readonly scene: SceneStore<SceneField>;
+export interface RenderFrame<F extends string = SceneField> {
+  readonly scene: SceneStore<F>;
   readonly view: Readonly<ViewFrameRecord>;
   /** Committed version applied (equals `view.docVersion`). */
   readonly docVersion: number;
   readonly reason: DrawReason;
 }
 
-export interface RenderPort {
-  draw(frame: RenderFrame): Result<void>;
+export interface RenderPort<F extends string = SceneField> {
+  draw(frame: RenderFrame<F>): Result<void>;
   /** Called after a resnapshot replaced the scene (tile caches are stale). Optional. */
   reset?(): void;
   dispose(): void;

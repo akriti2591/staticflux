@@ -16,3 +16,5 @@ Traps seen so far:
   shows only files the stacked branch supersedes, resolve with `git checkout --ours -- .` and verify the tree.
 - Requirement / LIFECYCLES / error IDs are pre-assigned per work package (see the stage notes); collisions mean an agent
   ignored its range. Renumber the later one and every reference (`grep -rn`).
+- **Remove a finished agent's worktree once its work is merged or pushed** (`git worktree remove --force <path>` and
+  `git branch -D worktree-<name>`). Each one keeps its own build output (0.7–4.7 GB); 21 of them filled the disk once.

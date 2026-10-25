@@ -14,7 +14,7 @@ import { compileTheme } from '@staticflux/ui/theme';
 import { mountTestRoot, settle } from '@staticflux/ui/testing';
 import { html, render } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createEditorRegistries, gateSpecDecide, pixelTouchUpSpec, StudioIds } from '../spec/index.js';
+import { createEditorRegistries, gateSpecDecide, pixelTouchUpSpec, StudioIds, studioSpec } from '../spec/index.js';
 import { editorGate, studioRegistries } from '../spec/testing/fixtures.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
 import { createStudio, type Studio } from './studio.js';
@@ -79,15 +79,36 @@ describe('<if-studio> frame', () => {
     expect(header.querySelector('[role="status"]')?.textContent).toBe('Saved');
 
     const landmarks = [...root.querySelectorAll('aside, main')].map((el) => `${el.localName}:${el.getAttribute('aria-label')}`);
-    expect(landmarks).toEqual(['aside:Chat', 'aside:Dock', 'main:Canvas', 'aside:Properties']);
-    expect([...root.querySelectorAll('aside[data-region="dock"] sf-tab')].map((t) => t.textContent?.trim())).toEqual(['Layers', 'Pages', 'Assets', 'Brand']);
+    expect(landmarks).toEqual(['aside:Chat', 'aside:Dock', 'main:Canvas', 'aside:Typography']);
+    expect([...root.querySelectorAll('aside[data-region="dock"] sf-tab')].map((t) => t.textContent?.trim())).toEqual(['Layers', 'Pages', 'Assets', 'Milestones', 'Brand']);
     const main = root.querySelector('main') as HTMLElement;
     expect(main.querySelector('sf-toolbar.tools')?.getAttribute('aria-label')).toBe('Tools');
     expect(main.querySelector('sf-toolbar.hud')?.getAttribute('aria-label')).toBe('Selection actions');
     expect(main.querySelector('.command sf-text-field')?.getAttribute('label')).toBe('Command bar');
     expect(main.querySelector('[role="group"]')?.getAttribute('aria-label')).toBe('Zoom');
     expect(main.querySelector('.surface')?.getAttribute('aria-label')).toBe('Canvas surface');
-    expect([...main.querySelectorAll('.hud > *')].map((b) => accessibleName(b))).toEqual(['✦ Rewrite', 'Animate', 'More actions', '✦ Ask']);
+    expect([...main.querySelectorAll('.hud > *')].map((b) => accessibleName(b))).toEqual(['✦ Rewrite', 'Animate', '✦ Ask']);
+  });
+
+  it('HUD actions of tone `more` share one "More actions" menu (B8); the bar keeps direct and agent actions', async () => {
+    const { gate } = editorGate('pro');
+    const studio = createStudio({
+      registries: studioRegistries(),
+      decideFor: (s) => gateSpecDecide(gate, s),
+      reducedMotion: () => true,
+      spec: { ...studioSpec, hud: [StudioIds.hud.rewrite, StudioIds.hud.more, StudioIds.hud.ask] },
+    });
+    const { element, root } = await mount({ studio });
+    const seen: string[] = [];
+    element.addEventListener('if-hud-action', (e) => seen.push((e as CustomEvent<{ action: string }>).detail.action));
+    const hud = root.querySelector('.hud') as HTMLElement;
+    expect([...hud.children].map((b) => b.localName)).toEqual(['sf-button', 'sf-button', 'sf-menu']);
+    expect([...hud.children].slice(0, 2).map((b) => accessibleName(b))).toEqual(['✦ Rewrite', '✦ Ask']);
+    expect(accessibleName(hud.querySelector('sf-menu > [slot="trigger"]') as Element)).toBe('More actions');
+    const items = [...hud.querySelectorAll('sf-menu-item')];
+    expect(items.map((i) => i.getAttribute('data-slot'))).toEqual(['hud:instaflow/more']);
+    hud.querySelector('sf-menu')?.dispatchEvent(new CustomEvent('sf-select', { detail: { value: StudioIds.hud.more } }));
+    expect(seen).toEqual([StudioIds.hud.more]);
   });
 
   it('is laid out from the spec: slots per group follow the mounted layout', async () => {
@@ -99,7 +120,7 @@ describe('<if-studio> frame', () => {
     await studio.switchLens(StudioIds.lens.pixel);
     await settle(4);
     expect(slots(root, 'tool@default')).toEqual(['tool:instaflow/select', 'tool:instaflow/brush', 'tool:instaflow/heal', 'tool:instaflow/crop', 'tool:instaflow/hand']);
-    expect(slots(root, 'panel@inspector')).toEqual(['panel:instaflow/properties', 'panel:instaflow/adjust']);
+    expect(slots(root, 'panel@inspector')).toEqual(['panel:instaflow/adjust']);
     expect((root.querySelector('sf-segmented.modes') as SfSegmentedElement).value).toBe(StudioIds.lens.pixel);
   });
 
@@ -108,10 +129,10 @@ describe('<if-studio> frame', () => {
     expectNoA11yIssues(element);
   });
 
-  it('density: Focus collapses the docks to rails, Standard opens them, Pro opens Properties', async () => {
+  it('density: Focus collapses the docks to rails, Standard opens them, Pro opens the inspector', async () => {
     const { root, studio } = await mount();
     const dock = (region: string) => root.querySelector(`aside[data-region="${region}"] sf-dock`) as SfDockElement;
-    const properties = () => root.querySelector('[data-slot="panel:instaflow/properties"]') as SfPanelElement;
+    const properties = () => root.querySelector('[data-slot="panel:instaflow/typography"]') as SfPanelElement;
     expect([dock('dock').collapsed, dock('inspector').collapsed, properties().collapsed]).toEqual([false, false, false]);
     await studio.setDensity('standard');
     await settle(4);
@@ -232,14 +253,14 @@ describe('<if-studio> keyboard paths', () => {
     await until(() => studio.lens?.label === 'Pixel');
   });
 
-  it('the dock tabs are an APG tablist: arrows move between Layers, Pages, Assets and Brand', async () => {
+  it('the dock tabs are an APG tablist: arrows move between Layers, Pages, Assets, Milestones and Brand', async () => {
     const { root } = await mount();
     const tabs = [...root.querySelectorAll('aside[data-region="dock"] sf-tab')] as HTMLElement[];
-    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false']);
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false', 'false']);
     tabs[0]?.focus();
     press(tabs[0] as HTMLElement, 'ArrowRight');
     await settle(4);
-    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'true', 'false', 'false']);
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'true', 'false', 'false', 'false']);
   });
 
   it('the HUD, intents and the command bar emit events for the features that handle them', async () => {

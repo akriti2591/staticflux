@@ -69,7 +69,9 @@
   "scripts": {
     "bench:build": "vite build -c bench/sequencing/vite.config.ts",
     "bench:run": "node ../../packages/testkit/dist/gpu-cli.js bench/sequencing/dist index.html",
-    "ime-check": "node src/text/ime-check/serve.mjs"
+    "ime-check": "node src/text/ime-check/serve.mjs",
+    "dev": "vite -c dev/studio/vite.config.ts",
+    "smoke": "node test/smoke/studio.smoke.mjs"
   },
   "dependencies": {
     "@staticflux/a11y": "workspace:*",

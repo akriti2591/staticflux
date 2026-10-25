@@ -950,7 +950,7 @@
     "limit": "9.5 KB"
   },
   {
-    "name": "@instaflow/app/versioning/ui (Milestones panel, save status, contributions; excl. lit, kit and framework)",
+    "name": "@instaflow/app/versioning/ui (Milestones panel, save status, contributions; excl. lit, kit and framework; raised 3.75 → 4.6 KB by B8: the panel is now a B0 panel contribution with Studio's ids)",
     "path": "apps/instaflow/dist/versioning/ui.js",
     "ignore": [
       "mobx",
@@ -969,7 +969,7 @@
       "@staticflux/document/v2",
       "@staticflux/stage"
     ],
-    "limit": "3.75 KB"
+    "limit": "4.6 KB"
   },
   {
     "name": "@staticflux/shell/spec (spec runtime, diff, layout port; excl. framework)",
