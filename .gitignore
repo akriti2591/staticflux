@@ -22,3 +22,6 @@ apps/instaflow/spikes/**/target*/
 apps/instaflow/spikes/**/.tools/
 apps/instaflow/spikes/**/fixtures/
 apps/instaflow/spikes/**/*.iflow
+# Spike raw output: numbers live in each spike README and docs/instaflow/PHASE0-FINDINGS.md; rerun to regenerate.
+apps/instaflow/spikes/**/results/
+apps/instaflow/spikes/s8-agent-views/evals/prompts/
