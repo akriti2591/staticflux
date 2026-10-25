@@ -11,7 +11,7 @@
 import { contribution, type MultiToken, token } from '@staticflux/core';
 import { html } from 'lit';
 import { definePanel, panelContribution, type PanelContribution } from '../spec/contributions.js';
-import { StudioIds } from '../spec/studio-contributions.js';
+import { StudioIds } from '../spec/studio-ids.js';
 import type { AnyCapability } from '@staticflux/capabilities';
 import type { KeyCombo } from '@staticflux/a11y';
 import type { CustomElementTag } from '@staticflux/ui';

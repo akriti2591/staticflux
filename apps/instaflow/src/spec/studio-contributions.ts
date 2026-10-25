@@ -7,45 +7,9 @@
  */
 import { html } from 'lit';
 import { defineHudAction, defineLens, definePanel, defineTool, type PanelContext, type PanelContribution } from './contributions.js';
+import { StudioIds } from './studio-ids.js';
 
-/** Stable ids of Studio's contributions. */
-export const StudioIds = Object.freeze({
-  lens: { canvas: 'instaflow/lens-canvas', pixel: 'instaflow/lens-pixel', timeline: 'instaflow/lens-timeline', flow: 'instaflow/lens-flow', pages: 'instaflow/lens-pages' },
-  tool: {
-    select: 'instaflow/select',
-    frame: 'instaflow/frame',
-    shape: 'instaflow/shape',
-    text: 'instaflow/text',
-    pen: 'instaflow/pen',
-    hand: 'instaflow/hand',
-    brush: 'instaflow/brush',
-    heal: 'instaflow/heal',
-    crop: 'instaflow/crop',
-    split: 'instaflow/split',
-    connect: 'instaflow/connect',
-  },
-  panel: {
-    chat: 'instaflow/chat',
-    layers: 'instaflow/layers',
-    pages: 'instaflow/pages',
-    assets: 'instaflow/assets',
-    brand: 'instaflow/brand',
-    properties: 'instaflow/properties',
-    adjust: 'instaflow/adjust',
-    typography: 'instaflow/typography',
-    // B8: the M1b panels Studio places (their contributions live with their features).
-    milestones: 'instaflow/milestones',
-    appearance: 'instaflow/appearance',
-    repeat: 'instaflow/repeat',
-  },
-  hud: {
-    rewrite: 'instaflow/rewrite',
-    animate: 'instaflow/animate',
-    removeBackground: 'instaflow/remove-background',
-    more: 'instaflow/more',
-    ask: 'instaflow/ask',
-  },
-} as const);
+export { StudioIds };
 
 const L = StudioIds.lens;
 

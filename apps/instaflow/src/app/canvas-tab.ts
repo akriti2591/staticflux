@@ -39,7 +39,8 @@ import { createToolController, refreshOverlay, type ToolController, type ToolOut
 import { createElementIndex, hitTest } from '../tools/hit-test.js';
 import { bindToolShortcuts, CanvasToolsShortcutScope, createToolCommands, type ToolCommands } from '../tools/keyboard.js';
 import { createSceneWriter } from '../render/scene-ir.js';
-import { guideLabelTemplate, toolOverlayBatch } from '../tools/overlay.js';
+import { toolOverlayBatch } from '../tools/overlay.js';
+import { guideLabelTemplate } from '../tools/overlay-labels.js';
 import { createViewState, fitCamera, type TabId, type ViewState } from '../tools/view-state.js';
 import { type CanvasPipeline, createElementSceneSide, type SceneIrSource, startCanvasPipeline } from './canvas-pipeline.js';
 import type { ImageUploads } from './images.js';

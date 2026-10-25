@@ -6,7 +6,7 @@
  */
 import { contribution, err, ok, type Result, token } from '@staticflux/core';
 import type { LensContributionId } from '../spec/contributions.js';
-import { StudioIds } from '../spec/studio-contributions.js';
+import { StudioIds } from '../spec/studio-ids.js';
 import { LensFeatureRegistryError } from './errors.js';
 import type { LensFeature } from './lens-feature.js';
 

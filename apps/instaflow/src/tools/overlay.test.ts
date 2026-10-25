@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { colorToRgba } from '../elements/values.js';
 import { SCENE_IR_MAGIC } from '../render/scene-ir.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
-import { EMPTY_OVERLAY, guideLabelTemplate, overlayColors, toolOverlayBatch, type ToolOverlay } from './overlay.js';
+import { EMPTY_OVERLAY, overlayColors, toolOverlayBatch, type ToolOverlay } from './overlay.js';
+import { guideLabelTemplate } from './overlay-labels.js';
 import { transformHandles, type SelectionFrame } from './transform.js';
 
 const frame: SelectionFrame = {

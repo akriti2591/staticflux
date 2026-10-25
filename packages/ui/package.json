@@ -41,11 +41,13 @@
   },
   "peerDependencies": {
     "lit": "^3.3.3",
-    "@lit/context": "^1.1.6"
+    "@lit/context": "^1.1.6",
+    "@lit/reactive-element": "^2.1.2"
   },
   "devDependencies": {
     "lit": "3.3.3",
-    "@lit/context": "1.1.6"
+    "@lit/context": "1.1.6",
+    "@lit/reactive-element": "2.1.2"
   },
   "repository": {
     "type": "git",

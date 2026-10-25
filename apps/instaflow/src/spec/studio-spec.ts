@@ -16,7 +16,7 @@
 import { editDocumentCapability, proposeSpecCapability } from './capabilities.js';
 import type { ActionId, LensContributionId, ScopeKind, ToolId } from './contributions.js';
 import { defineEditorSpec, type EditorSpec, type PanelPlacement } from './schema.js';
-import { StudioIds } from './studio-contributions.js';
+import { StudioIds } from './studio-ids.js';
 
 const { lens: L, tool: T, panel: P, hud: H } = StudioIds;
 

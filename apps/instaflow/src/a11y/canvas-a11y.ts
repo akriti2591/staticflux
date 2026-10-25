@@ -13,34 +13,10 @@ import type { NodeId } from '@staticflux/document/v2';
 import type { ViewState } from '../tools/view-state.js';
 import { createSelectionAnnouncer, type SelectionAnnouncer } from './announce.js';
 import { type CanvasA11yMount, mountCanvasA11y } from './dom.js';
-import { a11yMessages } from './messages.js';
-import { type CanvasProjector, createCanvasProjector, describeElement, type ElementDescription, type ProjectionInput, projectCanvas } from './projection.js';
+import { type DescribeTarget, describeCanvas } from './describe.js';
+import { type CanvasProjector, createCanvasProjector, describeElement, type ProjectionInput } from './projection.js';
 
-export const DESCRIBE_TARGETS = ['selection', 'visible'] as const;
-export type DescribeTarget = (typeof DESCRIBE_TARGETS)[number];
-
-/** Most elements listed by a `visible` description (the count is always complete). */
-export const DESCRIBE_MAX_ITEMS = 50;
-
-const sentence = (d: ElementDescription): string => [d.name, d.role.roleDescription, ...d.extra].join(', ');
-
-/** Plain-text description of the selection or of what is in view (reading order). */
-export function describeCanvas(input: ProjectionInput, what: DescribeTarget): Result<{ readonly text: string; readonly count: number }> {
-  const targets: Readonly<Record<DescribeTarget, () => Result<{ readonly text: string; readonly count: number }>>> = {
-    selection: () => {
-      const items = input.view.selection.flatMap((n) => describeElement(input, n) ?? []);
-      return ok({ text: items.length === 0 ? a11yMessages.nothingSelected : items.map(sentence).join('; '), count: items.length });
-    },
-    visible: () => {
-      const snapshot = projectCanvas(input);
-      if (!snapshot.ok) return snapshot;
-      const items = snapshot.value.ids.flatMap((n) => describeElement(input, n) ?? []);
-      const listed = items.slice(0, DESCRIBE_MAX_ITEMS).map((d) => `${d.name} (${d.role.roleDescription})`);
-      return ok({ text: [a11yMessages.visibleCount(items.length), ...listed].join('; '), count: items.length });
-    },
-  };
-  return targets[what]();
-}
+export { DESCRIBE_MAX_ITEMS, DESCRIBE_TARGETS, type DescribeTarget, describeCanvas } from './describe.js';
 
 export interface CanvasA11yOptions extends Omit<ProjectionInput, 'view'> {
   readonly view: ViewState;
