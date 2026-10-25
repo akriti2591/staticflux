@@ -252,6 +252,12 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
       handoff = next;
       return maybeRender();
     },
+    async sync() {
+      const e = needEditor();
+      if (!e.ok) return e;
+      e.value.sync();
+      return ok();
+    },
     async open({ page, viewport }) {
       const e = needEditor();
       return e.ok ? e.value.open(page, viewport) : e;

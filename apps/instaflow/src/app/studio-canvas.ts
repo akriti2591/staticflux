@@ -197,6 +197,12 @@ export function studioCanvas(options: StudioCanvasOptions): StudioCanvas {
       const target = filteredTarget(surface);
       const forwarder = createInputForwarder({ target, keyboardTarget: target, env: options.env ?? { now: () => performance.now(), timeOrigin: performance.timeOrigin }, sinks: [inputRingSink(workers.input)], captureWheel: true });
       scope.defer(() => forwarder.dispose());
+      // No native text selection or drag-and-drop on the surface (the accessibility layer holds text): the browser would
+      // cancel the pointer (pointercancel) to start its own drag and end the gesture.
+      const surfaceStyle = { userSelect: surface.style.userSelect, touchAction: surface.style.touchAction };
+      Object.assign(surface.style, { userSelect: 'none', touchAction: 'none' });
+      scope.defer(() => Object.assign(surface.style, surfaceStyle));
+      surface.addEventListener('dragstart', (e) => e.preventDefault(), listening);
       surface.addEventListener(
         'pointerdown',
         (e) => {

@@ -248,7 +248,8 @@ export function hitElement(ctx: ElementContext, node: NodeId, x: number, y: numb
   } else {
     const outline = localOutline(ctx, el);
     if (!outline.ok) return outline;
-    const filled = el.fills.length > 0 || el.kind === 'image' || el.kind === 'frame' || el.geometry.kind === 'boolean';
+    // Text is hit across its box (its glyphs have no fill paint here; B9 found double click to edit missed inside).
+    const filled = el.fills.length > 0 || el.kind === 'image' || el.kind === 'frame' || el.kind === 'text' || el.geometry.kind === 'boolean';
     const r = ctx.geometry.hit(outline.value, transform, x, y, {
       tolerance,
       ...(filled ? { fill: el.geometry.kind === 'path' && el.geometry.evenOdd ? ('evenodd' as const) : ('nonzero' as const) } : {}),

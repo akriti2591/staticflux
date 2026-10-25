@@ -148,6 +148,8 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     attach: request<CanvasPipeEndpoints, void>({ timeoutMs: 30_000 }),
     /** Render role: the canvas to draw on. */
     canvas: request<CanvasHandoff, void>({ timeoutMs: 60_000 }),
+    /** Editor role: post the view and every mirror again (main subscribed after the editor started). */
+    sync: request<void, void>(),
     /** Editor role: open a page in the tab. */
     open: request<{ readonly page: NodeId; readonly viewport: { readonly width: number; readonly height: number } }, void>({ timeoutMs: 30_000 }),
     /** Both roles: the surface changed size (editor: viewport; render: raster). */

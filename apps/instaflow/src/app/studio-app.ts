@@ -168,6 +168,8 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   scope.defer(editor.on('view', (projection) => viewBox.set(projection)));
   scope.defer(editor.on('announce', ({ message }) => say(message)));
   scope.defer(editor.on('problem', ({ error }) => problem(fromWireError(error))));
+  const synced = await editor.request('sync', undefined); // the editor posted before these listeners existed
+  if (!synced.ok) return synced;
   const view = (): ViewProjection | undefined => viewBox.get();
   const selection = (): readonly NodeId[] => view()?.selection ?? [];
   const pages = workers.started.pages;
@@ -329,7 +331,14 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     },
     { scope },
   );
-  // The Pages panel (lens controller) chooses the page the canvas shows.
+  // The Pages panel (lens controller) chooses the page the canvas shows; the controller starts on the page shown.
+  watch(
+    () => [view()?.page, lens.arrangement()] as const,
+    ([shown, arrangement]) => {
+      if (shown !== undefined && arrangement !== undefined && lens.current() === undefined) void lens.goTo(shown);
+    },
+    { scope },
+  );
   watch(
     () => lens.current(),
     (current) => {

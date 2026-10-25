@@ -19,7 +19,7 @@
 import { createShortcutRegistry, type Timers } from '@staticflux/a11y';
 import type { BlobStore } from '@staticflux/blob';
 import { type AnyCapabilityImplementation, type CapabilitySubject, type InvocationOrigin, type RunContext } from '@staticflux/capabilities';
-import { box, createNoopTelemetry, createScope, err, ok, type Result, type Scope, type SfError, watch } from '@staticflux/core';
+import { box, createNoopTelemetry, createScope, err, ok, type Result, type Scope, type SfError, untracked, watch } from '@staticflux/core';
 import { type CrdtEngine, createDocumentRepo, type DocumentStore, type NodeId, type OpenDocument } from '@staticflux/document/v2';
 import { type Actor, createAttributionPort } from '@staticflux/stage';
 import { type CompactInputEvent, InputCode, InputModifier } from '@staticflux/surface';
@@ -115,6 +115,8 @@ export interface StudioEditor {
   readonly mirrors: MirrorServers;
   /** Input consumed so far (the publisher's frame metadata). */
   readonly input: EditorInputCounters;
+  /** Post the view and every mirror again (main subscribed late). */
+  sync(): void;
   /** Open `page` in the tab (a page switch: the publisher snapshots the new page). */
   open(page: NodeId, viewport: { readonly width: number; readonly height: number }): Promise<Result<void>>;
   /** Apply drained input events (`seq`: their forwarder batch). */
@@ -376,8 +378,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
 
   // ---------------------------------------------------------------- view projection
   let lastView = '';
-  watch(
-    (): ViewProjection => {
+  const projectView = (): ViewProjection => {
       const t = tabBox.get();
       return {
         page: t?.page,
@@ -390,15 +391,14 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
         editing: editingBox.get(),
         gesture: t?.controller.state ?? 'idle',
       };
-    },
-    (projection) => {
-      const json = JSON.stringify(projection);
-      if (json === lastView) return;
-      lastView = json;
-      events.view(projection);
-    },
-    { scope, fireImmediately: true },
-  );
+  };
+  const postView = (projection: ViewProjection, force = false): void => {
+    const json = JSON.stringify(projection);
+    if (!force && json === lastView) return;
+    lastView = json;
+    events.view(projection);
+  };
+  watch(projectView, (projection) => postView(projection), { scope, fireImmediately: true });
 
   // ---------------------------------------------------------------- input
   const counters = { inputSeq: 0, inputTs: 0, batchSeq: 0, batches: 0 };
@@ -469,6 +469,10 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       return counters;
     },
     open,
+    sync() {
+      postView(untracked(projectView), true);
+      mirrors.repost();
+    },
     handle(list, seq) {
       const t = tab();
       for (const e of list) {

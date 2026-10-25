@@ -361,7 +361,10 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
           return started.ok ? ok({ kind: 'selection', selection: view.selection }) : started;
         }
       }
-      return routes().pointer(event);
+      const route = routes();
+      // A release whose press went elsewhere (double click into text, focus moving into the canvas) is not an error.
+      if (event.phase === 'up' && controller.state === 'idle' && creation.state === 'idle') return ok({ kind: 'none' });
+      return route.pointer(event);
     },
     wheel: (event) => controller.wheel(event),
     editText,
