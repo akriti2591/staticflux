@@ -35,6 +35,10 @@ this container.
 
 ## Next (one work package at a time; details and IDs in M1C-NOTES.md)
 1. **B8 Studio integration** (the M1b demo): the first Studio you can click through.
+   Then **site refresh** (owner asked, 2026-10-25): one fresh agent updates the hand-written docs-site pages
+   (`site/src/build/content/`, last edited in PR #1): computed package count, a guide section per M1 addition
+   (worker pipeline, surface raster / text input / image, blob, stage, shell spec, ui theme + kit, document v2 + Loro),
+   Home and Before/After highlights. Only `site/`; one PR.
 2. **M1c:** C0 Home → C1 Export → C2 Import → C3 Modes and identity → C4 Hardening (the M1 exit criteria).
 
 Open M1 decisions: which worker mode boots by default (D15 says one; the split becomes default only if it meets the budget after the
