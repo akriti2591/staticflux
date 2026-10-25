@@ -4,7 +4,7 @@
 //! node tree, world transforms, world bounds and image pixels, so a GPU device loss rebuilds every
 //! texture from here without touching the document (IF-7.11).
 //!
-//! # Wire format (version 2, little-endian)
+//! # Wire format (version 3, little-endian)
 //!
 //! ```text
 //! batch   = "SFIR" version:u16 reserved:u16 op_count:u32 op*
@@ -14,9 +14,12 @@
 //!         | REMOVE(3) id:u32                         (the node and its subtree)
 //!         | IMAGE(4)  image:u32 width:u32 height:u32 alpha:u8 rgba8[width·height·4]
 //!         | DROP_IMAGE(5) image:u32
+//!         | FONT(6) font:u32 hash:u8[32] len:u32 bytes[len]  (len 0: alias of a font whose hash is already retained)
+//!         | DROP_FONT(7) font:u32
 //! clip     = NONE(0) | RECT(1) x0 y0 x1 y1:f64 | ROUNDED(2) x0 y0 x1 y1 radius:f64 | PATH(3) path
 //! geometry = GROUP(0) | RECT(1) w h radius:f64 | ELLIPSE(2) w h:f64 | PATH(3) path
-//!          | IMAGE(4) image:u32 w h:f64 | GLYPHS(5) font:u32 size:f32 count:u32 (glyph:u32 x:f32 y:f32)*
+//!          | IMAGE(4) image:u32 w h:f64
+//!          | GLYPHS(5) font:u32 size:f32 flags:u8 skew:f32 coords:u8 (coord:i16)* count:u32 (glyph:u32 x:f32 y:f32)*
 //!          | RRECT(6) w h tl tr br bl:f64                          (a radius per corner, already fitted)
 //! path     = verbs:u32 verb:u8* points:u32 (x:f64 y:f64)*     verbs: move 0, line 1, quad 2, cubic 3, close 4
 //! paint    = NONE(0) | SOLID(1) rgba8 | LINEAR(2) x0 y0 x1 y1:f64 stops | RADIAL(3) cx cy r:f64 stops | IMAGE(4) image:u32 fit:u8
@@ -43,15 +46,24 @@
 //! `flags` bit 0 = visible. Colors are straight-alpha sRGB. Image paint maps the image onto the
 //! shape's `w × h` box. `blend` is a `peniko::Mix` value (0 normal … 15 luminosity).
 //! Every geometry, paint and clip kind must be handled by every backend (exhaustive matches).
+//!
+//! **Fonts (B2):** font bytes are retained by **content hash** (sha-256 from the sender, usually the blob store
+//! key): `FONT` with bytes uploads a face once; `FONT` with `len = 0` maps another id to retained bytes without
+//! resending them. Bytes no font id references are released at the end of the batch (a `CLEAR` + resnapshot
+//! re-references them in the same batch, so a resnapshot never resends fonts). Glyph runs name a font id;
+//! `flags` bit 0 = synthetic bold, `skew` = synthetic italic angle in degrees, `coords` = variation coordinates
+//! (F2Dot14, the run's `normalized_coords` from Parley; S3: CJK variable fonts default to weight 100 without
+//! them). Glyph `x, y` are pen positions on the baseline in the node's local space; fill paints them.
+//! Version history: 1 (A6) → 2 (B1: stacks, effects, masks) → 3 (B2: FONT/DROP_FONT ops, synthesis and coords on GLYPHS).
 
 use std::collections::HashMap;
 use std::sync::Arc;
 use vello_common::kurbo::{Affine, BezPath, Point, Rect, Shape};
-use vello_common::peniko::ImageAlphaType;
+use vello_common::peniko::{Blob, FontData, ImageAlphaType};
 use vello_common::pixmap::{PixelMetadata, Pixmap};
 
 pub const MAGIC: [u8; 4] = *b"SFIR";
-pub const VERSION: u16 = 2;
+pub const VERSION: u16 = 3;
 pub const ROOT: u32 = 0;
 pub const APPEND: u32 = u32::MAX;
 
@@ -61,7 +73,12 @@ pub mod op {
     pub const REMOVE: u8 = 3;
     pub const IMAGE: u8 = 4;
     pub const DROP_IMAGE: u8 = 5;
+    pub const FONT: u8 = 6;
+    pub const DROP_FONT: u8 = 7;
 }
+
+/// sha-256 of the font file (computed by the sender).
+pub type FontHash = [u8; 32];
 
 pub type Rgba8 = [u8; 4];
 
@@ -69,7 +86,20 @@ pub type Rgba8 = [u8; 4];
 pub struct GlyphRun {
     pub font: u32,
     pub size: f32,
+    /// Synthetic bold (the font has no bold face).
+    pub embolden: bool,
+    /// Synthetic italic skew in degrees (0 = none).
+    pub skew: f32,
+    /// Variation coordinates (F2Dot14 bits).
+    pub coords: Vec<i16>,
     pub glyphs: Vec<(u32, f32, f32)>,
+}
+
+impl GlyphRun {
+    /// A plain run (no synthesis, default coordinates).
+    pub fn new(font: u32, size: f32, glyphs: Vec<(u32, f32, f32)>) -> Self {
+        GlyphRun { font, size, embolden: false, skew: 0.0, coords: Vec::new(), glyphs }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -79,7 +109,7 @@ pub enum Geometry {
     Ellipse { w: f64, h: f64 },
     Path(BezPath),
     Image { image: u32, w: f64, h: f64 },
-    /// Positioned glyphs from the authoring module (B2). Drawn as nothing until fonts land.
+    /// Positioned glyphs from the authoring module (B2), drawn with the retained font `run.font`.
     Glyphs(GlyphRun),
     /// A rect with a radius per corner `[top-left, top-right, bottom-right, bottom-left]`.
     RRect { w: f64, h: f64, radii: [f64; 4] },
@@ -223,8 +253,10 @@ impl Node {
             Geometry::Glyphs(run) => {
                 let mut r: Option<Rect> = None;
                 let s = run.size as f64;
+                // Conservative ink box per glyph: tall marks (Arabic harakat, Devanagari reph) and wide glyphs.
+                let skew = (run.skew as f64).to_radians().tan().abs() * s * 1.3;
                 for &(_, x, y) in &run.glyphs {
-                    let g = Rect::new(x as f64, y as f64 - s, x as f64 + s, y as f64 + s * 0.3);
+                    let g = Rect::new(x as f64 - s * 0.3 - skew, y as f64 - s * 1.3, x as f64 + s * 1.3 + skew, y as f64 + s * 0.6);
                     r = Some(r.map_or(g, |a| a.union(g)));
                 }
                 r?
@@ -275,6 +307,16 @@ impl std::fmt::Display for IrError {
 
 fn fail<T>(msg: impl Into<String>) -> Result<T, IrError> {
     Err(IrError(msg.into()))
+}
+
+/// A face from font bytes (index 0 of a collection), or None when it is not a font file.
+fn font_face(bytes: Vec<u8>) -> Option<FontData> {
+    let tag = bytes.get(0..4)?;
+    let known = [[0, 1, 0, 0], *b"OTTO", *b"true", *b"ttcf"];
+    if !known.iter().any(|k| k == tag) {
+        return None;
+    }
+    Some(FontData::new(Blob::new(Arc::new(bytes)), 0))
 }
 
 // ---------------------------------------------------------------- reader
@@ -406,12 +448,19 @@ impl<'a> Reader<'a> {
             5 => {
                 let font = self.u32()?;
                 let size = self.f32()?;
+                let flags = self.u8()?;
+                let skew = self.f32()?;
+                let nc = self.u8()? as usize;
+                let mut coords = Vec::with_capacity(nc);
+                for _ in 0..nc {
+                    coords.push(i16::from_le_bytes(self.take(2)?.try_into().unwrap()));
+                }
                 let n = self.u32()? as usize;
                 let mut glyphs = Vec::with_capacity(n.min(1 << 20));
                 for _ in 0..n {
                     glyphs.push((self.u32()?, self.f32()?, self.f32()?));
                 }
-                Geometry::Glyphs(GlyphRun { font, size, glyphs })
+                Geometry::Glyphs(GlyphRun { font, size, embolden: flags & 1 == 1, skew, coords, glyphs })
             }
             6 => Geometry::RRect { w: self.f64()?, h: self.f64()?, radii: [self.f64()?, self.f64()?, self.f64()?, self.f64()?] },
             other => return fail(format!("unknown geometry kind {other}")),
@@ -489,6 +538,9 @@ pub enum Op {
     Remove(u32),
     Image { image: u32, width: u32, height: u32, premultiplied: bool, rgba: Vec<u8> },
     DropImage(u32),
+    /// `bytes` empty: alias of retained bytes with this hash.
+    Font { font: u32, hash: FontHash, bytes: Vec<u8> },
+    DropFont(u32),
 }
 
 /// Decode a whole batch (validates structure; semantics are checked while applying).
@@ -553,6 +605,13 @@ pub fn decode(bytes: &[u8]) -> Result<Vec<Op>, IrError> {
                 Op::Image { image, width, height, premultiplied, rgba }
             }
             op::DROP_IMAGE => Op::DropImage(r.u32()?),
+            op::FONT => {
+                let font = r.u32()?;
+                let hash: FontHash = r.take(32)?.try_into().unwrap();
+                let len = r.u32()? as usize;
+                Op::Font { font, hash, bytes: r.take(len)?.to_vec() }
+            }
+            op::DROP_FONT => Op::DropFont(r.u32()?),
             other => return fail(format!("unknown op {other} at byte {}", r.pos - 1)),
         });
     }
@@ -572,6 +631,8 @@ pub struct Applied {
     /// Images added or replaced (GPU backends upload these).
     pub images_set: Vec<u32>,
     pub images_dropped: Vec<u32>,
+    /// Font ids added or re-pointed.
+    pub fonts_set: Vec<u32>,
     pub cleared: bool,
 }
 
@@ -582,6 +643,9 @@ pub struct Scene {
     world: HashMap<u32, Affine>,
     bounds: HashMap<u32, Rect>,
     images: HashMap<u32, Arc<Pixmap>>,
+    fonts: HashMap<u32, FontHash>,
+    font_data: HashMap<FontHash, FontData>,
+    glyphs: std::cell::RefCell<crate::glyphs::GlyphCache>,
 }
 
 impl Scene {
@@ -628,6 +692,26 @@ impl Scene {
         self.images.iter()
     }
 
+    /// The face behind a font id.
+    pub fn font(&self, id: u32) -> Option<&FontData> {
+        self.font_data.get(self.fonts.get(&id)?)
+    }
+
+    /// Retained font files (each hash once, however many ids alias it).
+    pub fn font_files(&self) -> usize {
+        self.font_data.len()
+    }
+
+    pub fn has_font_hash(&self, hash: &FontHash) -> bool {
+        self.font_data.contains_key(hash)
+    }
+
+    /// A glyph run as one local-space path (None when its font id is unknown or the face is unreadable).
+    pub fn glyph_path(&self, run: &GlyphRun) -> Option<BezPath> {
+        let font = self.font(run.font)?;
+        self.glyphs.borrow_mut().run_path(font, run)
+    }
+
     /// Apply one batch. On error the batch stops at the failing op (earlier ops stay applied):
     /// the sender must resnapshot (CLEAR + full scene), as for any delta-stream gap.
     pub fn apply(&mut self, bytes: &[u8]) -> Result<Applied, IrError> {
@@ -644,6 +728,7 @@ impl Scene {
                     self.world.clear();
                     self.bounds.clear();
                     self.images.clear();
+                    self.fonts.clear();
                     touched.clear();
                     out.cleared = true;
                 }
@@ -708,7 +793,32 @@ impl Scene {
                         self.dirty_users_of(image, &mut out.dirty);
                     }
                 }
+                Op::Font { font, hash, bytes } => {
+                    if bytes.is_empty() {
+                        if !self.font_data.contains_key(&hash) {
+                            return fail(format!("font {font} aliases a font file this scene does not hold (resend it with its bytes)"));
+                        }
+                    } else if !self.font_data.contains_key(&hash) {
+                        let face = font_face(bytes).ok_or_else(|| IrError(format!("font {font} is not an OpenType/TrueType file")))?;
+                        self.font_data.insert(hash, face);
+                    }
+                    self.fonts.insert(font, hash);
+                    out.fonts_set.push(font);
+                    self.dirty_font_users(font, &mut out.dirty);
+                }
+                Op::DropFont(font) => {
+                    if self.fonts.remove(&font).is_some() {
+                        self.dirty_font_users(font, &mut out.dirty);
+                    }
+                }
             }
+        }
+        // Release font files no id references any more (content-addressed: one copy per hash).
+        let live: std::collections::HashSet<FontHash> = self.fonts.values().copied().collect();
+        let before = self.font_data.len();
+        self.font_data.retain(|h, _| live.contains(h));
+        if self.font_data.len() != before {
+            self.glyphs.borrow_mut().clear();
         }
         self.recompute();
         for id in touched {
@@ -725,6 +835,16 @@ impl Scene {
                 || node.fills.iter().any(|f| matches!(f.paint, Paint::Image(i, _) if i == image))
                 || node.strokes.iter().any(|s| matches!(s.paint, Paint::Image(i, _) if i == image));
             if uses {
+                if let Some(b) = self.bounds.get(&node.id) {
+                    dirty.push(*b);
+                }
+            }
+        }
+    }
+
+    fn dirty_font_users(&self, font: u32, dirty: &mut Vec<Rect>) {
+        for node in self.nodes.values() {
+            if matches!(&node.geometry, Geometry::Glyphs(run) if run.font == font) {
                 if let Some(b) = self.bounds.get(&node.id) {
                     dirty.push(*b);
                 }
@@ -959,6 +1079,12 @@ impl IrWriter {
                 self.u8(5);
                 self.u32(run.font);
                 self.f32(run.size);
+                self.u8(u8::from(run.embolden));
+                self.f32(run.skew);
+                self.u8(run.coords.len() as u8);
+                for c in &run.coords {
+                    self.buf.extend_from_slice(&c.to_le_bytes());
+                }
                 self.u32(run.glyphs.len() as u32);
                 for &(g, x, y) in &run.glyphs {
                     self.u32(g);
@@ -1040,6 +1166,24 @@ impl IrWriter {
         self.ops += 1;
         self.u8(op::DROP_IMAGE);
         self.u32(image);
+        self
+    }
+
+    /// Retain a font file under `font` (pass empty `bytes` to alias a hash the scene already holds).
+    pub fn font(&mut self, font: u32, hash: &FontHash, bytes: &[u8]) -> &mut Self {
+        self.ops += 1;
+        self.u8(op::FONT);
+        self.u32(font);
+        self.buf.extend_from_slice(hash);
+        self.u32(bytes.len() as u32);
+        self.buf.extend_from_slice(bytes);
+        self
+    }
+
+    pub fn drop_font(&mut self, font: u32) -> &mut Self {
+        self.ops += 1;
+        self.u8(op::DROP_FONT);
+        self.u32(font);
         self
     }
 }
@@ -1128,16 +1272,19 @@ mod tests {
             v2,
             leaf(3, 1, Geometry::Ellipse { w: 4.0, h: 6.0 }, Paint::Radial { center: Point::new(2.0, 3.0), radius: 3.0, stops: vec![] }),
             leaf(4, ROOT, Geometry::Image { image: 9, w: 8.0, h: 8.0 }, Paint::Image(9, fit::STRETCH)),
-            leaf(5, ROOT, Geometry::Glyphs(GlyphRun { font: 3, size: 12.0, glyphs: vec![(65, 0.0, 12.0)] }), Paint::Solid([0, 0, 0, 255])),
+            leaf(5, ROOT, Geometry::Glyphs(GlyphRun { font: 3, size: 12.0, embolden: true, skew: 14.0, coords: vec![16384, -3], glyphs: vec![(65, 0.0, 12.0)] }), Paint::Solid([0, 0, 0, 255])),
         ];
         let mut w = IrWriter::new();
         w.image(9, 1, 1, &[1, 2, 3, 255]);
         for n in &nodes {
             w.upsert(n, APPEND);
         }
-        w.remove(5).drop_image(42).clear();
+        w.remove(5).drop_image(42).clear().font(4, &[7; 32], b"OTTO").font(5, &[7; 32], b"").drop_font(4);
         let ops = decode(&w.finish()).unwrap();
-        assert_eq!(ops.len(), 10);
+        assert_eq!(ops.len(), 13);
+        assert_eq!(ops[10], Op::Font { font: 4, hash: [7; 32], bytes: b"OTTO".to_vec() });
+        assert_eq!(ops[11], Op::Font { font: 5, hash: [7; 32], bytes: vec![] });
+        assert_eq!(ops[12], Op::DropFont(4));
         for (i, n) in nodes.iter().enumerate() {
             assert_eq!(ops[i + 1], Op::Upsert { node: n.clone(), index: APPEND });
         }
@@ -1232,6 +1379,41 @@ mod tests {
         let mut w = IrWriter::new();
         w.upsert(&group(1, ROOT), APPEND).upsert(&group(2, 1), APPEND).upsert(&group(1, 2), APPEND);
         assert!(scene.apply(&w.finish()).unwrap_err().0.contains("ancestor"));
+    }
+
+    #[test]
+    fn fonts_are_retained_by_hash_and_released_when_unreferenced() {
+        let otf = b"OTTO fake font bytes".to_vec();
+        let mut scene = Scene::new();
+        let mut w = IrWriter::new();
+        w.font(1, &[1; 32], &otf).font(2, &[1; 32], b"");
+        let run = leaf(9, ROOT, Geometry::Glyphs(GlyphRun::new(2, 10.0, vec![(3, 0.0, 10.0)])), Paint::Solid([0, 0, 0, 255]));
+        w.upsert(&run, APPEND);
+        let applied = scene.apply(&w.finish()).unwrap();
+        assert_eq!(applied.fonts_set, vec![1, 2]);
+        assert_eq!(scene.font_files(), 1, "two ids, one file");
+        assert!(scene.font(2).is_some() && scene.has_font_hash(&[1; 32]));
+        // re-pointing a font dirties its glyph runs
+        let mut w = IrWriter::new();
+        w.font(2, &[1; 32], b"");
+        assert_eq!(scene.apply(&w.finish()).unwrap().dirty, vec![scene.bounds_of(9).unwrap()]);
+        // resnapshot: CLEAR then alias by hash, no bytes resent
+        let mut w = IrWriter::new();
+        w.clear().font(5, &[1; 32], b"");
+        scene.apply(&w.finish()).unwrap();
+        assert!(scene.font(5).is_some() && scene.font(1).is_none());
+        // unknown hash alias and non-font bytes fail
+        let mut w = IrWriter::new();
+        w.font(6, &[9; 32], b"");
+        assert!(scene.apply(&w.finish()).unwrap_err().0.contains("resend"));
+        let mut w = IrWriter::new();
+        w.font(7, &[8; 32], b"GIF89a");
+        assert!(scene.apply(&w.finish()).unwrap_err().0.contains("not an OpenType"));
+        // dropping the last id releases the file
+        let mut w = IrWriter::new();
+        w.drop_font(5);
+        scene.apply(&w.finish()).unwrap();
+        assert_eq!(scene.font_files(), 0);
     }
 
     #[test]

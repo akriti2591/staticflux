@@ -252,7 +252,7 @@ fn silhouette<P: Painter>(p: &mut P, node: &Node, path: &BezPath, spread: f32) {
     }
 }
 
-fn draw_leaf<P: Painter>(p: &mut P, node: &Node, transform: Affine, mode: Mode) {
+fn draw_leaf<P: Painter>(p: &mut P, scene: &Scene, node: &Node, transform: Affine, mode: Mode) {
     p.set_transform(transform);
     p.set_even_odd(node.even_odd);
     let size = box_size(node);
@@ -271,8 +271,21 @@ fn draw_leaf<P: Painter>(p: &mut P, node: &Node, transform: Affine, mode: Mode) 
     }
     match &node.geometry {
         Geometry::Group => {}
-        Geometry::Glyphs(_) => {
-            // Glyph runs arrive with B2 (Parley in the authoring module); nothing is drawn yet.
+        Geometry::Glyphs(run) => {
+            // B2: the run becomes one path (`glyphs.rs` outlines) filled with the node's fill stack; synthetic bold
+            // adds a 1/24 em round-joined stroke in the same paint. Unknown font ids draw nothing.
+            if let Some(glyphs) = scene.glyph_path(run).filter(|g| !g.elements().is_empty()) {
+                let fills: Vec<(Paint, f32, u8)> =
+                    if mode == Mode::Clip { vec![(Paint::Solid([0, 0, 0, 255]), 1.0, 0)] } else { node.fills.iter().map(|f| (f.paint.clone(), f.opacity, f.blend)).collect() };
+                for (paint, opacity, blend) in fills {
+                    with_layer(p, opacity, blend, mode, |p| {
+                        fill_with(p, &paint, size, mode, &glyphs);
+                        if run.embolden && apply_paint(p, &paint, size, mode).is_some() {
+                            p.stroke_path(&glyphs, &Stroke::new((run.size as f64 / 24.0).max(0.5)).with_join(Join::Round));
+                        }
+                    });
+                }
+            }
         }
         Geometry::Image { image, w, h } => {
             if apply_paint(p, &Paint::Image(*image, fit::STRETCH), (*w, *h), mode).is_some() {
@@ -500,7 +513,7 @@ impl Pass<'_> {
                     self.backdrop(p, id, transform, &path, radius);
                 }
             }
-            draw_leaf(p, node, transform, mode);
+            draw_leaf(p, self.scene, node, transform, mode);
         }
         self.children(p, self.scene.children(id), inside, mode, force);
         for _ in &group_shadows {
@@ -581,9 +594,15 @@ mod tests {
         let missing = leaf(5, ROOT, Geometry::Image { image: 99, w: 8.0, h: 8.0 }, Paint::None);
         let mut hidden = leaf(6, ROOT, Geometry::Rect { w: 1.0, h: 1.0, radius: 0.0 }, Paint::Solid([0, 0, 0, 255]));
         hidden.visible = false;
-        let glyphs = leaf(7, ROOT, Geometry::Glyphs(crate::ir::GlyphRun { font: 0, size: 10.0, glyphs: vec![(1, 0.0, 10.0)] }), Paint::Solid([0, 0, 0, 255]));
+        let glyphs = leaf(7, ROOT, Geometry::Glyphs(crate::ir::GlyphRun::new(0, 10.0, vec![(1, 0.0, 10.0)])), Paint::Solid([0, 0, 0, 255]));
+        let font = std::fs::read(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../test/fonts/NotoSans-Latin.wght.ttf")).unwrap();
+        let mut run = crate::ir::GlyphRun::new(1, 10.0, vec![(40, 0.0, 10.0), (41, 6.0, 10.0)]);
+        run.embolden = true;
+        let mut text = leaf(8, ROOT, Geometry::Glyphs(run), Paint::Solid([0, 0, 0, 255]));
+        text.transform = Affine::translate((300.0, 0.0));
         let mut w = IrWriter::new();
-        for n in [g, a, b, img, missing, hidden, glyphs] {
+        w.font(1, &[3; 32], &font);
+        for n in [g, a, b, img, missing, hidden, glyphs, text] {
             w.upsert(&n, APPEND);
         }
         s.apply(&w.finish()).unwrap();
@@ -599,7 +618,9 @@ mod tests {
         assert!(calls.starts_with("transform 0 0|push clip=true opacity=0.5|transform 0 0|transform 5 5|paint|fill-rect|pop"), "{calls}");
         assert!(calls.contains("transform 100 0|paint|fill-path|paint|stroke"), "{calls}");
         assert!(calls.contains("transform 200 0|paint-transform|paint|fill-rect"), "{calls}");
-        // unknown image: nothing drawn; hidden node: skipped; glyph run: transform only
+        // glyph run with a retained font: one path (+ bold stroke); with an unknown font (7): transform only
+        assert!(calls.ends_with("transform 0 0|transform 300 0|paint|fill-path|paint|stroke"), "glyph run: {calls}");
+        // unknown image: nothing drawn; hidden node: skipped
         assert_eq!(r.calls.iter().filter(|c| *c == "fill-rect").count(), 2);
     }
 
@@ -613,8 +634,8 @@ mod tests {
         let lifted: HashSet<u32> = [2].into();
         let mut except = Recorder::default();
         draw_scene(&mut except, &s, Affine::IDENTITY, Rect::new(0.0, 0.0, 50.0, 50.0), &Filter::Except(&lifted));
-        // group layer without its lifted child; then the unresolved image (5) and the glyph run (7) set
-        // a transform and draw nothing
+        // group layer without its lifted child; then the unresolved image (5) and the glyph run without a
+        // font (7) set a transform and draw nothing
         assert_eq!(except.calls, vec!["transform 0 0", "push clip=true opacity=0.5", "transform 0 0", "pop", "transform 0 0", "transform 0 0"]);
 
         // Only: the member inside its ancestor's layer, nothing else

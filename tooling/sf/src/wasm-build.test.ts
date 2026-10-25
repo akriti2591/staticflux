@@ -10,6 +10,7 @@ import {
   DEFAULT_WASM_OPT_ARGS,
   engineInputFiles,
   fingerprintInputs,
+  isVariantCrate,
   lockedVersion,
   parseWasmConfig,
   readWasmManifest,
@@ -104,11 +105,13 @@ function tools(root: string, opts: FakeTools = {}): ReturnType<typeof fakeRunner
     if (name === 'rustc' && c.args[0] === '--print') return { stdout: opts.missing === 'target' ? '/nowhere' : join(root, 'sysroot') };
     if (name === 'cargo' && c.args[0] === 'build') {
       if (opts.fail === 'cargo-build') return { code: 101, stderr: 'error[E0425]: cannot find value `x`' };
-      const out = join(engine, 'target', 'wasm32-unknown-unknown', 'release');
+      const targetDir = c.args.includes('--target-dir') ? (c.args[c.args.indexOf('--target-dir') + 1] as string) : 'target';
+      const features = c.args.includes('--features') ? (c.args[c.args.indexOf('--features') + 1] as string) : '';
+      const out = join(engine, targetDir, 'wasm32-unknown-unknown', 'release');
       mkdirSync(out, { recursive: true });
       for (const crate of ['render', 'my-engine']) {
         const src = readFileSync(join(engine, 'crates', crate, 'src', 'lib.rs'), 'utf8');
-        writeFileSync(join(out, `${crate.replace(/-/g, '_')}.wasm`), `\0asm:${crate}:${src}:${c.options?.env?.['RUSTFLAGS'] ?? ''}`);
+        writeFileSync(join(out, `${crate.replace(/-/g, '_')}.wasm`), `\0asm:${crate}:${src}:${c.options?.env?.['RUSTFLAGS'] ?? ''}:${features}`);
       }
       return {};
     }
@@ -148,6 +151,33 @@ function options(d: TempDir, runner: ReturnType<typeof fakeRunner>, over: Partia
 const dist = (d: TempDir): string[] => (existsSync(join(d.root, 'engine', 'dist')) ? readdirSync(join(d.root, 'engine', 'dist')).sort() : []);
 
 describe('buildWasm', () => {
+  it('builds feature variants in their own cargo invocation and target dir', async () => {
+    const d = engineRepo({ crates: [{ name: 'render' }, { name: 'my-engine' }, { name: 'my-engine-big', package: 'my-engine', features: ['big', 'x/y'], defaultFeatures: false }] });
+    const runner = tools(d.root, { pathBindgen: '0.2.129' });
+    const r = await buildWasm(options(d, runner));
+    expect(r.ok && r.value.status).toBe('built');
+    if (!r.ok || r.value.status === 'skipped') return;
+    const builds = runner.calls.filter((c) => c.args[0] === 'build').map((c) => c.args);
+    expect(builds).toEqual([
+      ['build', '--target', 'wasm32-unknown-unknown', '--release', '-p', 'render', '-p', 'my-engine'],
+      ['build', '--target', 'wasm32-unknown-unknown', '--release', '-p', 'my-engine', '--no-default-features', '--features', 'big,x/y', '--target-dir', join('target', 'sf-variants', 'my-engine-big')],
+    ]);
+    expect(r.value.manifest.artifacts.map((a) => a.crate)).toEqual(['render', 'my-engine', 'my-engine-big']);
+    const big = r.value.manifest.artifacts[2];
+    expect(big?.wasm).toMatch(/^my_engine_big\.[0-9a-f]{16}\.wasm$/);
+    expect(readFileSync(join(d.root, 'engine', 'dist', big?.wasm ?? ''), 'utf8')).toContain(':big,x/y');
+    expect(readFileSync(join(d.root, 'engine', 'dist', r.value.manifest.artifacts[1]?.wasm ?? ''), 'utf8')).not.toContain('big');
+    expect(isVariantCrate({ name: 'a' })).toBe(false);
+    expect(isVariantCrate({ name: 'a', package: 'a' })).toBe(false);
+    expect(isVariantCrate({ name: 'b', package: 'a' })).toBe(true);
+    expect(isVariantCrate({ name: 'a', features: [] })).toBe(false);
+    expect(isVariantCrate({ name: 'a', defaultFeatures: false })).toBe(true);
+    expect(parseWasmConfig({ format: 'sf-wasm/1', crates: [{ name: 'a', defaultFeatures: 'no' }] }).ok).toBe(false);
+    const bad = parseWasmConfig({ format: 'sf-wasm/1', crates: [{ name: 'a', package: 'b c', features: ['ok', 'no spaces'] }] });
+    expect(!bad.ok && bad.error.message).toContain('crates[0].package');
+    expect(!bad.ok && bad.error.message).toContain('crates[0].features');
+  });
+
   it('runs cargo (+simd128) → pinned wasm-bindgen → wasm-opt and writes content-hashed artifacts and a manifest', async () => {
     const d = engineRepo();
     const runner = tools(d.root, { pathBindgen: '0.2.100' });
@@ -358,7 +388,7 @@ describe('sf wasm build (CLI)', () => {
   it('the repo engine config builds render and authoring with SIMD', () => {
     const json = JSON.parse(readFileSync(new URL('../../../apps/instaflow/engine/sf-wasm.json', import.meta.url), 'utf8')) as unknown;
     const config = parseWasmConfig(json);
-    expect(config.ok && config.value.crates.map((c) => c.name)).toEqual(['render', 'authoring']);
+    expect(config.ok && config.value.crates.map((c) => c.name)).toEqual(['render', 'authoring', 'authoring-text', 'authoring-text-complex']);
     expect(config.ok && wasmRustflags(config.value)).toBe('-C target-feature=+simd128');
   });
 });

@@ -65,3 +65,10 @@ export const SurfaceNotAttachedError = defineError(
   'The surface is not attached (or was disposed).',
   'Call `attach(host)` first and wait for it; check `surface.state` before starting the frame loop.',
 );
+
+export const TextInputUnavailableError = defineError(
+  'SF-SURF-017',
+  'unavailable',
+  'The requested TextInput implementation cannot run here (no EditContext, or no document for the hidden textarea).',
+  'Bind `TextInputFactoryToken` with `textInputBindings({ editContext })` so the platform fact picks the implementation; create inputs on the main thread.',
+);

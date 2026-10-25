@@ -672,3 +672,25 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
   interlace, no ancillary chunks, compressed through the platform's `CompressionStream('deflate')`, so the same pixels
   always give the same bytes (renditions dedupe by digest; goldens and C1 PNG export can reuse it). Cancellable while
   compressing; failures are `SF-SURF-016`.
+
+## 11.6 Text input for self-drawn text (`@staticflux/surface/text-input`; Instaflow M1b B2, SF-Δ27)
+
+- **R11.56** **`TextInput` port**: editors that draw their own text (canvas, WebGPU) receive typed **text intents** —
+  `insert`, `delete` (collapsed deletes carry a direction and a unit: grapheme, word, line; the editor expands them with its
+  layout), `compose-start`, `compose-update` (text, range, caret), `compose-commit`, `compose-cancel`, `selection`, `key`
+  (Enter, Tab, Escape, arrows, Home/End, Page keys, Select All) and `format` (IME underline styles) — and push back the
+  authoritative state (`setState`), control bounds, selection bounds and per-UTF-16 character bounds; the platform's bounds
+  requests are surfaced (`onBoundsRequest`). All offsets are UTF-16 code units. `applyTextIntent` is the plain-text
+  reference model.
+- **R11.57** **Two implementations**: EditContext (`createEditContextTextInput`; the host element is focusable and owns the
+  `EditContext`, character bounds position the IME candidate window) and a hidden textarea (`createHiddenTextareaTextInput`;
+  `beforeinput` and composition events; the textarea follows the selection bounds so the IME anchors there; composition text
+  is never taken from the textarea value). Unavailable implementations fail with SF-SURF-017.
+- **R11.58** **Variant binding**: `textInputBindings({ editContext })` binds `TextInputFactoryToken` to the hidden textarea and
+  re-binds it to EditContext when the platform fact says so (core `variant`); feature code never branches on the browser.
+- **R11.59** Disposal removes every listener and the hidden textarea and detaches the EditContext; no intent is delivered
+  after `dispose`.
+- **R16.31** **TextInput contract suite** (testkit `runTextInputContract`): typing, selection replace, Backspace/Delete across
+  surrogate pairs, paste, Enter/Select All as key intents, a Japanese composition (one commit), a cancelled Korean
+  composition, RTL text, IME anchoring at the caret and at composition character bounds, and dispose — run against both
+  implementations through drivers (`FakeEditContext`, Firefox-style events on the hidden textarea).

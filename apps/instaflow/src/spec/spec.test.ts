@@ -63,7 +63,7 @@ describe('contributions', () => {
     expect(registries.lenses.map((l) => l.label)).toEqual(['Canvas', 'Pixel', 'Timeline', 'Flow', 'Pages']);
     expect((await test.get(LensContributionsToken)).length).toBe(5);
     expect((await test.get(ToolContributionsToken)).length).toBe(12);
-    expect((await test.get(PanelContributionsToken)).length).toBe(7);
+    expect((await test.get(PanelContributionsToken)).length).toBe(8);
     expect((await test.get(HudActionContributionsToken)).length).toBe(5);
     expect([lensContribution, panelContribution, hudActionContribution].every((f) => typeof f === 'function')).toBe(true);
     await test.dispose();
@@ -157,7 +157,7 @@ describe('Studio and example specs', () => {
     const pixel = await valid(studioSpecFor(StudioIds.lens.pixel));
     if (!canvas.ok || !pixel.ok) throw new Error('invalid');
     const diff = diffSpecs(diffSpecs(EMPTY_LAYOUT, canvas.value).target, pixel.value);
-    expect(diff.unmount.map((s) => s.id)).toEqual([StudioIds.hud.animate, StudioIds.hud.rewrite, StudioIds.tool.pen, StudioIds.tool.text, StudioIds.tool.shape, StudioIds.tool.frame, StudioIds.lens.canvas]);
+    expect(diff.unmount.map((s) => s.id)).toEqual([StudioIds.hud.animate, StudioIds.hud.rewrite, StudioIds.panel.typography, StudioIds.tool.pen, StudioIds.tool.text, StudioIds.tool.shape, StudioIds.tool.frame, StudioIds.lens.canvas]);
     expect(diff.mount.map((s) => s.id)).toEqual([StudioIds.lens.pixel, StudioIds.tool.brush, StudioIds.tool.heal, StudioIds.tool.crop, StudioIds.panel.adjust, StudioIds.hud.removeBackground]);
     expect(diff.move).toEqual([]);
     expect(diff.kept).toEqual(expect.arrayContaining(['panel:instaflow/chat', 'panel:instaflow/layers', 'panel:instaflow/properties', 'tool:instaflow/select', 'tool:instaflow/hand']));

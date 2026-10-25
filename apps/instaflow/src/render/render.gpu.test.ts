@@ -52,6 +52,7 @@ describe.skipIf(mode === undefined)(`render module on WebGPU (${mode ?? 'off'})`
       sharpAfterLoss: boolean;
       dragTileBytesUnchanged: boolean;
       recovery: { ok: boolean; attempts: number; ms: number };
+      text: { runs: number; words: number; lines: number; fontFilesSent: number };
     };
     // eslint-disable-next-line no-console
     console.log(`render GPU (${mode}, ${report.adapter?.architecture ?? '?'}): timings ${JSON.stringify(data.timings)}, recovery ${JSON.stringify(data.recovery)}`);
@@ -67,6 +68,12 @@ describe.skipIf(mode === undefined)(`render module on WebGPU (${mode ?? 'off'})`
     const elementCpu = decodePng(readFileSync(new URL('../elements/__fixtures__/elements-scene.cpu.png', import.meta.url)));
     if (!elementCpu.ok) throw elementCpu.error;
     expectClose(report.images['gpu-element-scene'], elementCpu.value, RENDER_THRESHOLDS.gpuVsCpu, 'gpu vs cpu: element scene (B1)');
+    // Text (B2): glyph runs drawn by Vello GPU match the vello_cpu golden (Latin, Arabic, Devanagari), and the
+    // TypeScript pipeline in the browser (authoring text Wasm layout → scene IR) draws the same pixels.
+    expectClose(report.images['gpu-text'], cpu('text'), RENDER_THRESHOLDS.gpuVsCpu, 'gpu vs cpu: text');
+    expectClose(report.images['ts-text'], cpu('text'), RENDER_THRESHOLDS.gpuVsCpu, 'ts pipeline vs cpu: text');
+    expect(data.text.runs).toBeGreaterThanOrEqual(4);
+    expect(data.text.fontFilesSent).toBe(4);
     // Tiles are seamless and a lifted layer over tiles equals the direct render.
     expectClose(report.images['tiled-z1'], report.images['gpu-tiles'], RENDER_THRESHOLDS.sameBackend, 'tiled vs region, zoom 1');
     expectClose(report.images['tiled-z2'], report.images['region-z2'], RENDER_THRESHOLDS.sameBackend, 'tiled vs region, zoom 2');
@@ -87,6 +94,7 @@ describe.skipIf(mode === undefined)(`render module on WebGPU (${mode ?? 'off'})`
     const thresholds = mode === 'real-gpu' ? RENDER_THRESHOLDS.gpuVsCpu : RENDER_THRESHOLDS.sameBackend;
     goldens.assert('render-gpu-shapes', report.images['gpu-shapes']!, thresholds);
     goldens.assert('render-gpu-layers', report.images['gpu-layers']!, thresholds);
+    goldens.assert('render-gpu-text', report.images['gpu-text']!, thresholds);
     // IR v2 (B1): effects, masks, per-corner rects, image fit, even-odd.
     goldens.assert('render-gpu-elements', report.images['gpu-elements']!, thresholds);
     goldens.assert('render-gpu-appearance', report.images['gpu-appearance']!, thresholds);

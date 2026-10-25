@@ -21,6 +21,10 @@
       "types": "./dist/versioning/ui.d.ts",
       "import": "./dist/versioning/ui.js"
     },
+    "./text": {
+      "types": "./dist/text/index.d.ts",
+      "import": "./dist/text/index.js"
+    },
     "./elements": {
       "types": "./dist/elements/index.d.ts",
       "import": "./dist/elements/index.js"
@@ -60,7 +64,8 @@
   },
   "scripts": {
     "bench:build": "vite build -c bench/sequencing/vite.config.ts",
-    "bench:run": "node ../../packages/testkit/dist/gpu-cli.js bench/sequencing/dist index.html"
+    "bench:run": "node ../../packages/testkit/dist/gpu-cli.js bench/sequencing/dist index.html",
+    "ime-check": "node src/text/ime-check/serve.mjs"
   },
   "dependencies": {
     "@staticflux/a11y": "workspace:*",
@@ -85,6 +90,7 @@
     "@staticflux/runtime": "workspace:*",
     "@staticflux/testkit": "workspace:*",
     "fast-check": "4.10.2",
+    "harfbuzzjs": "1.6.4",
     "vite": "8.3.5"
   }
 }

@@ -44,11 +44,11 @@ export const STUDIO_PANELS: readonly PanelPlacement[] = Object.freeze([
 
 /** Extra panels per lens. */
 export const STUDIO_LENS_PANELS: Readonly<Record<LensContributionId, readonly PanelPlacement[]>> = Object.freeze({
-  [L.canvas]: [],
+  [L.canvas]: [{ panel: P.typography, dock: 'inspector' }],
   [L.pixel]: [{ panel: P.adjust, dock: 'inspector' }],
   [L.timeline]: [],
   [L.flow]: [],
-  [L.pages]: [],
+  [L.pages]: [{ panel: P.typography, dock: 'inspector' }],
 });
 
 export const STUDIO_CAPABILITIES = Object.freeze([editDocumentCapability.id, proposeSpecCapability.id]);
@@ -59,7 +59,7 @@ export const studioSpec: EditorSpec = defineEditorSpec({
   lens: L.canvas,
   scope: { kind: 'asset' },
   tools: STUDIO_LENS_TOOLS[L.canvas] ?? [],
-  panels: STUDIO_PANELS,
+  panels: [...STUDIO_PANELS, ...(STUDIO_LENS_PANELS[L.canvas] ?? [])],
   hud: STUDIO_LENS_HUD[L.canvas] ?? [],
   capabilities: STUDIO_CAPABILITIES,
   density: 'pro',

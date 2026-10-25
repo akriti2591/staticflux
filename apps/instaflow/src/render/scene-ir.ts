@@ -12,13 +12,14 @@
  */
 
 export const SCENE_IR_MAGIC = [0x53, 0x46, 0x49, 0x52] as const; // "SFIR"
-export const SCENE_IR_VERSION = 2;
+/** 3 (B2): FONT / DROP_FONT ops; glyph runs carry synthesis and variation coordinates (2: B1 stacks, effects, masks). */
+export const SCENE_IR_VERSION = 3;
 /** Parent id of top-level nodes. */
 export const SCENE_ROOT = 0;
 /** `index` value that appends a node after its siblings. */
 export const SCENE_APPEND = 0xffff_ffff;
 
-export const SCENE_OPS = { clear: 1, upsert: 2, remove: 3, image: 4, dropImage: 5 } as const;
+export const SCENE_OPS = { clear: 1, upsert: 2, remove: 3, image: 4, dropImage: 5, font: 6, dropFont: 7 } as const;
 
 /** `peniko::Mix` order; the wire value is the index. */
 export const BLEND_MODES = [
@@ -80,8 +81,19 @@ export type SceneGeometry =
   | { readonly kind: 'ellipse'; readonly w: number; readonly h: number }
   | { readonly kind: 'path'; readonly path: ScenePath }
   | { readonly kind: 'image'; readonly image: number; readonly w: number; readonly h: number }
-  /** Positioned glyphs (B2); drawn as nothing until fonts land. */
-  | { readonly kind: 'glyphs'; readonly font: number; readonly size: number; readonly glyphs: readonly (readonly [number, number, number])[] };
+  /**
+   * Positioned glyphs (B2): `font` is a font id registered with `font()`; glyphs are `[id, x, y]` pen positions on the
+   * baseline. `embolden` / `skew` (degrees) synthesize bold and italic; `coords` are variation coordinates (F2Dot14).
+   */
+  | {
+      readonly kind: 'glyphs';
+      readonly font: number;
+      readonly size: number;
+      readonly glyphs: readonly (readonly [number, number, number])[];
+      readonly embolden?: boolean;
+      readonly skew?: number;
+      readonly coords?: readonly number[];
+    };
 
 export type GradientStop = readonly [offset: number, color: Rgba8];
 
@@ -167,6 +179,12 @@ export interface SceneWriter {
   /** Add or replace image pixels (RGBA8, straight unless `premultiplied`). */
   image(id: number, width: number, height: number, rgba: Uint8Array, options?: { readonly premultiplied?: boolean }): SceneWriter;
   dropImage(id: number): SceneWriter;
+  /**
+   * Retain a font file under `id`, keyed by its sha-256 (32 bytes). Pass empty `bytes` to alias a file the render
+   * scene already holds (fonts are uploaded once per content hash; see `createSceneFontTable` in the text module).
+   */
+  font(id: number, hash: Uint8Array, bytes: Uint8Array): SceneWriter;
+  dropFont(id: number): SceneWriter;
   /** The batch bytes. The writer must not be used afterwards. */
   finish(): Uint8Array;
 }
@@ -343,6 +361,10 @@ export function createSceneWriter(): SceneWriter {
         out.u8(5);
         out.u32(g.font);
         out.f32(g.size);
+        out.u8(g.embolden === true ? 1 : 0);
+        out.f32(finite(g.skew ?? 0, 'skew'));
+        out.u8((g.coords ?? []).length);
+        for (const c of g.coords ?? []) out.u16(c & 0xffff);
         out.u32(g.glyphs.length);
         for (const [glyph, x, y] of g.glyphs) {
           out.u32(glyph);
@@ -444,6 +466,24 @@ export function createSceneWriter(): SceneWriter {
       live();
       ops += 1;
       out.u8(SCENE_OPS.dropImage);
+      out.u32(id);
+      return writer;
+    },
+    font(id, hash, bytes) {
+      live();
+      if (hash.length !== 32) throw new RangeError(`scene IR: font ${id} needs a 32-byte sha-256, got ${hash.length} bytes`);
+      ops += 1;
+      out.u8(SCENE_OPS.font);
+      out.u32(id);
+      out.bytes(hash);
+      out.u32(bytes.length);
+      out.bytes(bytes);
+      return writer;
+    },
+    dropFont(id) {
+      live();
+      ops += 1;
+      out.u8(SCENE_OPS.dropFont);
       out.u32(id);
       return writer;
     },

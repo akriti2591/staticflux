@@ -22,6 +22,11 @@ vello_gpu = { version = "=0.3.0", default-features = false, features = ["wgpu"] 
 vello_cpu = { version = "=0.3.0", default-features = false, features = ["std", "u8_pipeline"] }
 wgpu = { version = "=30.0.1", default-features = false, features = ["std", "wgsl", "webgpu"] }
 png = "=0.18.1"
+# Glyph outlines for the render crate (B2): the skrifa version Parley 0.12 uses; no hinting (render/src/glyphs.rs).
+skrifa = { version = "=0.44.0", default-features = false, features = ["std"] }
+# Text (B2, S3): Parley 0.12 (HarfRust shaping, ICU4X bidi and line breaking) without system fonts or
+# `complex-scripts` (that feature is only enabled by the lazy `authoring-complex` build, see sf-wasm.json).
+parley = { version = "=0.12.0", default-features = false, features = ["std"] }
 # Authoring geometry (B1): kurbo paths (the same 0.13.1 vello_common uses, so one copy) and linesweeper booleans (IF-7.9).
 kurbo = { version = "=0.13.1", default-features = false, features = ["std"] }
 linesweeper = { version = "=0.5.0", default-features = false }
