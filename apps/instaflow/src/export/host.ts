@@ -9,6 +9,7 @@
  */
 import { err, ok, type Result } from '@staticflux/core';
 import { createLink, createProtocolClient, createProtocolServer, type Link, type Port, type ProtocolServer } from '@staticflux/worker';
+import { toPort } from '@staticflux/worker/pipeline';
 import type { StudioAssets } from '../workers/protocol.js';
 import { remoteBlobs, remoteDocumentStore, StudioStoreProtocol } from '../workers/store-port.js';
 import { ExportWorkerError } from './errors.js';
@@ -35,7 +36,9 @@ export function hostExportWorker(options: { readonly port: Port; readonly env: E
   const server: ProtocolServer<typeof ExportWorkerProtocol> = createProtocolServer(link, ExportWorkerProtocol, {
     async start({ assets, store }) {
       if (env !== undefined) return err(ExportWorkerError({ message: 'This export worker was already started.' }));
-      storeLink = createLink({ port: store as Port, name: 'instaflow/export-store' });
+      const port = toPort(store);
+      if (port === undefined) return err(ExportWorkerError({ message: 'The export worker needs the store port (a MessagePort).', details: { step: 'store port' } }));
+      storeLink = createLink({ port, name: 'instaflow/export-store' });
       const client = createProtocolClient(storeLink, StudioStoreProtocol);
       io = { store: remoteDocumentStore(client), blobs: remoteBlobs(client) };
       const loaded = await options.env.load(assets, lifetime.signal);
