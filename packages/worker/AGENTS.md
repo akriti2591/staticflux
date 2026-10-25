@@ -129,7 +129,7 @@ closed); `leader → stepping-down → candidate` (`stepDown()`, `freeze`/`pageh
 - Feature-detect `Worker`, `SharedWorker`, `navigator.locks`, `requestAnimationFrame`; always offer a fallback.
 - Client gating is UX, not security: the broker's server re-checks every call.
 
-## Pipeline machines (mirror of docs/LIFECYCLES.md §15)
+## Pipeline machines (mirror of docs/LIFECYCLES.md §17)
 - `worker/delta-reader`: `awaiting-snapshot → live`; `live → resyncing` (gap, epoch change, gone blob) `→ live` (snapshot of a
   newer epoch); `* → closed`.
 - `worker/peer-channel`: `waiting → connected`; `connected → connected` (re-wire, new generation) `| disconnected → connected`;
