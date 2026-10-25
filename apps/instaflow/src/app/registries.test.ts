@@ -28,7 +28,9 @@ describe('Studio registries with the M1b contributions', () => {
     const placed = new Set(Object.values(STUDIO_SCOPE_HUD.selection ?? {}).flat());
     for (const action of c.hud.filter((h) => h.capability !== undefined)) expect(placed.has(action.id), action.id).toBe(true);
     const inspectors = new Set(Object.values(STUDIO_SCOPE_PANELS.selection ?? {}).flatMap((rows) => rows.map((r) => r.panel)));
-    expect([...inspectors]).toEqual([StudioIds.panel.appearance, StudioIds.panel.repeat]);
+    expect([...inspectors]).toEqual([StudioIds.panel.transform, StudioIds.panel.appearance, StudioIds.panel.repeat]);
+    // Free transform is an editor command (no capability) and is placed too.
+    expect(placed.has('instaflow/free-transform-hud')).toBe(true);
   });
 
   it('Studio validates in the asset scope and in the selection scope under every layout lens', async () => {

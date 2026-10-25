@@ -3,7 +3,7 @@
  * and are **replaced** by the feature that owns the id (never added next to it: the registry rejects duplicates,
  * IF-SPEC-002): Select / Hand (B3), Text (B2), Pages (B4 lenses), Assets (B4 library), Typography (B2), Milestones
  * (B5). Features with new ids join: Fill / stroke / effects (B1), Repeat (B7), and every HUD action (B1, B7, B2, B3,
- * B6). Placeholders nobody owns yet (Chat, Layers, Brand, Adjust, the agent HUD actions) stay as B0 drew them.
+ * B6), and B10a's numeric transform bar (Transform). Placeholders nobody owns yet (Chat, Layers, Brand, Adjust, the agent HUD actions) stay as B0 drew them.
  *
  * `bindPanel` lets the host bind panel elements that take their model from the host (B1's paint inspector, B7's
  * repeat inspector) when they render, without the feature knowing about Studio.
@@ -21,6 +21,7 @@ import { createEditorRegistries, type EditorRegistries } from '../spec/registrie
 import { studioHudActions, studioLenses, studioPanels, studioTools } from '../spec/studio-contributions.js';
 import { textHudActions, textTool, typographyPanel } from '../text/contributions.js';
 import { toolCapabilities, toolContributions, toolHudActions } from '../tools/contributions.js';
+import { transformBarPanel } from '../tools/transform-bar.js';
 import { CreateMilestoneCapability } from '../versioning/command.js';
 import { milestonesPanelContribution } from '../versioning/contributions.js';
 
@@ -48,7 +49,7 @@ export function studioContributions(bindPanel: PanelBinder = (p) => p): StudioCo
   return {
     lenses: studioLenses,
     tools: replaceById(studioTools, [...toolContributions, textTool]),
-    panels: replaceById(studioPanels, [pagesPanel, libraryPanel, typographyPanel, milestonesPanelContribution, bindPanel(appearancePanel), bindPanel(repeatPanel)]),
+    panels: replaceById(studioPanels, [pagesPanel, libraryPanel, typographyPanel, milestonesPanelContribution, bindPanel(transformBarPanel), bindPanel(appearancePanel), bindPanel(repeatPanel)]),
     hud: replaceById(studioHudActions, [...elementHudActions, ...repeatHudActions, ...textHudActions, ...toolHudActions, describeHudAction]),
     capabilities: [proposeSpecCapability, editDocumentCapability, ...elementCapabilities, ...repeatCapabilities, ...toolCapabilities, describeCanvasCapability, CreateMilestoneCapability],
   };

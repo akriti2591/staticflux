@@ -37,8 +37,9 @@ import { TEXT_KIND } from '../text/model.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
 import { createToolController, refreshOverlay, type ToolController, type ToolOutcome, type ToolPointer, type ToolSession } from '../tools/gesture.js';
 import { createElementIndex, hitTest } from '../tools/hit-test.js';
-import { bindToolShortcuts, createToolCommands, type ToolCommands } from '../tools/keyboard.js';
+import { bindToolShortcuts, createToolCommands, type ToolCommands, TransformModeShortcutScope } from '../tools/keyboard.js';
 import { toolOverlayBatch } from '../tools/overlay.js';
+import { createTransformMode } from '../tools/transform-mode.js';
 import type { GuideLabel } from '../tools/snapping.js';
 import { type Camera, createViewState, fitCamera, type TabId, type ViewState } from '../tools/view-state.js';
 import type { CanvasPublisher, SceneIrChanges, SceneIrSource } from './canvas-pipeline.js';
@@ -136,7 +137,10 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
   const ctx = { stage: document.view, geometry: document.geometry, kit: document.kit };
   const index = createElementIndex(ctx, page, scope);
   const view = createViewState({ tab: options.tab, root: page, viewport: options.viewport, tool: options.tool() ?? 'instaflow/select' });
-  const tools: ToolSession = { ctx, target: document.target(page), session: document.session, index, view, actor: options.actor };
+  const base = { ctx, target: document.target(page), session: document.session, index, view, actor: options.actor };
+  // B10a: the tab's transform session (Mod+T); it cancels with the tab scope (page switch).
+  const tools: ToolSession = { ...base, mode: createTransformMode(base, scope) };
+  const mode = tools.mode as NonNullable<ToolSession['mode']>;
   const controller = createToolController(tools);
   const commands = createToolCommands(tools);
   let editing: TextEditing | undefined;
@@ -233,6 +237,8 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
     if (controller.state === 'idle' && creation.state === 'idle') refreshOverlay(tools);
   };
   watch(() => view.selection, () => schedule(reframe), { scope });
+  // Entering or leaving transform mode shows or hides the pivot and the thick frame.
+  watch(() => mode.state, () => schedule(reframe), { scope });
   scope.defer(document.view.onInvalidate(() => schedule(reframe)));
 
   // B6: the editor side of the accessibility layer over the same pieces; snapshots go to main.
@@ -306,6 +312,11 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
     return done;
   };
   const step = async (run: 'undo' | 'redo'): Promise<Result<void>> => {
+    // Undo during a transform session cancels the session (nothing of it was written yet).
+    if (mode.state === 'active') {
+      const cancelled = mode.cancel();
+      return cancelled.ok ? ok() : cancelled;
+    }
     const outcome = await document.undo[run](options.actor(), scope.signal);
     return outcome.ok ? ok() : outcome;
   };
@@ -317,6 +328,16 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
     };
     const bound = bindToolShortcuts(registry, commands, scope, report);
     if (!bound.ok) return bound;
+    // While a transform session is active its scope (Enter applies, Escape cancels) shadows the canvas scope.
+    let deactivate: (() => void) | undefined;
+    watch(
+      () => mode.state,
+      (state) => {
+        deactivate?.();
+        deactivate = state === 'active' ? registry.activate(TransformModeShortcutScope, scope) : undefined;
+      },
+      { scope },
+    );
     for (const [def, run] of [
       [UndoShortcut, () => void step('undo').then(report)],
       [RedoShortcut, () => void step('redo').then(report)],

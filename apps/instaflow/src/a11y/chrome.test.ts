@@ -30,7 +30,7 @@ const ELEMENT_MODULES = sources(SRC).filter((path) => /tag: 'if-|_TAG = 'if-/.te
 describe('chrome audit coverage', () => {
   it('finds every Instaflow panel and the Studio frame', () => {
     expect(ELEMENT_MODULES.map((p) => relative(SRC, p)).sort()).toEqual(
-      ['elements/panel.ts', 'lenses/pages-panel.ts', 'library/library-panel.ts', 'repeat/panel.ts', 'studio/studio-element.ts', 'text/typography-panel.ts', 'versioning/milestones-panel.ts', 'versioning/save-status.ts'].sort(),
+      ['elements/panel.ts', 'lenses/pages-panel.ts', 'library/library-panel.ts', 'repeat/panel.ts', 'studio/studio-element.ts', 'text/typography-panel.ts', 'tools/transform-bar.ts', 'versioning/milestones-panel.ts', 'versioning/save-status.ts'].sort(),
     );
   });
 
