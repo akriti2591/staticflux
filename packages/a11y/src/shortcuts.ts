@@ -308,7 +308,8 @@ interface Registration {
 }
 
 function isEditable(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
+  // No DOM (a worker handling forwarded keys, Instaflow B9): nothing is a text field.
+  if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) return false;
   if (target.isContentEditable || target.getAttribute('contenteditable') === 'true' || target.getAttribute('contenteditable') === '') return true;
   // An EditContext host (a canvas text editor, e.g. Instaflow's text host) takes typed keys like a text field.
   if ((target as HTMLElement & { editContext?: unknown }).editContext != null) return true;

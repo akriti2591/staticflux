@@ -48,7 +48,8 @@ export interface ElementRenderPort extends RenderPort<ElementField> {
 /** The element render port (see the module header). */
 export function createElementRenderPort(options: ElementRenderPortOptions): ElementRenderPort {
   const { side, raster } = options;
-  const encoder = createElementSceneEncoder(options.images === undefined ? {} : { images: options.images });
+  // Image ids come from the records' image tables (the uploads are made on the editor side, B9).
+  const encoder = createElementSceneEncoder({ images: options.images ?? ((asset, variant) => side.images(asset, variant)) });
   let draws = 0;
   let batches = 0;
   const apply = (batch: Uint8Array | undefined): Result<void> => {
@@ -62,11 +63,12 @@ export function createElementRenderPort(options: ElementRenderPortOptions): Elem
     },
     draw(frame: RenderFrame<ElementField>): Result<void> {
       const queued = side.take();
-      // Elements first (a full encode starts with CLEAR), then asset uploads and text IR. The raster resolves image
-      // and font references when it draws (`present`), so uploads only need to arrive within the same frame.
+      // Elements first (a full encode starts with CLEAR), then asset uploads, text IR and the overlay (B3 chrome, on
+      // top). The raster resolves image and font references when it draws (`present`), so uploads only need to
+      // arrive within the same frame.
       const elements = apply(encoder.encode(frame.scene, side.resources, { full: queued.full }));
       if (!elements.ok) return elements;
-      for (const batch of [...queued.assets, ...queued.ir]) {
+      for (const batch of [...queued.assets, ...queued.ir, ...queued.overlay]) {
         const applied = apply(batch);
         if (!applied.ok) return applied;
       }

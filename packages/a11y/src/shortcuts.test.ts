@@ -194,6 +194,23 @@ describe('shortcut registry', () => {
     document.body.innerHTML = '';
   });
 
+  it('handles key-event-shaped objects where there is no DOM (a worker handling forwarded keys)', () => {
+    const registry = createShortcutRegistry({ isMac: false });
+    const next = vi.fn();
+    registry.register(Next, next);
+    registry.activate(EditorScope);
+    vi.stubGlobal('HTMLElement', undefined);
+    try {
+      let prevented = false;
+      const event = { key: 'j', code: 'KeyJ', ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, defaultPrevented: false, target: null, preventDefault: () => (prevented = true) };
+      expect(registry.handle(event as unknown as KeyboardEvent)).toBe(true);
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(prevented).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('respects when(), preventDefault: false, defaultPrevented, and scope-bound unregistration', async () => {
     const registry = createShortcutRegistry({ isMac: false });
     let enabled = false;

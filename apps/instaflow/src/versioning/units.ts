@@ -12,7 +12,7 @@ import { type Scope, unit, type UnitDefinition } from '@staticflux/core';
 import { createLatestService, type LatestService } from './latest.js';
 import { createMilestoneService } from './milestones.js';
 import type { NewDocumentServiceOptions } from './new-document.js';
-import { createMilestonesPanelModel, type MilestonesPanelModel } from './panel-model.js';
+import { createMilestonesPanelModel, type MilestonesPanelPort } from './panel-model.js';
 import { createPartCapture } from './parts.js';
 import { createExportSnapshotService, type ReleasePort, unavailableReleasePort } from './snapshot.js';
 import {
@@ -69,7 +69,7 @@ export const latestServiceUnit: UnitDefinition<LatestService, { required: { serv
   create: ({ services }) => services.latest,
 });
 
-export const milestonesPanelModelUnit: UnitDefinition<MilestonesPanelModel, { required: { services: typeof VersioningServicesToken } }, 'instaflow/milestones-panel-model'> =
+export const milestonesPanelModelUnit: UnitDefinition<MilestonesPanelPort, { required: { services: typeof VersioningServicesToken } }, 'instaflow/milestones-panel-model'> =
   /* @__PURE__ */ unit({
     id: 'instaflow/milestones-panel-model',
     provides: MilestonesPanelModelToken,

@@ -40,6 +40,23 @@ export interface MilestonesPanelModel {
   newDocument(id: MilestoneId): Promise<Result<NewDocument>>;
 }
 
+/**
+ * What the Milestones panel element reads and calls: plain data and plain outcomes (it only checks whether `open`,
+ * `compare` and `newDocument` worked; the host shows their results), so the model can live in another thread
+ * (B9: the editor worker) behind a mirror. Every `MilestonesPanelModel` is one.
+ */
+export interface MilestonesPanelPort {
+  milestones(): readonly MilestoneEntry[];
+  busy(): PanelBusy;
+  refresh(): Promise<Result<readonly MilestoneEntry[]>>;
+  create(name: string, note?: string): Promise<Result<MilestoneEntry>>;
+  pin(id: MilestoneId, pinned: boolean): Promise<Result<void>>;
+  rename(id: MilestoneId, name: string): Promise<Result<void>>;
+  open(id: MilestoneId): Promise<Result<unknown>>;
+  compare(left: CompareSide, right: CompareSide): Promise<Result<unknown>>;
+  newDocument(id: MilestoneId): Promise<Result<unknown>>;
+}
+
 export interface MilestonesPanelModelOptions {
   readonly milestones: MilestoneService;
   readonly snapshots: Pick<ExportSnapshotService, 'freeze' | 'open'>;
