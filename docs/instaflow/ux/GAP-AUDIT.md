@@ -30,6 +30,7 @@ STUDIO §13 and Appendix A). "Spec" says where it is or should be specified.
 | **Brand panel** (kits, tokens, fonts, logos) | missing (M2) | Canva Brand Kit | backlog B-4 |
 | Canvas model, tools, handles, snapping | worked | Figma, Keynote (rotate) | STUDIO §1, §4.1, §6 |
 | Contextual HUD + inspector (one control model) | worked | Canva (pill), Figma (inspector) | STUDIO §4.2, §5 |
+| **Text and fonts** (creation and boxes, editing comfort, every inline and block control with tiers, presets and styles, font picker, adding fonts, missing fonts, fidelity, actions, errors; checklist against Docs · Notion · Figma · Canva · InDesign · Pages; outlet + flow for every deferred feature) | frame only (a pill row, a picker paragraph, five shortcuts) → **worked, text pass 2026-10-25** | Docs (editing comfort), Figma (boxes, fidelity), Canva (presets, picker), InDesign (overflow mark) | TEXT-FONTS-UX-SPEC (new), F-60…F-64 |
 | Command palette | worked | Raycast, Linear | FOUNDATIONS §4.16, STUDIO §4.4 |
 | **Find and replace** (text, fonts, colours across pages) | missing → **worked this pass** | Figma plugin "Find and replace", Google Docs | STUDIO §9.1 (new), F-56 |
 | **Keyboard cheat sheet** (`?`) | frame only → **worked this pass** | Figma `?` panel, Linear `?` | STUDIO §2.3.1 (new), F-57 |
@@ -133,6 +134,7 @@ genuinely serves people (muscle memory, a gesture everyone already knows), and s
 | 11 | **Brand panel** (kits, tokens as a surface) | Brand-led users, M2 | no → backlog B-4 | — |
 | 12 | **Localisation rules** (none; British English hard-coded in copy rules) | Non-English users, later | **yes** (rules only) | FOUNDATIONS §5.12 |
 | 13 | **Pixel lens UX**, **Flow lens UX**, **presentation mode**, **comments**, **presence** | M2+ | no → backlog B-2, B-3, B-7, B-8 | — |
+| 14 | **Text had no spec**: no presets, no lists UI, no strikethrough / sub-superscript, no overflow rule, per-keystroke undo, no missing-font flow, no font-adding flow, Mac word/line keys wrong, CJK invisible without a font | Everyone who types a headline; every brand with its own font | **yes** (text pass) | TEXT-FONTS-UX-SPEC §2–§9; engine follow-ups T-1…T-25 (§11.2) |
 
 ## 4. Backlog (ranked, for a later pass)
 
@@ -151,6 +153,8 @@ genuinely serves people (muscle memory, a gesture everyone already knows), and s
 | B-11 | **Multi-select on Home** (not only Files): drag-select cards, bulk bar on Home | HOME-FILES §1 | Finder | Files has it. |
 | B-12 | **Permissions later**: role matrix for Share, release visibility, read-only link UI | OVERLAYS §2.3 Share | Figma | Needs accounts (D3). |
 | B-13 | **Settings field-level spec**: every field's control, default, hint, validation | STUDIO §2.4 | Linear | Sections exist; fields are one-liners. |
+| B-14 | **Text engine follow-ups** T-1…T-9 (M1: fixed box + vertical align, undo coalescing, platform caret keys, tofu for missing glyphs, sub/superscript, soft break, WOFF2, Tab in lists, IME bounds bug) and T-10…T-24 (M2: lists markers and levels, highlight, case mark and small caps, OpenType and axes, linked styles, truncate / auto-fit / hyphenation / direction, text on a path, outlines, text stroke, colour emoji, SVG text embed + `missingFonts`, Google Fonts, page number and assistant text actions, drop cap) | TEXT-FONTS-UX-SPEC §11 | Figma, InDesign | Outlets and flows are designed (§11.1); only the build is sequenced. |
+| B-15 | **Threaded text boxes, drag-to-move selection, data fields in text, local spelling dictionary** (T-25) | TEXT-FONTS-UX-SPEC §11.1 | InDesign, Docs | M3 / backlog. |
 
 ## 5. Owner questions (recommendation first, then the question)
 
@@ -210,6 +214,9 @@ there is no page text to find, so we recommend yes.)
 **Q-G. Import of a PDF.** Recommend importing a PDF as **pages of images** in M1 (one page per PDF page, each a
 raster image at 2×), with a line saying so, rather than refusing. True vector import is M2 engine work. Question:
 acceptable?
+
+**Text pass questions (Q1–Q10, 2026-10-25) are in `TEXT-FONTS-UX-SPEC.md` §12** (Tab while editing, spelling, OCR, font
+library and licences, overflow, presets vs linked styles, columns, shadowed shortcuts, zoom to edit, default text).
 
 **Q-H. Cheat sheet shows Mac or Windows, not both.** Recommend the sheet shows the person's own platform with a
 small switch `Mac · Windows` at the top (both columns at once double the width and halve the readability).

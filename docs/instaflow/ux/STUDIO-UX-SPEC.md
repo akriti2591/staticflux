@@ -286,7 +286,7 @@ Standard density; Pro adds the second tooltip line; Focus is identical. `⋯` is
 |---|---|---|
 | Nothing | No pill. | — |
 | **Shape** (rect · ellipse · polygon · star · line · path) | Fill swatch · Stroke swatch · Radius (rect; polygon/star: Points; line: Stroke width) · Duplicate · Delete | Rotate 90°, Flip H/V, Free transform, Bring forward/backward, Group with…, Use as mask, Radial/Grid/Mirror repeat, Outline stroke, Flatten, Copy link to selection, Describe |
-| **Text** | Font ▾ · Size · Colour swatch · Bold · Align ▾ · Delete (M2: `✦ Rewrite` takes slot 6 and Delete moves to More) | Fit to box, Italic, Underline, Letter spacing, Line height, Vertical align, Auto-size, Rotate 90°, Flip, Duplicate, Repeat…, Describe |
+| **Text** | Font ▾ · Size · Colour swatch · Bold · Align ▾ · Delete (M2: `✦ Rewrite` takes slot 6 and Delete moves to More); a leading mono chip names the preset when the range matches one (`Heading 1`). **Everything about text — creation, editing, the control table with tiers, fonts, fidelity, actions, errors — is `TEXT-FONTS-UX-SPEC.md`** (§4.1 for this row). | Fit to box, Italic, Underline, Strikethrough, Line height, Letter spacing, Vertical align, Auto-size ▾, Style ▾, List ▾, Link…, Convert case ▾, Clear formatting, Copy as text, Rotate 90°, Flip, Duplicate, Repeat…, Convert to outlines (M2), Describe |
 | **Image** | Crop · Fit ▾ (Fill / Fit / Stretch) · Replace… · Use as mask ▾ · Duplicate · Delete (M2: `✦ Remove background` as slot 6) | Rotate, Flip, Bring/Send, Repeat…, Describe |
 | **Frame** | Fill swatch · Clip toggle · Rename · Duplicate · Delete | Align children, Tidy up, Layout grid…, Stroke, Rotate, Repeat…, Describe |
 | **Group** | Ungroup · Align ▾ · Duplicate · Delete | Rotate, Flip, Tidy up, Use as mask, Repeat…, Flatten, Describe |
@@ -326,7 +326,11 @@ Hover never previews (Figma); click commits. Multi-selection: the popover edits 
 
 #### 4.2.6 The font picker
 
-A 264 × 360 popover: a filter field on top (`Search fonts`), then a virtualised list of 36 px rows showing each family
+**Normative version: `TEXT-FONTS-UX-SPEC.md` §5.1–5.3** (groups Recent · In this design · Brand · Your fonts · Library ·
+On this computer, category chips, download states, the `+ Add fonts ▾` footer, the honest `synthetic` weights). The
+paragraph below is the short form and stays consistent with it.
+
+A 264 × 420 popover: a filter field on top (`Search fonts`), then a virtualised list of 36 px rows showing each family
 **in its own face** with the family name, grouped `Recent · In this design · All`; a mono tag `@display` on brand fonts.
 Hovering a row for 150 ms **previews** it on the selection (Canva natives expect it); moving on previews the next; click
 commits one undo step `Font`; Escape restores and closes; Enter commits the focused row. Fonts not yet cached show a
@@ -376,7 +380,7 @@ rectangle is selected; no Repeat panel unless the selection is or can become a r
 |---|---|
 | Nothing | **Page** (Name, Size preset ▾ with W × H fields, Background swatch, Orientation) · **Document** (Title, Pages count, Units) |
 | Shape | Transform · Fill · Stroke · ▸ Corners (rect; per-corner toggle and smooth slider) · ▸ Effects · ▸ Layer (opacity, blend) |
-| Text | Transform · **Text** (Font family ▾ with preview, Weight ▾, Size, Line height, Letter spacing, Align row, Vertical align, Auto-size: Auto width / Auto height / Fixed) · Fill · ▸ Stroke · ▸ Effects · ▸ Layer |
+| Text | Transform · **Text** (Style ▾ preset, Font family ▾ with preview, Weight ▾, Size, Colour, `B I U S 🔗` row, Align row with List ▾; `More ▾`: Line height, Letter spacing, Paragraph spacing, Vertical align, Auto-size, Case ▾, Sub/superscript, Fit to box; Pro: OpenType, axes, baseline, direction, hyphenation) · Fill · ▸ Stroke · ▸ Effects · ▸ Layer — **the control table with tiers and letters is `TEXT-FONTS-UX-SPEC.md` §4.2** |
 | Image | Transform · **Image** (Fit ▾, Replace…, Source name, Size in px) · ▸ Effects · ▸ Layer |
 | Frame | Transform · **Frame** (Clip content, Name) · Fill · ▸ Stroke · ▸ Layout grid · ▸ Effects · ▸ Layer |
 | Group | Transform · ▸ Layer |
@@ -545,11 +549,16 @@ Help (`?`), tooltips and the palette show the same keys. Browser-reserved combos
 | Shortcuts help | ? | ? | opens Settings › Shortcuts as a dialog |
 | Copy link to the design / selection | ⌘⌥C | Ctrl+Alt+C | the selection's link when one exists, else the design's (`NAVIGATION-DEEPLINKS.md` §5) |
 | Developer tools | ⌘⇧D | Ctrl+Shift+D | only while Settings › About › Developer tools is on (`DEVTOOLS-UX-SPEC.md`) |
-| **Text editing** (inside a text element) | | | |
-| Bold / Italic / Underline | ⌘B / ⌘I / ⌘U | Ctrl+B/I/U | |
-| Align left / centre / right | ⌘⇧L / ⌘⇧E / ⌘⇧R | Ctrl+Shift+L/E/R | shadows Lock/Rename only while editing text |
+| **Text editing** (inside a text element; the full table is `TEXT-FONTS-UX-SPEC.md` §3.3) | | | |
+| Bold / Italic / Underline / Strikethrough | ⌘B / ⌘I / ⌘U / ⌘⇧X | Ctrl+B/I/U, Ctrl+Shift+X | |
+| Align left / centre / right / justify | ⌘⇧L / ⌘⇧E / ⌘⇧R / ⌘⇧J | Ctrl+Shift+L/E/R/J | shadows Lock/Rename only while editing text |
+| Link | ⌘K | Ctrl+K | shadows the command palette only while editing text (Docs, Notion, Figma) |
+| Superscript / Subscript | ⌘. / ⌘, | Ctrl+. / Ctrl+, | shadows density cycle / Settings only while editing; after T-5 |
+| Clear formatting / Paste without formatting | ⌘\ / ⌘⇧V | Ctrl+\ / Ctrl+Shift+V | shadow toggle dock / paste in place only while editing |
+| Lists bullet / number / checklist | ⌘⇧8 / ⌘⇧7 / ⌘⇧9 | Ctrl+Shift+8/7/9 | after T-10 |
 | Size up / down | ⌘⇧> / ⌘⇧< | Ctrl+Shift+> / < | |
-| Commit / Exit | ⌘Enter / Esc | Ctrl+Enter / Esc | |
+| Line height / letter spacing | ⌥⇧↑↓ / ⌥> ⌥< | Alt+Shift+↑↓ / Alt+> < | Figma's keys |
+| Commit / Exit | ⌘Enter / Esc | Ctrl+Enter / Esc | Tab indents in lists and otherwise does nothing (TEXT-FONTS Q1) |
 
 Letter tools never fire while typing in any field (the registry checks the composed origin). Every shortcut has a menu
 or pill home; the Shortcuts section lists them all.
@@ -582,7 +591,7 @@ A `sf-menu` at the pointer, kit styling, items with icons and shortcuts; only ap
 | Empty canvas (nothing selected) | Paste · Paste in place · ─ · Select all · ─ · Zoom to fit · 100 % · ─ · Add page · ─ · Show rulers (Pro) |
 | Element (any) | Cut · Copy · Paste · Duplicate · Delete · ─ · Bring to front · Bring forward · Send backward · Send to back · ─ · Group / Ungroup · Lock / Unlock · Hide · Rename · ─ · Select same ▾ (Fill, Stroke, Font, Kind) · Copy link to selection · ─ · (kind items) |
 | + Shape | Use as mask · Outline stroke · Flatten · Make repeat ▾ |
-| + Text | Edit text · Fit to box · Convert to outlines (M2) |
+| + Text | Edit text · Text style ▾ · Fit to box · Copy as text · Missing fonts… (when any) · Convert to outlines (M2); the menu **while editing** is `TEXT-FONTS-UX-SPEC.md` §7.4 |
 | + Image | Crop · Replace image… · Use as mask · Fit ▾ |
 | + Group / Frame | Enter · Ungroup / Unframe · Tidy up · Align children ▾ |
 | + Multi | Align ▾ · Distribute ▾ · Combine ▾ · Group · Frame selection · Make repeat ▾ · Use as mask |

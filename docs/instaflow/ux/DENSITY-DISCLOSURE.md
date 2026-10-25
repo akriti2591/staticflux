@@ -73,7 +73,7 @@ Focus renders the rail. Tier assignments (the clutter audit, §8.1) are the norm
 |---|---|---|---|
 | Nothing (Page) | Page: Name, Size (size field pair with `Presets ▾`), Background. Document: Title. | Page: Orientation lock, Layout grid ▸. Document: Pages count, Units, Provenance line. | Page margins and bleed fields (used by Print export), page position X Y on the canvas |
 | Shape | Transform (X Y W H ∠), Fill stack, Stroke stack (width + colour) | Transform `More ▾` (⟂ skew, flips, pivot), Stroke `More ▾` (Position, Cap, Join, Dash), Corners ▸, Effects ▸, Layer ▸ (opacity, blend) | Per-corner radii in one row of four; stroke dash pattern as a mono field; Effects shows each effect's fields inline |
-| Text | Transform, Text (Font, Weight, Size, Colour, Align row), Fill | Text `More ▾` (Line height, Letter spacing, Vertical align, Auto-size, Decoration, Case, Paragraph spacing), Stroke ▸, Effects ▸, Layer ▸ | OpenType features row (ligatures, numerals), baseline offset, hyphenation toggle |
+| Text | Transform, Text (Style ▾ preset, Font, Weight, Size, Colour, `B I U S 🔗` row, Align row with List ▾), Fill | Text `More ▾` (Line height, Letter spacing, Paragraph spacing, Vertical align for fixed boxes, Auto-size, Case ▾, Sub/superscript, Fit to box), Stroke ▸, Effects ▸, Layer ▸ | OpenType features row, variable axes, baseline offset, line-height unit, direction, hyphenation, truncate, word count — **tiers per control: `TEXT-FONTS-UX-SPEC.md` §4.2 and §4.4** |
 | Image | Transform, Image (Fit ▾, Replace…) | Image `More ▾` (Source name, pixel size, Crop reset, Adjustments: exposure, warmth, saturation sliders), Effects ▸, Layer ▸ | Adjustments open; a `Reset` per slider; source path as mono |
 | Frame | Transform, Frame (Clip toggle, Name), Fill | Stroke ▸, Layout grid ▸, Effects ▸, Layer ▸ | Layout grid open with the overlay toggle |
 | Group | Transform | Layer ▸ | Child count, bounds mode |
@@ -187,7 +187,7 @@ exactly one of the blocks in §2. Presets stay visible. "Folds to" names the blo
 | Corners | ▸ with summary `Radius 24` | Section ▸: Radius, per-corner toggle, Smooth slider | not rendered for ellipse, line, text |
 | Effects | ▸ with summary `Shadow` | Section ▸: effect rows; each row's Kind ▾ and fields | — |
 | Layer | ▸ with summary `50 % · Multiply` | Section ▸: Opacity slider, Blend ▾ | — |
-| Text | Font ▾ · Weight ▾ · Size · Colour · Align row | `More ▾`: Line height, Letter spacing, Vertical align, Auto-size, Decoration, Case, Paragraph spacing | OpenType features (Pro only) |
+| Text | Style ▾ · Font ▾ · Weight ▾ · Size · Colour · `B I U S 🔗` · Align row (`⟵ ≡ ⟶ ☰` · List ▾) | `More ▾`: Line height, Letter spacing, Paragraph spacing, Vertical align, Auto-size, Case ▾, Sub/superscript, Fit to box (`TEXT-FONTS-UX-SPEC.md` §4.2) | Vertical align only for fixed boxes; Fit to box only when overflowing; OpenType, axes, baseline, direction, hyphenation, truncate (Pro only) |
 | Image | Fit ▾ · Replace… | `More ▾`: source, pixel size, Crop reset, Adjustments sliders | — |
 | Repeat | Kind switcher · two main numbers · Expand · Release | `More ▾`: the rest of the parameters | — |
 | Page | Name · Size pair with `Presets ▾` · Background | `More ▾`: Orientation lock; Layout grid ▸ | Margins/bleed (Pro only) |
@@ -220,7 +220,8 @@ exactly one of the blocks in §2. Presets stay visible. "Folds to" names the blo
 | New design (HOME-FILES §1.3) | Formats row · Size pair · `Start from ▾` template · `Create` | `More ▾`: orientation lock, units, page count, background |
 | Command palette | Field · recents · results | n/a |
 | Colour popover | Value row · Document colours · Brand · Palette · Recent | `Custom ▸` inline |
-| Font picker | Search · Recent · In this design · All | Weight is a separate menu (never in the list) |
+| Font picker | Search · category chips · Recent · In this design · Brand · Your fonts · Library · On this computer | Weight is a separate menu (never in the list); `+ Add fonts ▾` footer holds Upload, Use fonts on this computer, Browse Google Fonts (M2) (`TEXT-FONTS-UX-SPEC.md` §5.1) |
+| Missing fonts dialog | One row per family: Add from this computer · Replace with ▾ · Upload… | `Replace all with the fallback` ghost in the footer (`TEXT-FONTS-UX-SPEC.md` §5.6) |
 
 ### 8.4 Home
 
