@@ -82,5 +82,18 @@ UI, while every test passed: tests checked plumbing, not what a person expects. 
   and B2 text (real text in PDF), and B7 repeats expanded. Golden-image parity against the renderer for PNG.
 - **C1** decides the SVG parity rule (M1-PLAN "Decisions"): write the decision and its numbers into
   `docs/instaflow/DECISIONS.md` as the next free D-number and say so in the report.
+- **C4 includes a loading and performance pass** (owner, 2026-10-25; deliberately last, once features settle). Use what
+  the framework already has but Instaflow doesn't use yet: `@staticflux/loader` (logical chunks, `sf-manifest`, boot
+  plans, warmup tiers), the vite plugin (chunk manifest, preloads, budgets), `@staticflux/perf` (journeys, feature
+  marks, detectors, budgets) and DI's `render` / `lazy` / `functional` dependencies. Deliver:
+  - a **production build** of Instaflow (minified, compressed: brotli and gzip) and a report per entry route (Home,
+    files, Chat when it exists, Studio opened directly, Studio from Home): JavaScript and Wasm for the first render vs
+    later, the chunk graph and load waterfall;
+  - proof that DI boundaries split code as intended (what each surface loads before first render, what loads on
+    first use), and fixes where they don't;
+  - budgets per route and chunk in CI (size-limit + `sf` budgets), plus performance tests: time to first render and
+    to interactive per route, input-to-frame latency, pan / zoom / drag p95, time to sharp, and per-feature timings
+    (open a large design, export, milestone, paste an image);
+  - a short readable performance page in the docs with the numbers and how to rerun them.
 - **C4** turns every M1 exit criterion (M1-PLAN § Exit criteria) into a CI check, deletes `apps/instaflow/spikes/`,
   and ratchets size budgets. It is the M1 finish line.

@@ -63,6 +63,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** Owner: a loading and performance pass (per-route first-render JS in a production build, DI
+  boundaries proven, chunk and feature performance tests with budgets) belongs at the end, in C4. Written into
+  M1C-NOTES. Logo: six directions on the "Instaflow Logo" canvas, waiting for the owner's pick.
 - **2026-10-25** Session interrupted: the C1 agent and the UX creative director stopped. C1's uncommitted files rescued to
   `claude/wip-c1-export` (60908ed); both restarted fresh (C1 continues from its branch and writes a handoff first;
   creative director on Fable, high effort, with the owner's new findings: tools without labels or tooltips, Pen is a
