@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** Owner flag: fonts/text (actions, fidelity, usability) had no UX spec of its own. Fable text research
+  launched on `claude/wip-ux-text` (stacked on #28's branch) → TEXT-FONTS-UX-SPEC.md. Runs beside B11a2 (docs only).
+  B11b waits for both.
 - **2026-10-25** Owner accepted GAP-AUDIT Q-A–Q-H (recorded on #28, 73f597a). B11a2 resumed (reads DENSITY-DISCLOSURE).
   Next: merge #28; B11a2 → merge loop → B11b; later a Fable pass on backlog B-1 Timeline and B-5 Resize design.
 - **2026-10-25** #26 (B11a + hit-test root-cause fix: index by hitBox) merged. Fable gap research done → PR #28 (docs):
