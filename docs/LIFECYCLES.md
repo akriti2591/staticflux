@@ -539,3 +539,28 @@ transition except a handle drag's preview is one change set, undoable as one ste
 | G-5 | A dropped layer is drawn until the tiles under it are fresh (overlay off and committed on in one frame, E-2) | — |
 | G-6 | Frames never rasterize before warm-up (cold pipelines); the snapshot is drawn instead | — |
 | G-7 | Caches are evicted before features are demoted; pinned (visible) tiles are never evicted | SF-MEM-001 |
+
+## 29. Studio integration: canvas pipeline, creation tools, text editing (Instaflow M1b B8)
+
+Studio's live canvas wires M1b over A7's ports: B1's element render source on B7's repeat view publishes scene records
+(resources, asset uploads, projection, text IR, in that order) and view frames; A7's render module draws consistent
+pairs through the element render port. One canvas tab per shown page holds B3's tool session, the creation tools, B2's
+editing session and B6's accessibility layer, all disposed with the tab scope.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/canvas-pipeline` | starting → running (`run`: streams attached, first snapshot and frame written) → stopped (`stop`, or the tab scope's signal); starting → stopped. Terminal: stopped | `apps/instaflow/src/app/canvas-pipeline.ts` |
+| `instaflow/create-gesture` | idle → pressed (`press`, a creation tool is active) → drawing (`draw`: the pointer left the slop; the box shows as B3's marquee overlay) → idle (`release`: one create, the new element selected, the toolbar back on Select) \| idle (`cancel`: nothing written); pressed → idle (`release`: a click creates the tool's default size) | `apps/instaflow/src/app/creation.ts` |
+| text editing (per tab) | none → editing (`editText`: Text tool click, or a double click on text; the text host is the focused `textbox`, canvas shortcuts off) → none (Escape / Tab, a pointer down elsewhere, the element deleted, page switch); an element left empty is deleted on exit | `apps/instaflow/src/app/text-editing.ts` |
+| canvas tab | none → open (`showPage`: pipeline, tool session, accessibility layer on the page) → none (next `showPage`, or the canvas port stops); the raster outlives tabs | `apps/instaflow/src/app/studio-canvas.ts` |
+| Studio scope | asset ⇄ selection (`setScope`, serialized: the canvas selection changed; the selection's HUD actions and inspectors mount) | `apps/instaflow/src/app/studio-app.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| INT-1 | Within a scene record, resources and asset uploads precede the projection payload that references them; a snapshot carries every live resource and upload | IF-INT-002; `canvas-pipeline.test.ts` |
+| INT-2 | The render port draws only consistent frames (A7: records applied up to the frame's `docVersion`) | `canvas-pipeline.test.ts` |
+| INT-3 | A creation gesture is one undo step; its preview never touches the document | `canvas-tab.test.ts` |
+| INT-4 | A keystroke is one undo step: the text ops and the box size they imply share one change set | `canvas-tab.test.ts` |
+| INT-5 | While text is edited the canvas shortcuts are inactive and the element's projected node is hidden from assistive technology (the text host is the textbox) | `canvas-tab.test.ts` |
+| INT-6 | The IME control bounds are the committed block's, never the composition preview's | `text-session.ime.test.ts` |
+| INT-7 | Every HUD click runs its capability through the one pipeline (validation, attribution, one change set); placeholders say they arrive later | `studio-app.test.ts` |

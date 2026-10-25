@@ -21,7 +21,8 @@ No screen layout: Studio places the tools from the spec.
   `selection`, `context`, `tool`, `hover`, `overlay`, `viewport`; `setCamera`, `panBy`, `zoomBy`, `select`, `toggle`,
   `clear`, `setContext`, `setTool`, `setHover`, `setOverlay`), `createViewStates()` (`open`, `get` IF-TOOL-003, `close`,
   `tabs`); camera maths `toPage`, `toScreen`, `zoomAbout`, `fitCamera`, `stepZoom`, `ZOOM_RANGE`, `ZOOM_STEPS`.
-- `hit-test.ts` — `ToolContext`, `createElementIndex(ctx, root, scope?)` → `ElementIndex` (`refresh`, `rebuild`,
+- `hit-test.ts` — `ToolContext`, `createElementIndex(ctx, root, scope?)` → `ElementIndex` (`refresh` re-indexes a changed
+  node's subtree and its ancestors, so group bounds stay fresh (B8), `rebuild`,
   `stats`, `dispose`); `hitTest(ctx, index, x, y, { tolerance, context, deep })` → `Hit { leaf, target, kind }`;
   `marqueeSelect(ctx, index, rect, { context, mode: touch | contain })`; brute-force references `hitTestBrute`,
   `marqueeSelectBrute`; `selectionTarget`, `isHittableLeaf`, `canvasSelectable`, `paintOrder`, `comparePaintOrder`,
@@ -33,7 +34,8 @@ No screen layout: Studio places the tools from the spec.
   `HANDLE_SIZES`; `captureTransform(ctx, nodes)` (IF-TOOL-002) → `TransformStart`; `moveValues`, `resizeValues`,
   `resizedBounds`, `fixedFraction`, `resizeByValues`, `rotateValues`, `snapRotation`, `angleAbout`, `normalizeDegrees`,
   `axisAligned`, `valuesToOps`, `boundsAfter`.
-- `overlay.ts` — `ToolOverlay`, `EMPTY_OVERLAY`, `overlayColors(theme)`, `toolOverlayBatch(overlay, zoom)` (non-printing
+- `overlay.ts` — `ToolOverlay`, `EMPTY_OVERLAY`, `overlayColors(theme)`, `toolOverlayBatch(overlay, zoom, { firstId, clear, ids })`
+  (`clear: false` + `ids` write into a shared scene, B8; non-printing
   scene IR), `guideLabelTemplate(labels, camera)` (`<sf-tag mono>` distance labels).
 - `gesture.ts` — `ToolSession` (ctx, B1 `EditTarget`, session layer, index, view, actor), `createToolController(session)`
   → `pointer(event)`, `wheel(event)`, `cancel()`, reactive `state`; machine `ToolGestureLifecycle`

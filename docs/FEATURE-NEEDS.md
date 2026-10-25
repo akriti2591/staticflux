@@ -351,3 +351,14 @@ Consumer: `apps/instaflow/src/a11y` (projection and announcer in the editor; DOM
 - "Every panel stays WCAG 2.2 AA" → `@staticflux/testkit/a11y` with `allowed-attr`, `prohibited-name` and `duplicate-id`
   (R15.6) in every panel test under Clean Pop; target sizes, focus ring and reduced motion read from the theme.
 - "Agents hear what people hear" → capability `instaflow/describe-canvas` (`@staticflux/capabilities`) and a B0 HUD action.
+
+### Studio integration (Instaflow M1b · B8)
+Consumer: `apps/instaflow/src/app` (the Studio composition root) and its dev entry.
+- "The canvas draws the real document through the S2 ports" → `@staticflux/worker/pipeline` delta streams and cells on the
+  `local` medium; A7's render module over a scene adapter (records framed with resources first).
+- "The canvas is Vello on the GPU, also on SwiftShader" → `@staticflux/surface/raster` (`createTiledRenderer`,
+  `createGpuDevice`, `manualTilePrepLane`) over A6's backend.
+- "Typing works on a canvas text editor" → `@staticflux/surface/text-input` (variant-bound) and `@staticflux/a11y`'s shortcut
+  registry, which now treats an EditContext host as a typing field (no shortcut steals typed keys; behaviour fix, no new R-ID).
+- "HUD clicks and agents run the same actions" → `@staticflux/capabilities` registry with the stage attribution port.
+- "Panels get their services without prop drilling" → `@staticflux/ui` scopes (`provideScope`) over an injector.
