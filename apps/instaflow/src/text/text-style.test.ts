@@ -6,7 +6,7 @@ import { createTextOps, readTextBlock, setCharStyleOps, setParagraphStyleOps } f
 import { type BrandTokenSource, parseCssColor, resolveColor, resolveFont, resolveTextLayout } from './text-style.js';
 
 const brand: BrandTokenSource = {
-  color: (t) => ({ 'color.primary': '#2255ff', 'color.bad': 'nonsense' })[t.token],
+  color: (t) => (({ 'color.primary': '#2255ff', 'color.bad': 'nonsense' }) as Record<string, string>)[t.token],
   font: (t) => (t.token === 'font.display' ? { font: 'sha256:aa' } : t.token === 'font.loop' ? { token: 'font.loop' } : undefined),
 };
 const families = (hash: string): readonly string[] | undefined => ({ 'sha256:aa': ['Display Sans'], 'sha256:bb': ['Body Serif'] })[hash];
