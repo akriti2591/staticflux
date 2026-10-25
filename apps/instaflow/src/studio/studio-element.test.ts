@@ -90,6 +90,18 @@ describe('<if-studio> frame', () => {
     expect([...main.querySelectorAll('.hud > *')].map((b) => accessibleName(b))).toEqual(['✦ Rewrite', 'Animate', '✦ Ask']);
   });
 
+  it('the HUD has a fixed block size: a selection bringing more actions never moves or resizes the canvas surface', async () => {
+    // B9 smoke flake (colocated): the HUD grew from one row (no selection) to two (a selection's actions), the surface
+    // moved 40 px under a drag that had started, and the move lost that distance. The surface keeps its place only if
+    // the HUD's block size does not depend on its content.
+    const { root } = await mount();
+    const hud = root.querySelector('sf-toolbar.hud') as HTMLElement;
+    const style = getComputedStyle(hud);
+    expect(style.blockSize).not.toBe('');
+    expect(style.blockSize).not.toBe('auto');
+    expect(style.blockSize).toBe(style.maxBlockSize);
+  });
+
   it('HUD actions of tone `more` share one "More actions" menu (B8); the bar keeps direct and agent actions', async () => {
     const { gate } = editorGate('pro');
     const studio = createStudio({
