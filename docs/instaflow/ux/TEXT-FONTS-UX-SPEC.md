@@ -11,7 +11,9 @@
 > B11b over the existing services (`TypographyService`, `FontLibrary`, `TextSession`, the ops in `rich-text.ts`) ·
 > **(c)** needs engine or editor-worker work (a new mark, a layout-spec field, the Wasm, the export writers, or the
 > text session's keyboard and undo logic). FOUNDATIONS §5.6 applies: **a (c) control is not rendered in M1** — no
-> greyed button, no "soon" tag; the row does not exist until §11 lands it. Every (c) has a milestone in §11.
+> greyed button, no "soon" tag; the row does not exist until §11 lands it. Every (c) has a milestone in §11.2, and —
+> by the owner's standing rule — every feature, deferred or not, has its **outlet and its flow to completion and
+> follow-up** designed now in §11.1, so a later build never needs a redesign.
 >
 > Conventions kept and why: Docs / Notion / Figma / Canva agree on `Mod+B/I/U`, double-click = word, triple-click =
 > paragraph, `Mod+K` = link, Enter = new paragraph, Shift+Enter = line break, `Mod+Shift+V` = paste without formatting
@@ -39,7 +41,8 @@
 
 ### 0.2 Reading rules
 
-Implementers of the HUD and inspector read §4 (the control table is the normative part) and DENSITY-DISCLOSURE §3.2;
+Implementers of the HUD and inspector read §4 (the control table is the normative part), §11.1 (every feature's outlet
+and flow, including deferred ones whose outlets are reserved) and DENSITY-DISCLOSURE §3.2;
 the Text tool and the session read §2–§3; the font picker, Assets › Fonts and the missing-font dialog read §5; export
 and render read §6; capabilities read §7; errors §8. FLOWS F-10 and F-60…F-64 are the acceptance tests. Appendix A is
 the exhaustive checklist (every control the six reference tools offer: include · defer · reject); Appendix B maps the
@@ -569,7 +572,79 @@ separate app; here it is one tag).
 | Text editing context menu | `src/studio/context-menu.ts` | missing |
 | Contrast tag | colour popover (kit) + a background probe (`src/elements/queries.ts`) | missing |
 
-## 11. Follow-ups — every (c), with a milestone (never rendered before it lands)
+## 11. Every text feature: its outlet, its flow to completion and follow-up, and the (c) schedule
+
+Standing rule (owner, 2026-10-25, `CAPABILITY-COVERAGE.md`): UX designs **every** feature now, deferred ones included —
+its **outlet** (exactly where it lives, per density) and its **flow** (how the person finishes, and what comes next:
+undo, edit again, reuse, find and replace, export, the next likely action). A deferred feature's outlet is **reserved**
+and not rendered until built (FOUNDATIONS §5.6), so building it later changes nothing already designed. Outlets below use
+the §4.2 vocabulary: `HUD n` = pill slot, `More` = the pill's `⋯`, `Text · S / M / P` = inspector Text section at rest in
+Standard / behind `More ▾` / Pro only, `Para` = the Paragraph block, `ctx` = context menu, `pal` = palette. Every row's
+undo is one step named after the control unless it says otherwise. "Next" names the most likely follow-up action and
+where it is.
+
+### 11.1 Outlets and flows
+
+| Feature (letter · milestone) | Outlet | Flow to completion | Follow-up and what comes next |
+|---|---|---|---|
+| **Create by click / drag** (a) | Tool `T`; keyboard Enter | Click → auto-width, caret, type; drag → auto-height. Escape or click away commits. | Element selected; `Style ▾` or the pill to style; `⌘D` duplicates with text; Find (`⌘F`) finds it |
+| **Fixed box + vertical align** (c · M1, T-1) | Bottom / corner handle drag; `Auto-size ▾ Fixed` Text · M; `Vertical ▾` Para · M (fixed only) | Drag the bottom handle → the box becomes fixed; pick Middle. Overflow shows the `⤓` tag. | Fit to box from the tag or More; undo returns to auto height; export draws exactly the overflow |
+| **Presets** (b) | `Style ▾` Text · S (first row); tool long-press menu; `pal` `Text style: …`; HUD chip shows the name | Pick `Heading 1` → size, weight, line height, spacing set in one step `Heading 1`. | Tune a field → the row reads `Custom`; M2: `Update style` / `New style…` rows in the same menu; `Select same ▾ Style` (ctx) selects every use |
+| **Linked text styles** (c · M2, T-14) | Same `Style ▾` menu gains `Update 'Heading 1' from selection`, `New style…`, `Detach`; a `Styles` list in the Brand panel (B-4); the chip gets a link glyph | Change a heading's size, `Style ▾ › Update 'Heading 1'` → every use updates, one step `Update style · 12 elements`, toast with Undo. | Find Kind `Style` (STUDIO §9.1 gains a fourth kind) lists uses; export unchanged; brand kits import styles as type tokens |
+| **Markdown prefixes** (c · M2) | Typing `- `, `1. `, `# `, `[] ` at a paragraph start; Settings › General › `More ▾` switch `Convert markdown as you type` | Type `- ` → a bullet appears, the prefix is consumed; Backspace right after undoes the conversion (Notion). | Tab nests; Enter on an empty item leaves the list |
+| **Text inside a shape** (b) | Double-click a shape with no text child; `ctx` on a shape › `Add text` | Centred auto-height text grouped with the shape, in edit mode. | Move the group; `Align ▾` keeps centring; M2 bound text (below) replaces the group with a Frame on `Convert to frame` |
+| **Text bound to a shape, padding, auto-size shape** (c · M2, T-16) | Frame section › `Layout ▾ Hug text` with `Padding` fields (Frame · M); the `Add text` gesture creates this when it exists | Type → the shape grows with the text; padding scrubs live. | Duplicate keeps the binding; `Release` (More) ungroups |
+| **Text on a path / curve** (c · M2, T-16) | More › `Follow path ▾` (`Curve…` slider popover · `Pick a path`); Text · P `Path offset` and `Side ▾` fields when bound; HUD chip `On path` | `Curve…` → drag the slider (−180…180°) live; or `Pick a path` then click a path or ellipse. Edit mode stays linear (the text is edited in its own line; the canvas shows it curved). | Scrub `Offset` to slide along; `Detach from path` (More) flattens to a straight text; Convert to outlines for export tricks |
+| **Auto-fit (shrink on overflow)** (c · M2, T-15) | `Auto-size ▾` gains `Fit text` (fourth option) Text · M; the overflow tag's menu gets `Always fit` | Pick `Fit text` → size follows the box live while typing. | Resize the box → size follows; `Fixed` stops it; the HUD `Size` reads the current size muted |
+| **Truncate** (c · M2, T-15) | `Truncate ▾ Off · Ellipsis` Text · P (fixed boxes) | Pick Ellipsis → the last visible line ends in `…`; the `⤓` tag stays (the text is still there). | Export draws the ellipsis; Find still matches hidden text and the match zooms to the element |
+| **Bold / Italic / Underline / Strike** (a) | HUD 4 `B`; `I U S` More + Text · S row; `⌘B/I/U/⇧X` | Select or place the caret, press → toggles; collapsed caret sets the typing style. | Mixed ranges: press once = on for all; `Clear formatting` resets |
+| **Sub / superscript** (c · M1, T-5) | Text · M toggle pair `x₂ x²`; `⌘,` / `⌘.`; ctx editing menu | Select `2`, `⌘.` → superscript; pressing again returns to normal; the two exclude each other. | Baseline offset (Pro, M2) for manual tuning; export via the same glyph transform |
+| **Highlight** (c · M2, T-11) | Text · M swatch `Highlight` (colour popover, `None` row first); HUD: none | Select, pick a colour → rect behind the run. | Document colours list highlights; Find Kind `Colour` matches them; `Clear formatting` removes |
+| **Inline code** (c · M2, T-11) | Text · M toggle `</>`; `⌘E`; ctx | Toggle → mono font + mist highlight on the range. | Code preset (block) for whole paragraphs |
+| **Case** (b convert · c mark M2, T-12) | `Case ▾` Text · M and More: `As typed · UPPER · lower · Title · Sentence`; ctx editing menu `Convert case ▾` | M1: pick → the text is rewritten (one step `Upper case`), marks kept. M2: the same menu sets a display mark and the text stays as typed (the field reads `UPPER` with a `display` mono tag). | Undo restores; Find matches the typed text (M2) |
+| **Small caps** (c · M2, T-12) | Text · P toggle in the OpenType row (`Sᴍᴀʟʟ ᴄᴀᴩs`), tag `synthetic` when faked | Toggle → `smcp` or synthetic. | Combine with `Case ▾ UPPER` for all-small-caps |
+| **Link** (a + b) | `🔗` Text · S row; `⌘K`; More; ctx | Select, `⌘K` → popover: URL field (`Page ▾` for internal), Enter applies; linked text underlined blue. | Hover (not editing) shows the URL, `⌘-click` opens; ctx on a link: Open · Copy · Edit · Remove; PDF export writes link annotations (a, D21 scope: confirm) |
+| **Text colour** (a) | HUD 3 swatch; Text · S | Colour popover; document colours, brand tokens. | Contrast tag `AA` (§9); Find Kind `Colour` replaces across pages |
+| **Letter spacing** (a) | Text · M number; `⌥>` / `⌥<`; More | Scrub or type; live. | Pro `%` unit (M2) |
+| **Clear formatting** (b) | More; `⌘\`; ctx | Removes char marks in the range. | Paragraph marks stay; undo one step |
+| **Copy / paste style** (c · M2) | ctx editing menu `Copy style` / `Paste style`; `⌘⌥C` / `⌘⌥V` on a range | Copy from one range, select another, paste → char and paragraph marks applied. | `Update style` (linked styles) is the repeatable version |
+| **Gradient / image text fill** (c · M2) | Fill stack on the text element (the Fill section already exists for text): add a gradient row | Add a gradient fill → every glyph is painted with it (one brush across the element). | Same gradient editor as shapes (appearance pass) |
+| **Text stroke** (c · M2, T-18) | Stroke ▸ section on text (exists, empty in M1) | `+ Add` → width, colour, position `Outside` default. | Effects stack as shapes; export vector |
+| **Horizontal alignment** (a) | HUD 5 `Align ▾` (top row `Text`); Para · S row; `⌘⇧L/E/R/J` | Press → paragraph aligns. | Alignment popover's lower grid aligns the box |
+| **Line height** (a; px unit c · M2) | Text · M number; `⌥⇧↑/↓`; Pro unit menu `× · px · %` | Scrub; `Auto` = 0. | Presets set it; px unit for brand specs (M2) |
+| **Paragraph spacing before / after, first-line indent** (a model · c layout, T-10) | Para · M number pair + `Indent` | Type `12` after → the gap appears. | Presets set `After`; Pro shows a mono summary `8 / 12` |
+| **Block indent / outdent** (c · M2, T-10) | Para · M `Indent` number; `⌘]` / `⌘[`; Tab in lists | Press `⌘]` → the paragraph shifts 24 px; in a list the level changes instead. | Quote preset uses it |
+| **Lists: bullet, number, checklist, levels, restart** (a model · c markers, T-10) | `List ▾` in the Para · S Align row (`None · • · 1. · ☐`); `⌘⇧8/7/9`; Tab / ⇧Tab; ctx `Restart numbering` on a numbered item; checklist boxes clickable when not editing | Pick `•` → the paragraph gets a marker in its first run's size and colour; Enter continues the list; Enter on an empty item ends it; Tab nests (markers `• ◦ ▪`, `1. a. i.`). | Convert to the other kind in place; Clear formatting keeps the list (it is a paragraph mark); export draws markers as glyphs |
+| **Soft line break** (c · M1, T-6) | `⇧Enter` | Breaks the line inside the paragraph (list item stays one item). | Shown in Pro as a `↵` ghost glyph when `View ▾ › Show invisibles` (Pro) is on |
+| **Drop cap** (c · M2, T-23) | Para · P `Drop cap` toggle + `Lines` number (default 3) | Toggle → the first letter spans three lines. | Quote and Body presets never set it; one per paragraph |
+| **Hyphenation** (c · M2, T-15) | Para · P toggle; Document › Text defaults › `Language ▾` sets the dictionary | Toggle → justified text breaks words with `-`. | Export identical; Find ignores the hyphens |
+| **Direction override** (c · M2, T-15) | Para · P `Direction ▾ Auto · LTR · RTL` | Pick → the paragraph's base direction and `start`/`end` flip. | Caret keeps moving visually |
+| **OpenType features** (c · M2, T-13) | Text · P row of chips rendered only for features the font has: `liga` `dlig` `kern` `onum` `tnum` `frac` `ss01…`; HUD: none | Toggle a chip → the range re-shapes; a tooltip shows a before/after glyph pair. | Save with a linked style (M2) so a brand's `tnum` tables are one click |
+| **Variable axes** (a wght · c others M2, T-13) | `Weight ▾` lists instances; Text · P sliders per axis with mono values | Drag `wdth` → live; release commits. | The Weight menu shows `Custom 640` when off an instance |
+| **Baseline offset** (c · M2, T-13) | Text · P number | Type `−4`. | Super/subscript toggles are the preset version |
+| **Word / character count** (b) | Text · P mono line; Standard: tooltip on the inspector header name | Read. | — |
+| **Font picker, recent, categories, library download** (b) | HUD 1 `Font ▾`; Text · S | Search, hover-preview, click. | `Weight ▾` next; Find Kind `Font` replaces everywhere; Recent remembers |
+| **Upload / fonts on this computer** (a + b; WOFF2 c · M1, T-7) | Picker footer `+ Add fonts ▾`; Assets › Import; drop | Pick files or tick families → `Added Fraunces · 6 styles`; when text is selected the picker opens filtered. | Apply to the selection; the font appears under **Your fonts**; `.iflow` carries it; licence line in About |
+| **Google Fonts catalogue** (c · M2, T-21) | Picker footer `Browse Google Fonts…` → dialog (search, category chips, preview text, `Add`) | Add → downloads into **Your fonts**, the picker returns with it selected. | Offline later: cached; export may embed (OFL) |
+| **Missing fonts** (b; export list c · M2, T-20) | Hatched `Font ▾`; top-bar tag `2 fonts missing`; `⋯ › Missing fonts…`; pal | Dialog: per family `Add from this computer` / `Replace with ▾` / `Upload…`; `Done`. | Toast with Undo per replace; the tag disappears; Export result lists substitutions (M2) |
+| **Synthetic weights** (a + b) | `Weight ▾` lower group tagged `synthetic` | Pick → faux bold / italic, honestly labelled. | Upload the real face → runs re-resolve to it (same family name) with a toast |
+| **Font pairing suggestion** (M2 assistant) | `✦ Suggest a pairing` row at the bottom of the font picker (provider-gated) | Proposes a body font for the selected headline font; Accept applies to Body-preset text. | Reject leaves everything; the pairing is remembered in Recent |
+| **Fit to box** (a) | More; Text · S ghost button under Auto-size (fixed boxes); the overflow tag; ctx | Click → sizes scale to fit, one step `Fit to box`. | Undo; `Fit text` mode (M2) makes it permanent |
+| **Convert case / Clear formatting / Copy as text** (b) | More; ctx; pal | One click each. | Undo (not for copy); paste elsewhere |
+| **Convert to outlines** (c · M2, T-17) | ctx › `Convert to outlines`; More; pal; confirm row in place | Confirm → a group of paths named by the text (`Hello`), selected; text controls gone, shape controls present. | Undo restores the text; Combine ▾ and masks work on the paths; export as any path |
+| **Find and replace** (b) | `⌘F` bar, Kind `Text · Font · Colour` (M2 `Style`) | STUDIO §9.1. | Replace all → toast with Undo |
+| **✦ Rewrite / Check spelling / Translate** (M2 assistant) | HUD 6 `✦ Rewrite ▾` popover (`Shorter · Longer · Friendlier · Formal · Fix spelling and grammar · Translate ▾ · Custom…`); ctx editing menu; pal | Pick → a proposal card over the element with the new text (diff words highlighted), Accept / Reject / `Try again`. | Accepted = one undo step `Rewrite`; the thread records it (CHAT); `Edit again` reopens the popover with the last choice |
+| **✦ Text from image** (M2 assistant) | An image's pill `More › ✦ Text from image`; ctx on an image | Proposal: a new text element over the image with the recognised text, `Accept` places it (Body preset), `Reject` discards. | Edit the text; the image stays; no OCR without a provider |
+| **Page number variable** (c · M2, T-22) | While editing: ctx `Insert ▾ Page number`; pal `Insert page number`; Pages lens only | A chip `#` in the text showing the number; styled like text; cannot be typed into. | Duplicating the page renumbers; export renders the numbers |
+| **Data fields in repeats / templates** (M3, T-25) | While editing a repeat source: ctx `Insert ▾ Field ▾ <column>`; the Flow lens binds a dataset | A chip `{name}` per instance shows the row's value. | Flows batch export one file per row |
+| **Threaded text boxes** (M3, T-25) | A fixed box's overflow tag gains `Continue in a new box` / click another box to link; Pro shows thread arrows | Click → a second box receives the overflow; editing flows across. | Delete a box → text returns to the previous; export unchanged |
+| **Drag selected text to move it** (M3) | Drag a selection inside or across text elements | Drop → cut and paste in one step `Move text`. | Undo |
+| **Local spelling dictionary** (backlog) | Settings › General › `More ▾` `Spelling ▾ Off · English…`; squiggles in the HUD layer; ctx `Suggestions ▾` | Right-click a squiggle → pick a word. | `Add to dictionary`; the assistant path remains |
+| **Zoom to edit tiny text** (b) | Automatic on entering edit mode (< 12 screen px); `View ▾ › Zoom to edit text` switch (Pro) | Double-click → the camera glides in; Escape → back unless the view moved. | — |
+| **Colour emoji** (c · M2, T-19) | No control; the OS picker | Type an emoji → colour glyph on screen, PNG, PDF (raster patch per D21 rule), SVG. | Until then: monochrome `Noto Emoji` fallback |
+| **SVG `<text>` + embed, `missingFonts`** (c · M2, T-20) | Export › Advanced ▸ (OVERLAYS §2.3 rows) | Choose `Text`, `Embed fonts` on → SVG with `@font-face` subsets. | Export result lists missing fonts; `Details` opens the Missing fonts dialog |
+
+### 11.2 Follow-ups — every (c), with a milestone (never rendered before it lands)
 
 | # | Item | Where | Milestone |
 |---|---|---|---|
