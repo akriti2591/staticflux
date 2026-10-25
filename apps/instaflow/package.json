@@ -42,11 +42,14 @@
     "@lit/context": "1.1.6",
     "lit": "3.3.3",
     "@staticflux/gate": "workspace:*",
-    "@staticflux/shell": "workspace:*"
+    "@staticflux/shell": "workspace:*",
+    "@staticflux/blob": "workspace:*"
   },
   "devDependencies": {
     "@staticflux/runtime": "workspace:*",
     "@staticflux/testkit": "workspace:*",
-    "vite": "8.3.5"
+    "vite": "8.3.5",
+    "fast-check": "4.10.2",
+    "harfbuzzjs": "1.6.4"
   }
 }
