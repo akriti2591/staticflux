@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Instaflow chat, Clean Pop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,900&family=Inter:wght@400;600&display=swap">
+<style>
+body{margin:0}
+button,a{cursor:pointer}
+:focus-visible{outline:2px solid #CF3D17;outline-offset:2px}
+.sf-range{-webkit-appearance:none;appearance:none;width:100%;height:20px;margin:0;background:transparent}
+.sf-range::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(#CF3D17,#CF3D17) 0 0/var(--p,50%) 100% no-repeat,#C3CCD7}
+.sf-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;background:#FFFFFF;border:2px solid #CF3D17;box-shadow:0 1px 3px rgba(22,21,26,.22)}
+.sf-range::-moz-range-track{height:4px;border-radius:2px;background:#C3CCD7}
+.sf-range::-moz-range-progress{height:4px;border-radius:2px;background:#CF3D17}
+.sf-range::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#FFFFFF;border:2px solid #CF3D17}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1100px; display: flex; flex-wrap: wrap; background: #F1F4F7; color: #16151A; font-family: 'Geist', system-ui, sans-serif; font-size: 14px; line-height: 1.5; box-sizing: border-box">
+
+<aside aria-label="Threads" style="flex: 1 0 256px; max-width: 256px; border-right: 1px solid #DCE3EA; padding: 16px 12px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box">
+<a href="HomeCP.dc.html" style="display: flex; align-items: center; gap: 9px; padding: 4px 6px 10px; color: #16151A; text-decoration: none">
+<svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="13" height="13" rx="4" fill="#FF5C39"></rect><circle cx="23.5" cy="8.5" r="6.5" fill="#FFC23D"></circle><rect x="2" y="19" width="13" height="9" rx="3" fill="#3D5AFE"></rect><rect x="17" y="17" width="13" height="13" rx="6.5" fill="#00B37E"></rect></svg>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: -0.02em">instaflow</span>
+</a>
+<a href="HomeCP.dc.html" style="{{ui.secondaryMd}}; width: 100%">＋ New chat</a>
+<span style="padding: 12px 8px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #56606C">Today</span>
+<sc-for list="{{threads}}" as="th" hint-placeholder-count="4">
+<a href="ChatCP.dc.html" aria-current="{{th.current}}" style="{{th.style}}">{{th.title}}</a>
+</sc-for>
+</aside>
+
+<main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; box-sizing: border-box">
+<header style="min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 28px; border-bottom: 1px solid #DCE3EA; flex-wrap: wrap">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.01em">Night market launch</h1>
+<span style="{{ui.chip}}">2 assets · Night Market brand</span>
+<a href="StudioCP.dc.html" style="{{ui.secondaryMd}}; margin-left: auto"><span aria-hidden="true" style="{{shape.layout}}"></span>Open in Studio</a>
+</header>
+
+<div style="flex: 1; width: 100%; max-width: 860px; margin: 0 auto; padding: 28px 24px 24px; display: flex; flex-direction: column; gap: 22px; box-sizing: border-box">
+
+<p style="{{ui.bubble}}">Make a flyer for our midsummer night market. Use the Night Market brand.</p>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0">Here’s a first version on your brand kit. The headline uses Fraunces and the bottom row is kept for sponsors.</p>
+<section aria-label="Mini editor: flyer layout" style="{{ui.card}}">
+<div style="{{ui.cardHead}}">
+<span aria-hidden="true" style="{{shape.layout}}"></span>
+<h2 style="{{ui.cardTitle}}">Night Market Flyer</h2>
+<span style="{{ui.code}}">canvas · page 1</span>
+<sc-if value="{{editing}}" hint-placeholder-val="{{ false }}">
+<div role="group" aria-label="Tools" style="{{ui.seg}}; margin-left: 4px">
+<button type="button" aria-pressed="true" style="{{ui.segOn}}">Select</button>
+<button type="button" aria-pressed="false" style="{{ui.segOff}}">Text</button>
+</div>
+<button type="button" style="{{ui.softSm}}">✦ Rewrite</button>
+</sc-if>
+<span style="margin-left: auto; display: flex; gap: 6px">
+<button type="button" onClick="{{ toggleEdit }}" style="{{ui.secondarySm}}">{{editLabel}}</button>
+<a href="StudioCP.dc.html" style="{{ui.secondarySm}}"><span aria-hidden="true" style="{{shape.layoutSm}}"></span>Open in Studio</a>
+</span>
+</div>
+<div style="display: flex; gap: 20px; padding: 16px; background: #E4E9EF; align-items: flex-start; flex-wrap: wrap; border-radius: 0 0 18px 18px">
+<div style="position: relative; width: 216px; height: 270px; background: #121826; font-family: Inter, sans-serif; box-shadow: 0 8px 24px rgba(22,21,26,.18); flex: 0 0 216px">
+<span style="position: absolute; left: 16px; top: 14px; font-size: 6px; font-weight: 600; letter-spacing: 0.18em; color: #17BEBB">HARBOUR LANE · VOL. 4</span>
+<span style="position: absolute; left: 16px; top: 40px; width: 184px; font-family: Fraunces, Georgia, serif; font-weight: 900; font-size: 24px; line-height: 0.95; color: #FFF4E0">MIDSUMMER NIGHT MARKET</span>
+<span style="position: absolute; left: 16px; top: 124px; font-size: 8px; font-weight: 600; color: #E4572E">Sat 14 Nov · 6–11 pm</span>
+<span style="position: absolute; left: 16px; top: 160px; width: 184px; height: 62px; background: #1E2738"></span>
+<span style="position: absolute; left: 16px; top: 236px; width: 184px; height: 18px; border-radius: 3px; background: rgba(255,244,224,0.1)"></span>
+<sc-if value="{{editing}}" hint-placeholder-val="{{ false }}">
+<span aria-hidden="true" style="position: absolute; left: 13px; top: 37px; width: 190px; height: 72px; border: 1.5px solid #CF3D17"></span>
+</sc-if>
+</div>
+<div style="flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; color: #56606C">
+<span style="color: #16151A; font-weight: 600">Brand check passed</span>
+<span>Fonts and colours come from the Night Market kit. Sponsor logos are placeholders until you add them.</span>
+<span style="{{ui.chipAgent}}; align-self: flex-start">✦ Claude · 1 undo step</span>
+</div>
+</div>
+</section>
+</div>
+
+<p style="{{ui.bubble}}">Warm up the lantern photo and remove the person in the corner.</p>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0">Done. The person is gone and warmth is up. Fine-tune it here.</p>
+<section aria-label="Mini editor: photo touch-up" style="{{ui.card}}">
+<div style="{{ui.cardHead}}">
+<span aria-hidden="true" style="{{shape.pixel}}"></span>
+<h2 style="{{ui.cardTitle}}">Lanterns photo</h2>
+<span style="{{ui.code}}">pixel · touch-up</span>
+<div role="group" aria-label="Tools" style="{{ui.seg}}; margin-left: 4px">
+<button type="button" aria-pressed="false" style="{{ui.segOff}}">Brush</button>
+<button type="button" aria-pressed="true" style="{{ui.segOn}}">Erase object</button>
+<button type="button" aria-pressed="false" style="{{ui.segOff}}">Crop</button>
+</div>
+<a href="StudioCP.dc.html" style="{{ui.secondarySm}}; margin-left: auto"><span aria-hidden="true" style="{{shape.layoutSm}}"></span>Open in Studio</a>
+</div>
+<div style="display: flex; gap: 22px; padding: 16px; flex-wrap: wrap">
+<div style="position: relative; flex: 1 1 420px; min-width: 0; height: 240px; border-radius: 12px; overflow: hidden; background-color: #1E2738; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 12px, transparent 12px 24px)">
+<span aria-hidden="true" style="position: absolute; inset: 0; background: #F2A33A; opacity: {{warmthOpacity}}"></span>
+<span style="position: absolute; left: 12px; bottom: 10px; display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: rgba(22,21,26,0.72); color: #FFFFFF; font-family: 'Geist Mono', monospace; font-size: 11px">lanterns.jpg · 1 object removed</span>
+<span aria-hidden="true" style="position: absolute; right: 64px; top: 70px; width: 56px; height: 56px; border-radius: 28px; border: 1.5px solid #FFFFFF"></span>
+</div>
+<div style="flex: 0 1 250px; display: flex; flex-direction: column; gap: 18px">
+<label for="warmth" style="display: flex; flex-direction: column; gap: 8px"><span style="display: flex; justify-content: space-between; align-items: center"><span style="font-weight: 600; font-size: 13px">Warmth</span><span style="{{ui.value}}">+{{warmth}}</span></span><input id="warmth" class="sf-range" type="range" min="0" max="50" value="{{warmth}}" onInput="{{ setWarmth }}" style="--p: {{warmthPct}}"></label>
+<label for="exposure" style="display: flex; flex-direction: column; gap: 8px"><span style="display: flex; justify-content: space-between; align-items: center"><span style="font-weight: 600; font-size: 13px">Exposure</span><span style="{{ui.value}}">{{exposureLabel}}</span></span><input id="exposure" class="sf-range" type="range" min="-10" max="10" value="{{exposure}}" onInput="{{ setExposure }}" style="--p: {{exposurePct}}"></label>
+<span style="font-size: 13px; color: #56606C">Edits land in the flyer. Your undo is separate from Claude’s.</span>
+</div>
+</div>
+</section>
+</div>
+
+<div style="align-self: flex-end; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; max-width: 540px">
+<p style="{{ui.bubble}}">Now a 15-second Instagram reel from the flyer and these three photos.</p>
+<span style="display: flex; gap: 6px; flex-wrap: wrap"><span style="{{ui.chip}}">stalls.jpg</span><span style="{{ui.chip}}">band.jpg</span><span style="{{ui.chip}}">harbour.jpg</span></span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0">Here’s a 15 s cut timed to the beat. Trim any clip below.</p>
+<section aria-label="Mini editor: reel timeline" style="{{ui.card}}">
+<div style="{{ui.cardHead}}">
+<span aria-hidden="true" style="{{shape.video}}"></span>
+<h2 style="{{ui.cardTitle}}">Lantern reel</h2>
+<span style="{{ui.code}}">timeline · trim</span>
+<button type="button" aria-label="Play" style="{{ui.iconPrimary}}; margin-left: 4px">▶</button>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12.5px; color: #56606C">00:04.2 / 00:15.0</span>
+<a href="StudioCP.dc.html" style="{{ui.secondarySm}}; margin-left: auto"><span aria-hidden="true" style="{{shape.layoutSm}}"></span>Open in Studio</a>
+</div>
+<div style="display: flex; gap: 16px; padding: 16px; flex-wrap: wrap; align-items: stretch">
+<div style="flex: 0 0 96px; height: 170px; border-radius: 12px; background: #121826; display: grid; place-items: center; color: #FFF4E0; font-family: Fraunces, Georgia, serif; font-weight: 900; font-size: 11px; text-align: center; line-height: 1; padding: 8px; box-sizing: border-box">MIDSUMMER NIGHT MARKET</div>
+<div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 8px; position: relative">
+<div style="display: flex; gap: 3px; height: 54px">
+<sc-for list="{{clips}}" as="c" hint-placeholder-count="5">
+<span style="{{c.style}}">{{c.label}}</span>
+</sc-for>
+</div>
+<div aria-hidden="true" style="display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 6px; border-radius: 8px; background: #E0F5EC">
+<sc-for list="{{wave}}" as="w" hint-placeholder-count="40">
+<span style="{{w.style}}"></span>
+</sc-for>
+</div>
+<span aria-hidden="true" style="position: absolute; left: 28%; top: -6px; bottom: -6px; width: 2px; background: #CF3D17"></span>
+</div>
+</div>
+<div style="display: flex; gap: 8px; padding: 0 16px 16px; flex-wrap: wrap">
+<button type="button" style="{{ui.secondarySm}}">Add captions</button>
+<button type="button" style="{{ui.secondarySm}}">Resize for Story</button>
+<button type="button" style="{{ui.secondarySm}}">Export a set</button>
+</div>
+</section>
+</div>
+</div>
+
+<div style="width: 100%; max-width: 860px; margin: 0 auto; padding: 0 24px 24px; box-sizing: border-box">
+<div style="{{ui.card}}; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 22px; box-shadow: 0 1px 2px rgba(22,21,26,.05), 0 12px 32px rgba(22,21,26,.08)">
+<label for="reply" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Message</label>
+<textarea id="reply" rows="2" placeholder="Ask for a change, or describe the next thing to make" style="border: 0; outline: 0; resize: none; font: inherit; background: transparent; color: #16151A"></textarea>
+<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+<button type="button" style="{{ui.secondarySm}}">＋ Attach</button>
+<button type="button" style="{{ui.secondarySm}}">✦ Accept edits ▾</button>
+<button type="button" style="{{ui.secondarySm}}">Claude ▾</button>
+<button type="button" style="{{ui.agentMd}}; margin-left: auto">Send</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { editing: false, warmth: 18, exposure: 2 }; }
+  renderVals() {
+    // Clean Pop component recipes (source of truth: Components.dc.html)
+    const C = { ink: '#16151A', muted: '#56606C', mist2: '#E7ECF2', line: '#DCE3EA', edge: '#7D8897', primary: '#CF3D17', agent: '#D6265F', agentSoft: '#FDE8EF', agentInk: '#B3174C' };
+    const base = 'display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 999px; font-weight: 600; font-family: inherit; line-height: 1; white-space: nowrap; text-decoration: none; box-sizing: border-box';
+    const size = { lg: 'height: 42px; padding: 0 20px; font-size: 15px', md: 'height: 34px; padding: 0 14px; font-size: 13.5px', sm: 'height: 28px; padding: 0 12px; font-size: 12.5px' };
+    const look = { primary: 'background: ' + C.primary + '; color: #FFFFFF; border: 0', agent: 'background: ' + C.agent + '; color: #FFFFFF; border: 0', soft: 'background: ' + C.agentSoft + '; color: ' + C.agentInk + '; border: 0', secondary: 'background: #FFFFFF; color: ' + C.ink + '; border: 1px solid ' + C.edge, ghost: 'background: transparent; color: ' + C.muted + '; border: 0', selected: 'background: #FFFFFF; color: ' + C.ink + '; border: 0; box-shadow: 0 1px 2px rgba(22,21,26,.14)' };
+    const btn = (v, s) => base + '; ' + size[s] + '; ' + look[v];
+    const chipBase = 'display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; white-space: nowrap';
+    const ui = {
+      secondaryMd: btn('secondary', 'md'), secondarySm: btn('secondary', 'sm'), agentMd: btn('agent', 'md'), softSm: btn('soft', 'sm'),
+      segOn: btn('selected', 'sm'), segOff: btn('ghost', 'sm'),
+      iconPrimary: 'display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 0; background: ' + C.primary + '; color: #FFFFFF; font-size: 11px',
+      seg: 'display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: ' + C.mist2,
+      chip: chipBase + '; font-weight: 500; background: ' + C.mist2 + '; color: ' + C.ink,
+      chipAgent: chipBase + '; font-weight: 600; background: ' + C.agentSoft + '; color: ' + C.agentInk,
+      code: chipBase + "; font-weight: 500; background: " + C.mist2 + '; color: ' + C.muted + "; font-family: 'Geist Mono', monospace; font-size: 11.5px",
+      value: chipBase + "; height: 22px; font-weight: 500; background: " + C.mist2 + "; font-family: 'Geist Mono', monospace",
+      card: 'background: #FFFFFF; border: 1px solid ' + C.line + '; border-radius: 18px; box-shadow: 0 1px 2px rgba(22,21,26,.04); box-sizing: border-box; overflow: hidden',
+      cardHead: 'display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; border-bottom: 1px solid ' + C.line + '; flex-wrap: wrap; min-height: 52px; box-sizing: border-box',
+      cardTitle: "margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: -0.01em",
+      bubble: 'margin: 0; align-self: flex-end; max-width: 540px; padding: 10px 16px; border-radius: 20px 20px 6px 20px; background: ' + C.mist2
+    };
+    const shape = {
+      layout: 'width: 14px; height: 14px; border-radius: 4px; background: #FF5C39; flex: none',
+      layoutSm: 'width: 10px; height: 10px; border-radius: 3px; background: #FF5C39; flex: none',
+      pixel: 'width: 14px; height: 14px; border-radius: 50%; background: #FFC23D; flex: none',
+      video: 'width: 20px; height: 13px; border-radius: 4px; background: #3D5AFE; flex: none'
+    };
+    const threads = ['Night market launch', 'Sponsor thank-you cards', 'Spring menu refresh', 'Podcast cover art'].map((title, i) => ({ title, current: i === 0 ? 'page' : 'false', style: btn(i === 0 ? 'selected' : 'ghost', 'md') + '; justify-content: flex-start; width: 100%' }));
+    const clip = (flex, bg, color) => 'flex: ' + flex + ' 1 0; min-width: 0; border-radius: 8px; background: ' + bg + '; color: ' + color + '; font-size: 11px; display: flex; align-items: flex-end; padding: 6px 8px; box-sizing: border-box; overflow: hidden; white-space: nowrap';
+    const clips = [
+      { label: 'Flyer', style: clip(3, '#121826', '#FFF4E0') },
+      { label: 'stalls.jpg', style: clip(3, '#2F5D50', '#FFFFFF') },
+      { label: 'band.jpg', style: clip(4, '#7A3B2E', '#FFFFFF') },
+      { label: 'harbour.jpg', style: clip(3, '#1E2738', '#FFFFFF') },
+      { label: 'End card', style: clip(2, '#3D5AFE', '#FFFFFF') }
+    ];
+    const heights = [8, 14, 20, 12, 26, 18, 10, 22, 28, 16, 12, 24, 18, 30, 14, 10, 20, 26, 12, 18, 22, 8, 16, 28, 20, 12, 24, 14, 18, 26, 10, 20, 16, 22, 12, 28, 18, 14, 20, 10];
+    const wave = heights.map((h) => ({ style: 'flex: 1; height: ' + h + 'px; border-radius: 1px; background: #00A372' }));
+    const { warmth, exposure } = this.state;
+    return {
+      ui, shape, threads, clips, wave,
+      editing: this.state.editing, editLabel: this.state.editing ? 'Done' : 'Edit here',
+      toggleEdit: () => this.setState({ editing: !this.state.editing }),
+      warmth, warmthPct: Math.round((warmth / 50) * 100) + '%', warmthOpacity: String(Math.round((warmth / 50) * 35) / 100),
+      setWarmth: (e) => this.setState({ warmth: Number(e.target.value) }),
+      exposure, exposurePct: Math.round(((exposure + 10) / 20) * 100) + '%', exposureLabel: (exposure >= 0 ? '+' : '') + (exposure / 10).toFixed(1),
+      setExposure: (e) => this.setState({ exposure: Number(e.target.value) })
+    };
+  }
+}
+</script>
+</body>
+</html>

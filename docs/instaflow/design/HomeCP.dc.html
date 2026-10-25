@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Instaflow home, Clean Pop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,900&display=swap">
+<style>
+body{margin:0}
+button,a{cursor:pointer}
+:focus-visible{outline:2px solid #CF3D17;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1000px; background: #F1F4F7; color: #16151A; font-family: 'Geist', system-ui, sans-serif; font-size: 14px; line-height: 1.45; box-sizing: border-box">
+
+<header style="height: 64px; display: flex; align-items: center; gap: 18px; padding: 0 28px; box-sizing: border-box; flex-wrap: wrap">
+<a href="HomeCP.dc.html" style="display: flex; align-items: center; gap: 10px; color: #16151A; text-decoration: none">
+<svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="13" height="13" rx="4" fill="#FF5C39"></rect><circle cx="23.5" cy="8.5" r="6.5" fill="#FFC23D"></circle><rect x="2" y="19" width="13" height="9" rx="3" fill="#3D5AFE"></rect><rect x="17" y="17" width="13" height="13" rx="6.5" fill="#00B37E"></rect></svg>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 21px; letter-spacing: -0.02em">instaflow</span>
+</a>
+<nav aria-label="Main" style="{{ui.seg}}">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="4">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="{{n.style}}">{{n.label}}</a>
+</sc-for>
+</nav>
+<a href="StudioCP.dc.html" style="{{ui.primaryMd}}; margin-left: auto">＋ New design</a>
+</header>
+
+<main style="max-width: 1180px; margin: 0 auto; padding: 40px 28px 64px; display: flex; flex-direction: column; gap: 44px; box-sizing: border-box">
+
+<section aria-labelledby="hero" style="display: flex; flex-direction: column; gap: 20px; align-items: center; text-align: center">
+<h1 id="hero" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 72px; line-height: 1; letter-spacing: -0.035em; max-width: 900px">Make something <span style="padding: 0 10px; border-radius: 14px; background: #FF5C39; color: #16151A">bold</span> today</h1>
+<p style="margin: 0; color: #56606C; font-size: 16px; max-width: 560px">Describe it and edit with Claude, or open a blank canvas and do it by hand. Your call.</p>
+<div style="{{ui.card}}; width: 100%; max-width: 760px; padding: 16px; display: flex; flex-direction: column; gap: 12px; text-align: left; border-radius: 22px">
+<label for="ask" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Describe what you want to make</label>
+<textarea id="ask" rows="2" style="border: 0; outline: 0; resize: none; font: inherit; font-size: 16px; color: #16151A; background: transparent">A flyer for our midsummer night market, then a 15-second reel from it</textarea>
+<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+<button type="button" style="{{ui.secondarySm}}">＋ Attach</button>
+<button type="button" style="{{ui.secondarySm}}">Brand · Night Market</button>
+<span style="{{ui.chipAgent}}">✦ Claude · Accept edits</span>
+<a href="ChatCP.dc.html" style="{{ui.agentLg}}; margin-left: auto">✦ Start making</a>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="quick" style="display: flex; flex-direction: column; gap: 16px">
+<h2 id="quick" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.01em">Quick actions</h2>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px">
+<sc-for list="{{quick}}" as="q" hint-placeholder-count="8">
+<a href="ChatCP.dc.html" style="{{ui.card}}; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 18px; min-height: 136px; color: #16151A; text-decoration: none; min-width: 0">
+<span aria-hidden="true" style="{{q.shape}}"></span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: -0.01em">{{q.title}}</span>
+<span style="font-size: 13px; color: #56606C">{{q.detail}}</span>
+</a>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="recent" style="display: flex; flex-direction: column; gap: 16px">
+<h2 id="recent" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.01em">Jump back in</h2>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px">
+<sc-for list="{{recents}}" as="r" hint-placeholder-count="4">
+<a href="{{r.href}}" style="display: flex; flex-direction: column; gap: 10px; min-width: 0; color: #16151A; text-decoration: none">
+<span style="{{r.thumb}}"><span style="font-family: Fraunces, Georgia, serif; font-weight: 900; font-size: 20px; line-height: 1; color: #FFF4E0">{{r.mark}}</span><span style="{{r.tag}}; position: absolute; top: 10px; left: 10px">{{r.lens}}</span></span>
+<span style="font-weight: 600">{{r.title}}</span>
+<span style="color: #56606C; font-size: 13px">{{r.meta}}</span>
+</a>
+</sc-for>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Clean Pop component recipes (source of truth: Components.dc.html)
+    const C = { ink: '#16151A', muted: '#56606C', mist2: '#E7ECF2', line: '#DCE3EA', edge: '#7D8897', primary: '#CF3D17', agent: '#D6265F', agentSoft: '#FDE8EF', agentInk: '#B3174C' };
+    const base = 'display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 999px; font-weight: 600; font-family: inherit; line-height: 1; white-space: nowrap; text-decoration: none; box-sizing: border-box';
+    const size = { lg: 'height: 42px; padding: 0 20px; font-size: 15px', md: 'height: 34px; padding: 0 14px; font-size: 13.5px', sm: 'height: 28px; padding: 0 12px; font-size: 12.5px' };
+    const look = { primary: 'background: ' + C.primary + '; color: #FFFFFF; border: 0', agent: 'background: ' + C.agent + '; color: #FFFFFF; border: 0', secondary: 'background: #FFFFFF; color: ' + C.ink + '; border: 1px solid ' + C.edge, ghost: 'background: transparent; color: ' + C.muted + '; border: 0', selected: 'background: #FFFFFF; color: ' + C.ink + '; border: 0; box-shadow: 0 1px 2px rgba(22,21,26,.14)' };
+    const btn = (v, s) => base + '; ' + size[s] + '; ' + look[v];
+    const chipBase = 'display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap';
+    const ui = {
+      primaryMd: btn('primary', 'md'), agentLg: btn('agent', 'lg'), secondarySm: btn('secondary', 'sm'),
+      chipAgent: chipBase + '; background: ' + C.agentSoft + '; color: ' + C.agentInk,
+      seg: 'display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: ' + C.mist2,
+      card: 'background: #FFFFFF; border: 1px solid ' + C.line + '; border-radius: 18px; box-shadow: 0 1px 2px rgba(22,21,26,.04); box-sizing: border-box'
+    };
+    const lens = { layout: '#FF5C39', pixel: '#FFC23D', video: '#3D5AFE', flow: '#00B37E' };
+    const lensInk = { layout: '#16151A', pixel: '#16151A', video: '#FFFFFF', flow: '#16151A' };
+    const shape = { layout: 'width: 30px; height: 30px; border-radius: 8px', pixel: 'width: 30px; height: 30px; border-radius: 50%', video: 'width: 42px; height: 26px; border-radius: 9px', flow: 'width: 44px; height: 26px; border-radius: 999px' };
+    const nav = [['Home', 'HomeCP.dc.html'], ['Chats', 'ChatCP.dc.html'], ['Files', 'StudioCP.dc.html'], ['Brand kits', 'HomeCP.dc.html']].map(([label, href], i) => ({ label, href, current: i === 0 ? 'page' : 'false', style: btn(i === 0 ? 'selected' : 'ghost', 'sm') }));
+    const quick = [
+      ['pixel', 'Remove background', 'Photo or video'], ['layout', 'Resize for socials', 'Post, Story, Reel'],
+      ['video', 'Make a reel', 'From photos and clips'], ['video', 'Add captions', 'Transcribe and style'],
+      ['layout', 'Apply brand kit', 'Fonts, colours, logo'], ['layout', 'Turn into slides', 'From a doc or outline'],
+      ['pixel', 'Fix the lighting', 'Warmth, exposure, sky'], ['flow', 'Export a set', 'Every size at once']
+    ].map(([k, title, detail]) => ({ title, detail, shape: shape[k] + '; background: ' + lens[k] + '; margin-bottom: 10px; flex: none' }));
+    const thumb = (bg) => 'position: relative; height: 158px; border-radius: 18px; background: ' + bg + '; display: flex; align-items: flex-end; padding: 14px; box-sizing: border-box';
+    const tag = (k) => chipBase + '; background: ' + lens[k] + '; color: ' + lensInk[k];
+    const recents = [
+      { title: 'Night Market Flyer', meta: 'Edited 2 min ago · with Claude', mark: 'MIDSUMMER NIGHT MARKET', lens: 'Layout', thumb: thumb('#121826'), tag: tag('layout'), href: 'StudioCP.dc.html' },
+      { title: 'Lantern reel', meta: 'Chat · 15 s video', mark: '▶ 0:15', lens: 'Video', thumb: thumb('#1E2738'), tag: tag('video'), href: 'ChatCP.dc.html' },
+      { title: 'Spring menu', meta: 'Yesterday · 4 pages', mark: 'SPRING', lens: 'Layout', thumb: thumb('#2F5D50'), tag: tag('layout'), href: 'StudioCP.dc.html' },
+      { title: 'Sponsor packs', meta: 'Flow · runs on new logos', mark: 'HARBOUR', lens: 'Flow', thumb: thumb('#7A3B2E'), tag: tag('flow'), href: 'StudioCP.dc.html' }
+    ];
+    return { ui, nav, quick, recents };
+  }
+}
+</script>
+</body>
+</html>

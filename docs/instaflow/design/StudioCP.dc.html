@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Instaflow studio, Clean Pop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,900&family=Inter:wght@400;600&display=swap">
+<style>
+body{margin:0}
+button,a{cursor:pointer}
+:focus-visible{outline:2px solid #CF3D17;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; flex-direction: column; background: #F1F4F7; color: #16151A; font-family: 'Geist', system-ui, sans-serif; font-size: 13px; line-height: 1.45; box-sizing: border-box">
+
+<header style="min-height: 56px; display: flex; align-items: center; gap: 14px; padding: 0 14px; border-bottom: 1px solid #DCE3EA; box-sizing: border-box; flex-wrap: wrap">
+<a href="HomeCP.dc.html" aria-label="Home" style="display: flex; align-items: center; color: #16151A; text-decoration: none">
+<svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="13" height="13" rx="4" fill="#FF5C39"></rect><circle cx="23.5" cy="8.5" r="6.5" fill="#FFC23D"></circle><rect x="2" y="19" width="13" height="9" rx="3" fill="#3D5AFE"></rect><rect x="17" y="17" width="13" height="13" rx="6.5" fill="#00B37E"></rect></svg>
+</a>
+<nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 6px; color: #56606C">
+<a href="HomeCP.dc.html" style="color: #56606C; text-decoration: none">Spring campaign</a><span aria-hidden="true">/</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 15px; color: #16151A">Night Market Flyer</span>
+</nav>
+<div role="group" aria-label="Mode" style="{{ui.seg}}; margin: 0 auto">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="4">
+<button type="button" aria-pressed="{{m.pressed}}" style="{{m.style}}"><span aria-hidden="true" style="{{m.shape}}"></span>{{m.label}}</button>
+</sc-for>
+</div>
+<span style="display: inline-flex; align-items: center; gap: 6px; color: #56606C"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #00A372"></span>Saved</span>
+<span style="{{ui.chipAgent}}">✦ Claude · Ask</span>
+<button type="button" style="{{ui.secondaryMd}}">Milestone</button>
+<button type="button" style="{{ui.primaryMd}}">Share</button>
+</header>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap; min-height: 844px">
+
+<aside aria-label="Chat" style="flex: 1 0 288px; max-width: 288px; border-right: 1px solid #DCE3EA; display: flex; flex-direction: column; box-sizing: border-box; background: #F1F4F7">
+<div style="display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid #DCE3EA">
+<a href="ChatCP.dc.html" style="{{ui.ghostSm}}">← Chat</a>
+<span style="font-weight: 600">Night market launch</span>
+</div>
+<div style="flex: 1; padding: 14px 12px; display: flex; flex-direction: column; gap: 12px">
+<p style="{{ui.bubble}}">Warm up the lantern photo and remove the person in the corner.</p>
+<p style="margin: 0; color: #56606C">Done. Warmth +18, 1 object removed.</p>
+<p style="{{ui.bubble}}">Line up the sponsor logos.</p>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 16px; background: #FDE8EF">
+<span style="font-weight: 600; color: #B3174C">✦ Proposal on the canvas</span>
+<span>Align and space the three logos evenly. Accept or reject it next to the logos.</span>
+</div>
+</div>
+<div style="padding: 12px; border-top: 1px solid #DCE3EA; display: flex; flex-direction: column; gap: 8px">
+<span style="{{ui.chip}}; align-self: flex-start">Context: Headline selected</span>
+<label for="studio-chat" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Message</label>
+<textarea id="studio-chat" rows="3" placeholder="Ask about the selection or the whole page" style="{{ui.textarea}}"></textarea>
+</div>
+</aside>
+
+<aside aria-label="Layers" style="flex: 1 0 236px; max-width: 236px; background: #FFFFFF; border-right: 1px solid #DCE3EA; display: flex; flex-direction: column; box-sizing: border-box">
+<div style="padding: 10px">
+<div role="tablist" aria-label="Dock" style="{{ui.seg}}; display: flex">
+<sc-for list="{{tabs}}" as="tab" hint-placeholder-count="4">
+<button type="button" role="tab" aria-selected="{{tab.selected}}" style="{{tab.style}}">{{tab.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="padding: 0 10px 8px">
+<label for="layer-filter" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter layers</label>
+<input id="layer-filter" type="text" placeholder="Filter layers" style="{{ui.field}}">
+</div>
+<ul style="list-style: none; margin: 0; padding: 0 8px; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{layers}}" as="l" hint-placeholder-count="10">
+<li style="{{l.style}}"><span aria-hidden="true" style="width: 14px; color: #56606C; text-align: center">{{l.glyph}}</span><span style="flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{l.name}}</span><sc-if value="{{l.meta}}" hint-placeholder-val="{{ false }}"><span style="{{ui.codeXs}}">{{l.meta}}</span></sc-if></li>
+</sc-for>
+</ul>
+</aside>
+
+<main aria-label="Canvas" style="flex: 999 1 520px; min-width: 0; position: relative; background-color: #E4E9EF; background-image: radial-gradient(#C3CCD7 1px, transparent 1px); background-size: 20px 20px; display: flex; align-items: center; justify-content: center; padding: 44px 24px 84px; box-sizing: border-box">
+<div style="position: relative; width: 432px; flex: 0 0 432px">
+<span style="position: absolute; top: -28px; left: 0; color: #56606C; font-size: 12px">Page 1 · Flyer · 1080 × 1350</span>
+<div style="position: relative; width: 432px; height: 540px; background: #121826; box-shadow: 0 2px 6px rgba(22,21,26,.10), 0 24px 56px rgba(22,21,26,.18); font-family: Inter, sans-serif">
+<span style="position: absolute; left: 32px; top: 28px; font-size: 9px; font-weight: 600; letter-spacing: 0.18em; color: #17BEBB">HARBOUR LANE · VOL. 4</span>
+
+<div role="toolbar" aria-label="Text tools" style="position: absolute; left: 26px; top: 46px; display: flex; align-items: center; gap: 2px; padding: 3px; background: #FFFFFF; border-radius: 999px; box-shadow: 0 1px 2px rgba(22,21,26,.08), 0 10px 28px rgba(22,21,26,.18); font-family: 'Geist', sans-serif; z-index: 3; white-space: nowrap">
+<button type="button" style="{{ui.ghostSmInk}}">Fraunces ▾</button>
+<button type="button" style="{{ui.ghostSmInk}}; font-family: 'Geist Mono', monospace">120</button>
+<span aria-hidden="true" style="width: 1px; height: 16px; background: #DCE3EA; margin: 0 2px"></span>
+<button type="button" style="{{ui.ghostSmInk}}">Fit to box</button>
+<button type="button" style="{{ui.softSm}}">✦ Rewrite</button>
+<button type="button" aria-label="More actions" style="{{ui.iconGhost}}">⋯</button>
+</div>
+
+<span style="position: absolute; left: 32px; top: 100px; width: 368px; font-family: Fraunces, Georgia, serif; font-weight: 900; font-size: 48px; line-height: 0.95; color: #FFF4E0">MIDSUMMER NIGHT MARKET</span>
+<span aria-hidden="true" style="position: absolute; left: 28px; top: 95px; width: 376px; height: 142px; border: 1.5px solid #CF3D17; box-sizing: border-box; z-index: 2">
+<span style="position: absolute; left: -5px; top: -5px; width: 9px; height: 9px; border-radius: 50%; background: #FFFFFF; border: 1.5px solid #CF3D17; box-sizing: border-box"></span>
+<span style="position: absolute; right: -5px; top: -5px; width: 9px; height: 9px; border-radius: 50%; background: #FFFFFF; border: 1.5px solid #CF3D17; box-sizing: border-box"></span>
+<span style="position: absolute; left: -5px; bottom: -5px; width: 9px; height: 9px; border-radius: 50%; background: #FFFFFF; border: 1.5px solid #CF3D17; box-sizing: border-box"></span>
+<span style="position: absolute; right: -5px; bottom: -5px; width: 9px; height: 9px; border-radius: 50%; background: #FFFFFF; border: 1.5px solid #CF3D17; box-sizing: border-box"></span>
+<span style="position: absolute; left: 50%; bottom: -28px; transform: translateX(-50%); display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; background: #CF3D17; color: #FFFFFF; font-family: 'Geist Mono', monospace; font-size: 10.5px; white-space: nowrap">920 × 346</span>
+</span>
+<span style="position: absolute; left: 32px; top: 258px; font-size: 16px; font-weight: 600; color: #E4572E">Sat 14 Nov · 6–11 pm</span>
+<span style="position: absolute; left: 32px; top: 284px; width: 270px; font-size: 12px; line-height: 1.45; color: rgba(255,244,224,0.78)">Street food, lanterns and live music on the harbour. Free entry, all ages.</span>
+<span style="position: absolute; left: 32px; top: 330px; width: 368px; height: 120px; background-color: #1E2738; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 10px, transparent 10px 20px)"></span>
+<div style="position: absolute; left: 32px; top: 472px; width: 368px; height: 46px">
+<span style="position: absolute; left: 0; top: 6px; width: 86px; height: 34px; border-radius: 6px; background: rgba(255,244,224,0.1); color: rgba(255,244,224,0.75); display: grid; place-items: center; font-size: 10px">Harbour Co.</span>
+<span style="position: absolute; left: 128px; top: 11px; width: 86px; height: 34px; border-radius: 6px; background: rgba(255,244,224,0.1); color: rgba(255,244,224,0.75); display: grid; place-items: center; font-size: 10px">Lantern Bank</span>
+<span style="position: absolute; left: 268px; top: 2px; width: 86px; height: 34px; border-radius: 6px; background: rgba(255,244,224,0.1); color: rgba(255,244,224,0.75); display: grid; place-items: center; font-size: 10px">Tide FM</span>
+<span aria-hidden="true" style="position: absolute; left: -6px; top: -4px; width: 380px; height: 54px; border: 1.5px dashed #D6265F; border-radius: 10px; box-sizing: border-box"></span>
+<span style="position: absolute; left: 318px; top: -24px; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px 999px 999px 4px; background: #D6265F; color: #FFFFFF; font-family: 'Geist', sans-serif; font-size: 11px; font-weight: 600">Claude</span>
+</div>
+</div>
+<section aria-label="Proposal from Claude" style="position: absolute; left: 448px; top: 400px; width: 232px; padding: 14px; background: #FFFFFF; border: 1px solid #DCE3EA; border-radius: 18px; box-shadow: 0 1px 2px rgba(22,21,26,.06), 0 12px 32px rgba(22,21,26,.12); display: flex; flex-direction: column; gap: 8px; z-index: 3">
+<span style="{{ui.chipAgent}}; align-self: flex-start">✦ Claude proposes</span>
+<span style="font-size: 13px">Align the three sponsor logos and space them evenly.</span>
+<span style="font-size: 12px; color: #56606C">3 changes · one undo step</span>
+<div style="display: flex; gap: 6px">
+<button type="button" style="{{ui.agentSm}}">Accept</button>
+<button type="button" style="{{ui.secondarySm}}">Reject</button>
+</div>
+</section>
+</div>
+
+<div style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); width: min(520px, calc(100% - 48px)); height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 6px 0 16px; background: #FFFFFF; border: 1px solid #DCE3EA; border-radius: 999px; box-shadow: 0 1px 2px rgba(22,21,26,.06), 0 12px 32px rgba(22,21,26,.10); box-sizing: border-box">
+<span aria-hidden="true" style="color: #B3174C">✦</span>
+<label for="command" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Command bar</label>
+<input id="command" type="text" placeholder="Ask Claude or type a command" style="flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13.5px; color: #16151A">
+<kbd style="{{ui.codeXs}}">⌘K</kbd>
+</div>
+<div role="group" aria-label="Zoom" style="position: absolute; left: 16px; bottom: 24px; display: flex; align-items: center; gap: 2px; padding: 3px; background: #FFFFFF; border: 1px solid #DCE3EA; border-radius: 999px">
+<button type="button" aria-label="Zoom out" style="{{ui.iconGhostSm}}">−</button>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; padding: 0 4px">40%</span>
+<button type="button" aria-label="Zoom in" style="{{ui.iconGhostSm}}">+</button>
+</div>
+</main>
+
+<aside aria-label="Properties" style="flex: 1 0 264px; max-width: 264px; background: #FFFFFF; border-left: 1px solid #DCE3EA; display: flex; flex-direction: column; box-sizing: border-box">
+<div style="padding: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #DCE3EA">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 15px">Headline</span>
+<span style="{{ui.chip}}">Text</span>
+<span style="margin-left: auto; color: #56606C; font-size: 12px">Unlocked</span>
+</div>
+<section style="padding: 14px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #DCE3EA">
+<h2 style="{{ui.section}}">Layout</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{geometry}}" as="g" hint-placeholder-count="4">
+<label style="display: flex; align-items: center; gap: 8px; min-width: 0"><span style="color: #56606C; width: 12px">{{g.k}}</span><input type="text" value="{{g.v}}" style="{{ui.fieldMono}}"></label>
+</sc-for>
+</div>
+</section>
+<section style="padding: 14px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #DCE3EA">
+<h2 style="{{ui.section}}">Text</h2>
+<sc-for list="{{textRows}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px"><span style="color: #56606C">{{r.k}}</span><span style="display: flex; align-items: center; gap: 6px"><sc-if value="{{r.token}}" hint-placeholder-val="{{ true }}"><span style="{{ui.codeXs}}">{{r.token}}</span></sc-if><span>{{r.v}}</span></span></div>
+</sc-for>
+</section>
+<section style="padding: 14px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #DCE3EA">
+<h2 style="{{ui.section}}">Fill</h2>
+<div style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 12px; border-radius: 12px; border: 1px solid #7D8897; box-sizing: border-box">
+<span style="width: 16px; height: 16px; border-radius: 50%; background: #FFF4E0; border: 1px solid #7D8897"></span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px">@cream</span>
+<span style="margin-left: auto; font-family: 'Geist Mono', monospace; font-size: 12px; color: #56606C">#FFF4E0</span>
+</div>
+</section>
+<section style="padding: 14px; display: flex; flex-direction: column; gap: 6px">
+<h2 style="{{ui.section}}">Brand rule</h2>
+<span style="color: #56606C">Headlines use @display. Changing the font asks first.</span>
+</section>
+<div style="margin-top: auto; padding: 12px 14px; border-top: 1px solid #DCE3EA; display: flex; align-items: center; gap: 8px; color: #56606C; font-size: 12px">
+<button type="button" aria-label="Undo" style="{{ui.iconSecondary}}">↶</button>
+<button type="button" aria-label="Redo" style="{{ui.iconSecondary}}">↷</button>
+<span>Undo: Resize headline</span>
+</div>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Clean Pop component recipes (source of truth: Components.dc.html)
+    const C = { ink: '#16151A', muted: '#56606C', mist2: '#E7ECF2', line: '#DCE3EA', edge: '#7D8897', primary: '#CF3D17', agent: '#D6265F', agentSoft: '#FDE8EF', agentInk: '#B3174C' };
+    const base = 'display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 999px; font-weight: 600; font-family: inherit; line-height: 1; white-space: nowrap; text-decoration: none; box-sizing: border-box';
+    const size = { md: 'height: 34px; padding: 0 14px; font-size: 13.5px', sm: 'height: 28px; padding: 0 12px; font-size: 12.5px' };
+    const look = { primary: 'background: ' + C.primary + '; color: #FFFFFF; border: 0', agent: 'background: ' + C.agent + '; color: #FFFFFF; border: 0', soft: 'background: ' + C.agentSoft + '; color: ' + C.agentInk + '; border: 0', secondary: 'background: #FFFFFF; color: ' + C.ink + '; border: 1px solid ' + C.edge, ghost: 'background: transparent; color: ' + C.muted + '; border: 0', ghostInk: 'background: transparent; color: ' + C.ink + '; border: 0', selected: 'background: #FFFFFF; color: ' + C.ink + '; border: 0; box-shadow: 0 1px 2px rgba(22,21,26,.14)' };
+    const btn = (v, s) => base + '; ' + size[s] + '; ' + look[v];
+    const icon = (v, px) => 'display: inline-grid; place-items: center; width: ' + px + 'px; height: ' + px + 'px; border-radius: 50%; box-sizing: border-box; font-size: 14px; ' + look[v];
+    const chipBase = 'display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; white-space: nowrap';
+    const ui = {
+      primaryMd: btn('primary', 'md'), secondaryMd: btn('secondary', 'md'), secondarySm: btn('secondary', 'sm'),
+      agentSm: btn('agent', 'sm'), softSm: btn('soft', 'sm'), ghostSm: btn('ghost', 'sm'), ghostSmInk: btn('ghostInk', 'sm'),
+      iconGhost: icon('ghostInk', 28), iconGhostSm: icon('ghostInk', 26), iconSecondary: icon('secondary', 30),
+      seg: 'display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: ' + C.mist2,
+      chip: chipBase + '; font-weight: 500; background: ' + C.mist2 + '; color: ' + C.ink,
+      chipAgent: chipBase + '; font-weight: 600; background: ' + C.agentSoft + '; color: ' + C.agentInk,
+      codeXs: chipBase + "; height: 20px; padding: 0 8px; font-weight: 500; background: " + C.mist2 + '; color: ' + C.muted + "; font-family: 'Geist Mono', monospace; font-size: 11px",
+      field: 'width: 100%; height: 34px; padding: 0 12px; border-radius: 12px; border: 1px solid ' + C.edge + '; background: #FFFFFF; color: ' + C.ink + '; font: inherit; box-sizing: border-box',
+      fieldMono: 'flex: 1; min-width: 0; height: 32px; padding: 0 10px; border-radius: 12px; border: 1px solid ' + C.edge + "; background: #FFFFFF; color: " + C.ink + "; font-family: 'Geist Mono', monospace; font-size: 12px; box-sizing: border-box",
+      textarea: 'border: 1px solid ' + C.edge + '; border-radius: 14px; padding: 10px 12px; resize: none; font: inherit; color: ' + C.ink + '; background: #FFFFFF; outline: 0',
+      section: 'margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: ' + C.muted,
+      bubble: 'margin: 0; align-self: flex-end; max-width: 230px; padding: 8px 13px; border-radius: 18px 18px 6px 18px; background: ' + C.mist2
+    };
+    const shapes = { Canvas: 'width: 10px; height: 10px; border-radius: 3px; background: #FF5C39', Pixel: 'width: 10px; height: 10px; border-radius: 50%; background: #FFC23D', Timeline: 'width: 14px; height: 9px; border-radius: 3px; background: #3D5AFE', Flow: 'width: 14px; height: 9px; border-radius: 999px; background: #00B37E' };
+    const modes = ['Canvas', 'Pixel', 'Timeline', 'Flow'].map((label, i) => ({ label, pressed: i === 0 ? 'true' : 'false', shape: shapes[label], style: btn(i === 0 ? 'selected' : 'ghost', 'sm') }));
+    const tabs = ['Layers', 'Pages', 'Assets', 'Brand'].map((label, i) => ({ label, selected: i === 0 ? 'true' : 'false', style: btn(i === 0 ? 'selected' : 'ghost', 'sm') + '; flex: 1; padding: 0 6px' }));
+    const row = (sel, depth) => 'display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 ' + (10 + depth * 14) + 'px; border-radius: 999px; background: ' + (sel ? '#FFE9E2' : 'transparent') + '; color: ' + (sel ? '#B53A17' : C.ink) + '; font-weight: ' + (sel ? '600' : '400');
+    const layers = [
+      { name: 'Page 1 · Flyer', glyph: '▾', depth: 0 }, { name: 'Kicker', glyph: 'T', depth: 1 },
+      { name: 'Headline', glyph: 'T', meta: '@display', depth: 1, sel: true }, { name: 'Date', glyph: 'T', depth: 1 },
+      { name: 'Subhead', glyph: 'T', depth: 1 }, { name: 'Lanterns photo', glyph: '▢', depth: 1 },
+      { name: 'Sponsor logos', glyph: '▾', meta: '3', depth: 1 }, { name: 'Harbour Co.', glyph: '▢', depth: 2 },
+      { name: 'Lantern Bank', glyph: '▢', depth: 2 }, { name: 'Tide FM', glyph: '▢', depth: 2 },
+      { name: 'Background', glyph: '■', meta: '@dark', depth: 1 }
+    ].map((l) => ({ ...l, meta: l.meta ?? '', style: row(!!l.sel, l.depth) }));
+    const geometry = [{ k: 'X', v: '80' }, { k: 'Y', v: '244' }, { k: 'W', v: '920' }, { k: 'H', v: '346' }];
+    const textRows = [{ k: 'Font', token: '@display', v: 'Fraunces' }, { k: 'Weight', token: '', v: 'Black 900' }, { k: 'Size', token: '', v: '120' }, { k: 'Line height', token: '', v: '0.95' }];
+    return { ui, modes, tabs, layers, geometry, textRows };
+  }
+}
+</script>
+</body>
+</html>
