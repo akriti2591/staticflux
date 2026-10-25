@@ -406,7 +406,8 @@ modals and `setUserBusy`), `coachTarget(target)` directive. **Missing:** the hin
 
 ## 6. Owner questions
 
-Each with the recommendation first; everything else in this file is decided.
+**Answered 2026-10-25: all six recommendations accepted by the owner.** Build them as written below; the alternatives
+are recorded for history only.
 
 1. **Toast width 420 px (was 320 in FOUNDATIONS §4.10).** Recommend 420: an error message plus a fix button needs it;
    320 wrapped every danger toast to three lines in the Clean Pop mock. Alternative: keep 320 and drop the fix to a
