@@ -1,34 +1,40 @@
 /**
- * Studio's dev entry (B8): loads the engine Wasm (render, geometry, text) and the bundled OFL fonts, opens a new
- * two-page document in an in-memory workspace, and mounts Studio with the Vello canvas. Nothing is saved across
- * reloads yet (OPFS storage lands with C0). `window.__studio` exposes the app for the smoke check and devtools.
+ * Studio's dev entry (B8; B9: the editor and render modules in workers). Main opens the store side (an in-memory
+ * workspace: store, blobs, library document) and boots the workers in the D15 topology — one worker by default,
+ * two with `?topology=split` (the `instaflow/sequencing-topology` boot setting; `?render-tick=main-raf` picks the
+ * main-rAF tick experiment). The editor worker creates a new two-page document, loads the authoring Wasm and the
+ * bundled OFL fonts; the render worker loads the render Wasm and draws with Vello on the transferred canvas. Nothing
+ * is saved across reloads yet (OPFS storage lands with C0). `window.__studio` exposes the app for the smoke check and
+ * devtools.
  */
-import { createInjector, createScope, type Result } from '@staticflux/core';
+import type { FlagDefinition } from '@staticflux/config';
+import { createInjector, createScope, ok, type Result } from '@staticflux/core';
 import { browserEnv, readWebApis } from '@staticflux/platform';
 import { TextInputFactoryToken, textInputBindings } from '@staticflux/surface/text-input';
 import { compileTheme } from '@staticflux/ui/theme';
-import { createStudioDocument, openStudioWorkspace } from '../../src/app/document.js';
-import { createStudioFonts, type FontFile } from '../../src/app/fonts.js';
+import { fromWorker } from '@staticflux/worker';
+import { openStudioWorkspace } from '../../src/app/document.js';
 import { createStudioApp, type StudioApp } from '../../src/app/studio-app.js';
-import { createVelloRaster } from '../../src/app/vello-raster.js';
-import { createGeometry, loadAuthoringModule as loadGeometryModule } from '../../src/elements/geometry.js';
-import { loadRenderModule } from '../../src/render/render-module.js';
-import { loadAuthoringModule as loadTextModule } from '../../src/text/authoring-module.js';
+import { resolveSequencingSettings } from '../../src/sequencing/sequencing.bindings.js';
 import { cleanPopTheme } from '../../src/theme/clean-pop.js';
 
 const MANIFEST = '/engine/dist/sf-wasm-manifest.json';
-const FONTS = ['NotoSans-Latin.wght.ttf', 'NotoSansArabic.wght.ttf', 'NotoSansDevanagari.wght.ttf', 'NotoSansThai.wght.ttf'];
+const FONTS = ['NotoSans-Latin.wght.ttf', 'NotoSansArabic.wght.ttf', 'NotoSansDevanagari.wght.ttf', 'NotoSansThai.wght.ttf'].map((f) => `/test/fonts/${f}`);
 const status = document.getElementById('boot') as HTMLElement;
+const query = new URLSearchParams(location.search);
 
 const must = <T>(r: Result<T>, what: string): T => {
-  if (!r.ok) throw new Error(`${what}: ${r.error.code} ${r.error.message}`);
+  if (!r.ok) throw new Error(`${what}: ${r.error.code} ${r.error.message}${r.error.cause instanceof Error ? ` (${r.error.cause.message})` : ''}`);
   return r.value;
 };
 
-async function font(file: string): Promise<FontFile> {
-  const bytes = new Uint8Array(await (await fetch(`/test/fonts/${file}`)).arrayBuffer());
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
-  return { bytes, hash: `sha256:${[...digest].map((b) => b.toString(16).padStart(2, '0')).join('')}` };
+/** Boot settings from the URL (`?instaflow/sequencing-topology=split`, or the short `?topology=split`). */
+function readFlag<T>(flag: FlagDefinition<T>): T {
+  const short = flag.key.split('/')[1]?.replace('sequencing-', '') ?? flag.key;
+  const raw = query.get(flag.key) ?? query.get(short);
+  if (raw === null) return flag.defaultValue;
+  const parsed = flag.schema.parse(raw);
+  return parsed.ok ? parsed.value : flag.defaultValue;
 }
 
 async function main(): Promise<StudioApp> {
@@ -37,31 +43,27 @@ async function main(): Promise<StudioApp> {
   document.head.append(style);
   const scope = createScope('instaflow/studio-dev');
   const signal = scope.signal;
-  const [render, geometryWasm, textWasm, fonts] = await Promise.all([
-    loadRenderModule({ manifestUrl: MANIFEST, signal }),
-    loadGeometryModule({ manifestUrl: MANIFEST, signal }),
-    loadTextModule({ manifestUrl: MANIFEST, signal }),
-    Promise.all(FONTS.map(font)),
-  ]);
-  const renderWasm = must(render, 'render Wasm (run `pnpm build`)');
-  const geometry = createGeometry(must(geometryWasm, 'authoring Wasm'));
-  const studioFonts = must(createStudioFonts({ wasm: must(textWasm, 'text Wasm'), fonts, loadComplex: (s) => loadTextModule({ manifestUrl: MANIFEST, build: 'complex', ...(s === undefined ? {} : { signal: s }) }) }), 'fonts');
   const workspace = must(await openStudioWorkspace({ signal }), 'workspace');
-  const doc = must(await createStudioDocument(workspace, { asset: 'as_demo', title: 'Night Market Flyer', pages: 2, signal }), 'document');
   // TextInput: EditContext where the platform has it, else the hidden textarea (a variant binding, not a branch).
   const input = createInjector({ units: textInputBindings({ editContext: () => readWebApis(browserEnv()).editContext }) });
   const textInput = must(await input.get(TextInputFactoryToken), 'text input');
+  const settings = resolveSequencingSettings(readFlag);
   const app = must(
     await createStudioApp({
       workspace,
-      doc,
-      title: 'Night Market Flyer',
-      geometry,
-      fonts: studioFonts,
+      document: { asset: 'as_demo', title: 'Night Market Flyer', create: { pages: 2 } },
       person: { kind: 'human', id: 'guest-local', displayName: 'You', via: 'direct' },
+      workers: {
+        settings,
+        spawn: (plan) => () => {
+          const worker = new Worker(new URL('../../src/workers/studio.worker.ts', import.meta.url), { type: 'module', name: plan.name });
+          return ok({ port: fromWorker(worker), terminate: () => worker.terminate() });
+        },
+        isolation: { crossOriginIsolated: globalThis.crossOriginIsolated === true },
+        assets: { manifest: new URL(MANIFEST, location.href).href, fonts: FONTS.map((f) => new URL(f, location.href).href) },
+      },
       textInput,
       isMac: /Mac/.test(navigator.platform),
-      raster: (canvas, size, s) => createVelloRaster({ wasm: renderWasm, canvas, width: size.width, height: size.height, devicePixelRatio: window.devicePixelRatio, signal: s }),
       scope,
     }),
     'studio',

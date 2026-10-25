@@ -27,16 +27,16 @@ import { type RafLike, rafTicks } from '../sequencing/pacing.js';
 import { EditorInputRing } from '../sequencing/protocol.js';
 import { createStudioEditor, type EditorEnv, type StudioEditor } from './editor-module.js';
 import { CanvasTransferError, WorkerBootError, WorkerRoleError } from './errors.js';
-import { type CanvasHandoff, type StudioEditorStart, type StudioMetrics, type StudioStartArgs, StudioWorkerProtocol } from './protocol.js';
+import { type CanvasHandoff, type StudioAssets, type StudioEditorStart, type StudioMetrics, type StudioStartArgs, StudioWorkerProtocol } from './protocol.js';
 import { remoteBlobs, remoteDocumentStore, StudioStoreProtocol } from './store-port.js';
 import { toWire } from './wire.js';
 
 /** What this worker can load or make (the browser entry's real pieces; fixtures in tests). */
 export interface StudioWorkerEnvironment {
   /** The editor role's environment (engine, geometry and text Wasm, fonts, image decoder). */
-  readonly editor?: (assets: StudioEditorStart['assets'], signal: AbortSignal) => Promise<Result<EditorEnv>>;
+  readonly editor?: (assets: StudioAssets | undefined, signal: AbortSignal) => Promise<Result<EditorEnv>>;
   /** The render role's raster on the handed-off canvas. */
-  readonly raster?: (handoff: CanvasHandoff, signal: AbortSignal) => Promise<Result<CanvasRaster>>;
+  readonly raster?: (handoff: CanvasHandoff, assets: StudioAssets | undefined, signal: AbortSignal) => Promise<Result<CanvasRaster>>;
   /** Display ticks (default the worker's `requestAnimationFrame` when there is one). */
   readonly raf?: RafLike;
   readonly timeOrigin?: number;
@@ -120,7 +120,7 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
     const pacing = args.pacing;
     rendering = (async (): Promise<Result<void>> => {
       if (env.raster === undefined) return err(CanvasTransferError({ message: 'This worker cannot make a raster.' }));
-      const made = await env.raster(canvas, signal);
+      const made = await env.raster(canvas, args?.assets, signal);
       if (!made.ok) return failed('raster', made.error);
       raster = made.value;
       const side = createElementSceneSide();
@@ -143,7 +143,7 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
     return rendering;
   };
 
-  const startEditor = async (start: StudioEditorStart, media: StudioStartArgs['media']): Promise<Result<StudioEditor>> => {
+  const startEditor = async (start: StudioEditorStart, media: StudioStartArgs['media'], assets: StudioAssets | undefined): Promise<Result<StudioEditor>> => {
     const input = await attachRecordRing(EditorInputRing, start.input);
     if (!input.ok) return failed('attach input ring', input.error);
     scope.defer(() => input.value.close());
@@ -153,7 +153,7 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
     scope.defer(() => storeLink.close());
     const store = createProtocolClient(storeLink, StudioStoreProtocol);
     if (env.editor === undefined) return failed('editor environment', WorkerRoleError({ message: 'This worker cannot load the editor module.' }));
-    const loaded = await env.editor(start.assets, signal);
+    const loaded = await env.editor(assets, signal);
     if (!loaded.ok) return failed('editor environment', loaded.error);
     let counters: (() => PublishedInput) | undefined;
     const made = createCanvasPipes({ medium: media.modules, input: () => counters?.() ?? NO_INPUT });
@@ -218,7 +218,7 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
           machine.send('fail');
           return failed('start', WorkerRoleError({ message: 'The editor role needs its start arguments.' }));
         }
-        const started = await startEditor(startArgs.editor, startArgs.media);
+        const started = await startEditor(startArgs.editor, startArgs.media, startArgs.assets);
         if (!started.ok) {
           machine.send('fail');
           return started;
@@ -304,6 +304,10 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
     async hud({ action }) {
       const e = needEditor();
       return e.ok ? e.value.hud(action) : e;
+    },
+    async zoom({ step }) {
+      const e = needEditor();
+      return e.ok ? e.value.zoom(step) : e;
     },
     async inspect({ nodes }) {
       const e = needEditor();

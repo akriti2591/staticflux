@@ -22,7 +22,7 @@ import { type CanvasPipeEndpoints, canvasPipeTransfer } from '../app/canvas-pipe
 import { EditorInputRing } from '../sequencing/protocol.js';
 import { planSequencing, type SequencingMedia, type SequencingPlan, type SequencingSettings, type SequencingWorkerPlan } from '../sequencing/topology.js';
 import { WorkerBootError, WorkerRoleError } from './errors.js';
-import { type StudioEditorStart, type StudioStarted, StudioWorkerProtocol } from './protocol.js';
+import { type StudioAssets, type StudioEditorStart, type StudioStarted, StudioWorkerProtocol } from './protocol.js';
 import { serveStudioStore, StudioStoreProtocol } from './store-port.js';
 
 export type StudioWorkerClient = ProtocolClient<typeof StudioWorkerProtocol>;
@@ -36,6 +36,8 @@ export interface BootStudioWorkersOptions {
   readonly media?: Partial<SequencingMedia>;
   /** The editor role's start arguments (main adds the input ring and the store port). */
   readonly editor: Omit<StudioEditorStart, 'input' | 'store'>;
+  /** Engine Wasm and fonts for the workers to load (the browser entry). */
+  readonly assets?: StudioAssets;
   /** The store side main serves (the store-worker stand-in). */
   readonly store: { readonly store: DocumentStore; readonly blobs: Pick<BlobStore, 'get'> };
   /** Keep a presented-frame log in the render module (default true). */
@@ -143,7 +145,7 @@ export async function bootStudioWorkers(options: BootStudioWorkersOptions): Prom
     const editorArgs: StudioEditorStart | undefined = isEditor && input !== undefined ? { ...options.editor, input: input.value, store: channel.remote } : undefined;
     const transfer = isEditor && input !== undefined ? [...regionTransferList(input.value), ...channel.transfer] : [];
     const reply = await Promise.race([
-      w.client.request('start', { roles: w.plan.roles, media: plan.media, pacing: options.settings.pacing, ...(editorArgs === undefined ? {} : { editor: editorArgs }), record: options.record !== false }, { transfer, signal }),
+      w.client.request('start', { roles: w.plan.roles, media: plan.media, pacing: options.settings.pacing, ...(options.assets === undefined ? {} : { assets: options.assets }), ...(editorArgs === undefined ? {} : { editor: editorArgs }), record: options.record !== false }, { transfer, signal }),
       crashed.then((error): Result<never> => err(error)),
     ]);
     if (!reply.ok) return bail(`start ${w.plan.name}`, reply.error);

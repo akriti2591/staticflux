@@ -46,14 +46,19 @@ export interface StudioEditorStart {
   readonly input: RegionEndpoint;
   /** The store port: a `MessagePort` in the browser (an in-memory `Port` in tests). */
   readonly store: unknown;
-  /** Engine Wasm manifest and the bundled fonts (default face first): the editor loads them itself. */
-  readonly assets?: { readonly manifest: string; readonly fonts: readonly string[] };
+}
+
+/** Engine Wasm manifest and the bundled fonts (default face first): each worker loads what its modules need. */
+export interface StudioAssets {
+  readonly manifest: string;
+  readonly fonts: readonly string[];
 }
 
 export interface StudioStartArgs {
   readonly roles: readonly ModuleRole[];
   readonly media: SequencingMedia;
   readonly pacing: RenderPacing;
+  readonly assets?: StudioAssets;
   readonly editor?: StudioEditorStart;
   /** Keep a presented-frame log in the render module (frame metrics, A7; default on). */
   readonly record?: boolean;
@@ -156,6 +161,8 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     text: request<TextHostEvent, void>(),
     place: request<{ readonly entry: LibraryEntry }, void>({ timeoutMs: 60_000 }),
     hud: request<{ readonly action: string }, void>(),
+    /** The zoom buttons (B3 `zoomStep`). */
+    zoom: request<{ readonly step: 1 | -1 }, void>(),
     inspect: request<{ readonly nodes?: readonly NodeId[] }, StudioInspection>(),
     metrics: request<void, StudioMetrics>(),
     stop: request<void, void>({ timeoutMs: 10_000 }),

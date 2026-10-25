@@ -128,6 +128,8 @@ export interface StudioEditor {
   text(event: TextHostEvent): void;
   place(entry: LibraryEntry, signal: AbortSignal): Promise<Result<void>>;
   hud(action: string): Result<void>;
+  /** Zoom one step in or out about the viewport centre. */
+  zoom(step: 1 | -1): Result<void>;
   inspect(nodes?: readonly NodeId[]): StudioInspection;
 }
 
@@ -512,6 +514,12 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       if (!done.ok) return done;
       view.select([node]);
       return ok();
+    },
+    zoom(step) {
+      const t = tab();
+      if (t === undefined) return err(NoOpenPageError());
+      const r = t.commands.zoomStep(step);
+      return r.ok ? ok() : r;
     },
     hud(action) {
       const command = TEXT_HUD_COMMANDS[action];
