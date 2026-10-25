@@ -154,6 +154,8 @@ genuinely serves people (muscle memory, a gesture everyone already knows), and s
 
 ## 5. Owner questions (recommendation first, then the question)
 
+**Answered 2026-10-25: the owner accepted every recommendation (Q-A to Q-H). Build them as written.**
+
 **Q-A. Export item 9, rewritten in plain words.**
 
 *The situation.* The Export dialog has a row of **presets**: ready-made bundles like `Screen 2×` (a PNG at double

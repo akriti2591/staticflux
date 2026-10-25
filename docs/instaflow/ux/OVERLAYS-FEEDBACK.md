@@ -668,7 +668,7 @@ are recorded for history only.
    builds the wizard step frame, inline confirm row and copy field once; nothing of Share is rendered before accounts.
 
 **Added 2026-10-25 with the Export tab (§2.3 Export). Items 7 and 8 answered (accepted by the owner, 2026-10-25);
-item 9 rewritten and open.**
+item 9 rewritten, then answered with GAP-AUDIT Q-A (recommendation accepted, 2026-10-25).**
 
 7. **Answered — accepted.** `Mod+Shift+E` opens the dialog with the remembered settings and focus on the primary;
    `Mod+Shift+E`, Enter is the two-key quick export (F-53 variant). C1's `ExportShortcut` changes accordingly.
