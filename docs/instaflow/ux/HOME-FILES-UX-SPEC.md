@@ -1,8 +1,10 @@
-# Instaflow Home, files and projects — UX specification
+# Instaflow Home, files and projects — UX specification (Layer 2)
 
-> Status: **normative for M1 Home and file management** (M1-BRIEF §5). Shares the principles of
-> `STUDIO-UX-SPEC.md` §0 and its icon, motion, toast and settings rules (§9, §10, §2.4). Flows: `STUDIO-FLOWS.md`
-> F-30…F-38. Design source: `docs/instaflow/design/HomeCP.dc.html`.
+> Status: **normative for M1 Home and file management** (M1-BRIEF §5). Composes `FOUNDATIONS.md` (principles,
+> vocabulary, the **Card**, **Tree and list**, **Menu**, **Inline rename**, **Toast**, **Drag and drop**, **Empty
+> states** and **Command palette** blocks) and only states Home's arrangement and behaviour. Settings is specified in
+> `STUDIO-UX-SPEC.md` §2.4 and reached from both surfaces. Flows: `FLOWS.md` F-30…F-38. Design source:
+> `docs/instaflow/design/HomeCP.dc.html`.
 
 ## 1. What Home is
 

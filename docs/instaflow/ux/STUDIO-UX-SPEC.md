@@ -1,10 +1,12 @@
-# Instaflow Studio — UX specification
+# Instaflow Studio — UX specification (Layer 2)
 
-> Status: **normative for every WP that touches Home or Studio UI** (M1-BRIEF §5). Written 2026-10-25 from the owner's first
+> Status: **normative for every WP that touches Studio UI** (M1-BRIEF §5). Written 2026-10-25 from the owner's first
 > clickable run of `main`, the approved **Clean Pop · final** design (`docs/instaflow/design/`), `UX.md`,
-> `EDITOR-AS-PRIMITIVE.md` and D1–D20. Where this file and `UX.md` disagree, this file wins for M1; `UX.md` §2 and §5 keep
-> describing the M2 chat and agent model. The companion `STUDIO-FLOWS.md` turns every rule here into observable end-to-end
-> flows (F-xx), which are the acceptance tests.
+> `EDITOR-AS-PRIMITIVE.md` and D1–D20. **This file composes `FOUNDATIONS.md`** (principles, vocabulary, building blocks
+> in **bold** on first use, patterns) and only states Studio's arrangement and behaviour. Where this file and `UX.md`
+> disagree, this file wins for M1; `UX.md` §2 and §5 keep describing the M2 chat and agent model. `FLOWS.md` turns every
+> rule here into observable flows (F-xx), which are the acceptance tests. The gap table (§13), the open questions (§14)
+> and the live-vs-placeholder inventory (Appendix A) stay here because they are Studio's.
 >
 > Conventions named in this file: **Figma** (direct manipulation, layers, keyboard), **Canva** (discoverability, rotate
 > handle, text toolbar), **Keynote / PowerPoint** (rotate handle, alignment), **Adobe Illustrator / Express** (repeats,
@@ -13,28 +15,12 @@
 
 ## 0. Principles
 
-1. **Nothing visible is inert.** Every control that renders either works now or is not rendered. Features that arrive
-   later have a deliberate pre-launch look (§10.4): one calm sentence, never a fake button. No control may say "arrives
-   with B1" or any work-package, milestone or density word; developer text is a bug (§10.5).
-2. **The canvas is the room; the page is a card in it.** The whole mist dotted area is the infinite canvas (D19). The page
-   is a floating white card with a soft shadow and a label. Drawing, dropping and pasting work anywhere in the room.
-3. **Visible first, hidden second.** Every action has a visible home (selection pill, inspector, context menu, layers,
-   top bar); shortcuts and gestures are accelerators, never the only way. Figma's invisible rotate zones stay, but a
-   visible rotate handle is the primary affordance (§6.1).
-4. **Name everything you press.** Every control has an accessible name, and every pointer-operated control shows a
-   tooltip with its name and shortcut after 500 ms hover (Figma). Tools additionally carry a one-line first-use hint.
-5. **Contextual beats global.** What you selected decides what you see: the selection pill, the inspector sections and
-   the context menu show only what applies to that kind of selection. Panels never show "select something to…" copy
-   for more than one line; irrelevant sections are not rendered at all.
-6. **Every commit names itself and can be undone.** One gesture = one undo step with a label. Every action gives
-   feedback within one frame (hover, press, drag, snap) and every non-local action (milestone, template, export,
-   delete of many) confirms with a toast carrying the undo or the next step (§9).
-7. **Calm by default, dense on demand.** Standard density is the default; Focus and Pro are a choice in the View menu
-   and Settings, explained in one line each. Nothing jumps: regions have fixed sizes, floating things never push the
-   canvas.
-8. **Conventions before invention.** Follow Figma for manipulation and layers, Canva for first-use discoverability,
-   Keynote for the rotate handle, Illustrator for repeats and booleans. Invent only where Instaflow is different (the
-   agent is optional, the document is local, every action is a capability) and say so.
+The eight principles of `FOUNDATIONS.md` §1 apply unchanged. Studio adds two readings of them:
+
+- *Nothing visible is inert* means the lens switcher, the assistant chip, the `✦` actions, the command bar, Share and
+  the Pen tool are either made to work in M1 or not rendered (§2, §4, Appendix A).
+- *The canvas is the room* means the inner white box goes, pages become cards, frames get a non-printing outline and
+  label, and loose elements are first-class (§1).
 
 ## 1. Canvas model
 
@@ -511,8 +497,7 @@ A `sf-menu` at the pointer, kit styling, items with icons and shortcuts; only ap
 | Space+drag | Pan with any tool. |
 | Escape ladder | Text editing → element selected → container left → nothing selected → tool back to Select. |
 
-**Feedback for every action** (kit `status` toasts: bottom-centre above the command bar, 320 px max, 5 s, one action,
-Escape dismisses, polite live region; stacked newest on top, max 3):
+**Feedback per Studio action** (the **Toast** and inline feedback block, FOUNDATIONS §4.10 and §5.3):
 
 | Action | Feedback |
 |---|---|
@@ -529,13 +514,13 @@ Escape dismisses, polite live region; stacked newest on top, max 3):
 
 ## 10. Polish rules
 
-### 10.1 Spacing and density tokens
+### 10.1 Spacing and density in Studio
 
-Clean Pop sizes: toolbar 56, dock 236, inspector 264, pill items 28/34, fields 32–36, radius pill/18/12, gaps 8/10/14,
-section padding 14. Focus removes the dock and inspector (rails 44); Pro adds rulers (20 px) and expands sections. No
-region changes size on selection change; the selection pill and menus float.
+The **Regions** and **Density** blocks (FOUNDATIONS §3.1–3.3) apply with these Studio values: top bar 56, dock 236,
+inspector 264, rails 44, rulers 20 (Pro), pill items 28, picker items 34, inspector fields 32. No region changes size
+on a selection change; the selection pill and menus float.
 
-### 10.2 Icons (hard rules)
+### 10.2 Icons (hard rules; the full text of FOUNDATIONS §5.9)
 
 Clean Pop has no icon set; today Studio draws glyph characters and an emoji (`↖`, `#`, `▢`, `T`, `✒`, `✋`, `⇴`, `▾`,
 `⋯`). These rules are normative.
@@ -599,24 +584,11 @@ Clean Pop has no icon set; today Studio draws glyph characters and an emoji (`�
 10. **Logo slot.** The Instaflow logo is designed separately. The top bar reserves a 26 × 26 px slot at the left (link
     to Home) and Home's header a 28 px logo + wordmark slot; both take the final logo without layout changes.
 
-### 10.3 Motion
+### 10.3 Motion, pre-launch look, UI text
 
-120–200 ms, `cubic-bezier(.2,.8,.2,1)`; pills and menus fade+rise 6 px in 120 ms; regions slide 160 ms; toasts 160 ms;
-tooltips 80 ms fade after the 500 ms delay. Under `prefers-reduced-motion` (or the Settings override) everything is an
-instant opacity change. Nothing animates during a drag.
-
-### 10.4 Pre-launch look for M2 features
-
-A feature that is not built is **not shown**, with three deliberate exceptions, each a single calm card with one
-sentence and no controls: Settings › Assistant (§2.4), Home's "Chats" nav item (hidden; instead Home's hero says "Open
-a blank canvas, or start from a template." and the assistant composer arrives with M2), and the Export dialog's
-"Share" tab (hidden until it exists). No "coming soon" badges in Studio. Lenses follow §2.1.
-
-### 10.5 No developer text
-
-Forbidden anywhere a person can see: work-package ids (B1, C1, M2), density words as placeholders (`· pro`), capability
-ids, error codes alone, "arrives with", "TODO", lorem ipsum. A test (`chrome.test.ts` style) greps rendered Studio and
-Home text for `/\b(B\d{1,2}|C\d|M\d)\b|arrives with|TODO/`.
+The **Motion** (FOUNDATIONS §5.10), **Coming** (§5.6) and **Writing style** (§5.11) patterns apply. In Studio the Coming
+pattern renders nothing at all: no badge, no greyed control; the only pre-launch element reachable from Studio is
+Settings › Assistant. The forbidden-text test covers the rendered Studio chrome.
 
 ## 11. Accessibility
 

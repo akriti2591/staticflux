@@ -1,8 +1,9 @@
-# Instaflow Chat — UX specification (M2)
+# Instaflow Chat — UX specification (Layer 2, M2)
 
-> Status: **M2, written now so M1 leaves the right hooks.** Shares the principles of `STUDIO-UX-SPEC.md` §0 and its
-> icon, motion, toast and settings rules. Sources: `docs/instaflow/design/ChatCP.dc.html`, `UX.md` §2 and §5,
-> `EDITOR-AS-PRIMITIVE.md`, D12, D13, D16–D18. Flows: `STUDIO-FLOWS.md` F-40…F-46 (all marked M2).
+> Status: **M2, written now so M1 leaves the right hooks.** Composes `FOUNDATIONS.md` (the **Card**, **Button**,
+> **Switcher**, **Field**, **Slider**, **Toast**, **Dialog and sheet** and **Selection pill** blocks as Studio uses
+> them). Sources: `docs/instaflow/design/ChatCP.dc.html`, `UX.md` §2 and §5, `EDITOR-AS-PRIMITIVE.md`, D12, D13,
+> D16–D18. Flows: `FLOWS.md` F-40…F-46 (all marked M2).
 > Nothing in this file is rendered in M1 except the Settings › Assistant pre-launch card (STUDIO-UX-SPEC §2.4).
 
 ## 1. What Chat is
