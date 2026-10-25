@@ -15,6 +15,7 @@ import { createScope, type Scope } from '@staticflux/core';
 import { defineButton } from '@staticflux/kit/button';
 import { defineDock } from '@staticflux/kit/dock';
 import { defineIconButton } from '@staticflux/kit/icon-button';
+import { defineMenu } from '@staticflux/kit/menu';
 import { defineSegmented, type SegmentOption } from '@staticflux/kit/segmented';
 import { defineTabs } from '@staticflux/kit/tabs';
 import { defineTag } from '@staticflux/kit/tag';
@@ -54,20 +55,32 @@ export const studioMessages = Object.freeze({
   open: 'Open',
   dismiss: 'Dismiss',
   pin: (label: string) => `Pin ${label}`,
+  moreActions: 'More actions',
   canvasFailed: 'The canvas could not start. The rest of Studio still works.',
 });
 
-/** How each HUD tone renders (UX §2): direct manipulations ghost, ✦ agent actions soft, `⋯ More` an icon. */
-const HUD_CONTROLS: Readonly<Record<HudTone, (entry: SpecLayoutEntry, run: () => void) => TemplateResult>> = Object.freeze({
+/**
+ * How each HUD tone renders (UX §2): direct manipulations ghost, ✦ agent actions soft. Tone `more` actions all go
+ * into the one "More actions" menu (`HUD_MORE`), so the bar stays short however many features contribute.
+ */
+const HUD_CONTROLS: Readonly<Record<Exclude<HudTone, 'more'>, (entry: SpecLayoutEntry, run: () => void) => TemplateResult>> = Object.freeze({
   direct: (entry, run) =>
     html`<sf-button size="sm" variant="ghost" data-slot=${entry.slot.key} data-group="hud@default" data-phase=${entry.phase} style=${motionStyle(entry)} ?inert=${isExiting(entry)} @click=${run}>${entry.slot.contribution.label}</sf-button>`,
   agent: (entry, run) =>
     html`<sf-button size="sm" variant="agent-soft" data-slot=${entry.slot.key} data-group="hud@default" data-phase=${entry.phase} style=${motionStyle(entry)} ?inert=${isExiting(entry)} @click=${run}>✦ ${entry.slot.contribution.label}</sf-button>`,
-  more: (entry, run) =>
-    html`<sf-icon-button label=${entry.slot.contribution.label} size="sm" variant="ghost" data-slot=${entry.slot.key} data-group="hud@default" data-phase=${entry.phase} style=${motionStyle(entry)} ?inert=${isExiting(entry)} @click=${run}
-      ><span aria-hidden="true">⋯</span></sf-icon-button
-    >`,
 });
+
+/** The More menu: one trigger, one item per `more` action (each item is its slot). */
+const HUD_MORE = (entries: readonly SpecLayoutEntry[], run: (action: string) => void): TemplateResult | typeof nothing =>
+  entries.length === 0
+    ? nothing
+    : html`<sf-menu label=${studioMessages.moreActions} data-hud-more @sf-select=${(e: CustomEvent<{ value: string }>) => run(e.detail.value)}>
+        <sf-icon-button slot="trigger" label=${studioMessages.moreActions} size="sm" variant="ghost"><span aria-hidden="true">⋯</span></sf-icon-button>
+        ${entries.map(
+          (entry) =>
+            html`<sf-menu-item value=${entry.slot.id} data-slot=${entry.slot.key} data-group="hud@default" data-phase=${entry.phase} ?disabled=${isExiting(entry)}>${entry.slot.contribution.label}</sf-menu-item>`,
+        )}
+      </sf-menu>`;
 
 const AUTONOMY_LABEL = Object.freeze({ plan: 'Plan', ask: 'Ask', 'accept-edits': 'Accept edits', autopilot: 'Autopilot' });
 
@@ -90,6 +103,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     projectTitle: { attribute: 'project-title' },
     homeHref: { attribute: 'home-href' },
     canvasError: { state: true },
+    status: { attribute: false },
+    zoom: { type: Number },
     expanded: { state: true },
     dockTab: { state: true },
   };
@@ -172,8 +187,15 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         max-inline-size: 100%;
       }
       .surface {
+        position: relative;
+        overflow: hidden;
         min-block-size: 0;
         border-radius: ${t.radius.md.css};
+      }
+      .hud {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
       }
       .bottom {
         display: flex;
@@ -272,6 +294,10 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
   declare projectTitle: string;
   declare homeHref: string;
   declare canvasError: string | undefined;
+  /** What the top bar's save state shows (B5's `<if-save-status>`); the static "Saved" until set. */
+  declare status: unknown;
+  /** The canvas zoom (1 = 100 %) shown in the zoom control. */
+  declare zoom: number;
   /** Regions the person expanded although the density collapses them. */
   declare expanded: ReadonlySet<PanelPlacementId>;
   declare dockTab: SpecSlotKey | undefined;
@@ -287,6 +313,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     this.projectTitle = '';
     this.homeHref = '/';
     this.canvasError = undefined;
+    this.status = undefined;
+    this.zoom = 1;
     this.expanded = new Set();
     this.dockTab = undefined;
   }
@@ -382,7 +410,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
           <div class="bottom">
             <div role="group" aria-label=${studioMessages.zoom} class="zoom">
               <sf-icon-button label=${studioMessages.zoomOut} size="sm" variant="ghost" @click=${() => this.emitIntent('zoom-out')}><span aria-hidden="true">−</span></sf-icon-button>
-              <span>100%</span>
+              <span>${Math.round(this.zoom * 100)}%</span>
               <sf-icon-button label=${studioMessages.zoomIn} size="sm" variant="ghost" @click=${() => this.emitIntent('zoom-in')}><span aria-hidden="true">+</span></sf-icon-button>
             </div>
             <div class="command">
@@ -418,7 +446,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         data-group="lens@default"
         @sf-change=${(e: CustomEvent<{ value: string }>) => void studio.switchLens(e.detail.value as `${string}/${string}`)}
       ></sf-segmented>
-      <span class="saved" role="status">${studioMessages.saved}</span>
+      ${this.status === undefined ? html`<span class="saved" role="status">${studioMessages.saved}</span>` : this.status}
       <sf-tag tone="agent">✦ Claude · ${AUTONOMY_LABEL[studio.proposals.autonomy]}</sf-tag>
       <sf-segmented label=${studioMessages.density} .options=${densities} value=${density} @sf-change=${(e: CustomEvent<{ value: Density }>) => void studio.setDensity(e.detail.value)}></sf-segmented>
       <sf-button @click=${() => this.emitIntent('milestone')}>${studioMessages.milestone}</sf-button>
@@ -452,8 +480,14 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
   private renderHud(): TemplateResult {
     const studio = this.studio as Studio;
     const entries = studio.port.entries('hud@default');
+    const tone = (entry: SpecLayoutEntry): HudTone => studio.registries.hud(entry.slot.id)?.tone ?? 'direct';
+    const more = entries.filter((entry) => tone(entry) === 'more');
     return html`<sf-toolbar class="hud" label=${studioMessages.hud}>
-      ${entries.map((entry) => HUD_CONTROLS[studio.registries.hud(entry.slot.id)?.tone ?? 'direct'](entry, () => this.emitAction(entry.slot.id)))}
+      ${entries.flatMap((entry) => {
+        const kind = tone(entry);
+        return kind === 'more' ? [] : [HUD_CONTROLS[kind](entry, () => this.emitAction(entry.slot.id))];
+      })}
+      ${HUD_MORE(more, (action) => this.emitAction(action))}
     </sf-toolbar>`;
   }
 
@@ -561,6 +595,7 @@ function logo(): TemplateResult {
 export function defineStudio(registry: CustomElementRegistry = customElements): void {
   defineButton(registry);
   defineIconButton(registry);
+  defineMenu(registry);
   defineSegmented(registry);
   defineTabs(registry);
   defineTag(registry);

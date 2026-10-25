@@ -33,6 +33,10 @@ export const StudioIds = Object.freeze({
     properties: 'instaflow/properties',
     adjust: 'instaflow/adjust',
     typography: 'instaflow/typography',
+    // B8: the M1b panels Studio places (their contributions live with their features).
+    milestones: 'instaflow/milestones',
+    appearance: 'instaflow/appearance',
+    repeat: 'instaflow/repeat',
   },
   hud: {
     rewrite: 'instaflow/rewrite',
@@ -40,6 +44,43 @@ export const StudioIds = Object.freeze({
     removeBackground: 'instaflow/remove-background',
     more: 'instaflow/more',
     ask: 'instaflow/ask',
+  },
+  /**
+   * B8: the M1b HUD actions Studio places on a selection, by feature (ids are their capability ids). Contributed by
+   * B1 (`elementHudActions`), B7 (`repeatHudActions`), B2 (`textHudActions`), B3 (`toolHudActions`), B6 (`describeHudAction`).
+   */
+  selectionHud: {
+    elements: [
+      'instaflow/align-left',
+      'instaflow/align-center-x',
+      'instaflow/align-right',
+      'instaflow/align-top',
+      'instaflow/align-center-y',
+      'instaflow/align-bottom',
+      'instaflow/center-in-container',
+      'instaflow/distribute-h-spacing',
+      'instaflow/distribute-v-spacing',
+      'instaflow/tidy-up',
+      'instaflow/boolean-union',
+      'instaflow/boolean-subtract',
+      'instaflow/boolean-intersect',
+      'instaflow/boolean-exclude',
+      'instaflow/mask-clip',
+      'instaflow/distribute-h-centers',
+      'instaflow/distribute-v-centers',
+      'instaflow/boolean-release',
+      'instaflow/flatten',
+      'instaflow/outline-stroke',
+      'instaflow/mask-alpha',
+      'instaflow/mask-luminance',
+      'instaflow/mask-invert',
+      'instaflow/mask-release',
+      'instaflow/apply-token',
+    ],
+    repeat: ['instaflow/repeat-radial', 'instaflow/repeat-grid', 'instaflow/repeat-mirror', 'instaflow/repeat-edit', 'instaflow/repeat-expand', 'instaflow/repeat-release'],
+    text: ['instaflow/text-font', 'instaflow/text-size', 'instaflow/text-fit'],
+    tools: ['instaflow/rotate-90-cw', 'instaflow/rotate-90-ccw'],
+    a11y: ['instaflow/describe-canvas'],
   },
 } as const);
 
@@ -84,6 +125,7 @@ export const studioPanels: readonly PanelContribution[] = Object.freeze([
   definePanel({ id: P.properties, label: 'Properties', placements: ['inspector'], minDensity: 'pro', render: placeholder('B1 / B2') }),
   definePanel({ id: P.adjust, label: 'Adjust', placements: ['inspector'], minDensity: 'focus', lenses: [L.pixel], render: placeholder('B3') }),
   definePanel({ id: P.typography, label: 'Typography', placements: ['inspector', 'side'], minDensity: 'pro', lenses: [L.canvas, L.pages], render: placeholder('B2') }),
+  definePanel({ id: P.milestones, label: 'Milestones', placements: ['dock', 'side'], minDensity: 'standard', render: placeholder('B5') }),
 ]);
 
 const H = StudioIds.hud;

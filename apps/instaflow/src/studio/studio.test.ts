@@ -30,9 +30,9 @@ describe('createStudio', () => {
     expect(studio.port.groups()).toMatchObject({
       'lens@default': ['lens:instaflow/lens-canvas'],
       'panel@side': ['panel:instaflow/chat'],
-      'panel@dock': ['panel:instaflow/layers', 'panel:instaflow/pages', 'panel:instaflow/assets', 'panel:instaflow/brand'],
-      'panel@inspector': ['panel:instaflow/properties', 'panel:instaflow/typography'],
-      'hud@default': ['hud:instaflow/rewrite', 'hud:instaflow/animate', 'hud:instaflow/more', 'hud:instaflow/ask'],
+      'panel@dock': ['panel:instaflow/layers', 'panel:instaflow/pages', 'panel:instaflow/assets', 'panel:instaflow/milestones', 'panel:instaflow/brand'],
+      'panel@inspector': ['panel:instaflow/typography'],
+      'hud@default': ['hud:instaflow/rewrite', 'hud:instaflow/animate', 'hud:instaflow/ask'],
     });
     expect(studio.proposals.history.map((p) => p.source.kind)).toEqual(['preset']);
     await studio.dispose();
@@ -45,7 +45,7 @@ describe('createStudio', () => {
     const pixel = await studio.switchLens(StudioIds.lens.pixel);
     expect(pixel.ok && pixel.value.source).toEqual(PERSON);
     expect(studio.lens?.label).toBe('Pixel');
-    expect(studio.port.groups()['panel@inspector']).toEqual(['panel:instaflow/properties', 'panel:instaflow/adjust']);
+    expect(studio.port.groups()['panel@inspector']).toEqual(['panel:instaflow/adjust']);
     const focus = await studio.setDensity('focus');
     expect(focus.ok).toBe(true);
     expect(studio.density).toBe('focus');
