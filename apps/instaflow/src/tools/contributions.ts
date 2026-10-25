@@ -16,7 +16,7 @@ import type { NodeId } from '@staticflux/document/v2';
 import type { Actor } from '@staticflux/stage';
 import { commitEdit } from '../elements/actions.js';
 import { defineHudAction, defineTool, hudActionContribution, type HudActionContribution, toolContribution, type ToolContribution } from '../spec/contributions.js';
-import { StudioIds } from '../spec/studio-contributions.js';
+import { StudioIds } from '../spec/studio-ids.js';
 import { NothingToTransformError } from './errors.js';
 import type { ToolSession } from './gesture.js';
 import { captureTransform, moveValues, resizeByValues, rotateValues, type SpatialValues, type TransformStart, valuesToOps } from './transform.js';

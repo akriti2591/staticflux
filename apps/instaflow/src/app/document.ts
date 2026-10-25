@@ -42,7 +42,8 @@ export interface WorkspaceOptions {
 const failed = (step: string, cause: SfError): Result<never> => err(DocumentOpenError({ cause, details: { step } }));
 
 let peers = 0;
-const freshPeer = (): PeerId => `${Date.now() % 1_000_000_000}${(peers += 1)}` as PeerId;
+/** A fresh CRDT peer id (each open is its own peer). */
+export const freshPeer = (): PeerId => `${Date.now() % 1_000_000_000}${(peers += 1)}` as PeerId;
 
 /** Open the workspace (store, engine, repo, blobs, library document). */
 export async function openStudioWorkspace(options: WorkspaceOptions): Promise<Result<StudioWorkspace>> {
@@ -81,7 +82,7 @@ export interface CreateStudioDocumentOptions {
 const SEED = { actor: { kind: 'system', id: 'instaflow/studio' }, label: 'New design' } as const;
 
 /** Create a new document: composition + `pages` page stubs in the root part, one part per page (D14). */
-export async function createStudioDocument(workspace: StudioWorkspace, options: CreateStudioDocumentOptions): Promise<Result<OpenDocument>> {
+export async function createStudioDocument(workspace: Pick<StudioWorkspace, 'repo'>, options: CreateStudioDocumentOptions): Promise<Result<OpenDocument>> {
   const pages = Array.from({ length: Math.max(1, options.pages ?? 1) }, (_, i) => `p${i + 1}`);
   const size = options.size ?? { width: 1080, height: 1350 };
   const created = await workspace.repo.create(options.asset, { treeSchema: 1, parts: [ROOT_PART, ...pages.map(pagePart)] }, options.signal);
@@ -104,7 +105,8 @@ export async function createStudioDocument(workspace: StudioWorkspace, options: 
 }
 
 export interface StudioDocumentOptions {
-  readonly workspace: StudioWorkspace;
+  /** The CRDT engine (the brand kit part); the editor module has no library document (B9: the store side owns it). */
+  readonly workspace: Pick<StudioWorkspace, 'engine'>;
   readonly doc: OpenDocument;
   readonly geometry: GeometryService;
   readonly brand?: BrandKitSpec;

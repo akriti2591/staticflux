@@ -20,7 +20,7 @@ import type { Actor, SessionLayer, Stage } from '@staticflux/stage';
 import { commitEdit, type EditTarget } from '../elements/actions.js';
 import { P } from '../elements/components.js';
 import { elementBounds } from '../elements/layout.js';
-import { StudioIds } from '../spec/studio-contributions.js';
+import { StudioIds } from '../spec/studio-ids.js';
 import { GestureStateError, TargetGoneError } from './errors.js';
 import { type ElementIndex, hitTest, marqueeSelect, rectFrom, type ToolContext } from './hit-test.js';
 import { EMPTY_OVERLAY, type ToolOverlay } from './overlay.js';

@@ -19,7 +19,16 @@ export default defineConfig({
       { find: /^@staticflux\/([^/]+)$/, replacement: `${packagesDir}/$1/src/index.ts` },
     ],
   },
-  server: { host: '127.0.0.1', port: Number(process.env['PORT'] ?? 5174), strictPort: false, fs: { allow: [fileURLToPath(new URL('../../../..', import.meta.url))] } },
-  optimizeDeps: { entries: ['dev/studio/index.html'], exclude: ['loro-crdt'] },
+  server: {
+    host: '127.0.0.1',
+    port: Number(process.env['PORT'] ?? 5174),
+    strictPort: false,
+    fs: { allow: [fileURLToPath(new URL('../../../..', import.meta.url))] },
+    // Cross-origin isolation (IF-2.8): the pipes between main and the workers use SharedArrayBuffer rings (B9).
+    headers: { 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp' },
+  },
+  // The editor and render workers are module workers (B9).
+  worker: { format: 'es' },
+  optimizeDeps: { entries: ['dev/studio/index.html', 'src/workers/studio.worker.ts'], exclude: ['loro-crdt'] },
   logLevel: 'info',
 });

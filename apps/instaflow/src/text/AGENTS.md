@@ -50,6 +50,8 @@ screen layout (M1B-NOTES).
   `TypographyServiceToken`, `summarizeTypography`, `fitToBoxOps`, `MIXED`.
 - `typography-panel.ts` — `<if-typography-panel>` (kit only), `defineTypographyPanel`, `fontLabel`, `ALIGN_OPTIONS`,
   `TYPOGRAPHY_TEXT`.
+- `commands.ts` — `TextIds`, `TEXT_HUD_COMMANDS`, `placeTextOps`, `PlaceTextOptions` (Lit-free: the editor worker imports it, B9;
+  `contributions.ts` re-exports it).
 - `contributions.ts` — **B0 contributions** (Canvas and Pages lenses; they replace Studio's placeholders under the same
   ids): `textTool` (`instaflow/text`, `T`), `typographyPanel` (`instaflow/typography`; Studio places it in the inspector of
   both lenses), `textHudActions` (Font, Size, Fit to box; selection scope, so not in Studio's asset-scope HUD row),

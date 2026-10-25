@@ -28,18 +28,15 @@ entries at the top of **Journal**.
 | B7 Repeat | Merged | `main` | #14 |
 | B2 Text | Merged; IME check passed (D20) | `main` | #16 |
 | B6 Accessibility layer | Merged; not yet wired to Studio's live canvas | `main` | #17 |
-| B8 Studio integration | PR open (full check 4,151 tests + Studio smoke pass). **Editor and render run on the main thread: temporary, contradicts D15** | working branch | #20 |
+| B8 Studio integration | Merged; editor on the main thread until B9 | `main` | #20 |
+| B9 Editor in the worker | PR open (full check 4,210 tests; smoke 30/30 per topology under load) | working branch | #21 |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
 
-## Next (one work package at a time; details and IDs in M1C-NOTES.md)
-1. **B8 Studio integration** (the M1b demo): the first Studio you can click through.
-   Then **site refresh** (owner asked, 2026-10-25): one fresh agent updates the hand-written docs-site pages
-   (`site/src/build/content/`, last edited in PR #1): computed package count, a guide section per M1 addition
-   (worker pipeline, surface raster / text input / image, blob, stage, shell spec, ui theme + kit, document v2 + Loro),
-   Home and Before/After highlights. Only `site/`; one PR.
-2. **M1c:** C0 Home → C1 Export → C2 Import → C3 Modes and identity → C4 Hardening (the M1 exit criteria).
+## Next (one work package at a time; order, scope and IDs in M1C-NOTES.md)
+B9 Editor in the worker → site refresh → B10a Transform basics → C0 → C1 → C2 → C3 → C4. B10b (distort, perspective,
+warp) early M2.
 
 Open M1 decisions: which worker mode boots by default (D15 says one; the split becomes default only if it meets the budget after the
 main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D-number); reference iGPU runner (C4).
@@ -61,6 +58,14 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** B9 smoke failure root-caused (not Shift, not a flake): the selection HUD grew from one to two rows and
+  moved the canvas 40 px under a drag. HUD now has a fixed height (test fails without it); smoke 30/30 per topology.
+- **2026-10-25** B9 done (7a10e9a): editor and render in workers, one by default, two with `?topology=split`; main keeps
+  page-side adapters; store stays on main behind a port for now. Full check passes. Studio smoke: 1 failure in 5 runs
+  (colocated `move`: +60 x, 0 y, matching the Shift axis lock). Not treated as a flake: a focused agent is proving
+  the cause and fixing it; the PR waits for 10 green runs in both topologies.
+- **2026-10-25** #20 (B8) merged at the owner's request: Studio is playable. Owner left sequencing to the coordinator:
+  B9 (worker) → site refresh → B10a → M1c; B10b in early M2. IDs for B9 and B10a in M1C-NOTES.
 - **2026-10-25** B8 done (e4a375b): first clickable Studio (`pnpm --filter @instaflow/app dev`), smoke test, integration
   fixes. **Deviation:** editor and render modules run on the main thread instead of the D15 worker; proposed B9 moves
   them into the worker (input ring in; caret, accessibility and overlay data out; OffscreenCanvas) before C4. B10

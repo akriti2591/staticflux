@@ -194,14 +194,17 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       }
       /*
        * The kit toolbar is an inline-size container, so it has no intrinsic width (B8): the tools pill gets its width
-       * from its item count; the HUD spans the canvas region and takes at most two rows however many actions a
-       * selection brings (it scrolls, the canvas keeps its size).
+       * from its item count; the HUD spans the canvas region and always takes two rows however many actions a
+       * selection brings (it scrolls, the canvas keeps its size). A fixed block size, not only a maximum: a HUD that
+       * grew from one row (no selection) to two (a selection's actions) moved the surface 40 px under the pointer, so
+       * a drag that started as the HUD re-laid out lost that distance (IF-33.20 smoke, colocated topology).
        */
       .tools {
         inline-size: calc(var(--if-items, 6) * (${t.size.controlLg.css} + ${t.space.xs.css}) + 2 * ${t.space.sm.css} + 2 * ${t.space.xs.css});
       }
       .hud {
         justify-self: stretch;
+        block-size: calc(${t.size.toolbar.css} * 2);
         max-block-size: calc(${t.size.toolbar.css} * 2);
         overflow-y: auto;
         scrollbar-width: thin;

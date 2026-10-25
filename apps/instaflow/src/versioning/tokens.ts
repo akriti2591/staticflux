@@ -8,7 +8,7 @@ import type { Actor } from '@staticflux/stage';
 import type { LatestService, MirrorStatusSource } from './latest.js';
 import type { MilestoneService, MirrorFlush } from './milestones.js';
 import type { NewDocumentServiceOptions } from './new-document.js';
-import type { MilestonesPanelModel, VersioningHost } from './panel-model.js';
+import type { MilestonesPanelModel, MilestonesPanelPort, VersioningHost } from './panel-model.js';
 import type { AssetId } from './records.js';
 import type { ExportSnapshotService, ReleasePort } from './snapshot.js';
 
@@ -38,7 +38,8 @@ export interface VersioningServices {
 export const VersioningContextToken = /* @__PURE__ */ token('instaflow/versioning-context').type<VersioningContext>();
 export const VersioningServicesToken = /* @__PURE__ */ token('instaflow/versioning-services').type<VersioningServices>();
 export const LatestServiceToken = /* @__PURE__ */ token('instaflow/latest-service').type<LatestService>();
-export const MilestonesPanelModelToken = /* @__PURE__ */ token('instaflow/milestones-panel-model').type<MilestonesPanelModel>();
+/** The Milestones panel's model (the panel reads only the port: B9 mirrors it from the editor worker). */
+export const MilestonesPanelModelToken = /* @__PURE__ */ token('instaflow/milestones-panel-model').type<MilestonesPanelPort>();
 export const ReleasePortToken = /* @__PURE__ */ token('instaflow/release-port').type<ReleasePort>();
 
 /** Milestone name and note limits (shared by the service, the command schema and the panel). */

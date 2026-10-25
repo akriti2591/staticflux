@@ -3,18 +3,17 @@
  * equal-spacing distance labels as **editor chrome**. It is encoded into its own non-printing scene (like B1's
  * `gridOverlayBatch`), so export and the document never see it. Colours come from the active theme (Clean Pop
  * `accent` for selection and guides, `surface1` for handle fills, `accentSubtle` for the marquee): never hard-coded.
- * Distance labels are data for the shell to show with kit tags (`guideLabelTemplate`, `<sf-tag mono>`).
+ * Distance labels are data for the shell to show with kit tags (`guideLabelTemplate` in `overlay-labels.ts`, main
+ * thread only: this file stays Lit-free for the editor worker, B9).
  */
 import type { Box } from '@staticflux/document/spatial-index';
 import type { NodeId } from '@staticflux/document/v2';
 import type { ThemeDef } from '@staticflux/ui/theme';
-import { html, type TemplateResult } from 'lit';
 import { createSceneWriter, type SceneNode, type SceneTransform } from '../render/scene-ir.js';
 import { colorToRgba, type Rgba8 } from '../elements/values.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
 import type { Guide, GuideLabel } from './snapping.js';
 import type { SelectionFrame, TransformHandle } from './transform.js';
-import type { Camera } from './view-state.js';
 
 export interface ToolOverlay {
   readonly frame?: SelectionFrame;
@@ -128,13 +127,4 @@ export function toolOverlayBatch(
     });
   }
   return w.finish();
-}
-
-/** Distance labels as kit tags positioned in screen space (the shell places this layer over the canvas). */
-export function guideLabelTemplate(labels: readonly GuideLabel[], camera: Camera): TemplateResult {
-  return html`${labels.map((l) => {
-    const x = l.x * camera.zoom + camera.tx;
-    const y = l.y * camera.zoom + camera.ty;
-    return html`<sf-tag mono data-guide-label style=${`position:absolute;left:0;top:0;transform:translate(${x}px, ${y}px) translate(-50%, -50%)`}>${l.text}</sf-tag>`;
-  })}`;
 }

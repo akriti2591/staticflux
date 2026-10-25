@@ -14,6 +14,7 @@ import type { LibraryEntry } from '../library/library-doc.js';
 import type { ImageDecoder } from '../library/renditions.js';
 import { createSceneWriter } from '../render/scene-ir.js';
 import { lumaToAlpha } from '../elements/scene.js';
+import type { ImageBinding } from './canvas-pipeline.js';
 import { NoOpenPageError } from './errors.js';
 
 export interface ImageUploads {
@@ -21,8 +22,8 @@ export interface ImageUploads {
   images(asset: string, variant: 'rgba' | 'luma'): number | undefined;
   /** Decode and queue an asset's pixels (idempotent). */
   upload(entry: LibraryEntry, signal: AbortSignal): Promise<Result<{ readonly width: number; readonly height: number }>>;
-  /** The pipeline's asset section (`SceneIrSource`). */
-  changes(full: boolean): { readonly assets?: Uint8Array } | undefined;
+  /** The pipeline's asset section and the image table (`SceneIrSource`). */
+  changes(full: boolean): { readonly assets?: Uint8Array; readonly images?: readonly ImageBinding[] } | undefined;
 }
 
 export function createImageUploads(options: { readonly blobs: Pick<BlobStore, 'get'>; readonly decoder: ImageDecoder }): ImageUploads {
@@ -63,7 +64,11 @@ export function createImageUploads(options: { readonly blobs: Pick<BlobStore, 'g
       const keys = full ? [...uploaded.keys()] : fresh;
       fresh = [];
       const assets = write(keys);
-      return assets === undefined ? undefined : { assets };
+      const images = keys.flatMap((asset) => {
+        const u = uploaded.get(asset);
+        return u === undefined ? [] : [{ asset, rgba: u.id, luma: u.luma }];
+      });
+      return assets === undefined ? undefined : { assets, images };
     },
   };
 }

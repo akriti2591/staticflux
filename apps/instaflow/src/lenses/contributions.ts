@@ -8,7 +8,7 @@
  */
 import { html } from 'lit';
 import { definePanel, panelContribution, type PanelContribution } from '../spec/contributions.js';
-import { StudioIds } from '../spec/studio-contributions.js';
+import { StudioIds } from '../spec/studio-ids.js';
 import { definePagesPanel } from './pages-panel.js';
 
 export const pagesPanel: PanelContribution = /* @__PURE__ */ definePanel({

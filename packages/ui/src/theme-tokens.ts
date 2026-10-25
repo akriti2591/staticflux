@@ -15,7 +15,9 @@
  * Token names are data; their meaning is documented next to the declaration (source
  * comments, kept out of the shipped bundle). Values live in themes (`defineTheme`).
  */
-import { type CSSResult, unsafeCSS } from 'lit';
+// Lit's CSS tag module only (the same one `lit` re-exports): no DOM at import, so theme tokens and theme values load in
+// workers too (Instaflow's editor worker reads colours from the theme, B9).
+import { type CSSResult, unsafeCSS } from '@lit/reactive-element/css-tag.js';
 
 /** Token groups: group name → token names. */
 export type TokenGroups = Readonly<Record<string, readonly string[]>>;

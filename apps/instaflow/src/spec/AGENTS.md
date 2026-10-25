@@ -33,7 +33,8 @@ schema, Studio spec and the proposal pipeline.
   (`state`, `preview`, `applied`, `error`, `open`, `decline`); `PROPOSAL_ROUTES` (source × autonomy → preview | mount),
   `PROPOSAL_SUBJECTS`, `AUTONOMY_MODES`; the **`SpecProposer`** port + `SpecProposerToken`; machine `SpecProposalLifecycle`
   (`instaflow/spec-proposal`, LIFECYCLES §20).
-- `studio-contributions.ts` — `StudioIds` (stable ids), `studioLenses` (Canvas, Pixel, Timeline, Flow; `1`–`4`; Pages `5`, whose feature and panel are B4's `src/lenses`), `studioTools`,
+- `studio-ids.ts` — `StudioIds` (stable ids; data only, Lit-free: the editor worker imports it, B9).
+- `studio-contributions.ts` — re-exports `StudioIds`, `studioLenses` (Canvas, Pixel, Timeline, Flow; `1`–`4`; Pages `5`, whose feature and panel are B4's `src/lenses`), `studioTools`,
   `studioPanels` (placeholders: Chat, Layers, Pages, Assets, Milestones, Brand, Properties, Adjust), `studioHudActions`;
   B8 added the ids Studio places for M1b (`panel.milestones | appearance | repeat`, `selectionHud.*` by feature).
 - `studio-spec.ts` — **`studioSpec`** (D19, the maximal spec), `studioSpecFor(lens, base)` (uses the base's scope), variant

@@ -31,8 +31,10 @@ canvas surface).
   timers, busy, debounceMs, scope })`**, `ANNOUNCE_DEBOUNCE_MS`, machine `SelectionAnnounceLifecycle` (`instaflow/a11y-announce`).
 - `dom.ts` (main thread) — **`mountCanvasA11y({ host, document, onFocusNode })`** → `layer`, `focused`, `apply(snapshot)`,
   `dispose`; `CANVAS_FOCUS_RING`.
-- `canvas-a11y.ts` — **`createCanvasA11y(options)`** (projector + mount + announcer for one tab, colocated topology),
-  `describeCanvas(input, 'selection' | 'visible')`, `DESCRIBE_TARGETS`, `DESCRIBE_MAX_ITEMS`.
+- `canvas-a11y.ts` — **`createCanvasA11y(options)`** (projector + mount + announcer for one tab in one realm; re-exports `describe.ts`).
+- `editor-side.ts` — **`createCanvasA11yEditor(options)`** (the editor-side half: projector, announcer, `describe`; no DOM — B9's
+  editor worker posts its snapshots to main, where `mountCanvasA11y` applies them).
+- `describe.ts` — `describeCanvas(input, 'selection' | 'visible')`, `DESCRIBE_TARGETS`, `DESCRIBE_MAX_ITEMS` (DOM-free).
 - `text-source.ts` — `partTextSource(part)` (B2 → B6: plain text of text elements).
 - `contributions.ts` — `describeCanvasCapability` (`instaflow/describe-canvas`), `a11yCapabilityImplementations(env)`,
   `describeHudAction` ("Describe", tone `more`), `a11yContributionUnits(env)`.

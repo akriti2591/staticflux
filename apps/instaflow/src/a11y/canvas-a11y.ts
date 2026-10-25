@@ -11,36 +11,13 @@ import type { Announcer, Timers } from '@staticflux/a11y';
 import { ok, type Result, type Scope } from '@staticflux/core';
 import type { NodeId } from '@staticflux/document/v2';
 import type { ViewState } from '../tools/view-state.js';
-import { createSelectionAnnouncer, type SelectionAnnouncer } from './announce.js';
+import type { SelectionAnnouncer } from './announce.js';
 import { type CanvasA11yMount, mountCanvasA11y } from './dom.js';
-import { a11yMessages } from './messages.js';
-import { type CanvasProjector, createCanvasProjector, describeElement, type ElementDescription, type ProjectionInput, projectCanvas } from './projection.js';
+import type { DescribeTarget } from './describe.js';
+import { createCanvasA11yEditor } from './editor-side.js';
+import type { CanvasProjector, ProjectionInput } from './projection.js';
 
-export const DESCRIBE_TARGETS = ['selection', 'visible'] as const;
-export type DescribeTarget = (typeof DESCRIBE_TARGETS)[number];
-
-/** Most elements listed by a `visible` description (the count is always complete). */
-export const DESCRIBE_MAX_ITEMS = 50;
-
-const sentence = (d: ElementDescription): string => [d.name, d.role.roleDescription, ...d.extra].join(', ');
-
-/** Plain-text description of the selection or of what is in view (reading order). */
-export function describeCanvas(input: ProjectionInput, what: DescribeTarget): Result<{ readonly text: string; readonly count: number }> {
-  const targets: Readonly<Record<DescribeTarget, () => Result<{ readonly text: string; readonly count: number }>>> = {
-    selection: () => {
-      const items = input.view.selection.flatMap((n) => describeElement(input, n) ?? []);
-      return ok({ text: items.length === 0 ? a11yMessages.nothingSelected : items.map(sentence).join('; '), count: items.length });
-    },
-    visible: () => {
-      const snapshot = projectCanvas(input);
-      if (!snapshot.ok) return snapshot;
-      const items = snapshot.value.ids.flatMap((n) => describeElement(input, n) ?? []);
-      const listed = items.slice(0, DESCRIBE_MAX_ITEMS).map((d) => `${d.name} (${d.role.roleDescription})`);
-      return ok({ text: [a11yMessages.visibleCount(items.length), ...listed].join('; '), count: items.length });
-    },
-  };
-  return targets[what]();
-}
+export { DESCRIBE_MAX_ITEMS, DESCRIBE_TARGETS, type DescribeTarget, describeCanvas } from './describe.js';
 
 export interface CanvasA11yOptions extends Omit<ProjectionInput, 'view'> {
   readonly view: ViewState;
@@ -78,38 +55,28 @@ export function createCanvasA11y(options: CanvasA11yOptions): Result<CanvasA11y>
   });
   if (!mounted.ok) return mounted;
   const mount = mounted.value;
-  const projector = createCanvasProjector({ ...options, ...(options.schedule === undefined ? {} : { schedule: options.schedule }) });
+  const editor = createCanvasA11yEditor({ ...options, scope: { defer: () => undefined } });
+  if (!editor.ok) {
+    mount.dispose();
+    return editor;
+  }
+  const { projector, announcer } = editor.value;
   const stopApply = projector.onChange((snapshot) => {
     mount.apply(snapshot);
   });
-  const first = projector.flush();
-  if (!first.ok) {
-    stopApply();
-    projector.dispose();
-    mount.dispose();
-    return first;
-  }
-  const gesture = options.gesture;
-  const announcer = createSelectionAnnouncer({
-    view,
-    describe: (n) => describeElement(options, n),
-    announcer: options.announcer,
-    timers: options.timers,
-    ...(gesture === undefined ? {} : { busy: () => gesture.state !== 'idle' }),
-    ...(options.debounceMs === undefined ? {} : { debounceMs: options.debounceMs }),
-  });
+  const first = projector.snapshot();
+  if (first.ok) mount.apply(first.value);
   let disposed = false;
   const a11y: CanvasA11y = {
     projector,
     mount,
     announcer,
-    describe: (what) => describeCanvas(options, what),
+    describe: (what) => editor.value.describe(what),
     dispose() {
       if (disposed) return;
       disposed = true;
       stopApply();
-      announcer.dispose();
-      projector.dispose();
+      editor.value.dispose();
       mount.dispose();
     },
   };

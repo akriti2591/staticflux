@@ -1,49 +1,49 @@
 /**
- * The Studio app (B8; IF-27.14–27.24): the composition root that turns M1b's headless services and contributions
- * into the Studio a person can click through. Wire, don't rebuild: everything here is glue.
+ * The Studio app (B8; IF-27.14–27.24; B9 IF-33.1–33.16): the composition root on the main thread. Wire, don't
+ * rebuild: everything here is glue. The editor and render modules run in their workers (D15, `../workers/`); main
+ * keeps the page-side adapters, the chrome and the store side.
  *
+ * - **Workers** (`bootStudioWorkers`): one by default, two by the boot setting; the editor opens (or creates) the
+ *   document over the store port.
+ * - **Store side** (the store-worker stand-in until C0): the workspace's store, blobs and library document, served to
+ *   the editor; B4's library services and Assets panel model run here.
  * - **Vocabulary** (`registries.ts`): B0's placeholders replaced by the real contributions; panels that take their
  *   model from the host are bound when they render (B1's Fill / stroke / effects, B7's Repeat).
- * - **Services** for the panels, in the UI scope's injector: B2 typography, B4 lens controller + story writer and
- *   library panel model, B5 Latest + milestones panel model.
- * - **Capabilities** (one pipeline for HUD, shortcuts and agents): B1 element actions, B7 repeat, B3 transforms, B6
- *   describe, B5 create milestone; the actor of a run comes from the stage attribution port.
- * - **Canvas** (`studio-canvas.ts`): one canvas tab on the page the lens controller focuses.
- * - **Glue**: Studio's scope follows the canvas selection (the selection's HUD actions and inspectors mount); HUD
- *   clicks run their capability on the selection; the Milestone button creates a milestone; zoom buttons and the
- *   zoom readout; the library's Place puts an image on the page; results and problems are announced politely.
+ * - **Panel models** over the editor's mirrors (`panel-mirrors.ts`): B2 typography, B5 Latest and milestones, B4 story;
+ *   B4's lens controller runs here over the mirrored structure (it only picks the page the canvas shows).
+ * - **Capabilities** (one pipeline for HUD, shortcuts and agents): validated and gated in the registry here, run by the
+ *   editor (forwarding implementations for exactly the ids the editor reported).
+ * - **Canvas** (`studio-canvas.ts`): the canvas handed to the render module, input into the ring, B6's DOM, the text
+ *   host.
+ * - **Glue**: Studio's scope follows the canvas selection (the view projection); HUD clicks run their capability on the
+ *   selection; the Milestone button; zoom buttons and readout; the library's Place; results and problems are
+ *   announced politely.
  */
 import { type Announcer, createAnnouncer, createShortcutRegistry, type ShortcutRegistry, type Timers } from '@staticflux/a11y';
-import { alwaysActivePort, allowAllDecidePort, type CapabilityRegistry, createCapabilityRegistry, failClosedConfirmPort, type RunContext, unmeteredPort } from '@staticflux/capabilities';
+import { alwaysActivePort, allowAllDecidePort, type AnyCapability, type CapabilityRegistry, createCapabilityRegistry, failClosedConfirmPort, implementCapability, unmeteredPort } from '@staticflux/capabilities';
 import { box, createInjector, err, type Injector, ok, type Result, type Scope, type SfError, unit, watch } from '@staticflux/core';
-import type { NodeId, OpenDocument } from '@staticflux/document/v2';
+import type { NodeId } from '@staticflux/document/v2';
 import { createGate, definePolicy, definePolicySet } from '@staticflux/gate';
-import { type Actor, createAttributionPort } from '@staticflux/stage';
+import type { Actor } from '@staticflux/stage';
 import type { TextInputFactory } from '@staticflux/surface/text-input';
 import { defineUiElements, gateResource, provideScope } from '@staticflux/ui';
+import { fromWireError } from '@staticflux/worker';
 import { html, render } from 'lit';
 import { ref } from 'lit/directives/ref.js';
-import { a11yCapabilityImplementations } from '../a11y/contributions.js';
-import { commitEdit } from '../elements/actions.js';
-import { APPEARANCE_PANEL_ID, elementCapabilityImplementations } from '../elements/contributions.js';
-import type { GeometryService } from '../elements/geometry.js';
-import { appearanceEditOps, appearanceModel } from '../elements/inspector.js';
+import { APPEARANCE_PANEL_ID } from '../elements/contributions.js';
 import { bindPaintInspector, definePaintInspector, type IfPaintInspectorElement } from '../elements/panel.js';
 import { canvasLensFeature } from '../lenses/canvas-lens.js';
-import type { LensController } from '../lenses/controller.js';
+import { createLensController, type LensController } from '../lenses/controller.js';
 import { createLensFeatureRegistry } from '../lenses/lens-features.js';
 import { pagesLensFeature } from '../lenses/pages-lens.js';
 import { LensControllerToken, StoryWriterToken } from '../lenses/tokens.js';
-import { createLensServices } from '../lenses/units.js';
 import type { LibraryEntry } from '../library/library-doc.js';
 import { browserObjectUrls, browserPickFiles, type LibraryHost } from '../library/panel-model.js';
 import type { ImageDecoder, ImageEncoder, ThumbnailRenderer } from '../library/renditions.js';
 import { browserImageDecoder, pngImageEncoder, scaleThumbnailRenderer } from '../library/thumbnails.js';
 import { LibraryPanelModelToken } from '../library/tokens.js';
 import { createLibraryServices } from '../library/units.js';
-import { commitRepeatEdit } from '../repeat/actions.js';
-import { REPEAT_PANEL_ID, repeatCapabilityImplementations } from '../repeat/contributions.js';
-import { repeatEditOps, repeatModel } from '../repeat/inspector.js';
+import { REPEAT_PANEL_ID } from '../repeat/contributions.js';
 import { bindRepeatInspector, defineRepeatInspector, type IfRepeatInspectorElement } from '../repeat/panel.js';
 import { editDocumentCapability, proposeSpecCapability } from '../spec/capabilities.js';
 import type { ActionId, PanelContribution, ToolId } from '../spec/contributions.js';
@@ -52,60 +52,78 @@ import type { EditorRegistries } from '../spec/registries.js';
 import type { ScopeRef } from '../spec/schema.js';
 import { createStudio, type Studio } from '../studio/studio.js';
 import { defineStudio, type IfStudioElement } from '../studio/studio-element.js';
-import { TEXT_HUD_COMMANDS } from '../text/contributions.js';
-import { readTextBlock } from '../text/rich-text.js';
-import { createTypographyService, type TypographyService, TypographyServiceToken } from '../text/typography.js';
+import { TEXT_HUD_COMMANDS } from '../text/commands.js';
+import { type TypographyService, TypographyServiceToken } from '../text/typography.js';
 import { defineTypographyPanel } from '../text/typography-panel.js';
-import { toolCapabilityImplementations } from '../tools/contributions.js';
-import { toPage } from '../tools/view-state.js';
-import { CreateMilestoneCapability, implementCreateMilestone } from '../versioning/command.js';
+import type { Camera } from '../tools/view-state.js';
+import { CreateMilestoneCapability } from '../versioning/command.js';
 import { defineSaveStatus } from '../versioning/save-status.js';
 import { LatestServiceToken, MilestonesPanelModelToken } from '../versioning/tokens.js';
-import { createVersioningServices } from '../versioning/units.js';
-import type { CanvasTab } from './canvas-tab.js';
-import { openStudioDocument, type StudioDocument, type StudioWorkspace } from './document.js';
+import { type BootStudioWorkersOptions, bootStudioWorkers, type StudioWorkers } from '../workers/boot.js';
+import { createMirrorHub, type MirrorHub } from '../workers/mirror.js';
+import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, StoryMirror, TypographyMirror } from '../workers/mirrors.js';
+import type { InspectedElement, StudioDocumentRef, StudioInspection, StudioMetrics, ViewProjection } from '../workers/protocol.js';
+import { fromWire } from '../workers/wire.js';
+import type { StudioWorkspace } from './document.js';
 import { NoOpenPageError } from './errors.js';
-import { createImageUploads, placeImageOps } from './images.js';
+import { appearanceSource, latestFromMirror, milestonesFromMirror, repeatSource, storyFromMirror, structureFromMirror, typographyFromMirror } from './panel-mirrors.js';
 import { studioAppRegistries } from './registries.js';
-import { type RasterFactory, type StudioCanvas, studioCanvas } from './studio-canvas.js';
-import { textBoxOps, type StudioFonts } from './text-layer.js';
+import { type CanvasHandoffFactory, type StudioCanvas, studioCanvas } from './studio-canvas.js';
 
 export interface StudioAppOptions {
-  readonly workspace: StudioWorkspace;
-  readonly doc: OpenDocument;
-  readonly title: string;
-  readonly geometry: GeometryService;
-  readonly fonts: StudioFonts;
+  /** The store side: store, blobs and the library document (main, until the store worker, C0). */
+  readonly workspace: Pick<StudioWorkspace, 'store' | 'blobs' | 'library'>;
+  /** The document the editor opens (created when the store has none and `create` is given). */
+  readonly document: StudioDocumentRef;
   /** The person (guest identity, D3). */
   readonly person: Actor;
-  readonly raster: RasterFactory;
+  /** How the workers boot: the topology setting, the spawner, isolation, the Wasm and fonts to load. */
+  readonly workers: Omit<BootStudioWorkersOptions, 'editor' | 'store' | 'signal'>;
   readonly textInput?: TextInputFactory;
   /** Library media (browser defaults). */
   readonly library?: { readonly decoder?: ImageDecoder; readonly renderer?: ThumbnailRenderer; readonly encoder?: ImageEncoder; readonly pickFiles?: LibraryHost['pickFiles'] };
+  /** How the canvas reaches the render module (default an `OffscreenCanvas` transfer; tests pass a stand-in). */
+  readonly handoff?: CanvasHandoffFactory;
   readonly timers?: Timers;
-  readonly schedule?: (fn: () => void) => void;
   readonly isMac?: boolean;
   readonly scope: Scope;
+}
+
+/** The open tab as main sees it (the editor's view projection). */
+export interface StudioTabView {
+  readonly page: NodeId;
+  readonly view: { readonly selection: readonly NodeId[]; readonly tool: string; readonly camera: Camera; readonly viewport: { readonly width: number; readonly height: number }; readonly context: NodeId | undefined };
+  readonly editing: { readonly node: NodeId } | undefined;
 }
 
 export interface StudioApp {
   readonly studio: Studio;
   readonly registries: EditorRegistries;
-  readonly document: StudioDocument;
   readonly capabilities: CapabilityRegistry;
   readonly canvas: StudioCanvas;
   readonly injector: Injector;
   readonly shortcuts: ShortcutRegistry;
   readonly lens: LensController;
   readonly typography: TypographyService;
+  readonly workers: StudioWorkers;
+  /** The mirrors the panels read (tests, devtools). */
+  readonly mirrors: MirrorHub;
+  /** The editor's view projection (reactive; undefined until the editor posts). */
+  readonly view: ViewProjection | undefined;
   /** The open canvas tab (after the canvas started). */
-  readonly tab: CanvasTab | undefined;
+  readonly tab: StudioTabView | undefined;
   /** Render `<if-studio>` into `container` (inside the UI scope). */
   mount(container: HTMLElement): IfStudioElement;
   /** Run a HUD action on the selection (what a HUD click does). */
   runHudAction(action: ActionId): Promise<Result<unknown>>;
   createMilestone(name?: string): Promise<Result<unknown>>;
   place(entry: LibraryEntry, signal: AbortSignal): Promise<Result<void>>;
+  /** Read the editor's state (tests, the smoke check, devtools). */
+  inspect(nodes?: readonly NodeId[]): Promise<Result<StudioInspection>>;
+  /** One element as the editor sees it (undefined: not on the page). */
+  element(node: NodeId): Promise<InspectedElement | undefined>;
+  /** Frame metrics (A7) and editor counters of every worker. */
+  metrics(): Promise<Result<StudioMetrics>>;
   /** Messages spoken in the polite live region (the last few; tests and the smoke check read them). */
   readonly spoken: readonly string[];
 }
@@ -118,20 +136,14 @@ const HUD_INPUTS: Readonly<Record<string, (nodes: readonly NodeId[]) => unknown>
 /** Capability outputs the HUD speaks (`text`), else a short confirmation. */
 const spokenResult = (label: string, value: unknown): string => (typeof (value as { text?: unknown })?.text === 'string' ? (value as { text: string }).text : `${label} done`);
 
+let invocations = 0;
+
 /** Open Studio over a document (see the module header). */
 export async function createStudioApp(options: StudioAppOptions): Promise<Result<StudioApp>> {
   const { scope, workspace, person } = options;
   const signal = scope.signal;
-  const opened = await openStudioDocument({ workspace, doc: options.doc, geometry: options.geometry, signal, scope });
-  if (!opened.ok) return opened;
-  const document = opened.value;
-  const tabBox = box<CanvasTab | undefined>(undefined);
-  const tab = (): CanvasTab | undefined => tabBox.get();
-  const actor = (): Actor => person;
-  const attribution = createAttributionPort({ human: () => ({ id: person.id, displayName: person.displayName ?? person.id }) });
-  const actorFor = (run: RunContext): Result<Actor> => attribution.actorFor(run);
   const spoken: string[] = [];
-  let announcer: Pick<Announcer, 'announce'> = { announce: (m) => void spoken.push(m) };
+  let announcer: Pick<Announcer, 'announce'> = { announce: () => undefined };
   const say = (message: string): void => {
     spoken.push(message);
     if (spoken.length > 20) spoken.shift();
@@ -139,47 +151,35 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   };
   const problem = (error: SfError): void => say(error.message);
   const timers: Timers = options.timers ?? { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as ReturnType<typeof setTimeout>) };
-  const schedule = options.schedule ?? ((fn: () => void) => requestAnimationFrame(() => fn()));
-  const selection = (): readonly NodeId[] => tab()?.view.selection ?? [];
-  const page = (): NodeId => tab()?.page ?? document.pages[0]?.id ?? 'p1';
-  const watchSelection = (listener: () => void): (() => void) => {
-    const stopWatch = watch(() => [tabBox.get(), tabBox.get()?.view.selection] as const, listener);
-    const stopDoc = document.view.onInvalidate(listener);
-    return () => {
-      stopWatch();
-      stopDoc();
-    };
-  };
+  const actor = (): Actor => person;
+
+  // ---------------------------------------------------------------- workers
+  const booted = await bootStudioWorkers({
+    ...options.workers,
+    editor: { document: options.document, person, isMac: options.isMac ?? false, ...(options.textInput === undefined ? {} : { textInput: options.textInput.kind }) },
+    store: { store: workspace.store, blobs: workspace.blobs },
+    signal,
+  });
+  if (!booted.ok) return booted;
+  const workers = booted.value;
+  scope.defer(() => workers.stop());
+  const editor = workers.editor;
+  const hub = createMirrorHub((call) => editor.request('call', call));
+  scope.defer(editor.on('mirror', (update) => hub.apply(update)));
+  const viewBox = box<ViewProjection | undefined>(undefined);
+  scope.defer(editor.on('view', (projection) => viewBox.set(projection)));
+  scope.defer(editor.on('announce', ({ message }) => say(message)));
+  scope.defer(editor.on('problem', ({ error }) => problem(fromWireError(error))));
+  const synced = await editor.request('sync', undefined); // the editor posted before these listeners existed
+  if (!synced.ok) return synced;
+  const view = (): ViewProjection | undefined => viewBox.get();
+  const selection = (): readonly NodeId[] => view()?.selection ?? [];
+  const pages = workers.started.pages;
+  const firstPage = (): NodeId => pages[0] ?? 'p1';
 
   // ---------------------------------------------------------------- panel sources
-  const single = (): NodeId | undefined => (selection().length === 1 ? selection()[0] : undefined);
-  const appearance = {
-    model: () => {
-      const node = single();
-      return node === undefined ? undefined : appearanceModel(document.view, node, document.kit);
-    },
-    subscribe: watchSelection,
-    apply(edit: Parameters<typeof appearanceEditOps>[1]) {
-      const model = appearance.model();
-      if (model === undefined) return;
-      const done = commitEdit(document.target(page()), actor(), 'Edit appearance', appearanceEditOps(model, edit));
-      if (!done.ok) problem(done.error);
-    },
-  };
-  const repeat = {
-    model: () => {
-      const node = single();
-      return node === undefined ? undefined : repeatModel(document.context(), node);
-    },
-    subscribe: watchSelection,
-    apply(edit: Parameters<typeof repeatEditOps>[2]) {
-      const node = single();
-      if (node === undefined) return;
-      const ctx = document.context();
-      const done = commitRepeatEdit(document.target(page()), actor(), 'Edit repeat', repeatEditOps(ctx, node, edit), (n) => ctx.stage.params(n));
-      if (!done.ok) problem(done.error);
-    },
-  };
+  const appearance = appearanceSource(hub.view(AppearanceMirror), problem);
+  const repeat = repeatSource(hub.view(RepeatMirror), problem);
   const BINDERS: Readonly<Record<string, (element: Element) => () => void>> = {
     [APPEARANCE_PANEL_ID]: (element) => bindPaintInspector(element as IfPaintInspectorElement, appearance),
     [REPEAT_PANEL_ID]: (element) => bindRepeatInspector(element as IfRepeatInspectorElement, repeat),
@@ -205,37 +205,20 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   if (!registries.ok) return registries;
 
   // ---------------------------------------------------------------- services for the panels
-  const typography = createTypographyService({
-    current: () => {
-      const node = single();
-      const part = document.part(page());
-      if (node === undefined || part === undefined || document.view.read(node)?.kind !== 'text') return undefined;
-      const block = readTextBlock(part, node);
-      if (!block.ok) return undefined;
-      const editing = tab()?.editing;
-      const [from, to] = editing?.node === node && editing.session.selection[0] !== editing.session.selection[1] ? editing.session.selection : [0, block.value.text.length];
-      return { block: block.value, from, to };
-    },
-    commit: (ops, label) => {
-      const node = single();
-      const committed = document.commitOps(page(), actor(), label, ops);
-      if (!committed.ok || node === undefined) return committed;
-      const laid = tab()?.text.layout(node);
-      return laid === undefined || !laid.ok ? committed : document.commitOps(page(), actor(), label, textBoxOps(document, node, laid.value));
-    },
-    defaults: { size: options.fonts.defaults.size },
-    fonts: () => options.fonts.engine.fonts.map((f) => ({ label: f.families[0] ?? f.hash.slice(7, 15), value: { font: f.hash as `sha256:${string}`, ...(f.families[0] === undefined ? {} : { family: f.families[0] }) } })),
-    watch: watchSelection,
-  });
+  const typography = typographyFromMirror(hub.view(TypographyMirror), problem);
   const features = createLensFeatureRegistry([pagesLensFeature, canvasLensFeature]);
   if (!features.ok) return features;
   const studioBox = box<Studio | undefined>(undefined);
-  const lens = createLensServices(
-    { doc: options.doc, root: document.root, lens: () => studioBox.get()?.lens?.id, viewport: () => tab()?.view.viewport ?? { width: 960, height: 640 }, camera: { show: () => undefined }, actor },
-    features.value,
-    scope,
-  );
-  const uploads = createImageUploads({ blobs: workspace.blobs, decoder: options.library?.decoder ?? browserImageDecoder() });
+  const storyView = hub.view(StoryMirror);
+  const lens = createLensController({
+    features: features.value,
+    lens: () => studioBox.get()?.lens?.id,
+    structure: structureFromMirror(storyView),
+    viewport: () => view()?.viewport ?? { width: 960, height: 640 },
+    camera: { show: () => undefined },
+  });
+  scope.defer(() => lens.dispose());
+  const story = storyFromMirror(storyView, problem);
   let assets = 0;
   const library = createLibraryServices(
     {
@@ -251,49 +234,39 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     },
     scope,
   );
-  const versioning = createVersioningServices(
-    {
-      doc: options.doc,
-      store: workspace.store,
-      engine: workspace.engine,
-      host: { showReadOnly: () => say('Read-only milestone view arrives with C3.'), showComparison: () => say('Compare view arrives with C3.'), openDocument: (asset) => say(`New document ${asset} created.`) },
-      actor,
-      newAssetId: () => `as_${Date.now().toString(36)}${(assets += 1)}` as never,
-      title: () => options.title,
-    },
-    scope,
-  );
+  const milestonesPanel = milestonesFromMirror(hub.view(MilestonesMirror));
+  const latest = latestFromMirror(hub.view(LatestMirror));
   const injector = createInjector({
     units: [
       unit({ id: 'instaflow/studio-typography', provides: TypographyServiceToken, scope: 'app', create: () => typography }),
-      unit({ id: 'instaflow/studio-lens-controller', provides: LensControllerToken, scope: 'app', create: () => lens.controller }),
-      unit({ id: 'instaflow/studio-story-writer', provides: StoryWriterToken, scope: 'app', create: () => lens.story }),
+      unit({ id: 'instaflow/studio-lens-controller', provides: LensControllerToken, scope: 'app', create: () => lens }),
+      unit({ id: 'instaflow/studio-story-writer', provides: StoryWriterToken, scope: 'app', create: () => story }),
       unit({ id: 'instaflow/studio-library-panel', provides: LibraryPanelModelToken, scope: 'app', create: () => library.panel }),
-      unit({ id: 'instaflow/studio-milestones-panel', provides: MilestonesPanelModelToken, scope: 'app', create: () => versioning.panel }),
-      unit({ id: 'instaflow/studio-latest', provides: LatestServiceToken, scope: 'app', create: () => versioning.latest }),
+      unit({ id: 'instaflow/studio-milestones-panel', provides: MilestonesPanelModelToken, scope: 'app', create: () => milestonesPanel }),
+      unit({ id: 'instaflow/studio-latest', provides: LatestServiceToken, scope: 'app', create: () => latest }),
     ],
     idle: (cb) => setTimeout(cb, 0),
   });
   scope.defer(() => injector.dispose());
 
-  // ---------------------------------------------------------------- capabilities
-  const elementEnv = { context: () => document.context(), target: () => document.target(page()), actorFor };
+  // ---------------------------------------------------------------- capabilities (run in the editor)
+  const served = new Set(workers.started.capabilities);
+  const declarations = registries.value.vocabulary.list('capability').flatMap((c) => {
+    const cap = registries.value.capability(c.id);
+    return cap === undefined ? [] : [cap];
+  });
+  const forward = (cap: AnyCapability) =>
+    implementCapability(cap, async (input, run) => {
+      const out = await editor.request('invoke', { capability: cap.id, input, subject: run.subject, ...(run.origin === undefined ? {} : { origin: run.origin }), invocationId: `${run.invocationId}:${(invocations += 1)}` }, { signal: run.signal });
+      return out.ok ? ok(fromWire(out.value)) : out;
+    });
   const capabilities = createCapabilityRegistry({
     decide: allowAllDecidePort,
     confirm: failClosedConfirmPort,
     meter: unmeteredPort,
     activation: alwaysActivePort,
-    declarations: registries.value.vocabulary.list('capability').flatMap((c) => {
-      const cap = registries.value.capability(c.id);
-      return cap === undefined ? [] : [cap];
-    }),
-    implementations: [
-      ...elementCapabilityImplementations(elementEnv),
-      ...repeatCapabilityImplementations(elementEnv),
-      ...toolCapabilityImplementations({ session: () => tab()?.tools, actorFor }),
-      ...a11yCapabilityImplementations({ canvas: () => tab()?.a11y }),
-      implementCreateMilestone({ milestones: versioning.milestones, actorFor, prompt: () => say('Name the milestone in the Milestones panel.') }),
-    ],
+    declarations,
+    implementations: declarations.filter((cap) => served.has(cap.id)).map(forward),
   });
   scope.defer(() => capabilities.dispose());
 
@@ -313,22 +286,22 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   const shortcuts = createShortcutRegistry({ isMac: options.isMac ?? false });
 
   const canvas = studioCanvas({
-    document,
-    page: page(),
-    fonts: options.fonts,
-    raster: options.raster,
-    actor,
-    tool: () => studio.activeTool,
-    selectTool: (tool: ToolId) => void studio.selectTool(tool),
-    shortcuts,
+    workers,
+    page: firstPage,
     ...(options.textInput === undefined ? {} : { textInput: (host: HTMLElement, label: string) => (options.textInput as TextInputFactory).create({ host, label }) }),
-    announcer: { announce: (m) => announcer.announce(m) },
-    timers,
-    schedule,
-    images: uploads,
+    shortcuts,
+    ...(options.handoff === undefined ? {} : { handoff: options.handoff }),
     onProblem: problem,
-    onTab: (next) => tabBox.set(next),
   });
+  // The toolbar drives the editor's tool; a creation tool hands the toolbar back.
+  watch(
+    () => studio.activeTool,
+    (tool) => {
+      if (tool !== undefined) void editor.request('tool', { tool }).then((r) => (r.ok ? undefined : problem(r.error)));
+    },
+    { scope, fireImmediately: true },
+  );
+  scope.defer(editor.on('tool', ({ tool }) => void studio.selectTool(tool as ToolId)));
 
   // Scope follows the selection (serialized; the latest selection wins).
   let scoping = false;
@@ -347,20 +320,31 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       scoping = false;
     }
   };
+  // Compared with the scope Studio has, not the last one asked for: a lens switch during a scope change cannot leave a
+  // stale selection scope behind.
+  const scopeOf = (nodes: readonly NodeId[]): ScopeRef => (nodes.length === 0 ? { kind: 'asset' } : { kind: 'selection', nodes: [...nodes] });
+  const keyOf = (s: ScopeRef | undefined): string => JSON.stringify(s?.kind === 'selection' ? s.nodes : []);
   watch(
-    () => selection(),
-    (nodes) => {
-      const usable = nodes.filter((n) => document.view.read(n) !== undefined).slice(0, 1024);
-      wanted = usable.length === 0 ? { kind: 'asset' } : { kind: 'selection', nodes: usable };
+    () => [keyOf(scopeOf(selection().slice(0, 1024))), keyOf(studio.spec?.scope)] as const,
+    ([want, have]) => {
+      if (want === have || (wanted !== undefined && keyOf(wanted) === want)) return;
+      wanted = scopeOf(selection().slice(0, 1024));
       void applyScope();
     },
     { scope },
   );
-  // The Pages panel (lens controller) chooses the page the canvas shows.
+  // The Pages panel (lens controller) chooses the page the canvas shows; the controller starts on the page shown.
   watch(
-    () => lens.controller.current(),
+    () => [view()?.page, lens.arrangement()] as const,
+    ([shown, arrangement]) => {
+      if (shown !== undefined && arrangement !== undefined && lens.current() === undefined) void lens.goTo(shown);
+    },
+    { scope },
+  );
+  watch(
+    () => lens.current(),
     (current) => {
-      if (current !== undefined && current !== tab()?.page && document.part(current) !== undefined) void canvas.showPage(current).then((r) => (r.ok ? undefined : problem(r.error)));
+      if (current !== undefined && current !== canvas.page && pages.includes(current)) void canvas.showPage(current).then((r) => (r.ok ? undefined : problem(r.error)));
     },
     { scope },
   );
@@ -368,9 +352,8 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   const runHudAction = async (action: ActionId): Promise<Result<unknown>> => {
     const hud = registries.value.hud(action);
     if (hud === undefined) return ok(undefined);
-    const command = TEXT_HUD_COMMANDS[action];
-    if (command !== undefined) {
-      const done = command(typography);
+    if (TEXT_HUD_COMMANDS[action] !== undefined) {
+      const done = await editor.request('hud', { action });
       if (!done.ok) problem(done.error);
       return done;
     }
@@ -378,7 +361,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       say(`${hud.label} arrives in a later milestone.`);
       return ok(undefined);
     }
-    const nodes = selection().filter((n) => document.view.read(n) !== undefined);
+    const nodes = selection();
     const input = (HUD_INPUTS[hud.capability] ?? ((n: readonly NodeId[]) => ({ nodes: n })))(nodes);
     const result = await capabilities.invoke(hud.capability, input, { subject: 'user', signal, origin: { channel: 'ui/hud' } });
     if (result.ok) say(spokenResult(hud.label, result.value));
@@ -390,39 +373,56 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     const result = await capabilities.invoke(CreateMilestoneCapability, { name: name ?? `Milestone ${(milestones += 1)}` }, { subject: 'user', signal, origin: { channel: 'ui/hud' } });
     if (result.ok) {
       say(`Milestone created: ${(result.value as { name?: string }).name ?? ''}`);
-      void versioning.panel.refresh();
+      void milestonesPanel.refresh();
     } else problem(result.error);
     return result;
+  };
+
+  const tabView = (): StudioTabView | undefined => {
+    const v = view();
+    if (v?.page === undefined || canvas.page === undefined) return undefined;
+    return { page: v.page, view: { selection: v.selection, tool: v.tool, camera: v.camera, viewport: v.viewport, context: v.context }, editing: v.editing === undefined ? undefined : { node: v.editing } };
   };
 
   const app: StudioApp = {
     studio,
     registries: registries.value,
-    document,
     capabilities,
     canvas,
     injector,
     shortcuts,
-    lens: lens.controller,
+    lens,
     typography,
+    workers,
+    mirrors: hub,
+    get view() {
+      return view();
+    },
     get tab() {
-      return tab();
+      return tabView();
     },
     spoken,
     runHudAction,
     createMilestone,
     async place(entry, s) {
-      const current = tab();
-      if (current === undefined) return err(NoOpenPageError());
-      const size = await uploads.upload(entry, s);
-      if (!size.ok) return size;
-      const view = current.view;
-      const center = toPage(view.camera, view.viewport.width / 2, view.viewport.height / 2);
-      const node = document.newId();
-      const done = commitEdit(document.target(current.page), actor(), `Place ${entry.title}`, ok(placeImageOps(node, view.context, entry, size.value, center, 600)));
-      if (!done.ok) return done;
-      view.select([node]);
-      return ok();
+      if (canvas.page === undefined) return err(NoOpenPageError());
+      return editor.request('place', { entry }, { signal: s });
+    },
+    inspect: (nodes) => editor.request('inspect', nodes === undefined ? {} : { nodes }),
+    async element(node) {
+      const r = await editor.request('inspect', { nodes: [node] });
+      return r.ok ? r.value.elements[0] : undefined;
+    },
+    async metrics() {
+      const merged: { render?: NonNullable<StudioMetrics['render']>; editor?: NonNullable<StudioMetrics['editor']> } = {};
+      const done = await workers.everyWorker(async (client) => {
+        const m = await client.request('metrics', undefined);
+        if (!m.ok) return m;
+        if (m.value.render !== undefined) merged.render = m.value.render;
+        if (m.value.editor !== undefined) merged.editor = m.value.editor;
+        return ok();
+      });
+      return done.ok ? ok(merged) : done;
     },
     mount(container) {
       defineUiElements();
@@ -442,14 +442,14 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
           .canvas=${canvas}
           .shortcuts=${shortcuts}
           .status=${html`<if-save-status></if-save-status>`}
-          asset-title=${options.title}
+          asset-title=${options.document.title}
           project-title="Instaflow"
           @if-hud-action=${(e: CustomEvent<{ action: ActionId }>) => void runHudAction(e.detail.action)}
           @if-intent=${(e: CustomEvent<{ intent: string }>) => {
             const intents: Readonly<Record<string, () => void>> = {
               milestone: () => void createMilestone(),
-              'zoom-in': () => void tab()?.commands.zoomStep(1),
-              'zoom-out': () => void tab()?.commands.zoomStep(-1),
+              'zoom-in': () => void editor.request('zoom', { step: 1 }).then((r) => (r.ok ? undefined : problem(r.error))),
+              'zoom-out': () => void editor.request('zoom', { step: -1 }).then((r) => (r.ok ? undefined : problem(r.error))),
               share: () => say('Sharing arrives with export (C1).'),
             };
             intents[e.detail.intent]?.();
@@ -459,7 +459,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       );
       const element = container.querySelector('if-studio') as IfStudioElement;
       watch(
-        () => tabBox.get()?.view.camera.zoom,
+        () => view()?.camera.zoom,
         (zoom) => {
           if (zoom !== undefined) element.zoom = zoom;
         },

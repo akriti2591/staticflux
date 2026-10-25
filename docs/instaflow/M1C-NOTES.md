@@ -4,15 +4,23 @@ Read with [M1-BRIEF.md](M1-BRIEF.md). Everything in [M1B-NOTES.md](M1B-NOTES.md)
 B0 contributions, UI only from the kit under Clean Pop, Rust in the engine crates, the Checks rules). This file adds
 the M1c work packages, their pre-assigned IDs and their order.
 
-## Order (one work package at a time, one PR each)
-1. **B8 Studio integration** (the "M1b demo" step in M1-PLAN): the first Studio you can click through.
-2. **C0 Home** → **C1 Export** → **C2 Import** (needs C1) → **C3 Modes and identity** → **C4 Hardening** (the M1 exit
+## Order (one work package at a time, one PR each; set by the coordinator, 2026-10-25)
+1. **B8 Studio integration** (the "M1b demo" step in M1-PLAN): the first Studio you can click through. *Merged (#20).*
+2. **B9 Editor in the worker**: moves the editor and render modules off the main thread, where B8 left them, into the
+   D15 topology. Before C4, whose frame budgets need the real threading.
+3. **Site refresh** (docs site content, no IDs).
+4. **B10a Transform tools, basics**: on top of B9 so nothing is built twice.
+5. **C0 Home** → **C1 Export** → **C2 Import** (needs C1) → **C3 Modes and identity** → **C4 Hardening** (the M1 exit
    criteria; last).
+6. **B10b Distort, perspective, warp: early M2, not M1.** It needs a warped-image path in the renderer and in C1's
+   PDF / SVG export; doing it after M1 keeps the finish line in reach and teaches export warps once.
 
 ## Pre-assigned IDs (avoid merge collisions)
 | WP | Requirement IDs | LIFECYCLES section | Error codes | Work-in-progress branch |
 |---|---|---|---|---|
 | B8 Studio integration | IF-27.1–27.29 | §29 | IF-INT-001… | `claude/wip-b8-studio` |
+| B9 Editor in the worker | IF-33.1–33.29 | §35 | IF-WRK-001… | `claude/wip-b9-worker` |
+| B10a Transform tools, basics | IF-34.1–34.29 | §36 | IF-XF-001… | `claude/wip-b10a-transform` |
 | C0 Home route | IF-28.1–28.29 | §30 | IF-HOME-001… | `claude/wip-c0-home` |
 | C1 Export | IF-29.1–29.29 | §31 | IF-EXP-001… | `claude/wip-c1-export` |
 | C2 Import | IF-30.1–30.29 | §32 | IF-IMP-001… | `claude/wip-c2-import` |
@@ -35,6 +43,28 @@ Wire what M1b built into the live Studio so a person can create, edit and see a 
   child moves (B6 handoff), the `textbox` role while text is being edited (B6), the asset "Place" host hook (B4/B3).
 - A runnable dev entry (`pnpm --filter @instaflow/app dev` or equivalent) and a short "try it" section in
   `apps/instaflow/AGENTS.md`. One Playwright smoke scenario: open Studio, draw a rectangle, type text, milestone.
+
+## B9 Editor in the worker (scope)
+B8 runs the editor and render modules on the main thread (deviation from D15). Move them into the architecture's
+threads (`docs/instaflow/ARCHITECTURE.md` §2, §4, §5.3) without losing anything B8 delivered:
+- **Main thread keeps only page-side adapters:** pointer and keyboard capture into A5's input ring, EditContext (text
+  input), the B6 accessibility DOM, panels and chrome. Everything that decides (document, stage, selection, tools and
+  snapping, text layout, camera and view state) runs in the editor module in the worker.
+- **Back to main:** caret, selection and character bounds for EditContext; B6 projection snapshots; the read
+  projections panels need (selection, inspector values). Overlays (selection, handles, guides) stay in the render
+  scene, drawn in the same frame as content.
+- **Render** into an `OffscreenCanvas` in the worker; topology by the D15 boot setting (one worker by default, two
+  available), modules never branch on it.
+- **Must pass, in both topologies:** B8's smoke test (draw, type, milestone); select, move, resize and rotate in a real
+  browser; overlay matches content during a drag; tab hidden then visible keeps state; switching lens and page; the
+  automated IME check (`apps/instaflow/src/text/ime-check/pack/auto-check.mjs`). The owner reruns the manual IME check.
+- Keep frame metrics (A7) working, so C4 can budget them.
+
+## B10a Transform tools, basics (scope)
+Photoshop-style Free Transform basics on top of B3: flip horizontal / vertical (also on negative resize), skew
+(Mod-drag a side handle) with snapping, a draggable pivot (reference point) used by rotate and scale, a numeric
+transform bar (X, Y, W, H, angle, skew) as a B0 contribution, and Mod+T to enter transform mode. Every transform is one
+undo step, works on rotated and nested elements, and is a capability agents can call.
 
 ## C-stage specifics
 - **C0** boots with no engine or GPU (D17): check with a size budget and a test that the Home entry imports neither.

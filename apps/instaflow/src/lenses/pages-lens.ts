@@ -4,7 +4,7 @@
  * canvas are ignored, so reordering the story is all that moves a page here. Focusing a page always
  * fits it (page view); next/previous follow the story.
  */
-import { StudioIds } from '../spec/studio-contributions.js';
+import { StudioIds } from '../spec/studio-ids.js';
 import { fitCamera, type LensArrangement, type LensFeature, type PageFrame, unionRects } from './lens-feature.js';
 
 /** World units between pages in the column. */

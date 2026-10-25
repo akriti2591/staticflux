@@ -5,7 +5,7 @@
  * to right within a row), not story order: next/previous move to the frame you would look at next.
  * Focusing a page centres it and keeps the zoom when the page fits at it, else fits the page.
  */
-import { StudioIds } from '../spec/studio-contributions.js';
+import { StudioIds } from '../spec/studio-ids.js';
 import { fitCamera, fitsAt, type LensArrangement, type LensFeature, type PageFrame, unionRects } from './lens-feature.js';
 import type { Rect } from './structure.js';
 

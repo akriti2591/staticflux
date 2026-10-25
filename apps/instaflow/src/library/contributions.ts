@@ -5,7 +5,7 @@
  */
 import { html } from 'lit';
 import { definePanel, panelContribution, type PanelContribution } from '../spec/contributions.js';
-import { StudioIds } from '../spec/studio-contributions.js';
+import { StudioIds } from '../spec/studio-ids.js';
 import { defineLibraryPanel } from './library-panel.js';
 
 export const libraryPanel: PanelContribution = /* @__PURE__ */ definePanel({

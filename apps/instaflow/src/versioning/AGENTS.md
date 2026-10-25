@@ -47,8 +47,9 @@ a **frozen snapshot** that leaves no record (D10). Costs scale with document siz
 - `command.ts` — `CreateMilestoneCapability` (`instaflow/create-milestone`, title "Milestone"), `CREATE_MILESTONE_SHORTCUT`
   (`Mod+Alt+S`), `implementCreateMilestone({ milestones, actorFor, prompt })` (no name → opens the form).
 - `panel-model.ts` — `createMilestonesPanelModel({ milestones, snapshots, documents, host, actor, newAssetId, title, signal })`;
-  `VersioningHost` port (`showReadOnly`, `showComparison`, `openDocument`: B0/C3 mount these).
-- `tokens.ts` — `VersioningContext(Token)`, `VersioningServices(Token)`, `LatestServiceToken`, `MilestonesPanelModelToken`,
+  `VersioningHost` port (`showReadOnly`, `showComparison`, `openDocument`: B0/C3 mount these); `MilestonesPanelPort` (what the panel
+  element reads and calls: plain data and plain outcomes, so B9 mirrors the model from the editor worker; every model is one).
+- `tokens.ts` — `VersioningContext(Token)`, `VersioningServices(Token)`, `LatestServiceToken`, `MilestonesPanelModelToken` (typed `MilestonesPanelPort`),
   `ReleasePortToken`, `MAX_MILESTONE_NAME` / `NOTE`. `units.ts` — `createVersioningServices(context, scope)`,
   `versioningServicesUnit` (feature scope), `latestServiceUnit`, `milestonesPanelModelUnit`, `releasePortUnit`, `versioningUnits`.
 - UI (`ui.ts`): `milestones-panel.ts` — `<if-milestones-panel>` (`defineMilestonesPanel`, `milestoneNodes`, `promptCreate()`);

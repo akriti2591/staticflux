@@ -10,8 +10,8 @@
 import { capabilityDeclarationUnit, capabilityImplementationUnit, defineCapability, implementCapability, s } from '@staticflux/capabilities';
 import { AbortedError, err, type Result } from '@staticflux/core';
 import { defineHudAction, hudActionContribution, type HudActionContribution } from '../spec/contributions.js';
-import { StudioIds } from '../spec/studio-contributions.js';
-import { DESCRIBE_TARGETS, type DescribeTarget } from './canvas-a11y.js';
+import { StudioIds } from '../spec/studio-ids.js';
+import { DESCRIBE_TARGETS, type DescribeTarget } from './describe.js';
 import { NoCanvasError } from './errors.js';
 
 export const describeCanvasCapability = defineCapability({

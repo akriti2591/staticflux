@@ -95,7 +95,18 @@ export function createStudio(options: StudioOptions): Studio {
     const choice = picked.get();
     return choice !== undefined && tools.includes(choice) ? choice : tools[0];
   };
-  const change = async (next: (base: EditorSpec) => EditorSpec, signal?: AbortSignal): Promise<Result<SpecProposal>> => {
+  // Spec changes run one after another, each on the spec the previous one left (B9 found a lens switch racing a scope
+  // change: both read the same base and the later proposal put the old scope back).
+  let queue: Promise<unknown> = Promise.resolve();
+  const serial = <T>(task: () => Promise<T>): Promise<T> => {
+    const run = queue.then(task, task);
+    queue = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  };
+  const apply = async (next: (base: EditorSpec) => EditorSpec, signal?: AbortSignal): Promise<Result<SpecProposal>> => {
     const base = proposals.current ?? options.spec ?? studioSpec;
     const spec = next(base);
     // Record the person's pins that the next spec names (saved specs keep them); the runtime retains the others anyway.
@@ -104,6 +115,7 @@ export function createStudio(options: StudioOptions): Studio {
     const proposal = await proposals.propose({ ...spec, pinned: pins }, PERSON, signal === undefined ? {} : { signal });
     return settled(proposal);
   };
+  const change = (next: (base: EditorSpec) => EditorSpec, signal?: AbortSignal): Promise<Result<SpecProposal>> => serial(() => apply(next, signal));
 
   const studio: Studio = {
     registries: options.registries,
@@ -130,11 +142,12 @@ export function createStudio(options: StudioOptions): Studio {
     },
     switchLens: (lens, signal) => change((base) => studioSpecFor(lens, base), signal),
     setDensity: (density, signal) => change((base) => ({ ...base, density }), signal),
-    async setScope(scope, signal) {
-      const current = proposals.current ?? options.spec ?? studioSpec;
-      if (JSON.stringify(current.scope) === JSON.stringify(scope)) return ok(undefined);
-      return change((base) => studioSpecFor(base.lens, { ...base, scope }), signal);
-    },
+    setScope: (scope, signal) =>
+      serial(async (): Promise<Result<SpecProposal | undefined>> => {
+        const current = proposals.current ?? options.spec ?? studioSpec;
+        if (JSON.stringify(current.scope) === JSON.stringify(scope)) return ok(undefined);
+        return apply((base) => studioSpecFor(base.lens, { ...base, scope }), signal);
+      }),
     selectTool(tool) {
       if (!mountedTools().includes(tool)) return err(SpecSlotError({ message: `Tool ${tool} is not in this editor.`, details: { slot: slotOf('tool', tool) } }));
       picked.set(tool);

@@ -56,6 +56,20 @@ describe('createStudio', () => {
     await studio.dispose();
   });
 
+  it('spec changes run in order on the latest spec: a lens switch during a scope change keeps the new scope (B9)', async () => {
+    const studio = make();
+    await studio.open();
+    const first = await studio.setScope({ kind: 'page', page: 'p1' });
+    expect(first.ok ? 'ok' : first.error.message).toBe('ok');
+    const scoped = studio.setScope({ kind: 'asset' });
+    const switched = studio.switchLens(StudioIds.lens.pixel);
+    const [s, l] = await Promise.all([scoped, switched]);
+    expect([s.ok, l.ok]).toEqual([true, true]);
+    expect(studio.spec?.scope).toEqual({ kind: 'asset' });
+    expect(studio.lens?.label).toBe('Pixel');
+    await studio.dispose();
+  });
+
   it('a pinned slot the next lens does not name is retained, and the change is not rejected', async () => {
     const studio = make();
     await studio.open();
