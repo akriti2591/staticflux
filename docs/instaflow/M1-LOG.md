@@ -72,6 +72,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** #26 (B11a + hit-test root-cause fix: index by hitBox) merged. Fable gap research done → PR #28 (docs):
+  GAP-AUDIT.md (backlog B-1 Timeline lens … B-13), DENSITY-DISCLOSURE.md, custom size, first run, import, find and
+  replace, cheat sheet, perf states, localisation, F-54–F-59; owner questions Q-A–Q-H asked. B11a2 paused at
+  a47960e (overlay model, menus, messaging policy, tooltip WIP); resume next, one agent at a time.
 - **2026-10-25** #27 merged. Owner: Export 7 and 8 accepted; 9 unclear (to be rewritten plainly); custom size in New design
   and Export; dropdowns/disclosure to cut clutter; two density personalities (calm like the Claude artifact UI, dense
   like Figma/Adobe). Owner's standing intent for Fable: an open-ended researcher that FINDS gaps (market analysis,
