@@ -178,7 +178,7 @@ describe.skipIf(!authoringBuilt)('transform mode (LIFECYCLES §36)', () => {
   it('applyTransform commits at once without a session; createPreview clears what it showed', async () => {
     const f = await createToolFixture([sq('a', 0, 0)]);
     f.view.select(['a']);
-    const host = { ...f.tools, mode: undefined };
+    const { mode: _mode, ...host } = f.tools;
     expect(unwrap(applyTransform(host, 'Move', (s) => moveValues(s, 3, 0)))).toEqual({ kind: 'committed', label: 'Move', ops: 1 });
     expect(unwrap(applyTransform(host, 'Move', (s) => moveValues(s, 0, 0)))).toEqual({ kind: 'none' });
     const bad = applyTransform(host, 'Move', () => ({ ok: false, error: { code: 'IF-XF-001' } }) as never);
@@ -242,7 +242,8 @@ describe.skipIf(!authoringBuilt)('B10a keys through the shortcut registry', () =
 
   it('commands without a transform mode report IF-XF-002; skew by keys commits one step', async () => {
     const f = await createToolFixture([sq('a', 0, 0)]);
-    const k = createToolCommands({ ...f.tools, mode: undefined });
+    const { mode: _unused, ...modeless } = f.tools;
+    const k = createToolCommands(modeless);
     f.view.select(['a']);
     const r = k.transform();
     expect(!r.ok && r.error.code).toBe('IF-XF-002');

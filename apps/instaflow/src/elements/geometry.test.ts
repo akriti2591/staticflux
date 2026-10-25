@@ -4,7 +4,7 @@ import { createGeometry, effectSpec, type GeometryWasm, loadAuthoringModule, str
 import type { ResolvedStroke } from './resolve.js';
 import { authoringBuilt, loadGeometry } from './testing/fixtures.js';
 
-const box = { x: 0, y: 0, w: 100, h: 50, rotation: 0, scaleX: 1, scaleY: 1, anchorX: 0.5, anchorY: 0.5, flipX: false, flipY: false };
+const box = { x: 0, y: 0, w: 100, h: 50, rotation: 0, scaleX: 1, scaleY: 1, anchorX: 0.5, anchorY: 0.5, flipX: false, flipY: false, skewX: 0 };
 const stroke = (over: Partial<ResolvedStroke> = {}): ResolvedStroke => ({ paint: { kind: 'none' }, width: 4, align: 'center', join: 'miter', cap: 'butt', miter: 4, dash: [], dashOffset: 0, opacity: 1, blend: 'normal', ...over });
 const I = [1, 0, 0, 1, 0, 0] as const;
 

@@ -53,6 +53,10 @@
       "types": "./dist/tools/index.d.ts",
       "import": "./dist/tools/index.js"
     },
+    "./tools/transform-bar": {
+      "types": "./dist/tools/transform-bar.d.ts",
+      "import": "./dist/tools/transform-bar.js"
+    },
     "./repeat": {
       "types": "./dist/repeat/index.d.ts",
       "import": "./dist/repeat/index.js"

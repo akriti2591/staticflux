@@ -1126,7 +1126,7 @@
     "limit": "3.5 KB"
   },
   {
-    "name": "@instaflow/app/tools (hit testing, selection, transforms, snapping and guides, view state, keyboard, contributions; incl. the B1 element modules it uses, shared with /elements in the app chunk; excl. framework and lit)",
+    "name": "@instaflow/app/tools (hit testing, selection, transforms, snapping and guides, view state, keyboard, contributions; B10a raised 24 → 27.5 KB for flip, skew, pivot, transform mode and their capabilities; incl. the B1 element modules it uses, shared with /elements in the app chunk; excl. framework and lit)",
     "path": "apps/instaflow/dist/tools/index.js",
     "ignore": [
       "mobx",
@@ -1146,7 +1146,32 @@
       "@staticflux/shell/spec",
       "@staticflux/gate"
     ],
-    "limit": "24 KB"
+    "limit": "27.5 KB"
+  },
+  {
+    "name": "@instaflow/app/tools/transform-bar (B10a numeric transform bar; excl. lit, kit and framework)",
+    "path": "apps/instaflow/dist/tools/transform-bar.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/document/v2",
+      "@staticflux/document/render-projection",
+      "@staticflux/stage",
+      "@staticflux/capabilities",
+      "@staticflux/shell/spec",
+      "@staticflux/gate",
+      "@staticflux/kit/button",
+      "@staticflux/kit/icon-button",
+      "@staticflux/kit/inspector",
+      "@staticflux/kit/text-field"
+    ],
+    "limit": "2.5 KB"
   },
   {
     "name": "@instaflow/app/repeat (repeat component, view, placements, actions, handles, contributions; incl. the B1 element code it uses; excl. framework)",

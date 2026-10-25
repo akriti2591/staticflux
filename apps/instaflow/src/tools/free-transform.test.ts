@@ -143,7 +143,7 @@ describe('flip (IF-34.1)', () => {
 
   it('a multi-selection mirrors over its centre on the page axes (twice is the identity)', () => {
     fc.assert(
-      fc.property(arbBox, arbBox, arbAxis, (a, b) => {
+      fc.property(arbBox, arbBox, (a, b) => {
         const start = startOf([element('a', a), element('b', b)]);
         const once = after(start, flipValues(start, 'horizontal'));
         expectPoint(once.frame.center, start.frame.center, 5);
