@@ -13,6 +13,8 @@ import { css, html, nothing, type TemplateResult } from 'lit';
 import { emit } from './internal/events.js';
 import { uniqueId } from './internal/ids.js';
 import { baseStyles, t } from './internal/styles.js';
+import { defineIconElement } from './icon.js';
+import { chevronDownIcon } from './icons/chevron-down.js';
 
 /** Give `control` an accessible name from a row label (kit fields: `label` + `labelHidden`). */
 export function nameControl(control: Element, label: string): void {
@@ -99,7 +101,7 @@ export class SfInspectorGroupElement extends SfElement<typeof groupSpec> {
 
   override render(): TemplateResult {
     return html`<button class="toggle" id=${this.ids.header} aria-expanded=${this.collapsed ? 'false' : 'true'} aria-controls=${this.ids.body} @click=${() => this.toggle()}>
-        <span class="chevron" aria-hidden="true">▾</span>${this.label}
+        <sf-icon class="chevron" .icon=${chevronDownIcon}></sf-icon>${this.label}
       </button>
       <div class="body" id=${this.ids.body} role="group" aria-labelledby=${this.ids.header} ?hidden=${this.collapsed}><slot></slot></div>`;
   }
@@ -183,6 +185,7 @@ export class SfInspectorRowElement extends SfElement<typeof rowSpec> {
 }
 
 export function defineInspector(registry: CustomElementRegistry = customElements): void {
+  defineIconElement(registry);
   if (registry.get(groupSpec.tag) === undefined) defineComponent(SfInspectorGroupElement, registry);
   if (registry.get(rowSpec.tag) === undefined) defineComponent(SfInspectorRowElement, registry);
 }

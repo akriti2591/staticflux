@@ -1,7 +1,7 @@
 # apps/instaflow/src/theme — AGENTS.md
 
 **Work package:** Instaflow design track **DS1** (the Clean Pop theme in code). **Layer:** app.
-**Depends on:** `@staticflux/ui/theme` (contract, `extendTheme`, `themeContribution`), `@staticflux/ui/default-theme`;
+**Depends on:** `@staticflux/kit/icon` + `/icons/*` (data only, `icons.ts`), `@staticflux/ui/theme` (contract, `extendTheme`, `themeContribution`), `@staticflux/ui/default-theme`;
 tests also use `@staticflux/kit` (render check) and `@staticflux/testkit` (`runThemeContract`).
 **Design source:** `docs/instaflow/design/README.md` (rules) and `Components.dc.html` (`renderVals()` recipes; source of truth).
 **Budget:** data only (no element code). The compiled theme CSS replaces the default theme's in Instaflow's boot; the app
@@ -19,7 +19,10 @@ renders the approved design without app CSS; and the **lens palette**, an Instaf
   incl. `stage` `#E4E9EF` for the editor canvas, which is not a surface for controls).
 - `lenses.ts` — `LENS_IDS`, `LensId`, `LensShape`, `Lens { id, color, onColor, shape, mark }`, `lensPalette`, `lensOf(id)`,
   `lenses()`, `lensMarkStyle(lens, scale)` (decorative mark), `lensTag(lens)` (`<sf-tag .color .ink>` props).
-- `index.ts` — re-exports both.
+- `icons.ts` — the icon tables (B11a): `LAYER_KINDS` / `layerKindIcon(kind)` (Layers rows, inspector header), `TOOL_ICON_IDS` /
+  `toolIcon(tool)` (tool picker), `REPEAT_ICONS`, `BOOLEAN_ICONS`; data over `@staticflux/kit/icons/*` (type-only imports of the
+  repeat and boolean kinds).
+- `index.ts` — re-exports all three.
 
 ## Mapping notes (design → contract)
 - page → `canvas`; white → `surface1..3` and `surfaceSunken` (fields are white); tint → `neutral3` (switcher tracks, tags,

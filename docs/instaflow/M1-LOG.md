@@ -34,14 +34,18 @@ entries at the top of **Journal**.
 | B10a Transform tools, basics | Merged | `main` | #23 |
 | C0 Home route | PR open (full check 4,314 tests; Studio and Home smokes green) | working branch | #24 |
 
-| C1 Export | Full check + smokes green on the working branch; PR open | working branch | — |
+| C1 Export | Merged (akriti2591/staticflux#25) | main | — |
 | UX spec | Done, on the working branch | `docs/instaflow/ux/` | — |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
 
 ## Next (one work package at a time; order, scope and IDs in M1C-NOTES.md)
-1. Owner merges the C1 PR (C1 + UX docs + brand assets + notes); then reset the working branch and start B11a.
+1. B11a done (PR open), narrowed to icons, number field, inline rename and other non-overlay controls
+   (`claude/wip-b11a-foundations`). In parallel, docs only: the UX primitives spec (Fable, `claude/wip-ux-primitives`):
+   overlays, dialogs and nesting (Share, Milestones), the error/feedback hierarchy, tooltips, coach marks, the HUD per
+   selection type, deep links, Chat expansion, DevTools UX.
+2. Then B11a2 (overlay and feedback blocks from that spec), then B11b.
 2. **B11a** foundations, then **B11b** Studio and Home surfaces (UX docs, owner decisions in STUDIO-UX-SPEC §14, logo).
 3. C2 Import → C3 Modes and identity → C4 Hardening (end-to-end checkpoint in CI, performance and loading pass).
 4. B10b distort / perspective / warp: early M2.
@@ -68,6 +72,28 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** #27 merged. Owner: Export 7 and 8 accepted; 9 unclear (to be rewritten plainly); custom size in New design
+  and Export; dropdowns/disclosure to cut clutter; two density personalities (calm like the Claude artifact UI, dense
+  like Figma/Adobe). Owner's standing intent for Fable: an open-ended researcher that FINDS gaps (market analysis,
+  shortcuts, everything end to end), not a writer of what the coordinator names. Fable research agent launched on
+  `claude/wip-ux-research` (GAP-AUDIT.md first, then fills top gaps). Be careful with token spend (owner near limit).
+- **2026-10-25** Owner: Export needs a Share-grade worked flow (customisations). Fable agent adding the Export tab end
+  to end to OVERLAYS-FEEDBACK (presets, per-format options, naming, multi-format, advanced step, memory, errors, deep
+  links; options marked C1-supported / UI-only / engine follow-up) + F-53, on `claude/wip-ux-primitives` (#27).
+- **2026-10-25** Owner: "all recommended" for the six OVERLAYS-FEEDBACK §6 questions (recorded there, ff151d2). Spec
+  merged into the working branch (so #26 now carries it too; #27 stays mergeable either order). B11a2 launched,
+  stacked, on `claude/wip-b11a2-overlays` (IDs IF-35.14+, §37, IF-POL-001…049).
+- **2026-10-25** UX primitives spec done (PR #27, docs only): OVERLAYS-FEEDBACK, NAVIGATION-DEEPLINKS, DEVTOOLS-UX-SPEC,
+  HUD §4.2 (one control model), Chat §7–9, F-47–F-52. Six owner questions in OVERLAYS-FEEDBACK §6 (asked). Next after
+  #26 and #27 merge: B11a2 (overlay and feedback blocks), then B11b.
+- **2026-10-25** B11a merged on the working branch (58201ab…74721f1): `<sf-icon>` + 89 Lucide and 15 custom icons,
+  number field, inline edit, swatch; R13.32–35, SF-KIT-001–002, IF-35.1–35.13, §37. Full check, smokes and
+  agents:check green (regenerated the stale surface AGENTS.md row order, drift from main). PR opened.
+- **2026-10-25** Owner: primitives need real design (dialogs, errors, toasts, coach marks, tooltips, nested pop-ups like
+  Share and Milestones, a Canva-style HUD per selection type, deep links to everything). FOUNDATIONS had about 7 lines
+  each and no deep links. B11a was narrowed to non-overlay blocks; a Fable agent is writing OVERLAYS-FEEDBACK.md,
+  NAVIGATION-DEEPLINKS.md, DEVTOOLS-UX-SPEC.md, HUD (§4.2) and Chat expansion. New WP B11a2 (overlay blocks) before B11b.
+- **2026-10-25** C1 merged (#25). Working branch reset to main. B11a agent launched on `claude/wip-b11a-foundations`.
 - **2026-10-25** C1 full check: three guard lists didn't know C1's additions (export Wasm crate, its 230 KB brotli
   budget, the Export panel in the chrome audit coverage). Lists updated; check, smokes (both topologies) and Home smoke
   green. C1 PR opened.

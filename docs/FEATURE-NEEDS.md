@@ -387,6 +387,15 @@ and `apps/instaflow/src/workers`. No new framework API and no new R-ID: B10a com
 - "Skew is part of the position" → `@staticflux/stage` `positionPaths` extended by the app's stage rules (`spatial.skewX`), so locks cover it.
 - "The numeric bar is keyboard-first under Clean Pop" → `@staticflux/kit` text field, button, icon button (`pressed`) and inspector rows.
 
+### Foundations (Instaflow M1c · B11a)
+Consumer: Studio and Home surfaces (B11b) through `apps/instaflow/src/theme/icons.ts` and the kit. New framework API: R13.32–R13.35,
+SF-KIT-001…002.
+- "Every icon is the same outline set, and only the icons a surface uses ship" → `@staticflux/kit/icon` (`<sf-icon .icon>`) and per-icon
+  modules `@staticflux/kit/icons/<name>` (R13.32).
+- "Numbers can be typed as expressions or dragged, and multi-selections show Mixed" → `<sf-number-field>` (R13.33).
+- "Rename in place: Enter saves, Escape cancels, empty is refused" → `<sf-inline-edit>` (R13.34).
+- "A swatch shows the resolved colour, hatched when a token is missing" → `<sf-swatch>` (R13.35).
+
 ### Home route (Instaflow M1c · C0)
 Consumer: `apps/instaflow/src/home` (Home's model, element and boot), `apps/instaflow/src/workspace` (the persistent workspace and the
 store-side pieces Home relies on) and their dev entries. New framework API: `<sf-card>` (R13.31).

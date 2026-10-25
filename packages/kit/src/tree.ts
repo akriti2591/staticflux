@@ -27,6 +27,8 @@ import { emit } from './internal/events.js';
 import { uniqueId } from './internal/ids.js';
 import { baseStyles, t } from './internal/styles.js';
 import { typeaheadIndex } from './internal/typeahead.js';
+import { defineIconElement } from './icon.js';
+import { chevronDownIcon } from './icons/chevron-down.js';
 
 export interface TreeNode {
   readonly id: string;
@@ -200,8 +202,9 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
       }
       .twisty {
         flex: none;
+        display: inline-flex;
+        justify-content: center;
         inline-size: ${t.size.icon.css};
-        text-align: center;
         color: ${t.color.textMuted.css};
         transition: transform ${t.motion.durationFast.css} ${t.motion.easeStandard.css};
       }
@@ -432,8 +435,8 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
 
   private onRowClick(event: MouseEvent, row: TreeRow): void {
     if (row.node.disabled === true) return;
-    const target = event.composedPath()[0];
-    if (target instanceof Element && target.classList.contains('twisty') && row.expanded !== undefined) {
+    const onTwisty = event.composedPath().some((target) => target instanceof Element && target.classList.contains('twisty'));
+    if (onTwisty && row.expanded !== undefined) {
       this.setExpanded(row.node.id, !row.expanded);
       return;
     }
@@ -550,7 +553,7 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
               @dragover=${(e: DragEvent) => this.onDragOver(e, r)}
               @drop=${(e: DragEvent) => this.onDrop(e, r)}
             >
-              <span class="twisty" aria-hidden="true">${r.expanded === undefined ? '' : '▾'}</span>${r.node.icon ?? nothing}<span class="label">${r.node.label}</span>${r.node.badge === undefined
+              <span class="twisty" aria-hidden="true">${r.expanded === undefined ? nothing : html`<sf-icon .icon=${chevronDownIcon}></sf-icon>`}</span>${r.node.icon ?? nothing}<span class="label">${r.node.label}</span>${r.node.badge === undefined
                 ? nothing
                 : html`<span class="badge">${r.node.badge}</span>`}
             </div>`,
@@ -562,5 +565,6 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
 }
 
 export function defineTree(registry: CustomElementRegistry = customElements): void {
+  defineIconElement(registry);
   if (registry.get(treeSpec.tag) === undefined) defineComponent(SfTreeElement, registry);
 }
