@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { DocumentCRDTv2, PartOp, PeerId, TransactionMeta } from './crdt-v2.js';
 import { createLoroEngine, loroLiveHandles, loroWasmMemoryBytes } from './loro-crdt.js';
 
+/** Counts and equality only, never wall-clock: the timeout just keeps a loaded CI runner from failing it. */
+const HEAVY_TEST_TIMEOUT_MS = 30_000;
+
 const engine = createLoroEngine();
 const human: TransactionMeta = { actor: { kind: 'human', id: 'guest-1' }, label: 'Edit' };
 const agent: TransactionMeta = { actor: { kind: 'agent', id: 'agent-7' }, label: 'Agent edit' };
@@ -353,7 +356,8 @@ describe('Loro adapter handle accounting (D14 leak rule)', () => {
     expect(engine.liveHandles()).toBe(start);
   });
 
-  it('keeps Wasm memory flat over repeated open/edit/close cycles (leak test)', () => {
+  // Heavy by design (a 2,000-node snapshot loaded 30 times; ~2.5 s alone): its own timeout so a busy machine can't fail it.
+  it('keeps Wasm memory flat over repeated open/edit/close cycles (leak test)', { timeout: HEAVY_TEST_TIMEOUT_MS }, () => {
     const start = loroLiveHandles();
     const snapshot = (() => {
       const doc = engine.create({ peer: '1' });

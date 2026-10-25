@@ -14,6 +14,9 @@ import { createPartCapture } from './parts.js';
 import type { AssetId, MilestoneId } from './records.js';
 import { createCountingStore, editPages, engine, priya, registry, repoOn, seedDocument, signal, unwrap } from './test-helpers.js';
 
+/** Counts and equality only, never wall-clock: the timeout just keeps a loaded CI runner from failing it. */
+const HEAVY_TEST_TIMEOUT_MS = 30_000;
+
 const PAGES = 12;
 const PER_PAGE = 30;
 
@@ -80,7 +83,8 @@ async function coldSession(store: CountingStore, asset: string, n: number, oldes
 }
 
 describe('versioning costs vs age (IF-5.9)', () => {
-  it('creating, opening and branching from milestones costs the same at age 3, 20 and 60', async () => {
+  // Heavy by design (60 milestones over a 12-page document; ~2.2 s alone): its own timeout so a busy machine can't fail it.
+  it('creating, opening and branching from milestones costs the same at age 3, 20 and 60', { timeout: HEAVY_TEST_TIMEOUT_MS }, async () => {
     const store = createCountingStore();
     const asset = 'as_aging';
     const seed = await seedDocument(repoOn(store), asset, PAGES, PER_PAGE);

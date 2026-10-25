@@ -12,7 +12,7 @@ import { type SfError, toSfError } from '@staticflux/core';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Worker } from 'node:worker_threads';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineLayout } from './channels.js';
 import { createLink, type Link, type Port } from './index.js';
 import {
@@ -60,6 +60,10 @@ afterEach(async () => {
 });
 
 const TIMEOUT = 20_000;
+
+// Every test here spawns real worker threads (~1.7–4.8 s each alone). Counts and equality only, never wall-clock:
+// the longer timeout just keeps a loaded runner from failing them.
+vi.setConfig({ testTimeout: 30_000 });
 
 describe('seqlock cell across threads', () => {
   it('without the seqlock the checksum catches torn reads; with it none are ever returned', async () => {

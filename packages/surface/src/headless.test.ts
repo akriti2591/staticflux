@@ -4,6 +4,9 @@ import { createHeadlessSurface, DEFAULT_HEADLESS_MAX_PIXELS } from './headless.j
 import { createMemoryRasterBackend } from './memory-raster-backend.js';
 import type { RasterBackend } from './raster-backend.js';
 
+/** Counts and equality only, never wall-clock: the timeout just keeps a loaded CI runner from failing it. */
+const HEAVY_TEST_TIMEOUT_MS = 30_000;
+
 async function scene(maxRegionSize: number) {
   const backend = createMemoryRasterBackend({ maxRegionSize });
   await backend.attach({ signal: new AbortController().signal });
@@ -18,7 +21,8 @@ async function scene(maxRegionSize: number) {
 }
 
 describe('createHeadlessSurface (SF-Δ24 headless)', () => {
-  it('stitches chunks beyond the texture limit into exactly the one-shot image', async () => {
+  // Heavy by design (renders past the texture limit; ~1.4 s alone): its own timeout so a busy machine can't fail it.
+  it('stitches chunks beyond the texture limit into exactly the one-shot image', { timeout: HEAVY_TEST_TIMEOUT_MS }, async () => {
     const big = await scene(4096);
     const small = await scene(64);
     const request = { world: { x0: 0, y0: 0, x1: 150, y1: 100 }, width: 300, height: 200, background: [1, 1, 1, 1] as const };
