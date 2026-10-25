@@ -1,5 +1,5 @@
 // Serve-only static server for the human IME check page (B2). No dependencies.
-// Usage (repo root): pnpm build && pnpm --filter @instaflow/app ime-check   (or: node apps/instaflow/src/text/ime-check/serve.mjs)
+// Usage (repo root): pnpm ime-check   (builds, then serves; already built: node apps/instaflow/src/text/ime-check/serve.mjs)
 // Then open the printed URL in desktop Chrome. Ctrl+C stops it. Serves the repo read-only on localhost.
 import { createReadStream, statSync } from 'node:fs';
 import { createServer } from 'node:http';

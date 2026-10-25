@@ -9,7 +9,13 @@ import { mountTestRoot, settle } from '@staticflux/ui/testing';
 import { html, render } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { HudActionContributionsToken, PanelContributionsToken, ToolContributionsToken } from '../spec/contributions.js';
-import { StudioIds } from '../spec/studio-contributions.js';
+import { validateSpec } from '@staticflux/shell/spec';
+import { editDocumentCapability, proposeSpecCapability } from '../spec/capabilities.js';
+import { gateSpecDecide } from '../spec/gate.js';
+import { createEditorRegistries, toShellSpec } from '../spec/registries.js';
+import { StudioIds, studioHudActions, studioLenses, studioPanels, studioTools } from '../spec/studio-contributions.js';
+import { studioSpec, studioSpecFor } from '../spec/studio-spec.js';
+import { editorGate } from '../spec/testing/fixtures.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
 import { placeTextOps, TextIds, textContributionUnits, textHudActions, textTool, typographyPanel } from './contributions.js';
 import { ALIGN_OPTIONS, defineTypographyPanel, fontLabel, type IfTypographyPanelElement, TYPOGRAPHY_TEXT } from './typography-panel.js';
@@ -136,10 +142,31 @@ describe('text contributions (B0 tokens)', () => {
     expect(tools.ok && tools.value.map((t) => t.id)).toEqual([StudioIds.tool.text]);
     expect(panels.ok && panels.value.map((p) => p.id)).toEqual([TextIds.panel]);
     expect(hud.ok && hud.value.map((h) => h.id)).toEqual([TextIds.hud.font, TextIds.hud.size, TextIds.hud.fit]);
-    expect(textTool).toMatchObject({ kind: 'instaflow/tool', shortcut: 'T', lenses: [StudioIds.lens.canvas] });
+    expect(textTool).toMatchObject({ kind: 'instaflow/tool', shortcut: 'T', lenses: [StudioIds.lens.canvas, StudioIds.lens.pages] });
     expect(typographyPanel.placements[0]).toBe('inspector');
     expect(textHudActions.every((a) => a.tone === 'direct')).toBe(true);
     expect(typographyPanel.render({ density: 'standard', lens: StudioIds.lens.canvas, scope: 'selection' })).toBeDefined();
+  });
+
+  it('replace B0’s placeholders under the same ids; Studio places Typography in the inspector and still validates', async () => {
+    expect(TextIds.panel).toBe(StudioIds.panel.typography);
+    const ours = new Set<string>([textTool.id, typographyPanel.id]);
+    const registries = createEditorRegistries({
+      lenses: studioLenses,
+      tools: [...studioTools.filter((t) => !ours.has(t.id)), textTool],
+      panels: [...studioPanels.filter((p) => !ours.has(p.id)), typographyPanel],
+      hud: [...studioHudActions, ...textHudActions],
+      capabilities: [proposeSpecCapability, editDocumentCapability],
+    });
+    expect(registries.ok).toBe(true);
+    if (!registries.ok) return;
+    expect(registries.value.panel(TextIds.panel)).toBe(typographyPanel);
+    for (const spec of [studioSpec, studioSpecFor(StudioIds.lens.pages)]) {
+      expect(spec.tools).toContain(TextIds.tool);
+      expect(spec.panels).toContainEqual({ panel: TextIds.panel, dock: 'inspector' });
+      expect((await validateSpec(toShellSpec(spec), registries.value.vocabulary, { decide: gateSpecDecide(editorGate('pro').gate) })).ok).toBe(true);
+    }
+    expect(studioSpecFor(StudioIds.lens.pixel).panels.some((p) => p.panel === TextIds.panel)).toBe(false);
   });
 
   it('the Text tool places auto-width or fixed-width text', () => {

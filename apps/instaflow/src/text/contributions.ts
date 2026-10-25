@@ -18,11 +18,12 @@ import { type TypographyService, TypographyServiceToken } from './typography.js'
 /** Stable ids (specs, saved specs and pins refer to them). */
 export const TextIds = Object.freeze({
   tool: StudioIds.tool.text,
-  panel: 'instaflow/typography',
+  panel: StudioIds.panel.typography,
   hud: { font: 'instaflow/text-font', size: 'instaflow/text-size', fit: 'instaflow/text-fit' },
 } as const);
 
-const canvas = StudioIds.lens.canvas;
+/** Text edits in the layout lenses (the same lenses as Studio's Text tool and Typography slot). */
+const LENSES = [StudioIds.lens.canvas, StudioIds.lens.pages];
 
 /** The Text tool (`T`): click to create a text element, click into text to edit it (B3 runs the pointer flow). */
 export const textTool = /* @__PURE__ */ defineTool({
@@ -30,7 +31,7 @@ export const textTool = /* @__PURE__ */ defineTool({
   label: 'Text',
   glyph: 'T',
   shortcut: 'T',
-  lenses: [canvas],
+  lenses: LENSES,
   description: 'Create and edit text: click to place, drag to set a width, click into text to edit.',
 });
 
@@ -38,17 +39,18 @@ export const typographyPanel: PanelContribution = /* @__PURE__ */ definePanel({
   id: TextIds.panel,
   label: 'Typography',
   placements: ['inspector', 'side'],
-  minDensity: 'standard',
-  lenses: [canvas],
+  // The inspector column is Pro (UX §3), like Properties: Focus and Standard keep it closed.
+  minDensity: 'pro',
+  lenses: LENSES,
   scopes: ['selection', 'asset', 'page'],
   description: 'Font, size, style, alignment, line height and colour of the selected text.',
   render: () => html`<if-typography-panel></if-typography-panel>`,
 });
 
 export const textHudActions = Object.freeze([
-  defineHudAction({ id: TextIds.hud.font, label: 'Font', tone: 'direct', lenses: [canvas], scopes: ['selection'], description: 'Pick the font of the selected text.' }),
-  defineHudAction({ id: TextIds.hud.size, label: 'Size', tone: 'direct', lenses: [canvas], scopes: ['selection'], description: 'Set the font size of the selected text.' }),
-  defineHudAction({ id: TextIds.hud.fit, label: 'Fit to box', tone: 'direct', lenses: [canvas], scopes: ['selection'], description: 'Scale the text so it fits its box.' }),
+  defineHudAction({ id: TextIds.hud.font, label: 'Font', tone: 'direct', lenses: LENSES, scopes: ['selection'], description: 'Pick the font of the selected text.' }),
+  defineHudAction({ id: TextIds.hud.size, label: 'Size', tone: 'direct', lenses: LENSES, scopes: ['selection'], description: 'Set the font size of the selected text.' }),
+  defineHudAction({ id: TextIds.hud.fit, label: 'Fit to box', tone: 'direct', lenses: LENSES, scopes: ['selection'], description: 'Scale the text so it fits its box.' }),
 ]);
 
 /**

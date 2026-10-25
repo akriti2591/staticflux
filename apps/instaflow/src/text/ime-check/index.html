@@ -4,7 +4,7 @@
 <title>Instaflow IME check</title>
 <!--
   Human IME check (B2, IF-7.7; LIFECYCLES §22 criterion "IME candidate at the caret" stays INCONCLUSIVE until the owner
-  confirms). Serve-only: `pnpm build && pnpm --filter @instaflow/app ime-check`, then open the printed URL in desktop
+  confirms). Serve-only: `pnpm ime-check` (repo root; builds, then serves), then open the printed URL in desktop
   Chrome. The text is laid out by the authoring text Wasm (Parley), drawn by the render Wasm (Vello on WebGPU), and
   edited through the TextInput port (EditContext in Chrome; add ?input=textarea for the hidden-textarea adapter).
   Steps: apps/instaflow/src/text/AGENTS.md ("Human IME check").
@@ -45,7 +45,15 @@
   <canvas id="overlay" width="640" height="320"></canvas>
   <div id="host" aria-label="Text under test"></div>
 </div>
-<p>Click the box, switch your OS input method to Japanese, Chinese (Pinyin) or Korean, and type. The candidate window must
-  sit at the caret (under the underlined composition). Results to report: <code>window.__imeCheck.log</code>.</p>
+<ol>
+  <li>Click <b>Use local CJK fonts</b> and allow it (so CJK text renders). Click into the box after the text. Japanese IME: type <code>nihongo</code>, Space, Enter. Pass: the candidate list
+    sits right under the underlined text, and 日本語 lands there.</li>
+  <li>Chinese (Pinyin): type <code>zhongwen</code>. Korean (2-Set): type <code>gksrmf</code>. Pass: the candidates (or the
+    syllables) stay at the caret.</li>
+  <li>Click <b>Fill a long line</b>, then <b>Insert an Arabic word</b>; repeat step 1 after each, and once zoomed in
+    (Ctrl/⌘ +). Pass: the candidates follow the caret.</li>
+  <li>Add <code>?input=textarea</code> to the URL and repeat steps 1–2.</li>
+</ol>
+<p>Report pass or fail per step. On a failure, paste the output of <code>copy(JSON.stringify(window.__imeCheck.log))</code>.</p>
 <pre id="log"></pre>
 <script type="module" src="./page.js"></script>

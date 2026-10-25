@@ -31,7 +31,7 @@ describe('createStudio', () => {
       'lens@default': ['lens:instaflow/lens-canvas'],
       'panel@side': ['panel:instaflow/chat'],
       'panel@dock': ['panel:instaflow/layers', 'panel:instaflow/pages', 'panel:instaflow/assets', 'panel:instaflow/brand'],
-      'panel@inspector': ['panel:instaflow/properties'],
+      'panel@inspector': ['panel:instaflow/properties', 'panel:instaflow/typography'],
       'hud@default': ['hud:instaflow/rewrite', 'hud:instaflow/animate', 'hud:instaflow/more', 'hud:instaflow/ask'],
     });
     expect(studio.proposals.history.map((p) => p.source.kind)).toEqual(['preset']);

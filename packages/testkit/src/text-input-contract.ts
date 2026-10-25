@@ -16,6 +16,7 @@ import {
   type ClientRect,
   createEditContextTextInput,
   createHiddenTextareaTextInput,
+  type EditContextConstructor,
   type EditContextLike,
   type TextInput,
   type TextInputState,
@@ -367,12 +368,11 @@ export function editContextContractSubject(doc: Document = globalThis.document):
       const host = doc.createElement('div');
       doc.body.appendChild(host);
       let fake: FakeEditContext | undefined;
-      class Ctor extends FakeEditContext {
-        constructor(init?: { text?: string; selectionStart?: number; selectionEnd?: number }) {
-          super(init);
-          fake = this;
-        }
-      }
+      // A constructor that records the instance it makes (composition, not a subclass): `new` returns the fake.
+      const Ctor = function (init?: { text?: string; selectionStart?: number; selectionEnd?: number }): FakeEditContext {
+        fake = new FakeEditContext(init);
+        return fake;
+      } as unknown as EditContextConstructor;
       const input = okValue(createEditContextTextInput({ host, document: doc, EditContext: Ctor, label: 'Text' }), 'create EditContext input');
       const ec = fake as FakeEditContext;
       const driver: TextInputDriver = {

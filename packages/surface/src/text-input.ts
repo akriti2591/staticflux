@@ -328,14 +328,16 @@ export function createEditContextTextInput(options: EditContextTextInputOptions)
   const onBlur = (): void => {
     focused = false;
   };
-  ec.addEventListener('textupdate', onTextUpdate);
-  ec.addEventListener('compositionstart', onCompositionStart);
-  ec.addEventListener('compositionend', onCompositionEnd);
-  ec.addEventListener('textformatupdate', onFormat);
-  ec.addEventListener('characterboundsupdate', onBounds);
-  host.addEventListener('keydown', onKey);
-  host.addEventListener('focus', onFocus);
-  host.addEventListener('blur', onBlur);
+  const listeners = new AbortController();
+  const { signal } = listeners;
+  ec.addEventListener('textupdate', onTextUpdate, { signal });
+  ec.addEventListener('compositionstart', onCompositionStart, { signal });
+  ec.addEventListener('compositionend', onCompositionEnd, { signal });
+  ec.addEventListener('textformatupdate', onFormat, { signal });
+  ec.addEventListener('characterboundsupdate', onBounds, { signal });
+  host.addEventListener('keydown', onKey, { signal });
+  host.addEventListener('focus', onFocus, { signal });
+  host.addEventListener('blur', onBlur, { signal });
 
   return ok({
     kind: 'edit-context',
@@ -361,14 +363,7 @@ export function createEditContextTextInput(options: EditContextTextInputOptions)
     onIntent: intents.add,
     onBoundsRequest: requests.add,
     dispose() {
-      ec.removeEventListener('textupdate', onTextUpdate);
-      ec.removeEventListener('compositionstart', onCompositionStart);
-      ec.removeEventListener('compositionend', onCompositionEnd);
-      ec.removeEventListener('textformatupdate', onFormat);
-      ec.removeEventListener('characterboundsupdate', onBounds);
-      host.removeEventListener('keydown', onKey);
-      host.removeEventListener('focus', onFocus);
-      host.removeEventListener('blur', onBlur);
+      listeners.abort();
       (host as HTMLElement & { editContext?: unknown }).editContext = null;
       intents.set.clear();
       requests.set.clear();
@@ -483,13 +478,15 @@ export function createHiddenTextareaTextInput(options: TextInputOptions): Result
   const onBlur = (): void => {
     focused = false;
   };
-  area.addEventListener('beforeinput', onBeforeInput);
-  area.addEventListener('compositionstart', onCompositionStart);
-  area.addEventListener('compositionupdate', onCompositionUpdate);
-  area.addEventListener('compositionend', onCompositionEnd);
-  area.addEventListener('keydown', onKey);
-  area.addEventListener('focus', onFocus);
-  area.addEventListener('blur', onBlur);
+  const listeners = new AbortController();
+  const { signal } = listeners;
+  area.addEventListener('beforeinput', onBeforeInput, { signal });
+  area.addEventListener('compositionstart', onCompositionStart, { signal });
+  area.addEventListener('compositionupdate', onCompositionUpdate, { signal });
+  area.addEventListener('compositionend', onCompositionEnd, { signal });
+  area.addEventListener('keydown', onKey, { signal });
+  area.addEventListener('focus', onFocus, { signal });
+  area.addEventListener('blur', onBlur, { signal });
 
   return ok({
     kind: 'hidden-textarea',
@@ -524,13 +521,7 @@ export function createHiddenTextareaTextInput(options: TextInputOptions): Result
     onIntent: intents.add,
     onBoundsRequest: requests.add,
     dispose() {
-      area.removeEventListener('beforeinput', onBeforeInput);
-      area.removeEventListener('compositionstart', onCompositionStart);
-      area.removeEventListener('compositionupdate', onCompositionUpdate);
-      area.removeEventListener('compositionend', onCompositionEnd);
-      area.removeEventListener('keydown', onKey);
-      area.removeEventListener('focus', onFocus);
-      area.removeEventListener('blur', onBlur);
+      listeners.abort();
       area.remove();
       intents.set.clear();
       requests.set.clear();

@@ -737,9 +737,10 @@ Error codes `IF-TXT-001…010`. Lifecycles: LIFECYCLES §22. Implements IF-7.6 a
 - **IF-21.24** Remote edits refresh the session without losing the selection range.
 - **IF-21.25** **Human IME check** (owner, desktop Chrome, Japanese / Chinese / Korean): candidate window at the composition,
   following wraps and RTL, under page zoom. **INCONCLUSIVE** until confirmed (`src/text/ime-check/`).
-- **IF-21.26** **Text tool** (`T`, Canvas lens): click places an auto-width text element, drag sets a width (B3 runs the
+- **IF-21.26** **Text tool** (`T`, Canvas and Pages lenses; Studio's toolbar): click places an auto-width text element, drag sets a width (B3 runs the
   pointer flow; `placeTextOps` creates it).
-- **IF-21.27** **Typography panel** (inspector, Standard density and up) from kit components: font, size, style toggles,
+- **IF-21.27** **Typography panel** (`instaflow/typography`; Studio places it in the inspector of the Canvas and Pages
+  lenses, Pro density like Properties) from kit components: font, size, style toggles,
   alignment, line height, colour (hex and brand tokens), Fit to box; mixed values shown as Mixed.
 - **IF-21.28** **HUD actions** on selected text: Font, Size, Fit to box (scales every run so the laid-out height fits the box).
 - **IF-21.29** **Typography service**: the same commands for the panel, the HUD, shortcuts and agents (one pipeline).

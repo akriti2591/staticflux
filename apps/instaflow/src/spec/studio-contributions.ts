@@ -32,6 +32,7 @@ export const StudioIds = Object.freeze({
     brand: 'instaflow/brand',
     properties: 'instaflow/properties',
     adjust: 'instaflow/adjust',
+    typography: 'instaflow/typography',
   },
   hud: {
     rewrite: 'instaflow/rewrite',
@@ -82,6 +83,7 @@ export const studioPanels: readonly PanelContribution[] = Object.freeze([
   definePanel({ id: P.brand, label: 'Brand', placements: ['dock'], minDensity: 'standard', render: placeholder('B4') }),
   definePanel({ id: P.properties, label: 'Properties', placements: ['inspector'], minDensity: 'pro', render: placeholder('B1 / B2') }),
   definePanel({ id: P.adjust, label: 'Adjust', placements: ['inspector'], minDensity: 'focus', lenses: [L.pixel], render: placeholder('B3') }),
+  definePanel({ id: P.typography, label: 'Typography', placements: ['inspector', 'side'], minDensity: 'pro', lenses: [L.canvas, L.pages], render: placeholder('B2') }),
 ]);
 
 const H = StudioIds.hud;

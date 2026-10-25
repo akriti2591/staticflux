@@ -49,8 +49,10 @@ screen layout (M1B-NOTES).
   `TypographyServiceToken`, `summarizeTypography`, `fitToBoxOps`, `MIXED`.
 - `typography-panel.ts` — `<if-typography-panel>` (kit only), `defineTypographyPanel`, `fontLabel`, `ALIGN_OPTIONS`,
   `TYPOGRAPHY_TEXT`.
-- `contributions.ts` — **B0 contributions**: `textTool` (`instaflow/text`, `T`), `typographyPanel` (`instaflow/typography`,
-  inspector), `textHudActions` (Font, Size, Fit to box), `TEXT_HUD_COMMANDS`, `textContributionUnits()` (the panel needs
+- `contributions.ts` — **B0 contributions** (Canvas and Pages lenses; they replace Studio's placeholders under the same
+  ids): `textTool` (`instaflow/text`, `T`), `typographyPanel` (`instaflow/typography`; Studio places it in the inspector of
+  both lenses), `textHudActions` (Font, Size, Fit to box; selection scope, so not in Studio's asset-scope HUD row),
+  `TEXT_HUD_COMMANDS`, `textContributionUnits()` (the panel needs
   `TypographyServiceToken`), `placeTextOps` (the Text tool's create action), `TextIds`.
 - `a11y.ts` — `textAccessibility(block, layout, { id, semanticRole, editing, selection, toSurface })` and
   `textAccessibleNode(data)` (the B6 seam: text, paragraphs, lines, links, selection, role), `SEMANTIC_TEXT_ROLES`.
@@ -83,23 +85,14 @@ createTextSession({ input, target: { read, commit }, engine, blockId, layout: re
 - Brand tokens never throw: unresolved ones fall back and are reported (IF-TXT-009).
 - UI only from kit components under Clean Pop; no one-off styles.
 
-## Human IME check (owner, desktop Chrome, ~10 minutes) — LIFECYCLES TXT-10 is **INCONCLUSIVE** until done
-1. `pnpm build && pnpm --filter @instaflow/app ime-check`, then open the printed URL
-   (`http://localhost:4174/apps/instaflow/src/text/ime-check/index.html`) in Chrome stable. The status line says
-   `Ready (edit-context)`.
-2. Click **Use local CJK fonts**, allow the permission (so committed CJK text renders; placement works without it).
-3. Click into the box after the text. **Japanese** (macOS: Japanese – Romaji; Windows: Microsoft IME): type `nihongo`,
-   press Space twice. Pass: the candidate list sits directly under the red-underlined reading, left edge at its first
-   character, and 日本語 appears where the composition was after Enter.
-4. **Chinese** (Pinyin): type `zhongwen`. Pass: the candidate bar is anchored at the composition, not the box corner or
-   the screen origin.
-5. **Korean** (2-Set): type `gksrmf` (한글). Pass: syllables build in place; the caret is not left behind.
-6. Click **Fill a long line**, repeat step 3 on the wrapped line; click **Insert an Arabic word** and repeat after it.
-   Pass: the candidate follows the second line and the RTL position. Zoom the page (Ctrl/⌘ +) and repeat once.
-7. Repeat steps 3–5 with `?input=textarea` appended to the URL (the hidden-textarea adapter; the M1 decision "hidden
-   textarea on Chrome too?").
-Report pass/fail per step and paste `copy(JSON.stringify(window.__imeCheck.log))` for any failure. If the candidate sits at
-the box corner, `setCharacterBounds` / `setSelectionBounds` are wrong (see the log); switching adapters is the fallback.
+## Human IME check (owner, desktop Chrome, ~5 minutes) — LIFECYCLES TXT-10 is **INCONCLUSIVE** until done
+Run `pnpm ime-check` at the repo root (builds, then serves) and open the printed URL
+(`http://localhost:4174/apps/instaflow/src/text/ime-check/index.html`) in Chrome. The status line says `Ready (edit-context)`.
+The four steps are on the page: Japanese `nihongo`, Chinese `zhongwen`, Korean `gksrmf`, then a wrapped line, an Arabic
+word and page zoom, then `?input=textarea` (the hidden-textarea adapter; the M1 question "hidden textarea on Chrome too?").
+Pass = the candidate window sits at the caret / composition every time. Report pass or fail per step; on a failure paste
+`copy(JSON.stringify(window.__imeCheck.log))`. A candidate at the box corner means `setCharacterBounds` /
+`setSelectionBounds` are wrong (see the log); switching adapters is the fallback.
 
 ## Test
 `pnpm vitest run apps/instaflow/src/text` (rich text + 3-peer convergence property, styles, fonts and the LFA flow, the
@@ -114,4 +107,3 @@ TextInput contract on both implementations) · `cargo test` in `engine/` · gold
 - B1's `duplicate` (elements/actions.ts) copies props only: duplicating a text element loses its rich text. Use
   `duplicateTextOps` for text nodes (or copy `texts` in `duplicate`).
 - Emoji: colour glyphs (COLR/CBDT) draw only outline fallbacks in the render module (budget: see engine AGENTS.md).
-- The editor spec does not yet place `instaflow/typography` in Studio's inspector (B0 owns `studio-spec.ts`).
