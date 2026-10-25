@@ -8,7 +8,7 @@
  */
 import { contribution, unit } from '@staticflux/core';
 import { DecideToken, VisibilityObserverToken } from '@staticflux/ui';
-import { createSurfaceManager } from './manager.js';
+import { createSurfaceManager, strictSurfacePolicy } from './manager.js';
 import { createMemoryKeyValue } from './ports.js';
 import { createRoutableDialogBridge } from './routable.js';
 import type { AnySurfaceDef } from './surface.js';
@@ -37,6 +37,26 @@ export const surfaceManagerUnit = unit({
   description: 'The single surface manager: arbitration, scope-bound lifetimes, gating, metrics.',
 });
 
+/**
+ * The surface manager under `strictSurfacePolicy` (OVERLAYS-FEEDBACK §1): one modal at a time (a second is refused,
+ * SF-MSG-008; a blocking error replaces with `replace: true`), one popover at a time, Escape reaches the newest toast.
+ * Register this instead of `surfaceManagerUnit`; both provide `SurfaceManagerToken`.
+ */
+export const strictSurfaceManagerUnit = unit({
+  id: 'messaging/strict-surface-manager-unit',
+  provides: SurfaceManagerToken,
+  scope: 'app',
+  deps: { required: { decide: DecideToken, seen: SeenStoreToken, visibility: VisibilityObserverToken } },
+  create: ({ decide, seen, visibility }, ctx) => {
+    const reducedMotion = (): boolean =>
+      typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const manager = createSurfaceManager({ telemetry: ctx.telemetry, decide, seen, visibility, reducedMotion, policy: strictSurfacePolicy });
+    ctx.scope.defer(() => manager.dispose());
+    return manager;
+  },
+  description: 'The surface manager under the strict overlay policy (one modal, one popover, Escape reaches toasts).',
+});
+
 export const routableDialogBridgeUnit = unit({
   id: 'messaging/routable-dialog-bridge-unit',
   provides: RoutableDialogBridgeToken,
@@ -61,3 +81,6 @@ export function routableSurface(def: AnySurfaceDef) {
 }
 
 export const messagingUnits = [memorySeenStoreUnit, surfaceManagerUnit, routableDialogBridgeUnit] as const;
+
+/** `messagingUnits` with the strict overlay policy (Instaflow, OVERLAYS-FEEDBACK §1). */
+export const strictMessagingUnits = [memorySeenStoreUnit, strictSurfaceManagerUnit, routableDialogBridgeUnit] as const;

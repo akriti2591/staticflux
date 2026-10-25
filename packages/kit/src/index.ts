@@ -26,8 +26,18 @@ import { defineTextField } from './text-field.js';
 import { defineToolbar } from './toolbar.js';
 import { defineTooltip } from './tooltip.js';
 import { defineTree } from './tree.js';
+import { defineConfirmRow } from './confirm-row.js';
+import { defineFeedback } from './feedback.js';
+import { defineCopyField } from './copy-field.js';
+import { defineHint } from './hint.js';
+import { defineDisclosure } from './disclosure.js';
+import { defineColorPopover } from './color-popover.js';
+import { defineFontPicker } from './font-picker.js';
+import { defineAlignPopover } from './align-popover.js';
 
 export * from './messages.js';
+export * from './feedback-messages.js';
+export * from './picker-messages.js';
 export * from './errors.js';
 export * from './icon.js';
 export * from './number-field.js';
@@ -54,6 +64,15 @@ export * from './dock.js';
 export * from './inspector.js';
 export * from './tree.js';
 export * from './command-palette.js';
+export * from './overlay.js';
+export * from './confirm-row.js';
+export * from './feedback.js';
+export * from './copy-field.js';
+export * from './hint.js';
+export * from './disclosure.js';
+export * from './color-popover.js';
+export * from './font-picker.js';
+export * from './align-popover.js';
 export { resizeMachine, sizeFromDrag, sizeFromKey, clampSize } from './internal/resize.js';
 
 /** Register every kit element (idempotent). Prefer the per-component `define*` in boot paths. */
@@ -82,6 +101,14 @@ export function defineKit(registry: CustomElementRegistry = customElements): voi
     defineInspector,
     defineTree,
     defineCapabilityPalette,
+    defineConfirmRow,
+    defineFeedback,
+    defineCopyField,
+    defineHint,
+    defineDisclosure,
+    defineColorPopover,
+    defineFontPicker,
+    defineAlignPopover,
   ]) {
     define(registry);
   }

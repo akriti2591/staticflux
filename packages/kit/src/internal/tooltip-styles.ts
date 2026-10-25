@@ -16,6 +16,17 @@ export const tooltipStyles = css`
     border-radius: ${t.radius.sm.css};
     box-shadow: ${t.shadow.level2.css};
     white-space: nowrap;
+    /* 80 ms in, nothing out (OVERLAYS-FEEDBACK §4); 0 under reduced motion through the token. */
+    transition-duration: ${t.motion.durationFast.css};
+  }
+  .tooltip:not([data-open]) {
+    transition: none;
+  }
+  .tooltip .description {
+    display: block;
+    font-weight: ${t.font.weightRegular.css};
+    opacity: 0.75;
+    white-space: normal;
   }
   .tooltip:not([popover]) {
     z-index: ${t.z.tooltip.css};

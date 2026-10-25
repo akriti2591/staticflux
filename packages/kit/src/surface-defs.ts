@@ -1,17 +1,31 @@
 /**
- * `@staticflux/kit/surface-defs` — messaging surface declarations rendered with the kit
- * frame and toast. Data only: no element classes, so boot modules can declare surfaces
- * and the elements load with `<sf-surface-layer>` (`@staticflux/kit/surfaces`).
+ * `@staticflux/kit/surface-defs` — messaging surface declarations rendered with the kit frames. Data only: no element
+ * classes, so boot modules can declare surfaces and the elements load with `<sf-surface-layer>`
+ * (`@staticflux/kit/surfaces`).
  *
- * - `defineDialogSurface` — `defineSurface` with `<sf-dialog>` around the body: the title is
- *   the visible heading and the accessible name (`label`), so no cross-root `aria-labelledby`;
- *   the frame's close button dismisses with `user`.
- * - `defineToastSurface` — `<sf-toast>` with tone, message, optional action (dismiss `action`).
+ * - `defineDialogSurface` — `defineSurface` with `<sf-dialog>` around the body: the title is the visible heading and
+ *   the accessible name (`label`), so no cross-root `aria-labelledby`; the frame guards user dismissals through the
+ *   render context (wizard Back, the discard row) and its × dismisses with `user`.
+ * - `defineConfirmSurface` — the confirm and destructive types (OVERLAYS-FEEDBACK §2.1): 420 px, one sentence,
+ *   `Cancel · <Verb>`; destructive is an `alertdialog` with focus on Cancel and no backdrop dismiss. Resolves `true`
+ *   when confirmed.
+ * - `defineToastSurface` — `<sf-toast>` with tone, message, one action (`Undo`, `Open`, the error's fix), a repeat count
+ *   when deduplicated, and `×` only when sticky (OVERLAYS-FEEDBACK §3.5).
  */
 import { defineSurface, type DismissReason, type SurfaceDef, type SurfaceDefInit, type SurfaceRenderContext } from '@staticflux/messaging';
 import { html, nothing } from 'lit';
 
 export type ToastTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+
+/** Toast durations (OVERLAYS-FEEDBACK §3.5): neutral and success 5 s, with an action 8 s, danger 10 s, urgent sticky. */
+export const TOAST_DURATIONS = Object.freeze({ plain: 5_000, action: 8_000, danger: 10_000 });
+
+/** The duration a toast gets from its tone and whether it carries an action (`null` = sticky). */
+export function toastDuration(tone: ToastTone, hasAction: boolean, urgent = false): number | null {
+  if (urgent) return null;
+  if (tone === 'danger') return TOAST_DURATIONS.danger;
+  return hasAction ? TOAST_DURATIONS.action : TOAST_DURATIONS.plain;
+}
 
 export interface DialogSurfaceInit<P, R> extends Omit<SurfaceDefInit<P, R>, 'kind' | 'render' | 'label'> {
   readonly kind?: 'dialog' | 'sheet';
@@ -19,20 +33,133 @@ export interface DialogSurfaceInit<P, R> extends Omit<SurfaceDefInit<P, R>, 'kin
   readonly title: (props: P) => string;
   readonly body: (context: SurfaceRenderContext<P, R>) => unknown;
   readonly actions?: (context: SurfaceRenderContext<P, R>) => unknown;
+  /** Width class (confirm 420, form 520 (default), wizard 640, settings 840). */
+  readonly size?: 'confirm' | 'form' | 'wizard' | 'settings';
+  readonly tone?: 'neutral' | 'danger';
 }
 
 /** A messaging dialog surface rendered in the kit frame. The close button dismisses with `user`. */
 /* @__NO_SIDE_EFFECTS__ */
 export function defineDialogSurface<P = void, R = unknown>(init: DialogSurfaceInit<P, R>): SurfaceDef<P, R> {
-  const { title, body, actions, kind, ...rest } = init;
+  const { title, body, actions, kind, size, tone, ...rest } = init;
   return defineSurface<P, R>({
     ...rest,
     kind: kind ?? 'dialog',
     label: title,
     render: (context) =>
-      html`<sf-dialog heading=${title(context.props)} .dismissible=${init.dismissible ?? true} @sf-close=${() => context.dismiss('user')}
+      html`<sf-dialog
+        heading=${title(context.props)}
+        size=${size ?? 'form'}
+        tone=${tone ?? 'neutral'}
+        .dismissible=${init.dismissible ?? true}
+        .surface=${context}
+        @sf-close=${() => context.dismiss('user')}
         >${body(context)}${actions === undefined ? nothing : html`<div slot="actions" style="display:contents">${actions(context)}</div>`}</sf-dialog
       >`,
+  });
+}
+
+export interface ConfirmSurfaceInit<P> extends Omit<SurfaceDefInit<P, boolean>, 'kind' | 'render' | 'label' | 'alert' | 'backdropDismiss'> {
+  readonly title: (props: P) => string;
+  /** One sentence: what will happen, naming and counting the thing. */
+  readonly message: (props: P) => string;
+  /** The verb (`Delete 14 designs forever`). */
+  readonly confirmLabel: (props: P) => string;
+  readonly cancelLabel?: (props: P) => string;
+  /** `destructive`: `alertdialog`, danger button, focus on Cancel, the backdrop does nothing. */
+  readonly destructive?: boolean;
+}
+
+/** Confirm / destructive dialog; resolves `true` on the verb, `false` on Cancel (Escape = Cancel). */
+/* @__NO_SIDE_EFFECTS__ */
+export function defineConfirmSurface<P = void>(init: ConfirmSurfaceInit<P>): SurfaceDef<P, boolean> {
+  const { title, message, confirmLabel, cancelLabel, destructive, ...rest } = init;
+  const danger = destructive === true;
+  return defineSurface<P, boolean>({
+    ...rest,
+    kind: 'dialog',
+    label: title,
+    alert: danger,
+    backdropDismiss: !danger,
+    render: (context) =>
+      html`<sf-dialog heading=${title(context.props)} size="confirm" tone=${danger ? 'danger' : 'neutral'} .surface=${context}>
+        <p style="margin:0">${message(context.props)}</p>
+        <div slot="actions" style="display:contents">
+          <sf-button variant="secondary" ?autofocus=${danger} @click=${() => context.dismiss('action', false)}>${cancelLabel?.(context.props) ?? 'Cancel'}</sf-button>
+          <sf-button variant=${danger ? 'danger' : 'primary'} @click=${() => context.dismiss('action', true)}>${confirmLabel(context.props)}</sf-button>
+        </div>
+      </sf-dialog>`,
+  });
+}
+
+export interface BlockingErrorProps {
+  readonly heading: string;
+  readonly message: string;
+  /** The primary fix (`Reload`, `Back up workspace`); omitted when there is none beyond Reload. */
+  readonly fixLabel?: string;
+  readonly diagnostics: string;
+  readonly onFix?: () => void;
+  readonly onReload: () => void;
+  readonly onCopyDiagnostics: (text: string) => void;
+}
+
+/**
+ * The blocking full-surface error (OVERLAYS-FEEDBACK §3.1): an urgent, non-dismissible `alertdialog` takeover holding
+ * `<sf-blocking-error>` (load `@staticflux/kit/feedback`). Request it with `replace: true` — it replaces any dialog.
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export function defineBlockingErrorSurface(init: { readonly id: SurfaceDefInit<BlockingErrorProps, never>['id']; readonly scope?: SurfaceDefInit<BlockingErrorProps, never>['scope'] }): SurfaceDef<BlockingErrorProps, never> {
+  return defineSurface<BlockingErrorProps, never>({
+    id: init.id,
+    kind: 'dialog',
+    scope: init.scope ?? 'app',
+    priority: 'urgent',
+    dismissible: false,
+    backdropDismiss: false,
+    alert: true,
+    label: (p) => p.heading,
+    render: ({ props }) =>
+      html`<sf-blocking-error
+        heading=${props.heading}
+        message=${props.message}
+        fix-label=${props.fixLabel ?? ''}
+        .diagnostics=${props.diagnostics}
+        @sf-fix=${() => props.onFix?.()}
+        @sf-reload=${() => props.onReload()}
+        @sf-copy-diagnostics=${() => props.onCopyDiagnostics(props.diagnostics)}
+      ></sf-blocking-error>`,
+  });
+}
+
+export interface HintSurfaceInit {
+  readonly id: SurfaceDefInit<void, never>['id'];
+  /** The tool or region it points at (`coachTarget(target)` on that element). */
+  readonly target: NonNullable<SurfaceDefInit<void, never>['target']>;
+  /** The one sentence. */
+  readonly text: string;
+  readonly scope?: SurfaceDefInit<void, never>['scope'];
+  /** Give up when the target never shows (default 10 s). */
+  readonly targetTimeoutMs?: number;
+}
+
+/**
+ * A first-use hint (OVERLAYS-FEEDBACK §5): a seen-once `coach-mark` rendered as `<sf-hint>` (load
+ * `@staticflux/kit/hint`). Escape does not dismiss it (`dismissible: false`); `×` dismisses with `user` and the timer
+ * with `completed`, so both mark it seen; the app dismisses it with `completed` when the target is used.
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export function defineHintSurface(init: HintSurfaceInit): SurfaceDef<void, never> {
+  return defineSurface<void, never>({
+    id: init.id,
+    kind: 'coach-mark',
+    scope: init.scope ?? 'view',
+    priority: 'low',
+    dismissible: false,
+    once: true,
+    target: init.target,
+    targetTimeoutMs: init.targetTimeoutMs ?? 10_000,
+    label: init.text,
+    render: ({ dismiss }) => html`<sf-hint text=${init.text} @sf-dismiss=${() => dismiss('user')} @sf-expire=${() => dismiss('completed')}></sf-hint>`,
   });
 }
 
@@ -47,22 +174,23 @@ export interface ToastSurfaceInit<P> extends Omit<SurfaceDefInit<P, unknown>, 'k
   readonly action?: ToastAction<P>;
 }
 
-/** A messaging toast surface rendered as `<sf-toast>` (dismiss button, optional action). */
+/** A messaging toast surface rendered as `<sf-toast>` (one action, repeat count, `×` when sticky). */
 /* @__NO_SIDE_EFFECTS__ */
 export function defineToastSurface<P = void>(init: ToastSurfaceInit<P>): SurfaceDef<P, unknown> {
   const { message, tone, action, ...rest } = init;
+  const sticky = init.durationMs === null || (init.durationMs === undefined && init.priority === 'urgent');
   return defineSurface<P, unknown>({
     ...rest,
     kind: 'toast',
     label: message,
-    render: ({ props, dismiss }) => {
+    render: ({ props, dismiss, count }) => {
       const reason: DismissReason = 'action';
-      return html`<sf-toast tone=${typeof tone === 'function' ? tone(props) : (tone ?? 'neutral')} @sf-dismiss=${() => dismiss('user')}
+      return html`<sf-toast tone=${typeof tone === 'function' ? tone(props) : (tone ?? 'neutral')} .count=${count ?? 1} .dismissible=${sticky} @sf-dismiss=${() => dismiss('user')}
         >${message(props)}${action === undefined
           ? nothing
           : html`<sf-button
               slot="action"
-              variant="ghost"
+              variant="secondary"
               size="sm"
               @click=${() => {
                 action.run(props);
@@ -74,4 +202,3 @@ export function defineToastSurface<P = void>(init: ToastSurfaceInit<P>): Surface
     },
   });
 }
-

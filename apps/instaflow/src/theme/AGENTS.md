@@ -22,7 +22,10 @@ renders the approved design without app CSS; and the **lens palette**, an Instaf
 - `icons.ts` — the icon tables (B11a): `LAYER_KINDS` / `layerKindIcon(kind)` (Layers rows, inspector header), `TOOL_ICON_IDS` /
   `toolIcon(tool)` (tool picker), `REPEAT_ICONS`, `BOOLEAN_ICONS`; data over `@staticflux/kit/icons/*` (type-only imports of the
   repeat and boolean kinds).
-- `index.ts` — re-exports all three.
+- `palette.ts` (B11a2) — `CLEAN_POP_COLOR_PALETTE`: the colour popover's fixed 24-colour default palette (6 × 4).
+- `index.ts` — re-exports the theme, lenses and icons (import `palette.ts` directly).
+- Density (B11a2, DENSITY-DISCLOSURE §6): rows 32 / 30 / 26 px and UI text 14 / 13.5 / 12 px in Focus / Standard / Pro; spacing stays on the
+  4 px grid (Pro gaps 4 / 8 where §6 asks 6 / 10).
 
 ## Mapping notes (design → contract)
 - page → `canvas`; white → `surface1..3` and `surfaceSunken` (fields are white); tint → `neutral3` (switcher tracks, tags,

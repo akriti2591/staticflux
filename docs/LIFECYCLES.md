@@ -674,3 +674,26 @@ the element and end with it; neither writes anywhere: the app turns each `sf-cha
 | FND-3 | A refused name never reaches the app; leaving the field restores the previous name | SF-KIT-002; `inline-edit.test.ts` |
 | FND-4 | Icons are data: only allowed SVG tags and attributes render, and the generated modules match Lucide and the custom SVGs | `icon.test.ts` |
 | FND-5 | Every B11a block passes the full audit under Clean Pop | `apps/instaflow/src/a11y/foundations.test.ts`, guarded by `chrome.test.ts` |
+
+**B11a2: overlays, feedback, hints** (OVERLAYS-FEEDBACK §1–§5). The overlay sessions live in their element and end with it; the
+toast timers and dismiss guards live in the surface manager (LIFECYCLES §8 is unchanged: guards only *hold* a `dismiss` event).
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `kit/overlay-session` (per open menu, submenu or popover) | closed → open (`show()` / `showAt()`: nesting checked first — refused stays closed with SF-KIT-003; marks the host `data-sf-overlay`, announces `sf-overlay-open`); open → closed (`escape`: only when it has no open child; `outside`: consumed or passed through; `scroll` (menus, pass-through popovers); `blur`; `resize`; `replaced`: another layer-3 overlay opened outside it, or any modal; `parent`: the overlay around it closed; the app's `hide()`); focus returns unless `replaced` (or a passed-through press) | `packages/kit/src/internal/overlay-session.ts`, `menu.ts`, `popover.ts` |
+| `kit/submenu-hover` (per menu with submenu rows) | idle → opening (pointer on a submenu row; 150 ms) → open; open → closing (pointer left the row and the submenu, or on another row; 300 ms) → idle; re-entering cancels; → / Enter open at once with focus in, ← / Escape close with focus on the row | `packages/kit/src/menu.ts` |
+| `kit/tooltip` (per tooltip) | hidden → waiting (hover: 500 ms, or 0 inside the 300 ms warm period) → shown; hidden → shown (keyboard focus; a 500 ms touch long-press, whose click is swallowed); shown → hidden (leave 80 ms, blur, press, any key, scroll, another tooltip opening); hiding starts the document's warm period | `packages/kit/src/internal/tooltip-core.ts` |
+| `messaging/toast-timer` (per showing toast) | running → paused (`holdToasts()`, ref-counted: pointer, focus, hidden tab) → running with the time left; running → refreshed (a deduplicated repeat: count + 1, full duration again); running → expired (`timeout` dismiss); sticky toasts have no timer | `packages/messaging/src/manager.ts` |
+| `kit/dialog-frame` (per `<sf-dialog>`) | editing → asking (a user dismissal while `dirty`: the inline `Discard changes?` row) → editing (`Keep editing`, Escape) or closed (`Discard`); editing → previous step (Escape or the back chevron on step > 1, `sf-back`) | `packages/kit/src/surfaces.ts` |
+| `instaflow/hint-session` (per tab) | for each hint: offered → showing (enabled, not suppressed, fewer than two shown this session, not seen) → seen (`×`, 6 s, the target used); offered → seen (the session cap reached); offered → skipped (switched off or suppressed) | `apps/instaflow/src/studio/hints.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| FND-6 | A refused nesting never opens anything; a second modal is never queued or stacked under the strict policy | SF-KIT-003, SF-MSG-008; `overlay.test.ts`, `policy.test.ts` |
+| FND-7 | One Escape closes exactly one surface, innermost first; tooltips never consume it | `overlay.test.ts`, `menu.test.ts`, `tooltip.test.ts`, `policy.test.ts` |
+| FND-8 | A consumed outside press reaches nothing behind the menu (no pointerdown, no click) | `menu.test.ts` |
+| FND-9 | Focus never lands on `body` when an overlay closes: trigger, fallback, or nearest surviving landmark | `focus-return.test.ts`, `overlay.test.ts`, `dialogs.test.ts` |
+| FND-10 | A toast timer never runs while held, and resumes with exactly the time it had left | `policy.test.ts`, `dialogs.test.ts` |
+| FND-11 | No error code is ever rendered; `Copy diagnostics` alone carries it | `feedback.test.ts` (kit and Instaflow) |
+| FND-12 | At most two hints per session; a seen hint never shows again on that device until `Reset hints` | `apps/instaflow/src/studio/hints.test.ts` |
+| FND-13 | Every B11a2 block passes the full audit under Clean Pop | `apps/instaflow/src/a11y/foundations.test.ts`, guarded by `chrome.test.ts` |

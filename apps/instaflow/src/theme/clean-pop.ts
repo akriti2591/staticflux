@@ -131,7 +131,8 @@ export const cleanPopTheme: ThemeDef = /* @__PURE__ */ extendTheme(defaultTheme,
       weightDisplay: '800',
     },
     type: { controlSm: '12.5px', control: '13.5px', controlLg: '15px', sizeXs: '11px', sizeSm: '12.5px', sizeMd: '13.5px', sizeLg: '15px', sizeXl: '22px', size2xl: '40px', lineTight: '1.2', lineNormal: '1.45' },
-    size: { controlSm: '28px', control: '34px', controlLg: '42px', controlPadSm: '12px', controlPad: '14px', controlPadLg: '20px', row: '32px', toolbar: '48px', icon: '16px', railWidth: '48px' },
+    // Rows 30 / Focus 32 / Pro 26 and UI text 14 / 13.5 / 12 px per mode (DENSITY-DISCLOSURE §6).
+    size: { controlSm: '28px', control: '34px', controlLg: '42px', controlPadSm: '12px', controlPad: '14px', controlPadLg: '20px', row: '30px', toolbar: '48px', icon: '16px', railWidth: '48px' },
     radius: { sm: '8px', md: '12px', lg: '18px', full: '9999px', control: '9999px' },
     shadow: shadows,
   },
@@ -139,8 +140,17 @@ export const cleanPopTheme: ThemeDef = /* @__PURE__ */ extendTheme(defaultTheme,
   dark: { color: { ...defaultTheme.values.color, ...colors }, shadow: shadows },
   contrast: { light: moreContrast, dark: moreContrast },
   density: {
-    focus: { size: { controlSm: '32px', control: '38px', controlLg: '46px', controlPadSm: '14px', controlPad: '16px', controlPadLg: '22px', row: '36px', toolbar: '52px', icon: '18px', railWidth: '52px' } },
-    pro: { size: { controlSm: '24px', control: '28px', controlLg: '34px', controlPadSm: '10px', controlPad: '12px', controlPadLg: '16px', row: '24px', toolbar: '40px', icon: '16px', railWidth: '40px' } },
+    focus: {
+      type: { sizeMd: '14px' },
+      space: { xs: '4px', sm: '8px', md: '16px', lg: '20px', xl: '24px', xxl: '32px' },
+      size: { controlSm: '32px', control: '38px', controlLg: '46px', controlPadSm: '14px', controlPad: '16px', controlPadLg: '22px', row: '32px', toolbar: '52px', icon: '18px', railWidth: '52px' },
+    },
+    pro: {
+      type: { sizeMd: '12px', sizeSm: '12px' },
+      // §6 asks 6 / 10 px gaps in Pro; the theme contract keeps spacing on the 4 px grid, so 4 / 8.
+      space: { xs: '4px', sm: '4px', md: '8px', lg: '12px', xl: '16px', xxl: '24px' },
+      size: { controlSm: '24px', control: '28px', controlLg: '34px', controlPadSm: '10px', controlPad: '12px', controlPadLg: '16px', row: '26px', toolbar: '40px', icon: '16px', railWidth: '40px' },
+    },
   },
 });
 

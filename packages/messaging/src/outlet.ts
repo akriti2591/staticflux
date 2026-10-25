@@ -12,6 +12,7 @@ import { component, defineComponent, SfElement } from '@staticflux/ui';
 import { html, nothing, type TemplateResult } from 'lit';
 import { AsyncDirective, directive, type ElementPart, type PartInfo, PartType } from 'lit/async-directive.js';
 import { repeat } from 'lit/directives/repeat.js';
+import { renderContext } from './manager.js';
 import type { CoachTarget, SurfaceId } from './surface.js';
 import { SurfaceManagerToken } from './tokens.js';
 
@@ -38,7 +39,7 @@ export class SfSurfaceOutletElement extends SfElement<typeof outletSpec> {
       (h) => h.instanceId,
       (h) =>
         html`<div role=${h.def.priority === 'urgent' || h.def.priority === 'high' ? 'alert' : 'status'} data-surface=${h.def.id}>
-          ${h.def.render({ props: h.props, dismiss: (reason, result) => h.dismiss(reason ?? 'action', result), titleId: h.titleId })}
+          ${h.def.render(renderContext(h))}
         </div>`,
     )}`;
   }

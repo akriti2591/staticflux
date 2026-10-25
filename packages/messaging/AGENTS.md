@@ -16,9 +16,12 @@ Implements R13.4–R13.10, R7.16–R7.21 (surface side), LIFECYCLES §8, I-7.
   durationMs, dedupe, target, targetTimeoutMs, once, outlet })`, `defineCoachTarget`, `defineCoachSequence`,
   `surfaceMachine`, `SURFACE_KINDS`, `PRIORITIES`, `DismissReason`, `USER_REASONS`.
 - `manager.ts` — `createSurfaceManager({ telemetry, decide, seen, visibility, clock, toastConcurrency,
-  bannerConcurrency, defaultToastMs, exitMs, reducedMotion })`: `request(def, { owner, props, anchor, stack,
-  durationMs, signal })` → `SurfaceHandle` (`state`, `closed`, `dismiss`), `active`, `showing(...kinds)`, `topModal`,
-  `dismissTop`, `setUserBusy`, `targets` (coach targets), `startSequence`, `onTransition`, `dispose`; `ownerOf(injector)`.
+  bannerConcurrency, defaultToastMs, exitMs, reducedMotion, policy })`: `request(def, { owner, props, anchor, stack, replace,
+  durationMs, signal })` → `SurfaceHandle` (`state`, `closed`, `dismiss`, `count`, `guard`), `active`, `showing(...kinds)`, `topModal`,
+  `dismissTop`, `setUserBusy`, `holdToasts()` / `toastsHeld`, `policy`, `targets` (coach targets), `startSequence`, `onTransition`,
+  `dispose`; `ownerOf(injector)`; `renderContext(handle)` (hosts render with it); `SurfacePolicy`, `defaultSurfacePolicy`,
+  `strictSurfacePolicy` (OVERLAYS-FEEDBACK §1: refuse a second modal (`busy`, SF-MSG-008) unless `replace`, one popover, Escape
+  reaches the newest toast). *(B11a2: policy, replace, toast hold and repeat count, dismiss guards)*
 - `routable.ts` — `createRoutableDialogBridge({ manager, owner, surfaces, decide })`: `openDialog(key, params,
   { source: 'in-app'|'deep-link', owner })`, `closeDialog`, `current`, `onDismissIntent` (`back`|`replace`), `register`.
 - `host.ts` — `<sf-surface-host>` (`defineSurfaceHost`; the platform-native alternative is `@staticflux/kit/surfaces`'
@@ -29,7 +32,10 @@ Implements R13.4–R13.10, R7.16–R7.21 (surface side), LIFECYCLES §8, I-7.
 - `ports.ts` — `KeyValuePort<V>` (async get/set/delete; structural subset of storage's AsyncStore),
   `createMemoryKeyValue`, `MessagingClock` (`systemClock`, `createManualClock`).
 - `tokens.ts` — `SurfaceManagerToken`, `RoutableDialogBridgeToken`, `RoutableSurfacesToken` (multi), `SeenStoreToken` (token-only).
-- `units.ts` — `messagingUnits`, `surfaceManagerUnit`, `routableDialogBridgeUnit`, `memorySeenStoreUnit`, `routableSurface(def)`.
+- `units.ts` — `messagingUnits`, `strictMessagingUnits`, `surfaceManagerUnit`, `strictSurfaceManagerUnit`, `routableDialogBridgeUnit`,
+  `memorySeenStoreUnit`, `routableSurface(def)`.
+- `surface.ts` (B11a2 additions) — defs: `alert` (`alertdialog`), `backdropDismiss`; render context: `count`, `guard(fn)`; `DismissGuard`,
+  `GUARDED_REASONS` (`user`, `escape`, `backdrop`: a guard holds only these).
 - `telemetry.ts` — `MESSAGING_SUBSYSTEM` (`messaging/surfaces`), `messagingMetrics` (shown, dismissed, rejected, dwell, deduped).
 - `errors.ts` — `SF-MSG-001…007`.
 
@@ -38,8 +44,10 @@ Implements R13.4–R13.10, R7.16–R7.21 (surface side), LIFECYCLES §8, I-7.
 `queued → showing | dismissing | rejected` (target timeout) · `showing ⇄ suspended` · `showing|suspended → dismissing → dismissed`.
 
 ## Arbitration rules
-Modals: one stack; higher priority or `stack: true` suspends the current top. Toasts: cap (urgent bypasses, urgent
-sticky). Banners: dedup by id (or `dedupe(props)`), cap. Tooltip: one. Popover/inline-alert: immediate.
+Modals: one stack; higher priority or `stack: true` suspends the current top (default policy); under `strictSurfacePolicy` a
+second modal is refused and `replace: true` dismisses the others (`replaced`). Showing a modal dismisses the popovers and tooltips
+requested before it. Toasts: cap (urgent bypasses, urgent sticky); timers pause while held; a deduplicated repeat counts up and
+restarts the timer. Banners: dedup by id (or `dedupe(props)`), cap. Tooltip: one. Popover/inline-alert: immediate.
 Coach marks: one; need a registered+visible target; suppressed by modals, urgent toasts, `setUserBusy(true)`.
 
 ## Rules
@@ -57,7 +65,7 @@ Coach marks: one; need a registered+visible target; suppressed by modals, urgent
 
 | Check | Limit | Measures |
 |---|---|---|
-| @staticflux/messaging (full, excl. lit) | 9 KB | packages/messaging/dist/index.js |
+| @staticflux/messaging (full, excl. lit; raised 9 → 9.2 KB by B11a2: strict overlay policy, toast hold and repeat count, dismiss guards) | 9.2 KB | packages/messaging/dist/index.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

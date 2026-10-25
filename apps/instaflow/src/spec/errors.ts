@@ -33,6 +33,14 @@ export const ProposerFailedError = defineError(
   'Nothing changed on screen. Retry the turn, or keep editing by hand: every Studio feature has a non-agent path.',
 );
 
+/** B11a2: the HUD / inspector control model (STUDIO-UX-SPEC §4.2.1). */
+export const ControlModelError = defineError(
+  'IF-POL-001',
+  'invariant',
+  'A selection kind declares its controls inconsistently: two controls share an id, two share a HUD rank, or more than six have a HUD rank.',
+  'Give every control a unique id; ranks 1–6 at most once each (`details.problem` names which). Controls without a rank still show in the inspector and the More menu.',
+);
+
 export const CanvasStartError = defineError(
   'IF-SPEC-005',
   'unavailable',
