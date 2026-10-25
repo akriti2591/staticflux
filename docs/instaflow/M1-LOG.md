@@ -72,6 +72,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** #28 merged. Text UX done → PR #29 (TEXT-FONTS-UX-SPEC, F-60–F-64, Q1–Q10 asked). Engine text bugs to
+  schedule before or with B11b (M1, spec §11.2 T-1–T-9): Mac caret word/line keys, fixed box + vertical align never
+  laid out, undo per keystroke, no tofu for missing glyphs, WOFF2 rejected by fonts.ts, sub/superscript, soft break,
+  Tab in lists, IME control bounds. Appearance pass (Fable) launched on `claude/wip-ux-appearance` (stacked on text).
 - **2026-10-25** Owner: text lacks basics (paragraph/heading/list presets, sub/superscript, B/I/U…) and other facets likely
   miss core things too. Text agent told to build an exhaustive competitor feature checklist. Next Fable pass (queued,
   after text): appearance, transforms, groups/components, booleans/masks, repeat, snapping, a11y, each with its
