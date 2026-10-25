@@ -72,6 +72,11 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** #27 merged. Owner: Export 7 and 8 accepted; 9 unclear (to be rewritten plainly); custom size in New design
+  and Export; dropdowns/disclosure to cut clutter; two density personalities (calm like the Claude artifact UI, dense
+  like Figma/Adobe). Owner's standing intent for Fable: an open-ended researcher that FINDS gaps (market analysis,
+  shortcuts, everything end to end), not a writer of what the coordinator names. Fable research agent launched on
+  `claude/wip-ux-research` (GAP-AUDIT.md first, then fills top gaps). Be careful with token spend (owner near limit).
 - **2026-10-25** Owner: Export needs a Share-grade worked flow (customisations). Fable agent adding the Export tab end
   to end to OVERLAYS-FEEDBACK (presets, per-format options, naming, multi-format, advanced step, memory, errors, deep
   links; options marked C1-supported / UI-only / engine follow-up) + F-53, on `claude/wip-ux-primitives` (#27).
