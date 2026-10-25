@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** Owner: Export needs a Share-grade worked flow (customisations). Fable agent adding the Export tab end
+  to end to OVERLAYS-FEEDBACK (presets, per-format options, naming, multi-format, advanced step, memory, errors, deep
+  links; options marked C1-supported / UI-only / engine follow-up) + F-53, on `claude/wip-ux-primitives` (#27).
 - **2026-10-25** Owner: "all recommended" for the six OVERLAYS-FEEDBACK §6 questions (recorded there, ff151d2). Spec
   merged into the working branch (so #26 now carries it too; #27 stays mergeable either order). B11a2 launched,
   stacked, on `claude/wip-b11a2-overlays` (IDs IF-35.14+, §37, IF-POL-001…049).
