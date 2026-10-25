@@ -347,3 +347,23 @@ One worker (`colocated`, default) or two (`split`) is a boot setting; both run t
 | E-6 | Animation is an override (no playback path in M1; enforced when M3 adds it) | — |
 | Q-1 | Deltas are published before the view frame that references them; a resnapshot is answered at a step boundary with a fresh frame | `editor-module.test.ts` |
 | Q-2 | The render port is called at most once per new (viewSeq, docVersion) and only with a consistent pair | IF-SEQ-003 on draw failure (last good frame kept) |
+
+## 18. Render: GPU devices, tiles, layers, cache budgets (SF-Δ23, Δ24, Δ29; Instaflow M1 A6)
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `surface/gpu-device` | idle → attaching → running; attaching → failed; running → lost (`device.lost`, any reason but our own dispose) → attaching (fresh adapter + `restore`) → running; attaching → failed → attaching (next recovery attempt, back-off); failed → attaching (manual retry); * → disposed | `packages/surface/src/gpu-device.ts` |
+| renderer phase | cold → warming (`warmUp`) → ready; warming → cold (warm-up failed) | `packages/surface/src/tiled-renderer.ts` |
+| tile (cache entry) | absent → fresh (rendered) → stale (an edit hit it; still drawn) → fresh (re-rendered into the same slot); any → evicted (LRU, budget or pressure; never while pinned by the frame); all → forgotten (device lost) | `packages/surface/src/raster-tile-cache.ts` |
+| lifted layer | lifted (`lift`: nodes leave the tiles) → dragging (quad moves, no raster) → dropping (`drop`: nodes back in the tiles, texture still drawn) → released (every visible tile under it fresh) | `packages/surface/src/tiled-renderer.ts` |
+| cache registration (memory ledger) | registered → reporting ⇄ evicting (budget or pressure) → disposed | `packages/runtime/src/memory-budgets.ts` |
+
+| ID | Invariant | Error |
+|---|---|---|
+| G-1 | A lost device is never reused: recovery always requests a new adapter and rebuilds from the retained CPU-side scene, never the document | SF-SURF-011 |
+| G-2 | Recovery time is reported; over its budget (1 s) it is flagged but completes | SF-SURF-012 |
+| G-3 | No holes: a visible tile is drawn from its stale copy, another level or the snapshot until it is fresh | — |
+| G-4 | In-frame raster starts only while the in-frame budget is left; the rest goes to the idle lane | — |
+| G-5 | A dropped layer is drawn until the tiles under it are fresh (overlay off and committed on in one frame, E-2) | — |
+| G-6 | Frames never rasterize before warm-up (cold pipelines); the snapshot is drawn instead | — |
+| G-7 | Caches are evicted before features are demoted; pinned (visible) tiles are never evicted | SF-MEM-001 |

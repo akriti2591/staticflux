@@ -872,5 +872,35 @@
       "@staticflux/core"
     ],
     "limit": "2.9 KB"
+  },
+  {
+    "name": "@staticflux/surface/raster (render and export workers: tiled renderer, GPU device lifecycle, headless)",
+    "path": "packages/surface/dist/raster.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/platform"
+    ],
+    "limit": "9.5 KB"
+  },
+  {
+    "name": "@staticflux/runtime/memory (cache memory ledger)",
+    "path": "packages/runtime/dist/memory.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "2 KB"
+  },
+  {
+    "name": "@instaflow/app/render (Vello RasterBackend + scene IR + Wasm loader; worker only)",
+    "path": "apps/instaflow/dist/render/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/platform",
+      "@staticflux/surface/raster"
+    ],
+    "limit": "3.5 KB"
   }
 ]

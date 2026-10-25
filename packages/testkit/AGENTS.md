@@ -5,7 +5,7 @@
 
 `worker`, `router`, `urlstate`, `blob`; `vitest` is a **peer** and is never imported at runtime (contract suites take
 
-`worker`, `router`, `urlstate`, `ui` (theme contract); `vitest` is a **peer** and is never imported at runtime (contract suites take
+`worker`, `router`, `urlstate`, `ui` (theme contract), `surface` (raster contract, types only); `vitest` is a **peer** and is never imported at runtime (contract suites take
 `describe`/`it` as parameters). Never import testkit from app or package source — only from `*.test.ts`.
 **Budget:** none (not shipped to browsers).
 
@@ -111,6 +111,15 @@ Node only (`@staticflux/testkit/node`):
   `REAL_GPU_FLAGS`, `chromiumArgs`, `gpuModeFromEnv` (`SF_GPU`), `serveIsolated(root)` (COOP/COEP), `loadPlaywrightChromium`, `toReport`;
   ports `BrowserLauncher` / `BrowserLike` / `PageLike` (the slice of Playwright used).
 - `gpu-cli.ts` — `sf-gpu-run` / `pnpm gpu:run`: `parseGpuCliArgs`, `gpuCliMain(argv, io)`.
+
+### Render contract suite (IF-7.4, SF-Δ23/Δ24, Instaflow M1 A6)
+- `raster-backend-contract.ts` — `runRasterBackendContract(name, factory → { backend, scene: { add, set, remove },
+  nodeOf?, tolerance?, cleanup? }, runner, { skip })`, `rasterBackendContractCases()`: attach + facts + loss on
+  destroy, dirty rects for add/move/remove, tiles composite to the scene and equal a direct region render, lifted nodes
+  leave the tiles and come back, abort and size limits, typed errors (SF-SURF-014) for unknown slots/layers and after
+  dispose, tile byte accounting, the scene surviving a re-attach (retained IR, IF-7.11), warm-up and snapshots. Runs on
+  `createMemoryRasterBackend` in `raster-contracts.test.ts` and on Vello in Chromium
+  (`apps/instaflow/src/render/gpu-page`, imported from `dist/` — the cases never import Vitest).
 
 ### Pipeline contract suites (SF-Δ17–Δ19, Instaflow M1 A5)
 One file per port; each suite runs the same cases on every pipe medium (`local` colocated, `shared` SharedArrayBuffer,

@@ -4,6 +4,8 @@
 **Budget:** boot surface (`createSupervisor`, `bootApp`, `createFrameScheduler`, tokens) ≈ 12 KB gzip measured
 (tsc output, unminified); feature host + resource manager ≈ 8.5 KB gzip more, loadable after core-ready.
 Counts toward the 45 KB "framework runtime at boot" budget (R12.7). No size-limit entry yet.
+`@staticflux/runtime/memory` (cache ledger, workers only) ≤ 2 KB brotli (measured 1.76 KB); kept out of the main entry
+so the runtime budgets did not grow.
 
 ## Purpose
 App supervisor and app lifecycle, supervised subsystems with restart policies, feature host
@@ -44,6 +46,14 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
   `shouldYield()`, `pause/resume/dispose` (SF-SCHED-002); `createLongTaskDetector({ thresholdMs = 50, probeIntervalMs })`:
   timed tasks, `measure`, `record`, event-loop lag probe (`start/stop`), `onLongTask`, metric `runtime/worker-long-task`,
   event `worker.long-task`; `WorkerSchedulerToken`, `workerSchedulerUnit({ probe })`.
+- `memory.ts` (entry `@staticflux/runtime/memory`, SF-Δ29; render, media and export workers) — the cache memory
+  ledger: `createMemoryBudgets({ budgets: { gpu, media }, pressure, pressureFactors, telemetry })` →
+  `register({ id, kind, priority, evict(bytes, reason) })` → `MemoryCacheHandle` (`report(bytes)`, `headroom()`,
+  `dispose()`), `budget(kind)`, `usage(kind)`, `setBudgets`, `relieve({ reason, targetFraction })`, `history()`;
+  `DEFAULT_MEMORY_BUDGETS` (GPU 512 MiB, media 1 GiB; IF-15.7), `DEFAULT_PRESSURE_FACTORS` (moderate ½, critical ¼),
+  `MEMORY_KINDS`, `MiB`, `memoryMetrics` (`runtime/memory-bytes`, `runtime/memory-evicted-bytes`),
+  `memoryBudgetsUnit` / `memoryBudgetsUnitWith({ budgets })` (`MemoryBudgetsToken`), `SF-MEM-001`. Types are also
+  exported from the main entry; `createResourceManager({ memory })` relieves the ledger before demoting features.
 - `tokens.ts` — `SupervisorToken`, `AppInjectorToken` (both provided by `bootApp`), `FrameSchedulerToken`,
   `FeatureHostToken`, `FeatureLoaderToken` (optional; `featureHostUnit` loads modules through it when bound, e.g. the
   loader package's chunk loader — else `manifest.load`), `ResourceManagerToken`, `ArchiveStoreToken`, `MemoryPressureToken`, `CommandPolicyToken`,
@@ -67,6 +77,9 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
 - Feature logic scope ⊃ UI scope ⊃ visible scope. `visible(ctx, scope)` re-runs on every show; hidden features keep DOM, drop effects.
 - Ref-count (I-6): dependents that are mounted block deactivation (SF-FT-002); dependents only activated are deactivated first.
 - Resource manager never demotes features in use (mounted, referenced, busy, explicit headless); budgets beat priorities.
+- Memory ledger (one per thread): over budget it calls `evict` synchronously, lower priority first, then the largest
+  cache; a cache that frees nothing is skipped for that round (`resources.memory-over-budget` if still over). Pressure
+  changes evict synchronously (MobX reaction), so caches always go before the resource manager's microtask demotions.
 
 ## Rules
 - Only `@staticflux/core` imports (plus `@staticflux/storage` in `archive.ts`/`units.ts` for R9.0d). No platform APIs except feature-detected scheduler primitives (all injectable).
@@ -87,6 +100,7 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
 | @staticflux/runtime (boot: bootApp + supervisor + scheduler) | 8.5 KB | packages/runtime/dist/index.js · import `{ bootApp, createSupervisor, createFrameScheduler }` |
 | @staticflux/runtime (full) | 14.5 KB | packages/runtime/dist/index.js |
 | @staticflux/runtime/worker (worker scheduler + long-task detector) | 3.5 KB | packages/runtime/dist/worker.js |
+| @staticflux/runtime/memory (cache memory ledger) | 2 KB | packages/runtime/dist/memory.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

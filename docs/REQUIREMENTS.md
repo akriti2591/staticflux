@@ -619,3 +619,30 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
   snap-back, no double draw, no torn read, monotonic generations, same camera), and final editor and render states must
   equal the reference. Runs on every topology × pipe medium (and with lost deltas for E-1) in CI with a fake (digesting)
   renderer; the checker's own detectors are tested.
+
+## 11.4 Raster backends, GPU devices, headless surfaces, cache memory budgets (Instaflow M1 A6: SF-Δ23, Δ24 headless part, Δ29)
+- **R11.43** **`RasterBackend` port** (`@staticflux/surface/raster`): a rasterizer owns the pixels (scene in its own
+  format, tile and layer textures, a compositor, readback); the framework owns the policy. Every change reports the
+  world rects it dirtied; tiles are rendered over an opaque background into numbered slots; lifted layers take nodes out
+  of the tiles; nothing throws across the port (SF-SURF-014/015). A CPU reference backend and a shared contract suite
+  (`runRasterBackendContract`) run in Node; the GPU backend runs the same suite in Chromium.
+- **R11.44** **GPU device lifecycle** (SF-Δ23): `idle → attaching → running → lost → attaching` on `device.lost`,
+  always with a fresh adapter, re-init from retained CPU-side state through a `restore` hook, attempts with back-off
+  (`failed` with SF-SURF-011 after the last), recovery time reported against a budget (default 1 s, SF-SURF-012),
+  GPU facts (adapter info, granted features and limits). Devices come from a provider port (TypeScript `navigator.gpu`
+  or a backend that owns its device, e.g. wgpu in Wasm).
+- **R11.45** **Tiled renderer**: tiles per √2 zoom level, centre first, an interest ring; tile preparation off the
+  frame (a time budget in-frame for holes only, the rest in an idle lane); other levels and a cached snapshot drawn
+  under missing tiles (never holes); stale-while-revalidate after edits; lifted layers rendered once per zoom and moved
+  by their quad, kept until the tiles under a dropped layer are fresh; pipelines warmed before the first raster; metrics
+  `render/first-frame`, `render/first-sharp-frame`, `render/time-to-sharp`, `render/tiles-rendered`.
+- **R11.46** **Headless surface** (SF-Δ24 headless part): render a world region to RGBA pixels without a canvas, in
+  chunks no larger than the device's texture limit, stitched exactly, cancellable between chunks, with progress and a
+  pixel cap (SF-SURF-013).
+- **R5.10** **Cache memory budgets** (SF-Δ29): one ledger per thread with a byte budget per kind (`gpu`, `media`);
+  caches register an id, a priority and a synchronous eviction callback and report their bytes; over budget the
+  ledger evicts lower priorities first, then the largest cache (SF-MEM-001 on bad registrations).
+- **R5.11** Memory pressure tightens cache budgets (moderate ½, critical ¼ by default) and evicts **before** feature
+  demotion: the ledger reacts to the pressure fact synchronously and the resource manager relieves it first.
+- **R5.12** Caches never evict what the current frame pins (visible tiles); everything else goes least recently used
+  first. Bytes, evictions and over-budget states are telemetry (`runtime/memory-bytes`, `runtime/memory-evicted-bytes`).

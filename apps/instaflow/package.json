@@ -1,9 +1,9 @@
 {
-  "name": "@staticflux/instaflow",
-  "version": "0.1.0",
+  "name": "@instaflow/app",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Instaflow: a canvas-first design, video and flow editor on StaticFlux (docs/instaflow).",
+  "description": "Instaflow: an AI-assisted design and video editor on StaticFlux. M1 in progress; the render module's TypeScript side lives in src/render (A6).",
   "license": "MIT",
   "staticflux": {
     "layer": "app"
@@ -17,10 +17,18 @@
     "@staticflux/core": "workspace:*",
     "@staticflux/document": "workspace:*",
     "@staticflux/surface": "workspace:*",
-    "@staticflux/worker": "workspace:*"
+    "@staticflux/worker": "workspace:*",
+    "@staticflux/platform": "workspace:*"
   },
   "devDependencies": {
     "@staticflux/testkit": "workspace:*",
-    "vite": "8.3.5"
+    "vite": "8.3.5",
+    "@staticflux/runtime": "workspace:*"
+  },
+  "exports": {
+    "./render": {
+      "types": "./dist/render/index.d.ts",
+      "import": "./dist/render/index.js"
+    }
   }
 }

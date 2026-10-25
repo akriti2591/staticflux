@@ -1,13 +1,32 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "src",
     "noEmit": true,
     "composite": false,
     "declaration": false,
     "declarationMap": false,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "outDir": "dist"
   },
-  "include": ["src", "bench"],
-  "exclude": ["bench/**/dist"]
+  "include": [
+    "src",
+    "bench"
+  ],
+  "exclude": [
+    "src/**/gpu-page/**"
+  ],
+  "references": [
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/platform"
+    },
+    {
+      "path": "../../packages/surface"
+    }
+  ]
 }

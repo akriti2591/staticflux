@@ -1,14 +1,27 @@
 # @staticflux/surface — AGENTS.md
 
-**Layer:** ui (depends on `@staticflux/core`, `@staticflux/worker`; no rendering engine dependency).
+**Layer:** ui (depends on `@staticflux/core`, `@staticflux/worker`; the `raster` entry also on `@staticflux/platform`
+for GPU adapter facts and on `@staticflux/runtime` for types only; no rendering engine dependency).
 **Budget:** loaded with the feature that shows a rich surface (~9.6 KB brotli for the whole package); the render
-worker needs only `render-worker.ts` (+ engine, frame-loop, metrics, input).
+worker needs only `render-worker.ts` (+ engine, frame-loop, metrics, input). `@staticflux/surface/raster` ≤ 9.5 KB
+brotli (measured 9.1 KB), render and export workers only.
 
 ## Purpose
 Rich surfaces as projections of the document (R11.20–R11.25): one `Surface` contract over DOM, Canvas2D, WebGL,
 WebGPU and HTML-in-Canvas; render-worker hosting via transferred `OffscreenCanvas`; engine-agnostic `RenderEngine`;
 timestamped compact input forwarding → intents; HTML-in-Canvas adapter with DOM-overlay fallback; accessible DOM
 layer for pure-canvas content; per-surface frame metrics with budgets; CORS-clean image loading (R11.16b).
+
+**Tiled GPU rendering (`@staticflux/surface/raster`, Instaflow M1 A6, R11.43–R11.46):** the `RasterBackend` port,
+the GPU device lifecycle (SF-Δ23), the tiled renderer with the S1 lessons built in, the headless surface (SF-Δ24
+headless part) and the GPU tile cache on the memory ledger (SF-Δ29).
+
+**Why here (not in a new package, not in the app):** the port, the device lifecycle and the headless surface are
+generic surface concerns (any WebGPU engine: Vello, a Three.js scene, a video compositor) and sit next to
+`RenderEngine`, the render-worker host and frame metrics; the tile/LRU/budget policy has no Instaflow meaning. The
+Vello implementation, its Rust crate and the scene IR are Instaflow's (`apps/instaflow/src/render`,
+`apps/instaflow/engine/crates/render`): framework packages never import the app, and the backend is chosen by the app.
+A separate entry keeps it out of every main-thread bundle.
 
 ## Public API (by file)
 - `surface.ts` — `Surface` (`attach(host, { size, autoStart, signal })`, `resize(css?, dpr?)`, `start`, `pause`,
@@ -47,10 +60,43 @@ layer for pure-canvas content; per-surface frame metrics with budgets; CORS-clea
   `HtmlInCanvasSupportToken` (+ units), `surfaceUnit({ id, provides, create })` (disposed with its scope).
 - `errors.ts` — `SF-SURF-001` … `SF-SURF-009`.
 
+`@staticflux/surface/raster` (entry `raster.ts`; render and export workers):
+- `raster-backend.ts` — the `RasterBackend<Delta>` port (`attach`, `warmUp`, `apply` → dirty `WorldRect`s, `bounds`,
+  `resize`, `renderTile(slot, key, background)`, `releaseTile`, `setLayer`/`renderLayer`/`releaseLayer`,
+  `uploadSnapshot`, `composite(frame)`, `readFrame`, `renderRegion`, `stats`, `dispose`), `WorldRect`, `TileKey`,
+  `RasterCamera`, `RasterImage`, `CompositeQuad`/`CompositeSource` (`tile | layer | snapshot | external` — external
+  reserved for M3 video), `LayerRaster`, `RasterRegion`; helpers `unionRect`, `intersects`, `cameraWorldRect`.
+- `raster-tiling.ts` — `DEFAULT_TILE_SIZE` (512), `levelForZoom` (one level per √2), `levelScale`, `tileWorldRect`,
+  `tileId`, `visibleTiles(camera, level, { ring, bounds })` (Manhattan order from the centre), `worldToDevice`,
+  `containsRect`, `planChunks`.
+- `raster-tile-cache.ts` — `createTileCache({ release, tileSize, maxTiles, memory, id, priority })` → slots, LRU,
+  stale-while-revalidate (`invalidate` marks stale; padded by `AA_PAD_PX`), `pin` (frame tiles never evicted),
+  `forget` (device lost), bytes registered with the memory ledger (kind `gpu`).
+- `raster-lane.ts` — `TilePrepLane` port, `workerSchedulerLane(scheduler)` (idle priority, sliced),
+  `manualTilePrepLane()` (tests).
+- `tiled-renderer.ts` — `createTiledRenderer({ backend, lane, requestFrame, memory, maxTiles, inFrameBudgetMs = 2,
+  ring = 1, background, camera, now, telemetry })` → `setCamera`, `resize`, `apply`, `warmUp`, `showSnapshot`,
+  `captureSnapshot`, `lift`/`drag`/`drop`, `frame()` → `FrameReport`, `deviceRestored()`, `dispose`; phases
+  `cold → warming → ready`; `RenderMetrics` (`render/first-frame`, `render/first-sharp-frame`, `render/time-to-sharp`,
+  `render/tiles-rendered`, `render/in-frame-raster`, `render/warm-up`).
+- `headless.ts` — `createHeadlessSurface({ backend, chunkSize, maxPixels, telemetry })` → `render({ world, width,
+  height, background, signal, onProgress })`: chunks ≤ `maxRegionSize`, exact stitching, cancellable; `HeadlessMetrics`.
+- `gpu-device.ts` — `GpuDeviceLifecycle` (`surface/gpu-device`), `createGpuDevice({ id, provider, restore, recovery:
+  { budgetMs = 1000, maxAttempts = 3, backoffMs }, now, sleep, telemetry })` → `attach`, `whenRunning`, `onLost`,
+  `onRecovered`, `recoveries`, `handle`, `facts`, `dispose`; `GpuDeviceProvider` port, `webGpuDeviceProvider({ gpu,
+  powerPreference, requiredFeatures, optionalFeatures, requiredLimits: 'adapter' | {…} })`, `GpuDeviceFacts`,
+  `readGpuLimits`, `GpuDeviceMetrics` (`surface/gpu-recovery`, `surface/gpu-device-lost`).
+- `memory-raster-backend.ts` — `createMemoryRasterBackend({ tileSize, maxRegionSize, width, height })`: the CPU
+  reference backend (axis-aligned boxes, exact pixels) with test hooks `lose()`, `failNextAttach()`, `failNextTile()`,
+  `log`; `MemoryRasterDelta`.
+- `raster-errors.ts` — `SF-SURF-010` GPU unavailable · `011` device lost for good · `012` recovery over budget ·
+  `013` headless request invalid · `014` backend call failed · `015` readback failed.
+
 ## Lifecycles
 - `surface/lifecycle`: `created → attaching → attached ⇄ running`; `attaching → failed`; `attaching|attached|running
   → detached`; `detached|failed → attaching`; `* → disposed`.
 - `surface/frame-loop`: `idle → running ⇄ paused → stopped` (a resume is not counted as dropped frames).
+- `surface/gpu-device`, renderer phase, tile entries and lifted layers: docs/LIFECYCLES.md §18 (invariants G-1…G-7).
 
 ## Rules
 - Engines never touch the DOM or globals: everything comes through `RenderContext` (the same engine must run on the
@@ -64,10 +110,19 @@ layer for pure-canvas content; per-surface frame metrics with budgets; CORS-clea
 - Images for canvases always go through the image loader (CORS, policy credentials); never draw no-cors images.
 - Metrics are reported per window (default 120 frames), not per frame; budget overruns emit `surface.budget-exceeded`.
 - All browser APIs are injected (`SurfaceEnvironment`, ports) so tests run under happy-dom.
+- Raster: the framework decides **which** tiles and **when**; backends only draw. Never rasterize in a frame beyond
+  `inFrameBudgetMs` (S1: a 512 px tile is ≈ 6.7 ms CPU) and never before `warmUp` (cold pipelines ≈ 1 s): the idle lane
+  and the snapshot exist for that. Never draw holes: stale tiles, other levels and the snapshot fill in.
+- A lost device is never reused: recovery requests a new adapter and rebuilds from the backend's retained CPU-side
+  scene, never from the document. Backends must survive `attach` after a loss with their scene intact.
+- Every GPU cache reports its bytes to the memory ledger (`@staticflux/runtime/memory`); the frame pins what it draws.
+- Every `RasterBackend` passes `runRasterBackendContract` (testkit): the CPU reference in Node, Vello in Chromium.
 
 ## Test
 `pnpm vitest run packages/surface` (manual frame scheduler, fake ResizeObserver, fake OffscreenCanvas over an
-in-memory port pair with `clone: false`).
+in-memory port pair with `clone: false`; the GPU device lifecycle against testkit's `createFakeGpu`, the tiled
+renderer and headless surface against `createMemoryRasterBackend` with exact pixel checks). Bench (not a test):
+`pnpm vitest bench --run packages/surface/src/raster.bench.ts`.
 
 <!-- sf:generated:start -->
 <!-- Generated by `sf agents` from package.json and .size-limit.json. Do not edit between these markers. -->
@@ -78,6 +133,7 @@ in-memory port pair with `clone: false`).
 |---|---|---|
 | @staticflux/surface (full) | 10.5 KB | packages/surface/dist/index.js |
 | @staticflux/surface/input-ring | 1.75 KB | packages/surface/dist/input-ring.js |
+| @staticflux/surface/raster (render and export workers: tiled renderer, GPU device lifecycle, headless) | 9.5 KB | packages/surface/dist/raster.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 
@@ -85,7 +141,7 @@ Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a r
 
 **Layer:** ui
 
-- Internal: `@staticflux/core`, `@staticflux/worker`
+- Internal: `@staticflux/core`, `@staticflux/platform`, `@staticflux/runtime`, `@staticflux/worker`
 
 Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.
 <!-- sf:generated:end -->

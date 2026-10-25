@@ -205,3 +205,19 @@ Consumer: the Instaflow editor worker (`docs/instaflow/`), over `@staticflux/doc
 - One worker or two for editor and render is a boot setting, and the S2 correctness check runs on every topology and
   medium in CI (`runSequencingOracleContract(name, subject, runner, { gestures, configs, faultConfigs })`,
   `generateSequencingScript`, `checkPresentedFrames`, `driveSequencingScript`).
+
+### render: raster backends, GPU device lifecycle, headless, cache budgets (Instaflow M1 A6)
+- **Instaflow canvas** (render worker): pan, zoom and drag 100 elements on a 10k-element page within 8.3 ms p95
+  (S1) → `createTiledRenderer` over the Vello `RasterBackend` (512 px tiles per √2 level, idle-lane tile prep, the
+  previous level while sharpening, a lifted layer for the selection being dragged).
+- **Instaflow boot**: the first canvas frame ≤ 500 ms warm while Vello's first render compiles pipelines (S1: ≈ 1 s)
+  → `renderer.warmUp` during document load plus `showSnapshot(captureSnapshot())` from the previous session;
+  `render/first-sharp-frame` in the perf lab.
+- **Instaflow resilience**: a GPU reset must not lose the document or reload the tab (IF-7.11) →
+  `createGpuDevice({ provider, restore })` re-attaches from the retained scene; `deviceRestored()` re-renders.
+- **Instaflow export (C1) and agent screenshots**: PNG at print resolution beyond the texture limit →
+  `createHeadlessSurface({ backend }).render({ world, width, height, signal })`.
+- **Instaflow memory** (IF-15.7: GPU caches ≤ 512 MiB): tiles and media frames register with
+  `createMemoryBudgets` (`MemoryBudgetsToken` in workers); pressure evicts caches before features are demoted.
+- **Tests**: Studio and Instaflow render code is tested in Node against `createMemoryRasterBackend` and testkit's
+  GPU fake; real pixels through `pnpm test:gpu`.

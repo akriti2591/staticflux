@@ -9,6 +9,19 @@ export * from './feature.js';
 export * from './archive.js';
 export * from './feature-host.js';
 export * from './resource-manager.js';
+// The ledger lives in `@staticflux/runtime/memory`; types are re-exported for ports that accept one.
+export type {
+  CachePriority,
+  EvictionReason,
+  MemoryBudgetManager,
+  MemoryBudgetOptions,
+  MemoryBudgets,
+  MemoryCacheHandle,
+  MemoryCacheRegistration,
+  MemoryEviction,
+  MemoryKind,
+  MemoryUsage,
+} from './memory-budgets.js';
 export * from './scheduler.js';
 export * from './tokens.js';
 export * from './units.js';

@@ -11,8 +11,17 @@ license = "MIT"
 publish = false
 
 # Exact pins: `sf wasm build` installs the wasm-bindgen CLI whose version matches the locked crate.
+# Render stack = the versions the S1 spike measured (vello_gpu 0.3.0 + wgpu 30.0.1, WebGPU only).
 [workspace.dependencies]
 wasm-bindgen = "=0.2.129"
+wasm-bindgen-futures = "=0.4.79"
+js-sys = "=0.3.106"
+web-sys = { version = "=0.3.106", features = ["OffscreenCanvas", "console"] }
+vello_common = { version = "=0.3.0", default-features = false, features = ["std"] }
+vello_gpu = { version = "=0.3.0", default-features = false, features = ["wgpu"] }
+vello_cpu = { version = "=0.3.0", default-features = false, features = ["std", "u8_pipeline"] }
+wgpu = { version = "=30.0.1", default-features = false, features = ["std", "wgsl", "webgpu"] }
+png = "=0.18.1"
 
 # Size-first release profile (research/03 §2.2, S1). SIMD comes from RUSTFLAGS (+simd128), set by `sf wasm build`.
 [profile.release]

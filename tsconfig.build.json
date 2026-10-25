@@ -111,6 +111,9 @@
     },
     {
       "path": "packages/stage"
+    },
+    {
+      "path": "apps/instaflow"
     }
   ]
 }

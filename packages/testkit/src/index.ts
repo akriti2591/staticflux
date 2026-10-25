@@ -42,3 +42,6 @@ export * from './windowed-replica-contract.js';
 
 // Sequencing oracle (Instaflow M1 A7: IF-7.3, D15; the S2 oracle as a shared suite).
 export * from './sequencing-oracle-contract.js';
+
+// Render contract suite (Instaflow M1 A6: IF-7.4, SF-Δ23, Δ24).
+export * from './raster-backend-contract.js';

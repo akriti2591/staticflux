@@ -1299,6 +1299,12 @@
       "fix": "Expected when the owning scope ends. Agents must re-list tools."
     },
     {
+      "code": "SF-MEM-001",
+      "kind": "invariant",
+      "summary": "A cache could not be registered with the memory budget ledger (duplicate id, unknown kind, or the ledger was disposed).",
+      "fix": "Give every cache a unique id (e.g. `render/tiles`), use a kind from `MEMORY_KINDS`, and dispose the old handle before registering again."
+    },
+    {
       "code": "SF-MSG-001",
       "kind": "invariant",
       "summary": "A surface was requested for a scope that is already disposed, or for an owner that lives longer than the surface’s declared scope (I-7).",
@@ -1891,6 +1897,42 @@
       "kind": "invariant",
       "summary": "The surface is not attached (or was disposed).",
       "fix": "Call `attach(host)` first and wait for it; check `surface.state` before starting the frame loop."
+    },
+    {
+      "code": "SF-SURF-010",
+      "kind": "unavailable",
+      "summary": "No usable WebGPU device: there is no `navigator.gpu`, `requestAdapter()` returned null, or `requestDevice()` failed.",
+      "fix": "Check the `platform/webgpu-adapter` fact before booting a GPU surface and show the unsupported screen (or a CPU fallback) when it is not `available`; inspect `cause` for the browser message."
+    },
+    {
+      "code": "SF-SURF-011",
+      "kind": "unavailable",
+      "summary": "The GPU device was lost and could not be re-attached within the recovery attempts.",
+      "fix": "Usually a driver reset or GPU process crash that keeps failing: offer a reload, and check `details.attempts` and `cause`. Never reload the document to recover; recovery rebuilds from the retained CPU-side scene."
+    },
+    {
+      "code": "SF-SURF-012",
+      "kind": "quota",
+      "summary": "GPU device recovery took longer than its budget (IF-7.11: 1 s).",
+      "fix": "Profile `restore` (pipeline creation, image re-upload); keep scene state on the CPU side so recovery never waits for the document, and warm pipelines asynchronously."
+    },
+    {
+      "code": "SF-SURF-013",
+      "kind": "validation",
+      "summary": "A headless render was asked for an invalid or too large output (zero or non-integer size, or more pixels than the configured maximum).",
+      "fix": "Request a positive integer width and height; split huge exports into pages or lower the scale; raise `maxPixels` only with a memory reason."
+    },
+    {
+      "code": "SF-SURF-014",
+      "kind": "invariant",
+      "summary": "A raster backend call failed or was used out of order (unknown tile slot or layer, not attached, disposed, or the engine threw).",
+      "fix": "Attach the backend (and wait for `running`) before rendering; only composite slots returned by the tile cache; inspect `cause` for an engine panic message."
+    },
+    {
+      "code": "SF-SURF-015",
+      "kind": "unavailable",
+      "summary": "Reading pixels back from the GPU failed (map failed, device lost during readback, or a validation error).",
+      "fix": "Retry after the device is `running` again; readback buffers need COPY_DST | MAP_READ and 256-byte aligned rows."
     },
     {
       "code": "SF-TEST-001",
