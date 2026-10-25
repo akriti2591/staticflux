@@ -63,6 +63,11 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** Session interrupted: the C1 agent and the UX creative director stopped. C1's uncommitted files rescued to
+  `claude/wip-c1-export` (60908ed); both restarted fresh (C1 continues from its branch and writes a handoff first;
+  creative director on Fable, high effort, with the owner's new findings: tools without labels or tooltips, Pen is a
+  placeholder that does nothing, frames only drawable inside a white box and white on white, the canvas is a box in
+  a box instead of the design's dotted infinite canvas with a page card).
 - **2026-10-25** #24 (C0) merged. Owner's first hands-on session: no visible delete or rotate, no clipboard, UI
   unpolished, while all tests passed. Owner's call: a UX analyst (Fable, medium effort) writes a Markdown UX spec and
   end-to-end flows for agents first (`docs/instaflow/ux/`, branch `claude/wip-ux-spec`); then B11 Studio basics and
