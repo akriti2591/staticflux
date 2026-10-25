@@ -43,7 +43,8 @@ screen layout (M1B-NOTES).
   `importLocalFont`, `importUpload`, `load(hash)`, `assets`, `bytesOf`, `families`; `LocalFontsMachine`
   (`instaflow/local-fonts`), `isFontFile`, `FONT_MIME`.
 - `text-session.ts` — `createTextSession({ input, target, engine, blockId, layout, toClient, onExit, onProblem })` →
-  `state`, `selection`, `select`, `refresh`, `setTypingStyle`, `onChange`, `dispose`.
+  `state`, `selection`, `select`, `refresh`, `setTypingStyle`, `onChange`, `dispose`. The control bounds are the committed
+  block's size, never the composition preview's (B8 fix of the owner's IME check finding 2; `text-session.ime.test.ts`).
 - `typography.ts` — `createTypographyService(...)` (`summary`, `setFont`, `setSize`, `setWeight`, `toggle`, `setColor`,
   `setLetterSpacing`, `setLink`, `setAlign`, `setLineHeight`, `fitToBox`, `fontChoices`, `colorChoices`, `onChange`),
   `TypographyServiceToken`, `summarizeTypography`, `fitToBoxOps`, `MIXED`.

@@ -114,6 +114,17 @@ describe.skipIf(!authoringBuilt)('hit testing (rbush broad phase → exact geome
     expect(f.index.index.size).toBe(0);
   });
 
+  it('keeps a group’s indexed bounds fresh when a child moves (ancestors are re-indexed, B8)', async () => {
+    const f = await createToolFixture([shape('g', {}, 'p1', 'group'), rect('c', 0, 0, 50, 50, {}, 'g'), rect('d', 100, 0, 50, 50, {}, 'g')]);
+    f.index.refresh();
+    expect(f.index.index.get('g')?.maxX).toBeCloseTo(150, 0);
+    f.seed([{ op: 'set', node: 'd', path: P.x, value: 400 }]);
+    f.index.refresh();
+    expect(f.index.index.get('g')?.maxX).toBeCloseTo(450, 0);
+    expect(f.index.index.hit(425, 25)).toEqual(expect.arrayContaining(['g', 'd']));
+    await f.scope.dispose();
+  });
+
   it('marquee: touch picks what the rectangle meets (exact geometry), contain what lies inside; per entered container', async () => {
     const f = await createToolFixture([
       rect('a', 0, 0, 100, 100, { [P.shape]: 'ellipse' }),

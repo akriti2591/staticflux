@@ -19,7 +19,7 @@
  */
 import { err, ok, type Result } from '@staticflux/core';
 import type { Box } from '@staticflux/document/spatial-index';
-import type { JsonValue, NodeId, PartId, PartOp, PropertyPath } from '@staticflux/document/v2';
+import type { JsonValue, NodeId, PartId, PartOp, PropertyPath, RichTextValue } from '@staticflux/document/v2';
 import type { Actor, Stage, UndoService } from '@staticflux/stage';
 import { type BooleanOpName, CORNER_PATHS, type MaskModeName, P } from './components.js';
 import { checkToken, type TokenType } from './brand-kit.js';
@@ -32,6 +32,11 @@ export interface ActionContext extends ElementContext {
   readonly stage: Pick<Stage, 'read' | 'children' | 'value' | 'explain' | 'lockOf' | 'checkWrite'>;
   /** A fresh, unique node id (also used to mint match keys). */
   readonly newId: () => NodeId;
+  /**
+   * The rich texts a node holds in its part (B2 text content; the composed stage exposes values only). `duplicate`
+   * copies them, so a duplicated text element keeps its rich text (B8 fix). Omitted: copies carry props only.
+   */
+  readonly texts?: (node: NodeId) => Readonly<Record<PropertyPath, RichTextValue>> | undefined;
 }
 
 export const ALIGN_EDGES = ['left', 'center-x', 'right', 'top', 'center-y', 'bottom'] as const;
@@ -481,7 +486,8 @@ export function duplicate(ctx: ActionContext, nodes: readonly NodeId[], offset: 
       props[P.x] = num(props[P.x], 0) + offset[0];
       props[P.y] = num(props[P.y], 0) + offset[1];
     }
-    ops.push({ op: 'create', node: id, kind: composed.kind, parent, position, props });
+    const texts = ctx.texts?.(source);
+    ops.push({ op: 'create', node: id, kind: composed.kind, parent, position, props, ...(texts === undefined || Object.keys(texts).length === 0 ? {} : { texts }) });
     ctx.stage.children(source).forEach((child, index) => copy(child, id, { index }, false));
   };
   for (const node of nodes) {

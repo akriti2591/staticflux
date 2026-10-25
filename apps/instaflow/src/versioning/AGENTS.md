@@ -52,9 +52,10 @@ a **frozen snapshot** that leaves no record (D10). Costs scale with document siz
   `ReleasePortToken`, `MAX_MILESTONE_NAME` / `NOTE`. `units.ts` — `createVersioningServices(context, scope)`,
   `versioningServicesUnit` (feature scope), `latestServiceUnit`, `milestonesPanelModelUnit`, `releasePortUnit`, `versioningUnits`.
 - UI (`ui.ts`): `milestones-panel.ts` — `<if-milestones-panel>` (`defineMilestonesPanel`, `milestoneNodes`, `promptCreate()`);
-  `save-status.ts` — `<if-save-status>` (`defineSaveStatus`, `saveStatusView`); `contributions.ts` — local B0-shaped
-  `PanelContribution` / `TopBarContribution` / `CommandContribution` + tokens, the three contributions and
-  `versioningContributionUnits`; `messages.ts` — `versioningMessages` (`instaflow-versioning`), `versioningText`.
+  `save-status.ts` — `<if-save-status>` (`defineSaveStatus`, `saveStatusView`); `contributions.ts` — the Milestones panel as a
+  **B0 panel contribution** (`instaflow/milestones`, dock; reconciled by B8), the local `TopBarContribution` /
+  `CommandContribution` shapes + tokens (B0 has no top-bar or command vocabulary yet; Studio shows the save status and runs
+  the command from its Milestone button), and `versioningContributionUnits`; `messages.ts` — `versioningMessages` (`instaflow-versioning`), `versioningText`.
 - `errors.ts` — `IF-VER-001` name · `002` unknown milestone · `003` record/part missing or malformed · `004` head CAS lost ·
   `005` slot mark · `006` slot fill · `007` required slot · `008` asset exists · `009` Release unavailable · `010` disposed.
 

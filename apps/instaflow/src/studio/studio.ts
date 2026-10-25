@@ -15,7 +15,7 @@ import type { Density, LensContribution, LensContributionId, ToolId } from '../s
 import type { SpecSubject } from '../spec/gate.js';
 import { type Autonomy, createSpecProposals, type ProposalSource, type SpecProposal, type SpecProposals } from '../spec/proposals.js';
 import { DEFAULT_DENSITY, EditorSection, type EditorRegistries, slotOf, toShellSpec } from '../spec/registries.js';
-import type { EditorSpec } from '../spec/schema.js';
+import type { EditorSpec, ScopeRef } from '../spec/schema.js';
 import { studioSpec, studioSpecFor } from '../spec/studio-spec.js';
 
 export const StudioShortcutScope = /* @__PURE__ */ defineShortcutScope('instaflow/studio');
@@ -61,6 +61,11 @@ export interface Studio {
   open(signal?: AbortSignal): Promise<Result<SpecApplied>>;
   switchLens(lens: LensContributionId, signal?: AbortSignal): Promise<Result<SpecProposal>>;
   setDensity(density: Density, signal?: AbortSignal): Promise<Result<SpecProposal>>;
+  /**
+   * Scope the spec (B8: Studio's scope follows the canvas selection, so the selection's HUD actions and inspectors
+   * mount). A no-op when the scope is already the mounted one.
+   */
+  setScope(scope: ScopeRef, signal?: AbortSignal): Promise<Result<SpecProposal | undefined>>;
   selectTool(tool: ToolId): Result<void>;
   /** Pin or unpin a mounted slot (`panel:instaflow/layers`). */
   togglePin(slot: SpecSlotKey): Result<boolean>;
@@ -125,6 +130,11 @@ export function createStudio(options: StudioOptions): Studio {
     },
     switchLens: (lens, signal) => change((base) => studioSpecFor(lens, base), signal),
     setDensity: (density, signal) => change((base) => ({ ...base, density }), signal),
+    async setScope(scope, signal) {
+      const current = proposals.current ?? options.spec ?? studioSpec;
+      if (JSON.stringify(current.scope) === JSON.stringify(scope)) return ok(undefined);
+      return change((base) => studioSpecFor(base.lens, { ...base, scope }), signal);
+    },
     selectTool(tool) {
       if (!mountedTools().includes(tool)) return err(SpecSlotError({ message: `Tool ${tool} is not in this editor.`, details: { slot: slotOf('tool', tool) } }));
       picked.set(tool);

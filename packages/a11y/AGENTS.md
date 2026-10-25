@@ -18,6 +18,7 @@ typed declarations, scopes and conflict detection, platform preference facts, an
 - `shortcuts.ts` — `defineShortcutScope(id, { parent })`, `GlobalShortcutScope`, `defineShortcut({ id, keys: KeyCombo[], scope, description, allowInInputs, preventDefault })`,
   `createShortcutRegistry({ isMac })` → `register`, `activate`, `handle`, `attach`, `list`, `conflicts`, `label`, `activeScopes`;
   `checkShortcuts(defs)` (CI), `parseCombo`, `comboId`, `eventComboId`, `comboLabel`, `RESERVED_COMBOS`; `SF-A11Y-002` conflict, `SF-A11Y-003` invalid combo.
+  Plain keys never fire while typing: text inputs, textareas, selects, contenteditable and **EditContext hosts** (canvas text editors) count as fields unless `allowInInputs`.
 - `preferences.ts` — `createPreferenceFacts({ matchMedia, scope })` → reactive `reducedMotion`, `contrast`, `forcedColors`, `colorScheme`, `reducedTransparency`, `snapshot()`; `PREFERENCE_DEFAULTS`.
 - `busy.ts` — `markBusy(el, scope?)` (ref-counted), `bindBusy(el, () => boolean, scope?)`, `busyAttributes(busy)`, `busyCount`.
 - `tokens.ts` — `A11yEnvironmentToken`, `FocusManagerToken`, `AnnouncerToken`, `ShortcutRegistryToken`, `PreferenceFactsToken` (token-only module).

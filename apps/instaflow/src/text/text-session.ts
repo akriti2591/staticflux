@@ -75,6 +75,12 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
   if (!first.ok) return first;
   let model = first.value;
   let layout: TextLayout | undefined;
+  /**
+   * Size of the committed block (no composition preview). The control bounds are the editable area, so they come
+   * from this, never from the preview: a composition (its underline, wrapping, fallback fonts with other line
+   * metrics) must not move or grow them (owner's IME check, finding 2).
+   */
+  let block: { readonly width: number; readonly height: number } | undefined;
   let anchor = model.text.length;
   let focus: CaretPosition = { offset: model.text.length, upstream: true };
   let composition: TextSessionState['composition'];
@@ -95,6 +101,7 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
       return;
     }
     layout = r.value;
+    if (composition === undefined) block = { width: r.value.width, height: r.value.height };
   };
 
   const caretRect = (): Rect | undefined => {
@@ -106,7 +113,8 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
     if (!input.composing) input.setState({ text: model.text, selection: [anchor, focus.offset] });
     const c = caretRect();
     if (c !== undefined) input.setSelectionBounds(options.toClient(c));
-    if (layout !== undefined) input.setControlBounds(options.toClient({ x0: 0, y0: 0, x1: layout.width, y1: layout.height }));
+    const control = block ?? layout;
+    if (control !== undefined) input.setControlBounds(options.toClient({ x0: 0, y0: 0, x1: control.width, y1: control.height }));
     for (const l of [...listeners]) l(state());
   };
 

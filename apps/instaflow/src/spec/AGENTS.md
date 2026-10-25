@@ -34,9 +34,12 @@ schema, Studio spec and the proposal pipeline.
   `PROPOSAL_SUBJECTS`, `AUTONOMY_MODES`; the **`SpecProposer`** port + `SpecProposerToken`; machine `SpecProposalLifecycle`
   (`instaflow/spec-proposal`, LIFECYCLES §20).
 - `studio-contributions.ts` — `StudioIds` (stable ids), `studioLenses` (Canvas, Pixel, Timeline, Flow; `1`–`4`; Pages `5`, whose feature and panel are B4's `src/lenses`), `studioTools`,
-  `studioPanels` (placeholders: Chat, Layers, Pages, Assets, Brand, Properties, Adjust), `studioHudActions`.
-- `studio-spec.ts` — **`studioSpec`** (D19, the maximal spec), `studioSpecFor(lens, base)`, variant tables `STUDIO_LENS_TOOLS`,
-  `STUDIO_LENS_HUD`, `STUDIO_LENS_PANELS`, `STUDIO_PANELS`, `STUDIO_CAPABILITIES`.
+  `studioPanels` (placeholders: Chat, Layers, Pages, Assets, Milestones, Brand, Properties, Adjust), `studioHudActions`;
+  B8 added the ids Studio places for M1b (`panel.milestones | appearance | repeat`, `selectionHud.*` by feature).
+- `studio-spec.ts` — **`studioSpec`** (D19, the maximal spec), `studioSpecFor(lens, base)` (uses the base's scope), variant
+  tables `STUDIO_LENS_TOOLS`, `STUDIO_LENS_HUD`, `STUDIO_LENS_PANELS`, `STUDIO_PANELS`, `STUDIO_CAPABILITIES`, and (B8) the
+  scope tables `STUDIO_SCOPE_HUD` / `STUDIO_SCOPE_PANELS` (what a selection adds). The HUD row has no More slot: tone
+  `more` actions share one menu. A spec names at most 48 HUD actions (B8, was 12).
 - `examples/pixel-touchup.ts` — `pixelTouchUpSpec(nodes)` (the example mini editor).
 - `units.ts` — `EditorRegistriesToken`, `editorRegistriesUnit`, `studioContributionUnits`.
 - `errors.ts` — `IF-SPEC-001` schema · `002` registry · `003` proposal state · `004` proposer failed · `005` canvas start.

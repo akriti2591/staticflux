@@ -50,13 +50,24 @@ export const OVERLAY_WIDTHS = Object.freeze({ frame: 1.5, hover: 1.5, guide: 1, 
 
 const translate = (x: number, y: number): SceneTransform => [1, 0, 0, 1, x, y];
 
-/** Scene IR for the overlay at a zoom (page space; stroke widths stay constant on screen). */
-export function toolOverlayBatch(overlay: ToolOverlay, zoom: number, options: { readonly colors?: OverlayColors; readonly firstId?: number } = {}): Uint8Array {
+/**
+ * Scene IR for the overlay at a zoom (page space; stroke widths stay constant on screen). By default the batch
+ * starts with CLEAR (a scene of its own). `clear: false` writes into a shared scene instead (B8: the canvas raster
+ * is opaque, so the overlay draws in the content scene above the page); `ids` receives the ids written, for the
+ * next batch to remove.
+ */
+export function toolOverlayBatch(
+  overlay: ToolOverlay,
+  zoom: number,
+  options: { readonly colors?: OverlayColors; readonly firstId?: number; readonly clear?: boolean; readonly ids?: number[] } = {},
+): Uint8Array {
   const colors = options.colors ?? overlayColors();
-  const w = createSceneWriter().clear();
+  const w = createSceneWriter();
+  if (options.clear !== false) w.clear();
   let id = options.firstId ?? 1;
   const s = 1 / zoom;
   const put = (node: Omit<SceneNode, 'id'>): void => {
+    options.ids?.push(id);
     w.upsert({ id: id++, ...node });
   };
   const line = (x0: number, y0: number, x1: number, y1: number, width: number, color: Rgba8): void => {

@@ -15,7 +15,8 @@
     "packages/*/src",
     "tooling/*/src",
     "apps/instaflow/src",
-    "apps/instaflow/bench"
+    "apps/instaflow/bench",
+    "apps/instaflow/dev"
   ],
   "exclude": [
     "apps/instaflow/bench/**/dist"

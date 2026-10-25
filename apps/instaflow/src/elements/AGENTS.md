@@ -40,7 +40,8 @@ Effects inspector.
   `gridLines`, `containerGrids`, box helpers.
 - `actions.ts` — `align` (edges × selection | container | page | key), `centerInContainer`, `distribute` (spacing |
   centers), `tidyUp`, `booleanGroup`, `setBooleanOp`, `releaseBoolean`, `flatten`, `outlineStroke`, `useAsMask`, `setMask`,
-  `releaseMask`, `applyToken` (`TOKEN_TARGETS`), `duplicate` (match keys), `localValues`, **`commitEdit`** (one change set).
+  `releaseMask`, `applyToken` (`TOKEN_TARGETS`), `duplicate` (match keys; copies rich texts when `ActionContext.texts` is
+  given, B8), `localValues`, **`commitEdit`** (one change set).
 - `projection.ts` — `ElementProjection`, `createElementRenderSource` (stage-backed `RenderProjectionSource`), resources
   (`createResourceTable`, `Look`, `lookOf`), `RENDER_FLAGS`, `MASK_INVERT_BIT`.
 - `scene.ts` — `createSceneResources`, `createElementSceneEncoder` (diffing; `sceneIdOf`), `lumaToAlpha`,

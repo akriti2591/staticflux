@@ -78,9 +78,22 @@ export function createElementIndex(ctx: ToolContext, root: NodeId, scope?: Scope
       if (dirty.size === 0) return;
       const nodes = [...dirty];
       dirty.clear();
+      const ancestors = new Set<NodeId>();
       for (const node of nodes) {
         if (node === root) return rebuild();
         indexSubtree(node, (n, b) => index.set(n, b));
+        // A group's bounds are its children's union (and a frame's ink can depend on them): refresh every ancestor
+        // of a changed node too, or a group keeps its old box after a child moves (B8 fix, B6 handoff).
+        for (let at = ctx.stage.read(node)?.parent ?? null; at !== null && at !== root; at = ctx.stage.read(at)?.parent ?? null) ancestors.add(at);
+      }
+      for (const node of ancestors) {
+        if (nodes.includes(node)) continue;
+        const composed = ctx.stage.read(node);
+        if (composed === undefined || !isElement(composed.kind)) continue;
+        const b = elementBounds(ctx, node);
+        stats.reindexed += 1;
+        if (b.ok) index.set(node, b.value.ink);
+        else index.delete(node);
       }
     },
     rebuild,

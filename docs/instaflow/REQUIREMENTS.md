@@ -1061,3 +1061,61 @@ Code: `apps/instaflow/src/repeat` (exports `@instaflow/app/repeat`, `@instaflow/
 | `IF-REP-003` | Repeat action does not apply to the selection |
 | `IF-REP-004` | Write, expand or edit targets a derived instance |
 | `IF-REP-005` | Handle drag used after it ended, or an unknown handle |
+
+## 27. Studio integration (M1b B8, the M1b demo)
+
+Code: `apps/instaflow/src/app` (the composition root; not a package export), the dev entry `apps/instaflow/dev/studio`,
+the smoke scenario `apps/instaflow/test/smoke`. Error codes `IF-INT-001…005`. Lifecycle: LIFECYCLES §29.
+
+- **IF-27.1** Studio's canvas runs **A7's sequencing ports**: scene records on one ordered delta stream, then one view
+  frame that references them; A7's render module (now over a scene adapter) draws only consistent pairs.
+- **IF-27.2** **Resources travel ahead of projection deltas**: a scene record frames the resource batch, the asset uploads,
+  the projection payload and the text IR in that order (`encodeSceneRecord`); a snapshot carries every live resource.
+- **IF-27.3** The render source is B1's element source **over B7's repeat view**, so live repeat instances draw like
+  elements; text (B2) is laid out and drawn on the record's IR section; library images upload ahead of their elements.
+- **IF-27.4** Placement (D15): editor and render modules run in one realm on the `local` medium (the one-worker default
+  with the editor services next to their DOM pieces); the split topology is a follow-up.
+- **IF-27.5** One **canvas tab** per shown page: B3's view state, element index, tool session, pointer controller and
+  keyboard commands; canvas shortcuts are live while the surface has focus and no text is being edited.
+- **IF-27.6** Studio's fonts: the bundled OFL faces registered by content hash with per-script fallbacks; new text uses the
+  first face at 48 px.
+- **IF-27.7** B3's overlay (selection frame, round handles, smart guides, marquee) and the page edge are drawn above the
+  page, never into the document or the projection; distance labels are kit tags over the canvas.
+- **IF-27.8** **Shape** (`R`) and **Frame** (`F`) draw by dragging (Shift square, Alt from the centre) or place their
+  default size on a click; one create is one undo step; the new element is selected and the toolbar returns to Select.
+- **IF-27.9** **Text** (`T`) places a text element on a click (auto width) or with the dragged width (auto height) and
+  starts editing it; a double click on text edits it.
+- **IF-27.10** What a creation tool makes is a table row (`CREATION_TOOLS`), never a branch on the tool.
+- **IF-27.11** Typing goes through B2's text session on a `TextInput` host over the text box (EditContext or the hidden
+  textarea, a variant binding); each keystroke is one undo step together with the box size it implies.
+- **IF-27.12** While text is edited, the text host is the element's `textbox` for assistive technology and its projected
+  node steps aside (B6); Escape or Tab returns to the canvas; an element left empty is deleted.
+- **IF-27.13** B6's accessibility layer (projection, focus path, announcements) runs over the tab's index, view and
+  repeat view.
+- **IF-27.14** Studio's vocabulary replaces B0's placeholders by id with the real contributions (Select, Hand, Text,
+  Pages, Assets, Typography, Milestones) and adds Fill / stroke / effects, Repeat and every M1b HUD action.
+- **IF-27.15** **Studio's scope follows the selection**: with elements selected the spec is scoped to them and the
+  selection's HUD actions and inspector panels mount (variant tables `STUDIO_SCOPE_HUD`, `STUDIO_SCOPE_PANELS`).
+- **IF-27.16** HUD actions of tone `more` share one "More actions" menu; the HUD keeps at most two rows and the canvas keeps
+  its size.
+- **IF-27.17** A HUD click runs its capability on the selection through the capability pipeline (subject `user`, the stage
+  attribution port's actor); results with text are spoken politely, problems too; placeholders say they arrive later.
+- **IF-27.18** The canvas port lays out the canvas, label layer and accessibility layer inside the surface, routes pointer,
+  wheel and resize events to the tab, and switches pages without recreating the raster.
+- **IF-27.19** The Pages panel's lens controller chooses the page the canvas shows.
+- **IF-27.20** The Milestone button creates a milestone through B5's capability; the top bar shows B5's save status.
+- **IF-27.21** The library's **Place** decodes the asset once, uploads its pixels and adds an image element (image fill)
+  centred in the view, as one undo step.
+- **IF-27.22** Duplicate (`Mod+D`) keeps rich text (B2) and match keys (B1); Delete and Undo / Redo are canvas shortcuts.
+- **IF-27.23** B3's element index re-indexes the ancestors of a changed node, so group bounds stay fresh.
+- **IF-27.24** One command runs Studio locally (`pnpm --filter @instaflow/app dev` after `pnpm build`).
+- **IF-27.25** A Playwright smoke scenario (open Studio, draw a rectangle, type text, create a milestone) runs in Chromium
+  with WebGPU on SwiftShader.
+
+| Code | Meaning |
+|---|---|
+| `IF-INT-001` | The canvas pipeline could not start |
+| `IF-INT-002` | A record on the canvas stream is not a framed scene record |
+| `IF-INT-003` | No open page (or the canvas has not started) |
+| `IF-INT-004` | The canvas renderer could not start (Wasm, WebGPU, canvas) |
+| `IF-INT-005` | The Studio document could not be created or opened |
