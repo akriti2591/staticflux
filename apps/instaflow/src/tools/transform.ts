@@ -150,14 +150,17 @@ export function transformHandles(frame: SelectionFrame, zoom: number, pivot?: Po
 /** Hit priority per handle kind (lower wins, then the nearest): resize handles, the pivot, rotate zones. */
 const HANDLE_RANK: Readonly<Record<HandleKind, number>> = Object.freeze({ resize: 0, pivot: 1e6, rotate: 2e6 });
 
-/** The handle under a page point (resize handles win over the pivot, the pivot over rotate zones). */
-export function pickHandle(handles: readonly TransformHandle[], x: number, y: number): TransformHandle | undefined {
+/**
+ * The handle under a page point (resize handles win over the pivot, the pivot over rotate zones). `prefer` puts one
+ * kind first (B10a: Alt grabs the pivot even where it sits on a resize handle).
+ */
+export function pickHandle(handles: readonly TransformHandle[], x: number, y: number, prefer?: HandleKind): TransformHandle | undefined {
   let best: TransformHandle | undefined;
   let bestD = Infinity;
   for (const h of handles) {
     const d = Math.hypot(h.x - x, h.y - y);
     if (d > h.hitRadius) continue;
-    const rank = HANDLE_RANK[h.kind] + d;
+    const rank = (h.kind === prefer ? -1e7 : HANDLE_RANK[h.kind]) + d;
     if (rank < bestD) {
       best = h;
       bestD = rank;

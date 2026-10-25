@@ -91,6 +91,8 @@ export interface TransformMode {
 }
 
 const NONE: ToolOutcome = Object.freeze({ kind: 'none' });
+
+const unchanged = (a: unknown, b: unknown): boolean => (typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) < 1e-9 : a === b);
 /** The undo label of a session whose steps had different labels. */
 export const TRANSFORM_LABEL = 'Transform';
 
@@ -138,7 +140,15 @@ export function createTransformMode(host: Omit<TransformHost, 'mode'>, scope?: S
     },
     stage(values, label) {
       if (!machine.is('active')) return;
-      for (const v of values) staged.set(v.node, { ...staged.get(v.node), ...v });
+      // Only the fields that differ from the base are staged, so restoring the session's previews never hides a
+      // value someone else (an agent, a collaborator) changed meanwhile.
+      const boxes = new Map(base?.elements.map((e) => [e.node, e.box]));
+      for (const v of values) {
+        const merged: Record<string, unknown> = { ...staged.get(v.node), ...v };
+        const box = boxes.get(v.node) as Readonly<Record<string, unknown>> | undefined;
+        for (const key of SPATIAL_VALUE_KEYS) if (box !== undefined && unchanged(box[key], merged[key])) delete merged[key];
+        staged.set(v.node, merged as unknown as SpatialValues);
+      }
       labels.add(label);
       machine.send('stage');
     },

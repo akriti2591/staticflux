@@ -463,8 +463,9 @@ export function createToolController(s: ToolSession): ToolController {
   const behaviour = (): ToolBehaviour => MODE_BEHAVIOURS[modeState(s)] ?? TOOL_BEHAVIOURS[s.view.tool] ?? 'select';
   const tolerance = (): number => POINTER.hitTolerance / s.view.camera.zoom;
 
-  const classify = (page: readonly [number, number], deep: boolean): Result<{ target: PressTarget; handle?: TransformHandle; hit?: NodeId }> => {
-    const handle = pickHandle(s.view.overlay.handles, page[0], page[1]);
+  const classify = (page: readonly [number, number], deep: boolean, alt: boolean): Result<{ target: PressTarget; handle?: TransformHandle; hit?: NodeId }> => {
+    // Alt prefers the pivot (it may sit on a resize handle once snapped to a corner or an edge).
+    const handle = pickHandle(s.view.overlay.handles, page[0], page[1], alt ? 'pivot' : undefined);
     if (handle !== undefined && s.view.selection.length > 0) return ok({ target: HANDLE_TARGETS[handle.kind](handle, deep), handle });
     const hit = hitTest(s.ctx, s.index, page[0], page[1], { tolerance: tolerance(), context: s.view.context, deep });
     if (!hit.ok) return hit;
@@ -477,7 +478,7 @@ export function createToolController(s: ToolSession): ToolController {
     pruneSelection(s);
     const page = toPage(s.view.camera, e.x, e.y);
     const b = behaviour();
-    const c = classify(page, e.mod === true);
+    const c = classify(page, e.mod === true, e.alt === true);
     if (!c.ok) return c;
     const { target, hit, handle } = c.value;
     let reselect: NodeId | undefined;
