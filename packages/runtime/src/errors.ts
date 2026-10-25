@@ -131,3 +131,10 @@ export const SchedulerDisposedError = defineError(
   'The frame scheduler was disposed; the job was dropped.',
   'Expected during shutdown. Do not schedule work on a disposed scheduler.',
 );
+
+export const WorkerSchedulerDisposedError = defineError(
+  'SF-SCHED-002',
+  'aborted',
+  'The worker scheduler was disposed; the task was dropped.',
+  'Expected when the worker shuts down (dispose it in onShutdown). Do not post tasks after dispose; long jobs check the abort signal they are given.',
+);
