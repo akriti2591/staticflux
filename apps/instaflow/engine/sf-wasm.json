@@ -6,6 +6,7 @@
     { "name": "render" },
     { "name": "authoring", "defaultFeatures": false, "features": ["geometry"] },
     { "name": "authoring-text", "package": "authoring", "defaultFeatures": false, "features": ["text"] },
-    { "name": "authoring-text-complex", "package": "authoring", "defaultFeatures": false, "features": ["complex-scripts"] }
+    { "name": "authoring-text-complex", "package": "authoring", "defaultFeatures": false, "features": ["complex-scripts"] },
+    { "name": "export", "defaultFeatures": false }
   ]
 }

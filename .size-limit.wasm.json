@@ -30,5 +30,13 @@
     "compression": "brotli",
     "limit": "2.3 MB",
     "ratchet": false
+  },
+  {
+    "name": "Instaflow export Wasm: SVG and PDF writers, rasterize-list plan (IF-15.1 export extras ≤ 400 KB; loaded only in the export worker, for SVG, PDF and selection exports; C1)",
+    "category": "export-wasm",
+    "path": "apps/instaflow/engine/dist/export.*.wasm",
+    "compression": "brotli",
+    "limit": "230 KB",
+    "ratchet": false
   }
 ]

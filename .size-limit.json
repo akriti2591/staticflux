@@ -895,7 +895,7 @@
     "limit": "2 KB"
   },
   {
-    "name": "@instaflow/app/render (Vello RasterBackend + scene IR v3 + Wasm loader; worker only; +0.3 KB for B1 stacks, effects, masks; +0.1 KB for B2 font ops and glyph synthesis)",
+    "name": "@instaflow/app/render (Vello RasterBackend + scene IR v4 + Wasm loader; worker only; +0.3 KB for B1 stacks, effects, masks; +0.1 KB for B2 font ops and glyph synthesis; +0.25 KB for C1: glyph runs carry their text for real PDF text)",
     "path": "apps/instaflow/dist/render/index.js",
     "ignore": [
       "mobx",
@@ -903,7 +903,7 @@
       "@staticflux/platform",
       "@staticflux/surface/raster"
     ],
-    "limit": "3.9 KB"
+    "limit": "4.15 KB"
   },
   {
     "name": "@staticflux/kit/tag",
@@ -1049,7 +1049,7 @@
     "limit": "1.6 KB"
   },
   {
-    "name": "@instaflow/app/library (library document, ingest, renditions, thumbnail back ends; excl. framework)",
+    "name": "@instaflow/app/library (library document, ingest, renditions, thumbnail back ends; excl. framework; raised 10 → 10.25 KB by C1: the scene IR writer it shares carries glyph-run text)",
     "path": "apps/instaflow/dist/library/index.js",
     "ignore": [
       "mobx",
@@ -1064,7 +1064,7 @@
       "@staticflux/a11y",
       "@staticflux/capabilities"
     ],
-    "limit": "10 KB"
+    "limit": "10.25 KB"
   },
   {
     "name": "@instaflow/app/library/ui (Assets panel and its contribution; excl. lit, kit and framework)",
@@ -1329,5 +1329,51 @@
       "@staticflux/messaging"
     ],
     "limit": "10.75 KB"
+  },
+  {
+    "name": "@instaflow/app/export (C1 on main: formats, errors, export service spawning the export worker, the export capability; excl. framework)",
+    "path": "apps/instaflow/dist/export/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/capabilities",
+      "@staticflux/document/v2",
+      "@staticflux/worker",
+      "@staticflux/blob",
+      "@staticflux/messaging",
+      "@staticflux/stage"
+    ],
+    "limit": "4.25 KB"
+  },
+  {
+    "name": "@instaflow/app/export/panel (C1 Export panel and its contribution; excl. lit, kit and framework)",
+    "path": "apps/instaflow/dist/export/panel.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/capabilities",
+      "@staticflux/document/v2",
+      "@staticflux/worker",
+      "@staticflux/blob",
+      "@staticflux/messaging",
+      "@staticflux/stage",
+      "@staticflux/kit/button",
+      "@staticflux/kit/inspector",
+      "@staticflux/kit/segmented",
+      "@staticflux/kit/status"
+    ],
+    "limit": "3 KB"
   }
 ]

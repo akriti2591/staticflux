@@ -319,6 +319,10 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
       const e = needEditor();
       return e.ok ? ok(e.value.inspect(nodes)) : e;
     },
+    async exportTarget(_, context) {
+      const e = needEditor();
+      return e.ok ? e.value.exportTarget(context.signal) : e;
+    },
     async metrics() {
       const out: { render?: NonNullable<StudioMetrics['render']>; editor?: NonNullable<StudioMetrics['editor']> } = {};
       if (render !== undefined) {

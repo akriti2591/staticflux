@@ -34,12 +34,18 @@ entries at the top of **Journal**.
 | B10a Transform tools, basics | Merged | `main` | #23 |
 | C0 Home route | PR open (full check 4,314 tests; Studio and Home smokes green) | working branch | #24 |
 
+| C1 Export | Full check + smokes green on the working branch; PR open | working branch | — |
+| UX spec | Done, on the working branch | `docs/instaflow/ux/` | — |
+
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
 
 ## Next (one work package at a time; order, scope and IDs in M1C-NOTES.md)
-B9 Editor in the worker → site refresh → B10a Transform basics → C0 → C1 → C2 → C3 → C4. B10b (distort, perspective,
-warp) early M2.
+1. Owner merges the C1 PR (C1 + UX docs + brand assets + notes); then reset the working branch and start B11a.
+2. **B11a** foundations, then **B11b** Studio and Home surfaces (UX docs, owner decisions in STUDIO-UX-SPEC §14, logo).
+3. C2 Import → C3 Modes and identity → C4 Hardening (end-to-end checkpoint in CI, performance and loading pass).
+4. B10b distort / perspective / warp: early M2.
+Coordinator memory: `docs/instaflow/handoffs/COORDINATOR.md`.
 
 Open M1 decisions: which worker mode boots by default (D15 says one; the split becomes default only if it meets the budget after the
 main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D-number); reference iGPU runner (C4).
@@ -62,6 +68,35 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** C1 full check: three guard lists didn't know C1's additions (export Wasm crate, its 230 KB brotli
+  budget, the Export panel in the chrome audit coverage). Lists updated; check, smokes (both topologies) and Home smoke
+  green. C1 PR opened.
+- **2026-10-25** Owner decisions on the UX spec: **all ten recommendations accepted** (rotate handle below + corner
+  zones; Standard density; density in a View menu and Settings; Share hidden until Export, then Export; raspberry as
+  the agent role colour for any provider; Canvas + Pages lenses always, others with content; white frames with a
+  non-printing hairline and label; tangerine default shape fill; Lucide icons with ISC credit). **End-to-end tests in
+  CI wait** for a checkpoint after everything is built (C4). B11 split into B11a foundations and B11b surfaces. Logo
+  chosen: cursive if, colour-split dot, no tail (`apps/instaflow/brand/`). `.iflow` stays the extension. Coordinator
+  memory written to `docs/instaflow/handoffs/COORDINATOR.md`.
+- **2026-10-25** C1 done (232aeb9; restarted agent wrote a handoff first): PNG / PDF / SVG export in a worker, Export
+  panel and capability, D21 (SVG/PDF parity rule with measured numbers). PDF via pdf-writer (krilla was 481 KB);
+  render and library budgets +0.25 KB each (scene IR text runs carry their text).
+- **2026-10-25** UX spec done (creative director, cdaf58b): `docs/instaflow/ux/` README, FOUNDATIONS (principles, vocabulary,
+  building blocks with a StaticFlux-vs-Instaflow code map), STUDIO / HOME-FILES / CHAT specs, FLOWS. Ten open questions
+  for the owner in STUDIO-UX-SPEC §14. B11 waits for the owner's answers. Logo: owner chose the cursive "if"; rounds 3
+  and 4 (glitch dot × tail) on the logo canvas, waiting for the pick.
+- **2026-10-25** Owner: a loading and performance pass (per-route first-render JS in a production build, DI
+  boundaries proven, chunk and feature performance tests with budgets) belongs at the end, in C4. Written into
+  M1C-NOTES. Logo: six directions on the "Instaflow Logo" canvas, waiting for the owner's pick.
+- **2026-10-25** Session interrupted: the C1 agent and the UX creative director stopped. C1's uncommitted files rescued to
+  `claude/wip-c1-export` (60908ed); both restarted fresh (C1 continues from its branch and writes a handoff first;
+  creative director on Fable, high effort, with the owner's new findings: tools without labels or tooltips, Pen is a
+  placeholder that does nothing, frames only drawable inside a white box and white on white, the canvas is a box in
+  a box instead of the design's dotted infinite canvas with a page card).
+- **2026-10-25** #24 (C0) merged. Owner's first hands-on session: no visible delete or rotate, no clipboard, UI
+  unpolished, while all tests passed. Owner's call: a UX analyst (Fable, medium effort) writes a Markdown UX spec and
+  end-to-end flows for agents first (`docs/instaflow/ux/`, branch `claude/wip-ux-spec`); then B11 Studio basics and
+  polish implements it with end-to-end tests in CI. M1-BRIEF now requires the spec for any UI work. C1 continues.
 - **2026-10-25** #23 (B10a) merged. C0 done (b176c83): Home at `/`, recents, templates, quick actions as capabilities;
   designs persist (IndexedDB adapter passing the store contract). Full check caught one gap: B6's audit-coverage guard
   didn't list the new Home element (its own test already audits it). Registered; all checks pass. Next: C1 Export.

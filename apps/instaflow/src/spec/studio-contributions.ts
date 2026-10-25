@@ -53,6 +53,7 @@ export const studioPanels: readonly PanelContribution[] = Object.freeze([
   definePanel({ id: P.adjust, label: 'Adjust', placements: ['inspector'], minDensity: 'focus', lenses: [L.pixel], render: placeholder('B3') }),
   definePanel({ id: P.typography, label: 'Typography', placements: ['inspector', 'side'], minDensity: 'pro', lenses: [L.canvas, L.pages], render: placeholder('B2') }),
   definePanel({ id: P.milestones, label: 'Milestones', placements: ['dock', 'side'], minDensity: 'standard', render: placeholder('B5') }),
+  definePanel({ id: P.export, label: 'Export', placements: ['dock', 'side'], minDensity: 'standard', render: placeholder('C1') }),
 ]);
 
 const H = StudioIds.hud;

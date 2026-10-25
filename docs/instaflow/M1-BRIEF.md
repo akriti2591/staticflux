@@ -9,8 +9,15 @@ spike. You start fresh: everything you need is in files, not in anyone's convers
 3. The stage notes for your WP: `docs/instaflow/M1B-NOTES.md` (all of M1b and the rules that still apply) and
    `docs/instaflow/M1C-NOTES.md` (B8 and M1c). They hold your **pre-assigned IDs** and your WIP branch name.
 4. Your WP row in `docs/instaflow/M1-PLAN.md`; `docs/instaflow/DECISIONS.md` (D1–D19, plus any later ones).
-5. Your handoff, if one exists: `docs/instaflow/handoffs/<WP>.md`.
-6. The `AGENTS.md` of every package or app folder you touch. Framework shapes (tokens, units, `requires`/`provides`,
+5. **Any WP that touches UI or interaction:** `docs/instaflow/ux/` in layers. Start at `README.md` (the index), then
+   `FOUNDATIONS.md` (the shared vocabulary and building blocks, each mapped to the StaticFlux or Instaflow code that
+   implements it), then the surface spec you touch (`STUDIO-UX-SPEC.md`, `HOME-FILES-UX-SPEC.md`, `CHAT-UX-SPEC.md`),
+   then `FLOWS.md` (end-to-end flows F-xx: your acceptance tests). Build missing building blocks where the foundations
+   table says (generic → StaticFlux kit / messaging / a11y / shell; app-specific → Instaflow), never as one-offs. They outrank your own taste. If your WP needs something they don't
+   cover, follow established editor conventions (Figma, Canva, Keynote), say so in your report, and propose the spec
+   change; never invent silently.
+6. Your handoff, if one exists: `docs/instaflow/handoffs/<WP>.md`.
+7. The `AGENTS.md` of every package or app folder you touch. Framework shapes (tokens, units, `requires`/`provides`,
    scopes, variant bindings, `Result`/`SfError`): `docs/ARCHITECTURE.md` §3 and `packages/core/AGENTS.md`.
 
 ## Deliverables (definition of done)

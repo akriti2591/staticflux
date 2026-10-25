@@ -1196,6 +1196,77 @@ Error codes `IF-HOME-001…007`. Lifecycle: LIFECYCLES §30. Framework: R13.31 (
 | `IF-HOME-006` | The template has no milestone to start from |
 | `IF-HOME-007` | Studio could not create or list the design it was asked to open |
 
+## 29. Export (M1c C1; D10, D21; IF-5.10, IF-7.10)
+
+Code: `apps/instaflow/src/export` (exports `@instaflow/app/export` on main, `@instaflow/app/export/panel`; the worker
+entry `export.worker.ts`), the export crate `apps/instaflow/engine/crates/export` (SVG and PDF writers, rasterize-list
+plan; built as `export.*.wasm`), scene IR v4 in `engine/crates/render` and `src/render/scene-ir.ts`, the Studio wiring
+in `src/app` and `src/studio`, the smoke step in `test/smoke/studio.smoke.mjs`. Error codes `IF-EXP-001…008`.
+Lifecycle: LIFECYCLES §31. Decision: D21. No framework API.
+
+- **IF-29.1** Export formats are data (`EXPORT_FORMATS`: PNG raster, PDF and SVG vector; MIME, extension, one file per
+  page or one for all); nothing in the export code branches on a format's name.
+- **IF-29.2** PNG has a pixel density of 1×, 2× or 3× design px; any format can drop the page background
+  (`transparent`: PNG alpha, SVG and PDF without the white page).
+- **IF-29.3** What is exported: the page shown, the selection (its own bounds, only its elements) or every page.
+- **IF-29.4** Options from untrusted input (agents, the panel) are validated with defaults filled in (IF-EXP-001); file
+  names come from the design title (letters, digits, spaces, dashes; a zero-padded page suffix when several).
+- **IF-29.5** An export reads a **frozen snapshot** (B5, IF-5.10) taken at export start: content blobs only, no record,
+  no head change (D10). The worker opens it as a read-only document (every write refused); later edits never leak in.
+- **IF-29.6** A page's export scene is exactly what Studio's canvas pipeline draws for that snapshot (B1 elements over
+  B7's repeat view, B4 images, B2 text), without the overlay (selection, guides, page edge).
+- **IF-29.7** The export service on main runs one export at a time, each in a fresh **export worker** spawned on demand
+  and stopped after the job (ARCHITECTURE §2); editing never waits for an export.
+- **IF-29.8** The worker loads what composing needs (authoring Wasm, fonts, Loro) and a headless Vello render module;
+  the **export Wasm loads only for SVG, PDF and selection exports** (never at Studio boot nor for a PNG of the page).
+- **IF-29.9** PNG is rendered by the renderer itself (headless surface, chunked past the device's texture limit,
+  cancellable between chunks) and encoded by the deterministic encoder (`@staticflux/surface/image`).
+- **IF-29.10** PDF puts every page in one file (1 design px = 0.75 pt) with **real text** (selectable, searchable,
+  extractable as written: Type 3 fonts from the canvas's glyph outlines, ToUnicode, ActualText per run) and vector
+  shapes.
+- **IF-29.11** SVG writes one self-contained file per page (`viewBox` = the region, `<title>`, images embedded); text is
+  glyph outlines labelled with the run's text (`aria-label`).
+- **IF-29.12** Every export step checks its `AbortSignal`; progress goes out per page and per rendered chunk; cancelling
+  ends the job `cancelled` and delivers nothing.
+- **IF-29.13** **Export** is a capability (`instaflow/export`: format, scale, transparent, scope); the panel button,
+  `Mod+Shift+E` and agents run the same declaration; agents get the files' names, types and sizes, the person the files.
+- **IF-29.14** `<if-export-panel>` is a B0 dock contribution built from kit components under Clean Pop: format, PNG
+  scale, scope, transparent toggle, Export / Cancel, status. Studio's top-bar "Share" shows it.
+- **IF-29.15** The panel is keyboard first (segmented controls with arrow keys, then the toggle and the button); the
+  status (progress, the files, or the cause) is spoken in a polite live region; the scale shows only for PNG (the one
+  format it changes); the button names the format ("Export PDF").
+- **IF-29.16** The panel reads plain status data through a port (`ExportPanelPort`) and holds no export logic.
+- **IF-29.17** Every element is written with its **full 2D matrix**: rotation, scale, **skew** (B10a `spatial.skewX`)
+  and **flips** (negative scales), in PNG, SVG and PDF.
+- **IF-29.18** Every B1 appearance layer (stacked fills and strokes, every paint kind, dashes, opacity, blend modes,
+  effects), clip / alpha / luminance / inverted masks, booleans and images export.
+- **IF-29.19** B7 repeats export expanded (one placed instance each); a selection export isolates the selected nodes
+  (their holders keep clips and opacity, masks keep masking).
+- **IF-29.20** PNG export has **golden parity** with the renderer (`vello_cpu` reference, the GPU-vs-CPU thresholds);
+  2× and 3× box-downsample to the 1× file; transparent over white equals opaque.
+- **IF-29.21** SVG and PDF meet **D21**: the per-feature rasterize list (data) and the metric (SSIM ≥ 0.98, blurred
+  SSIM ≥ 0.99, ≤ 0.5 % missing) on the export corpus, SVG in resvg and Chrome, PDF in poppler.
+- **IF-29.22** Raster patches (D21) are rendered by the render module itself and embedded where the node would be.
+- **IF-29.23** Exporting creates nothing in the document (D10): Latest, milestones, undo and the library are unchanged.
+- **IF-29.24** An image that cannot be read or decoded is reported (`missingImages`), not fatal.
+- **IF-29.25** Scene IR v4: glyph runs carry their text (for PDF text and SVG labels); every IR fixture is re-encoded.
+- **IF-29.26** The Studio smoke exports PNG (2×, the page), PDF (all pages; text extracted) and SVG in both worker
+  topologies, sees the export Wasm load only with the PDF, and checks the document did not change.
+- **IF-29.27** Size budgets: the export Wasm (≤ 230 KB brotli, under IF-15.1's 400 KB export extras), the export entry
+  and the panel (`.size-limit.json`, `.size-limit.wasm.json`).
+- **IF-29.28** Export failures are values with a code and a fix (`IF-EXP-*`); the panel and agents read the same status.
+
+| Code | Meaning |
+|---|---|
+| `IF-EXP-001` | The export options are not valid |
+| `IF-EXP-002` | Nothing to export (empty selection, no page, empty region) |
+| `IF-EXP-003` | The export snapshot could not be frozen or read (or a write was attempted) |
+| `IF-EXP-004` | The export Wasm could not be loaded, or its ABI does not match |
+| `IF-EXP-005` | Rendering the export failed (headless render module, raster patch) |
+| `IF-EXP-006` | The SVG or PDF writer rejected the scene |
+| `IF-EXP-007` | The export worker could not start or stopped answering |
+| `IF-EXP-008` | The file could not be handed to the browser |
+
 ## 33. Editor in the worker (M1c B9; D15)
 
 Code: `apps/instaflow/src/workers` (the worker host, the editor module, protocols and ports; the browser entry

@@ -2,7 +2,7 @@
 # Build config (crates, wasm-opt level, SIMD) lives in sf-wasm.json; budgets in /.size-limit.wasm.json.
 [workspace]
 resolver = "2"
-members = ["crates/render", "crates/authoring"]
+members = ["crates/render", "crates/authoring", "crates/export"]
 
 [workspace.package]
 version = "0.0.0"
@@ -30,6 +30,14 @@ parley = { version = "=0.12.0", default-features = false, features = ["std"] }
 # Authoring geometry (B1): kurbo paths (the same 0.13.1 vello_common uses, so one copy) and linesweeper booleans (IF-7.9).
 kurbo = { version = "=0.13.1", default-features = false, features = ["std"] }
 linesweeper = { version = "=0.5.0", default-features = false }
+# Export (C1): pdf-writer (the PDF primitives krilla is built on) writes the PDF; flate2 compresses its streams and the
+# SVG writer's PNG data URIs; base64 encodes them. krilla itself measured 481 KB brotli in the export Wasm (its font
+# scaler links skrifa's hinters; subsetter, write-fonts and image decoders), over the 400 KB IF-15.1 budget.
+pdf-writer = { version = "=0.15.0", default-features = false }
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
+base64 = { version = "=0.22.1", default-features = false, features = ["alloc"] }
+# Host tests only: resvg rasterizes the SVG writer's output for the parity corpus (D21).
+resvg = { version = "=0.48.1", default-features = false, features = ["raster-images"] }
 
 # Size-first release profile (research/03 §2.2, S1). SIMD comes from RUSTFLAGS (+simd128), set by `sf wasm build`.
 [profile.release]

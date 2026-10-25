@@ -8,14 +8,16 @@
 //! - `tiles` — tile / region geometry shared with the TypeScript planner.
 //! - `gpu` — the Wasm exports: Vello GPU + compositor (wasm32 only).
 //! - `cpu`, `fixtures` — `vello_cpu` reference renders and test fixtures (host only).
+#[cfg(feature = "gpu")]
 use wasm_bindgen::prelude::*;
 
 pub mod draw;
+#[cfg(feature = "outlines")]
 pub mod glyphs;
 pub mod ir;
 pub mod tiles;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "gpu"))]
 pub mod gpu;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -26,14 +28,15 @@ pub mod fixtures;
 /// ABI version of the render module's exports. Bump on any breaking export change.
 /// 2: engine + GPU attach, tiles, layers, compositor, readback (A6). The scene IR wire version is separate
 /// (`ir_version()`: 2 since B1 added effects, masks, per-corner rects and image fit; 3 since B2 added fonts
-/// and glyph synthesis).
-#[wasm_bindgen]
+/// and glyph synthesis; 4 since C1 added the text of glyph runs).
+/// Exported only with the `gpu` feature (the render Wasm); the export Wasm has its own ABI.
+#[cfg_attr(feature = "gpu", wasm_bindgen)]
 pub fn abi_version() -> u32 {
     2
 }
 
 /// Scene IR wire version (`ir::VERSION`).
-#[wasm_bindgen]
+#[cfg_attr(feature = "gpu", wasm_bindgen)]
 pub fn ir_version() -> u32 {
     ir::VERSION as u32
 }
@@ -43,6 +46,6 @@ mod tests {
     #[test]
     fn abi_version_is_two() {
         assert_eq!(super::abi_version(), 2);
-        assert_eq!(super::ir_version(), 3);
+        assert_eq!(super::ir_version(), 4);
     }
 }

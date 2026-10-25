@@ -18,6 +18,7 @@ import { defineProtocol, event, request, type WireError } from '@staticflux/work
 import type { RegionEndpoint } from '@staticflux/worker/pipeline';
 import type { CanvasSnapshot } from '../a11y/projection.js';
 import type { CanvasPipeEndpoints } from '../app/canvas-pipeline.js';
+import type { ExportTarget } from '../export/service.js';
 import type { LibraryEntry } from '../library/library-doc.js';
 import type { RenderPacing } from '../sequencing/pacing.js';
 import type { RenderModuleStats } from '../sequencing/render-module.js';
@@ -172,6 +173,8 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     /** The zoom buttons (B3 `zoomStep`). */
     zoom: request<{ readonly step: 1 | -1 }, void>(),
     inspect: request<{ readonly nodes?: readonly NodeId[] }, StudioInspection>(),
+    /** C1: freeze Latest for an export and report the pages and the selection (editor role). */
+    exportTarget: request<void, ExportTarget>({ timeoutMs: 120_000 }),
     metrics: request<void, StudioMetrics>(),
     stop: request<void, void>({ timeoutMs: 10_000 }),
   },

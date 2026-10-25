@@ -17,7 +17,7 @@ import type { TextLayout } from './layout-result.js';
 import { TEXT_MARK_EXPAND } from './model.js';
 import { createTextOps, readTextBlock, setCharMarkOps, type TextBlockModel } from './rich-text.js';
 import type { TextLayoutEngine } from './text-engine.js';
-import { createSceneFontTable, hashBytes, textSceneNodes } from './text-scene.js';
+import { createSceneFontTable, hashBytes, runText, textSceneNodes } from './text-scene.js';
 import { createTextSession } from './text-session.js';
 import { resolveTextLayout } from './text-style.js';
 import { authoringBuilt, testFont, testTextEngine } from './test-helpers.js';
@@ -128,6 +128,16 @@ describe.skipIf(!authoringBuilt && !required)('text pipeline (authoring Wasm + L
     expect(glyphNodes.length).toBe(layout.value.runs().length);
     expect(nodes.filter((n) => n.geometry.kind === 'rect')).toHaveLength(1); // the link underline
     expect(table.sent.size).toBe(used.size);
+    // C1: given the block text, every run carries its text and each glyph's cluster range in it (scene IR v4)
+    expect(glyphNodes.every((n) => n.geometry.kind === 'glyphs' && n.geometry.text === undefined)).toBe(true);
+    const withText = textSceneNodes(layout.value, { id: 10, brushes: resolved.brushes, fontId: (id) => table.idFor(bytesByAuthoringId(id) as string), nextId: () => next++, text: block.text });
+    const runs = withText.flatMap((n) => (n.geometry.kind === 'glyphs' ? [n.geometry] : []));
+    expect(runs.map((r) => r.text).join('').replace(/\s/g, '')).toBe(block.text.replace(/\s/g, ''));
+    for (const r of runs) {
+      expect(r.clusters).toHaveLength(r.glyphs.length);
+      for (const [start, end] of r.clusters ?? []) expect(0 <= start && start <= end && end <= (r.text ?? '').length).toBe(true);
+    }
+    expect(runText(layout.value, layout.value.runs()[0] as ReturnType<typeof layout.value.runs>[number], block.text).text.startsWith('Hello')).toBe(true);
     // resnapshot: aliases only; reset: bytes again
     table.resnapshot();
     const w2 = createSceneWriter();

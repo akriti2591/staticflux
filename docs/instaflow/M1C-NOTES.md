@@ -21,6 +21,8 @@ the M1c work packages, their pre-assigned IDs and their order.
 | B8 Studio integration | IF-27.1–27.29 | §29 | IF-INT-001… | `claude/wip-b8-studio` |
 | B9 Editor in the worker | IF-33.1–33.29 | §35 | IF-WRK-001… | `claude/wip-b9-worker` |
 | B10a Transform tools, basics | IF-34.1–34.29 | §36 | IF-XF-001… | `claude/wip-b10a-transform` |
+| B11a Foundations (kit blocks, icons, toasts, menus) | IF-35.1–35.29 | §37 | IF-POL-001…049 | `claude/wip-b11a-foundations` |
+| B11b Studio and Home surfaces | IF-36.1–36.29 | §38 | IF-POL-050… | `claude/wip-b11b-surfaces` |
 | C0 Home route | IF-28.1–28.29 | §30 | IF-HOME-001… | `claude/wip-c0-home` |
 | C1 Export | IF-29.1–29.29 | §31 | IF-EXP-001… | `claude/wip-c1-export` |
 | C2 Import | IF-30.1–30.29 | §32 | IF-IMP-001… | `claude/wip-c2-import` |
@@ -66,6 +68,20 @@ Photoshop-style Free Transform basics on top of B3: flip horizontal / vertical (
 transform bar (X, Y, W, H, angle, skew) as a B0 contribution, and Mod+T to enter transform mode. Every transform is one
 undo step, works on rotated and nested elements, and is a capability agents can call.
 
+## UX spec first, then B11 (owner, 2026-10-25)
+The owner's first hands-on session found missing basics (no visible delete or rotate, no clipboard) and an unpolished
+UI, while every test passed: tests checked plumbing, not what a person expects. So:
+1. A UX analyst writes `docs/instaflow/ux/STUDIO-UX-SPEC.md` and `STUDIO-FLOWS.md` (plain Markdown, for agents).
+2. **B11 Studio basics and polish** implements the UX docs (`docs/instaflow/ux/`, owner decisions in
+   STUDIO-UX-SPEC §14, all ten recommendations accepted): the gap table and the live-vs-placeholder inventory (nothing
+   visible is inert), the canvas model (dotted infinite canvas, page card), the selection pill + More, the inspector,
+   tooltips and the Lucide icon set via a kit `<sf-icon>`, clipboard, context menu, visible rotate handle, delete,
+   Layers, Settings (M1 part), Home file operations, and the **new logo** (`apps/instaflow/brand/`: top bar, Home,
+   favicon, web app manifest). B11 is large: split it into B11a (foundations: kit building blocks, icons, toasts,
+   menus) and B11b (Studio and Home surfaces on top), one agent and one PR each. Each keeps running the existing
+   Studio and Home smoke scripts locally; **end-to-end tests are not added to CI yet** (owner, 2026-10-25).
+3. C2–C4 follow; every later WP that touches UI reads the spec and flows (M1-BRIEF reading list item 5).
+
 ## C-stage specifics
 - **C0** boots with no engine or GPU (D17): check with a size budget and a test that the Home entry imports neither.
 - **C1** exports from B5's frozen export snapshot (no record, D10). It must write each element's **full 2D matrix**
@@ -73,5 +89,21 @@ undo step, works on rotated and nested elements, and is a capability agents can 
   and B2 text (real text in PDF), and B7 repeats expanded. Golden-image parity against the renderer for PNG.
 - **C1** decides the SVG parity rule (M1-PLAN "Decisions"): write the decision and its numbers into
   `docs/instaflow/DECISIONS.md` as the next free D-number and say so in the report.
+- **C4 includes a loading and performance pass** (owner, 2026-10-25; deliberately last, once features settle). Use what
+  the framework already has but Instaflow doesn't use yet: `@staticflux/loader` (logical chunks, `sf-manifest`, boot
+  plans, warmup tiers), the vite plugin (chunk manifest, preloads, budgets), `@staticflux/perf` (journeys, feature
+  marks, detectors, budgets) and DI's `render` / `lazy` / `functional` dependencies. Deliver:
+  - a **production build** of Instaflow (minified, compressed: brotli and gzip) and a report per entry route (Home,
+    files, Chat when it exists, Studio opened directly, Studio from Home): JavaScript and Wasm for the first render vs
+    later, the chunk graph and load waterfall;
+  - proof that DI boundaries split code as intended (what each surface loads before first render, what loads on
+    first use), and fixes where they don't;
+  - budgets per route and chunk in CI (size-limit + `sf` budgets), plus performance tests: time to first render and
+    to interactive per route, input-to-frame latency, pan / zoom / drag p95, time to sharp, and per-feature timings
+    (open a large design, export, milestone, paste an image);
+  - a short readable performance page in the docs with the numbers and how to rerun them.
+- **C4 is the end-to-end checkpoint** (owner, 2026-10-25): once C3 is merged and features stop moving, write the
+  M1 must-pass flows from `docs/instaflow/ux/FLOWS.md` as Playwright tests from the user's side of the screen, run
+  them in CI in both topologies on every PR, and make them a required check.
 - **C4** turns every M1 exit criterion (M1-PLAN § Exit criteria) into a CI check, deletes `apps/instaflow/spikes/`,
   and ratchets size budgets. It is the M1 finish line.

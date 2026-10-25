@@ -102,6 +102,29 @@ impl GlyphCache {
     }
 }
 
+/// One glyph of a face as an exporter needs it (C1: PDF Type 3 glyphs): the outline in font units (y up; None for
+/// glyphs without one, like spaces) and the advance width, both at variation coordinates `coords` (F2Dot14).
+pub struct FontGlyph {
+    pub outline: Option<BezPath>,
+    pub advance: f32,
+}
+
+/// Units per em of a face (None when it cannot be read).
+pub fn units_per_em(font: &FontData) -> Option<f32> {
+    let face = FontRef::from_index(font.data.data(), font.index).ok()?;
+    let upem = face.head().ok()?.units_per_em() as f32;
+    (upem > 0.0).then_some(upem)
+}
+
+/// The outline and advance of `glyph` in font units (see `FontGlyph`).
+pub fn font_glyph(font: &FontData, glyph: u32, coords: &[i16]) -> Option<FontGlyph> {
+    let face = FontRef::from_index(font.data.data(), font.index).ok()?;
+    let upem = face.head().ok()?.units_per_em() as f32;
+    let normalized: Vec<NormalizedCoord> = coords.iter().map(|c| NormalizedCoord::from_bits(*c)).collect();
+    let advance = face.glyph_metrics(Size::unscaled(), LocationRef::new(&normalized)).advance_width(GlyphId::new(glyph)).unwrap_or(0.0);
+    Some(FontGlyph { outline: extract(&face, &face.outline_glyphs(), glyph, &normalized, upem), advance })
+}
+
 /// One glyph in font units (y up). TrueType through skrifa's unhinted glyf scaler, CFF/CFF2 through read-fonts'
 /// charstring evaluator: neither path references a hinter, so the hinting code stays out of the Wasm (skrifa's
 /// `OutlineGlyph::draw` dispatches to the TrueType interpreter and the autohinter at run time).
@@ -154,6 +177,20 @@ mod tests {
         let small = cache.run_path(&font, &GlyphRun::new(1, 10.0, vec![(h, 0.0, 10.0)])).unwrap();
         assert_eq!(cache.len(), 2);
         assert!((small.bounding_box().height() - b.height() / 10.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn font_glyphs_have_font_unit_outlines_and_advances() {
+        let font = noto();
+        assert_eq!(units_per_em(&font), Some(1000.0));
+        let h = font_glyph(&font, gid(&font, 'H'), &[]).unwrap();
+        let b = h.outline.unwrap().bounding_box();
+        assert!(b.y0 >= -1.0 && b.y1 > 700.0 && b.y1 < 730.0, "y up, cap height ≈ 714: {b:?}");
+        assert!(h.advance > 600.0 && h.advance < 800.0, "{}", h.advance);
+        let space = font_glyph(&font, gid(&font, ' '), &[]).unwrap();
+        assert!(space.outline.is_none() && space.advance > 0.0);
+        let bold = font_glyph(&font, gid(&font, 'H'), &[16384]).unwrap();
+        assert!(bold.advance > h.advance, "wght towards 900 widens H");
     }
 
     #[test]

@@ -385,10 +385,10 @@ describe('sf wasm build (CLI)', () => {
     expect(await runCli(['wasm', 'build', 'engine', '--force'], broken)).toBe(2);
   });
 
-  it('the repo engine config builds render and authoring with SIMD', () => {
+  it('the repo engine config builds render, authoring and export with SIMD', () => {
     const json = JSON.parse(readFileSync(new URL('../../../apps/instaflow/engine/sf-wasm.json', import.meta.url), 'utf8')) as unknown;
     const config = parseWasmConfig(json);
-    expect(config.ok && config.value.crates.map((c) => c.name)).toEqual(['render', 'authoring', 'authoring-text', 'authoring-text-complex']);
+    expect(config.ok && config.value.crates.map((c) => c.name)).toEqual(['render', 'authoring', 'authoring-text', 'authoring-text-complex', 'export']);
     expect(config.ok && wasmRustflags(config.value)).toBe('-C target-feature=+simd128');
   });
 });
