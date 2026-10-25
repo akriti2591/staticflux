@@ -327,7 +327,7 @@ Topology-neutral pipes between the editor and render modules (D15). Every machin
 | S-1 | A stage read equals a fresh composition: invalidation removes every cached composition that read a changed dependency, transitively | — |
 | S-2 | Final paths and policy locks win regardless of strength; the opinions they beat are reported as `ignored` | — |
 
-## 18. Editor ↔ render sequencing (Instaflow M1 A7; D15, ARCHITECTURE §4)
+## 19. Editor ↔ render sequencing (Instaflow M1 A7; D15, ARCHITECTURE §4)
 
 Editor and render are modules behind fixed ports (input ring, scene deltas, view-state frames, optional main tick cell).
 One worker (`colocated`, default) or two (`split`) is a boot setting; both run the same module code and the same oracle suite.
