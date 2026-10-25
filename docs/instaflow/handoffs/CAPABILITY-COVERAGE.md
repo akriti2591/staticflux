@@ -5,6 +5,12 @@ spec section that works it through end to end, or mark it missing. This list is 
 exists: `docs/instaflow/REQUIREMENTS.md` sections and `apps/instaflow/src/*` modules. A brief's own topic list is
 never the inventory. (Text and Export were missed because briefs listed topics instead of inventorying capabilities.)
 
+**Outlets and flows for everything (owner, 2026-10-25):** the coordinator sequences *when* features are built,
+but UX designs *every* feature now, deferred ones included: its **outlet** (where it lives in the UI: which panel,
+HUD slot, menu, dialog step, per density) and its **flows to completion and follow-up** (what happens after: undo,
+edit again, reuse, share or export, the next likely action). Deferred features keep their outlet reserved and are
+not rendered until built (FOUNDATIONS §5.6), so building them later never needs a redesign.
+
 **Method for each facet (owner, 2026-10-25):** a feature checklist of every control the best tools offer for that facet
 (e.g. text: Google Docs, Notion, Figma, Canva, InDesign, Pages), each row marked include (where, per density) / defer
 (milestone) / reject (why), kept as an appendix of the facet's spec. Basics are never left implicit (the owner found
