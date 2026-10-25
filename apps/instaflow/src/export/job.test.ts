@@ -3,6 +3,7 @@ import { AbortedError, createMachine } from '@staticflux/core';
 import { describe, expect, it } from 'vitest';
 import { authoringBuilt } from '../app/test-helpers.js';
 import { P } from '../elements/components.js';
+import { RP } from '../repeat/components.js';
 import { decodePlan } from './export-module.js';
 import { DEFAULT_EXPORT_OPTIONS, type ExportOptions } from './formats.js';
 import { ExportJobLifecycle, type ExportJobRequest, type ExportJobState, type ExportProgress, runExportJob } from './job.js';
@@ -113,6 +114,46 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('export job (Node: real composi
     // nothing selected: IF-EXP-002
     const empty = await runExportJob({ ...request, selection: ['nope'] }, f.env, io, { signal: f.studio.signal });
     expect(!empty.ok && empty.error.code).toBe('IF-EXP-002');
+  });
+
+  it('writes each element’s full matrix (B10a skew and flips) and expands B7 repeats, in SVG and PDF', { timeout: 60_000 }, async () => {
+    const f = await createExportFixture();
+    const box = { [P.y]: 400, [P.w]: 120, [P.h]: 60 };
+    f.commit(
+      [
+        { op: 'create', node: 'plain', kind: 'shape', parent: 'p2', props: { [P.x]: 40, ...box, [P.fills]: [{ paint: '#00aa00' }] } },
+        { op: 'create', node: 'skewed', kind: 'shape', parent: 'p2', props: { [P.x]: 400, ...box, [P.rotation]: 30, [P.skewX]: 20, [P.flipX]: true, [P.fills]: [{ paint: '#ff0000' }] } },
+        { op: 'create', node: 'ring', kind: 'group', parent: 'p2', props: { [P.x]: 600, [P.y]: 900, [P.w]: 200, [P.h]: 200, [RP.kind]: 'radial', [RP.count]: 6, [RP.radius]: 80 } },
+        { op: 'create', node: 'petal', kind: 'shape', parent: 'ring', props: { [P.x]: 0, [P.y]: 0, [P.w]: 20, [P.h]: 40, [P.fills]: [{ paint: '#0000ee' }] } },
+      ],
+      'p2',
+    );
+    const snapshot = await f.freeze();
+    const io = { store: f.studio.workspace.store, blobs: f.blobs };
+    const request: ExportJobRequest = { snapshot, options: opts({ format: 'svg' }), title: 'Matrix', pages: ['p2'], selection: [], images: f.images };
+    const out = await runExportJob(request, f.env, io, { signal: f.studio.signal });
+    if (!out.ok) throw out.error;
+    const svg = utf8.decode(out.value.files[0]!.bytes);
+    const matrixOf = (fill: string): number[][] =>
+      [...svg.matchAll(/<path transform="matrix\(([^)]*)\)"[^>]*fill="(#[0-9a-f]{6})"/g)].filter((m) => m[2] === fill).map((m) => m[1]!.split(' ').map(Number));
+    // the plain rect: a translation; the skewed one: mirrored (negative determinant) with non-orthogonal axes (skew)
+    const [plain] = matrixOf('#00aa00');
+    expect(plain?.slice(0, 4)).toEqual([1, 0, 0, 1]);
+    const [m] = matrixOf('#ff0000');
+    expect(m).toBeDefined();
+    const [a, b, c, d] = m as [number, number, number, number];
+    expect(a * d - b * c).toBeLessThan(-0.5); // flipX
+    expect(Math.abs(a * c + b * d)).toBeGreaterThan(0.2); // skewX 20° (rotation alone keeps the axes orthogonal)
+    expect(Math.hypot(a, b)).toBeCloseTo(1, 3); // SVG numbers are printed to 4 decimals
+    // the radial repeat is expanded: six petals, each with its own placement
+    const petals = matrixOf('#0000ee');
+    expect(petals).toHaveLength(6);
+    expect(new Set(petals.map((p) => p.join(' '))).size).toBe(6);
+    // PDF: the same matrices as `cm` operators (content streams are deflated: the page count and file are checked here,
+    // pixels in the corpus test `skew_and_flips_match_the_renderer`)
+    const pdf = await runExportJob({ ...request, options: opts({ format: 'pdf' }) }, f.env, io, { signal: f.studio.signal });
+    if (!pdf.ok) throw pdf.error;
+    expect(utf8.decode(pdf.value.files[0]!.bytes.subarray(0, 8))).toBe('%PDF-1.7');
   });
 
   it('renders from the frozen snapshot: later edits do not leak in, and the export writes nothing (D10)', { timeout: 60_000 }, async () => {
