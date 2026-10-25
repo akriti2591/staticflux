@@ -56,6 +56,9 @@ importers:
       '@staticflux/document':
         specifier: workspace:*
         version: link:../../packages/document
+      '@staticflux/gate':
+        specifier: workspace:*
+        version: link:../../packages/gate
       '@staticflux/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -65,6 +68,9 @@ importers:
       '@staticflux/platform':
         specifier: workspace:*
         version: link:../../packages/platform
+      '@staticflux/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
       '@staticflux/stage':
         specifier: workspace:*
         version: link:../../packages/stage
@@ -544,6 +550,9 @@ importers:
       '@staticflux/runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@staticflux/shell':
+        specifier: workspace:*
+        version: link:../shell
       '@staticflux/stage':
         specifier: workspace:*
         version: link:../stage

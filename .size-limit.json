@@ -970,5 +970,19 @@
       "@staticflux/stage"
     ],
     "limit": "3.75 KB"
+  },
+  {
+    "name": "@staticflux/shell/spec (spec runtime, diff, layout port; excl. framework)",
+    "path": "packages/shell/dist/spec.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/messaging",
+      "@staticflux/a11y"
+    ],
+    "limit": "6 KB"
   }
 ]

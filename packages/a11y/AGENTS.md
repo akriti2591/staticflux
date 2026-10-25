@@ -28,7 +28,7 @@ typed declarations, scopes and conflict detection, platform preference facts, an
 - Inject the environment; never read `document`/`matchMedia` globals inside services (embedded/worker hosts have none).
 - Inert background uses `inert`, falling back to `aria-hidden`; live regions and `[data-sf-keep-interactive]` (toasts) are never made inert.
 - Traps stack; only the top trap is active. Inertness is ref-counted so out-of-order release is safe.
-- Shortcut combos: modifiers in the order `Mod, Ctrl, Alt, Shift, Meta`; `Mod` = ⌘ on Apple, Ctrl elsewhere. Same combo in the same scope is an error; child-scope shadowing is a warning.
+- Shortcut combos: modifiers in the order `Mod, Ctrl, Alt, Shift, Meta`; `Mod` = ⌘ on Apple, Ctrl elsewhere. Same combo in the same scope is an error; child-scope shadowing is a warning. "Typing in a field" is decided on the event's composed origin (`composedPath()[0]`), so a field inside a shadow root is not mistaken for its host.
 - Never send announced text to telemetry (privacy) — only politeness and length.
 - Lifecycle machines above must stay mirrored in `docs/LIFECYCLES.md`.
 

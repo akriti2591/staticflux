@@ -55,6 +55,9 @@
     },
     {
       "path": "../surface"
+    },
+    {
+      "path": "../shell"
     }
   ]
 }

@@ -5,7 +5,7 @@
 
 `worker`, `router`, `urlstate`, `blob`; `vitest` is a **peer** and is never imported at runtime (contract suites take
 
-`worker`, `router`, `urlstate`, `ui` (theme contract), `surface` (raster contract, types only); `vitest` is a **peer** and is never imported at runtime (contract suites take
+`worker`, `router`, `urlstate`, `ui` (theme contract), `surface` (raster contract, types only), `shell` (spec runtime suites); `vitest` is a **peer** and is never imported at runtime (contract suites take
 `describe`/`it` as parameters). Never import testkit from app or package source — only from `*.test.ts`.
 **Budget:** none (not shipped to browsers).
 
@@ -58,6 +58,15 @@ comparison, golden render snapshots, a real-GPU runner (Chromium on SwiftShader 
   across reload and compaction, peers converging) plus two **fast-check properties** with two humans and an agent on
   three peers: an exact model under immediate delivery, and own-edits-only plus convergence under random partitions.
   `contractHumanA`, `contractHumanB`, `contractAgent` actors.
+- `spec-runtime-contract.ts` (Instaflow M1b B0) — `runSpecRuntimeContract(name, { runtime(options) }, runner, { numRuns, seed,
+  skip })`, `specRuntimeContractCases` (`@staticflux/shell/spec` `SpecRuntime`: unknown ids, context mismatches and gating denials
+  rejected with every issue and the port untouched; port order; 120–200 ms motion and 0 ms reduced; dispose) plus two
+  **fast-check properties** over random spec sequences: diff minimality (set-difference mounts/unmounts, no remount, minimum
+  moves, port view = layout) and pin preservation. `specContractVocabulary()`, `recordingSpecPort()` (records calls, keeps its
+  own anchored view).
+- `spec-mount-port-contract.ts` — `runSpecMountPortContract(name, { create() → { port, groups(), dispose() } }, runner,
+  { numRuns, seed, skip })`, `specMountPortContractCases`: any `SpecMountPort` (the layout model, an app's DOM) shows exactly the
+  runtime layout after each apply (reorders, placement moves, lens swaps, removals, motion on, dispose, random sequences).
 
 - `blob-store-contract.ts` — `runBlobStoreContract(name, factory() → { store, corrupt?, cleanup? }, runner, { skip })`,
   `blobStoreContractCases` (`@staticflux/blob` `BlobStore`: digests, dedupe, chunking above 8 MiB, ranges, encoding,
@@ -276,9 +285,7 @@ No size budget declared in `.size-limit.json` for this package.
 
 **Layer:** tooling
 
-- Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/stage`, `@staticflux/storage`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
-
-- Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/surface`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
+- Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/shell`, `@staticflux/stage`, `@staticflux/storage`, `@staticflux/surface`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
 - External: `fast-check` (4.10.2)
 
 Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.

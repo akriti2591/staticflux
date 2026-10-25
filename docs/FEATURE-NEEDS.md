@@ -257,3 +257,17 @@ Consumer: Instaflow (`apps/instaflow/src/versioning`; D2, D9, D10; IF-5, IF-22).
 - The editor (B0) mounts everything through contributions (`PanelContribution`, `TopBarContribution`,
   `CommandContribution`) and the `VersioningHost` port (show read-only, show comparison, open document).
 
+
+### shell/spec: declarative editor specs over a closed vocabulary (Instaflow M1b B0, D16)
+Consumer: Instaflow's editors — Studio (the maximal spec), mini editors in Chat (M2), presets and agent-proposed specs
+(`apps/instaflow/src/spec`, `src/studio`) — and any app that composes screens from registered contributions (R13.25–R13.30).
+- "An editor is a lens, a scope and a set of registered tools, panels and actions": `createSpecVocabulary({ sections, contributions })`
+  with `defineSpecSection` / `defineSpecContribution`; the app compiles its schema to `ShellSpec` (`toShellSpec`).
+- "Agents may only name what exists, and never bypass gating": `validateSpec(spec, vocabulary, { decide })` returns every issue with a
+  code and a fix (SF-SHELL-009…013); agents are decided as agents through the gate adapter.
+- "A new turn changes only what differs, with 120–200 ms motion, never reshuffles": `diffSpecs` (LIS-minimal moves, insertion
+  anchors), `createSpecRuntime({ vocabulary, port, decide, motion, reducedMotion })` → `apply`, `preview`, `revalidate`.
+- "What I pinned stays": `runtime.pin(key)` / `unpin`; pins in a spec are added, never removed by another spec.
+- "Render the layout with enter/exit motion without a DOM in the runtime": `createSpecLayoutPort()` (`entries(group)` with phases,
+  `groups()`, `mountedContext`).
+- **Tests**: `runSpecRuntimeContract`, `runSpecMountPortContract` (Studio's `<if-studio>` DOM runs the port suite).

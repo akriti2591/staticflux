@@ -40,7 +40,9 @@
     "@staticflux/kit": "workspace:*",
     "@staticflux/ui": "workspace:*",
     "@lit/context": "1.1.6",
-    "lit": "3.3.3"
+    "lit": "3.3.3",
+    "@staticflux/gate": "workspace:*",
+    "@staticflux/shell": "workspace:*"
   },
   "devDependencies": {
     "@staticflux/runtime": "workspace:*",

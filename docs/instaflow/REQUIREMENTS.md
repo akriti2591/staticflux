@@ -544,3 +544,46 @@ Refines §5 for the M1 build (`apps/instaflow/src/versioning`). Errors are `IF-V
   (kit `<sf-status>`).
 - **IF-22.16** "Milestone" is one capability (`instaflow/create-milestone`, `Mod+Alt+S`) for the top bar, the palette and
   agents: with a name it creates the milestone as the invoking actor; without one it opens the panel's name field.
+
+## 19. Editor specs and the Studio shell (M1b B0; D16–D19)
+
+- **IF-19.1** **The editor is a composition** (D16): an `EditorSpec` names a lens, a scope (`asset | page | selection |
+  time-range | layer`), tools in toolbar order, panels with where they dock (`side | dock | inspector | tray`), HUD actions,
+  capabilities, a density (`focus | standard | pro`) and the person's pins. Specs are data (`defineEditorSpec`).
+- **IF-19.2** Specs draw only on the **closed vocabulary** of registered contributions: `LensContribution`,
+  `ToolContribution`, `PanelContribution`, `HudActionContribution` (multi tokens `*ContributionsToken`, unit helpers
+  `*Contribution(item)`) and declared capabilities, compiled by `createEditorRegistries` into the framework vocabulary
+  (R13.25). Duplicate ids or unknown lenses are `IF-SPEC-002`.
+- **IF-19.3** Applicability is data: a contribution's `lenses` and `scopes` become `when` conditions; a lens's `scopes`
+  limits what it can open. A spec naming a tool outside its lens or a lens outside its scope is rejected (SF-SHELL-011).
+- **IF-19.4** Untrusted specs (agents, saved specs) are parsed with `parseEditorSpec` against `EditorSpecSchema` (strict,
+  per-scope required fields); malformed input is `IF-SPEC-001` with JSON paths. Agents get the JSON Schema from
+  `proposeSpecCapability`.
+- **IF-19.5** Specs are **gated** through `@staticflux/gate` (`gateSpecDecide(gate, subject)`): a spec proposed by an agent
+  is decided as the agent (principal ∧ agent policies, R6.17); capabilities are gated at the `capability` level. Specs never
+  bypass locks, brand rules or gating (D13).
+- **IF-19.6** Spec changes are **minimal animated diffs** (R13.27–R13.28) with 120–200 ms motion, 0 under reduced motion;
+  pinned slots stay (R13.29).
+- **IF-19.7** **Spec lifecycle in a turn**: `proposed → validated → (previewing) → mounted`, or `rejected | declined |
+  superseded | failed` (LIFECYCLES §20). Routing is a table over source × autonomy (D13): people and presets mount; agents
+  preview in Plan and Ask and mount in Accept edits and Autopilot. Acting on a settled proposal is `IF-SPEC-003`.
+- **IF-19.8** The agent seam (M2): `SpecProposer` (`SpecProposerToken`, `pull(proposer)`; a failed turn is `IF-SPEC-004`,
+  nothing changes) and `proposeSpecCapability` through the capability pipeline. Tested with a scripted proposer.
+- **IF-19.9** **Studio is a spec** (D19, canvas-first): `studioSpec` — the Canvas lens over the asset, the full toolbar,
+  chat as a contextual side panel, the tabbed dock (Layers, Pages, Assets, Brand), Properties in the inspector, the HUD and
+  the editor capabilities, at Pro density. Modes are well-known specs: `studioSpecFor(lens)` (variant tables per lens).
+- **IF-19.10** Mini editors are narrow specs over the same engine; the example is `pixelTouchUpSpec(nodes)` (Pixel lens on a
+  selection, three tools, the Adjust panel, one ✦ action, Focus).
+- **IF-19.11** **The Studio shell** (`<if-studio>`, `createStudio`) is laid out from the mounted spec only, with kit
+  components under the active theme (Clean Pop), matching `design/StudioCP.dc.html` structurally: top bar (home, breadcrumb,
+  lens mode switcher with lens shapes, save state, agent chip, density, Milestone, Share), side panel, tabbed left dock,
+  canvas region (tools, HUD slot, canvas surface, command bar, zoom, proposal card) and inspector.
+- **IF-19.12** **Density** (UX §3): Focus collapses the side panel and dock to rails, Standard opens them, Pro opens
+  Properties (`PanelContribution.minDensity`); a density change is a spec change; the person can open a collapsed dock.
+- **IF-19.13** **Studio is fully usable by hand** (D17): every spec change has a non-agent path (mode switcher, density
+  switch, pin buttons, keyboard). Keyboard: `1`–`4` lenses, tool letters (not while typing), `Alt+Enter` HUD, `Mod+K`
+  command bar, `Escape` back to the canvas; toolbar, HUD, mode switcher and dock tabs follow their APG patterns.
+- **IF-19.14** The canvas region mounts the A7 editor and render modules behind their ports (`CanvasPort`,
+  `sequencingCanvas`); a canvas that cannot start is an inline alert (`IF-SPEC-005`) and the rest of Studio stays usable.
+- **IF-19.15** The shell passes the testkit a11y audit (names, ARIA references, roles, nested controls) and its DOM satisfies
+  `runSpecMountPortContract`.

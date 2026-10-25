@@ -49,7 +49,8 @@
     "@staticflux/blob": "workspace:*",
     "@staticflux/ui": "workspace:*",
     "@staticflux/stage": "workspace:*",
-    "@staticflux/surface": "workspace:*"
+    "@staticflux/surface": "workspace:*",
+    "@staticflux/shell": "workspace:*"
   },
   "devDependencies": {
     "@staticflux/browser-test": "workspace:*"

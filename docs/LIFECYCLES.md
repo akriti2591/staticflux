@@ -394,3 +394,24 @@ Top-bar status derived from `instaflow/latest-save` and the folder mirror (`blob
 | V-7 | A frozen snapshot writes no record and no head; later edits never change what it reads | `snapshot.test.ts` |
 | V-8 | A template use with an invalid fill or an empty required slot writes nothing | IF-VER-006, IF-VER-007 |
 
+## 20. Editor spec runtime (`@staticflux/shell/spec` + `apps/instaflow/src/spec`; Instaflow M1b B0, D16)
+
+An editor is a spec over a closed vocabulary of registered contributions. The runtime validates and gates a spec, diffs
+it against what is mounted and drives a mount port with the minimal changes; proposals carry a spec from a person, a
+preset or an agent through validation and (for agents in Plan/Ask) a preview.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `shell/spec-runtime` (one editor surface) | empty → applying (a valid spec) → mounted (`settle`) \| empty (`clear`: the spec mounted nothing); mounted → applying (next spec, `revalidate`); any → disposed (every slot unmounted, 0 ms). An invalid or gated spec never leaves `empty`/`mounted` (nothing is touched); applies are serialized | `packages/shell/src/spec-runtime.ts` |
+| layout entry (`createSpecLayoutPort`, one slot) | absent → entering (mount, motion > 0) → present (after the step); absent → present (0 ms); present → moving (move) → present; present → exiting (unmount) → absent (after the step); 0 ms or an aborted step settles at once | `packages/shell/src/spec-layout-port.ts` |
+| `instaflow/spec-proposal` | proposed → validated → previewing (agent in Plan/Ask) → mounting (`open`) → mounted; validated → mounting (person, preset, agent in Accept edits/Autopilot); proposed \| validated \| mounting → rejected (schema IF-SPEC-001, vocabulary or gating SF-SHELL-009 — also when a preview is no longer allowed on `open`); previewing → declined \| superseded (a newer preview); mounting → failed (the port failed every slot it touched); mounted → superseded (a later spec mounted). Terminal: rejected, declined, superseded, failed | `apps/instaflow/src/spec/proposals.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| SP-1 | Closed vocabulary: a spec names only registered sections and contributions; every problem is reported at once with its own code and fix, and nothing mounts | SF-SHELL-009 (`details.issues`: 010 unknown, 011 context, 012 gated, 013 slot) |
+| SP-2 | Specs never bypass gating: every slot with a gate resource is decided through the `DecidePort` (`@staticflux/gate`, agents as agents); gating wins over pinning | SF-SHELL-012; `runSpecRuntimeContract` |
+| SP-3 | Minimal diff: a slot present before and after is never unmounted; mounts and unmounts are exactly the set differences; moves are placement changes plus, per group, size − longest kept run | `runSpecRuntimeContract` (property) |
+| SP-4 | Pinned slots are never removed by a new spec (only `unpin` by the person, or a gate denial) | `runSpecRuntimeContract` (property) |
+| SP-5 | Port order per apply: unmounts (reverse display order), moves, context, mounts (display order), all started in one task; each step 120–200 ms, 0 under reduced motion | `runSpecRuntimeContract`, `runSpecMountPortContract` |
+| SP-6 | A port's view equals the runtime layout after every apply (insert after `diff.after` anchors) | `runSpecMountPortContract` (layout model, `<if-studio>` DOM) |
+| SP-7 | Proposal routing is data (`PROPOSAL_ROUTES[source][autonomy]`); an agent's spec mounts only in Accept edits or Autopilot, or when the person opens its preview | `proposals.test.ts` |
