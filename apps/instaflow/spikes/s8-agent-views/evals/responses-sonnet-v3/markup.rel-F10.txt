@@ -1,0 +1,5 @@
+```json
+{"ops":[
+{"op":"distribute","ids":["n17","n18","n19"],"axis":"x"}
+]}
+```
