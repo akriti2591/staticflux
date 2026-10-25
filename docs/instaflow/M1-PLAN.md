@@ -69,6 +69,8 @@ Sizes are relative (S ≈ days, M ≈ 1–2 weeks, L ≈ 2–3 weeks for one own
 | **B6** Accessibility layer | Virtualized DOM projection of the visible region, selection and focus path; chrome to WCAG 2.2 AA from the start | IF-7.12 | B3 | M |
 | **B7** Repeat | Live, non-destructive **repeat generators** (Illustrator-style): **radial** (count, radius, start angle, rotate copies), **grid** (rows, columns, spacing, row/column offset, brick/hex), **mirror** (axis, live symmetry). Editing the source updates every copy; copies keep match keys; expand-to-elements action; HUD and inspector contributions | new | B1, B0 | M |
 | **B8** Studio integration (the M1b demo) | Wire M1b into the live Studio: canvas port over A7 with the repeat-aware render source and resource batches; per-tab tool session (B3) and accessibility layer (B6) on the canvas; every M1b panel and HUD action in the Studio spec; integration fixes from the M1b handoffs; a runnable dev entry and one Playwright smoke scenario. Details: [M1C-NOTES.md](M1C-NOTES.md) | IF-27 | B0–B7 | M |
+| **B9** Editor in the worker | Move the editor and render modules from the main thread (B8) into the D15 topology; main keeps only page-side adapters. Details: [M1C-NOTES.md](M1C-NOTES.md) | IF-33 | B8 | M |
+| **B10a** Transform tools, basics | Flip, skew, draggable pivot, numeric transform bar, Mod+T (distort, perspective and warp are B10b, early M2) | IF-34 | B3, B9 | S |
 
 **M1b demo:** build a five-page flyer set from a template, with brand tokens, rich text in two scripts, booleans
 and snapping; take a milestone, branch a new document from it; co-edit it in two tabs with separate undo.
