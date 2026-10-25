@@ -23,6 +23,7 @@ import { layoutGridIcon } from './icons/layout-grid.js';
 import { defineSegmented, type SegmentOption } from './segmented.js';
 import { emit } from './internal/events.js';
 import { baseStyles, t } from './internal/styles.js';
+import { pickerMessages } from './picker-messages.js';
 import { kitMessages, kitText } from './messages.js';
 
 export type AlignAction = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom' | 'distribute-horizontal' | 'distribute-vertical' | 'tidy-up';
@@ -116,22 +117,22 @@ export class SfAlignPopoverElement extends SfElement<typeof alignSpec> {
   override render(): TemplateResult {
     const i18n = this.deps.i18n;
     const button = ([action, icon, key]: readonly [AlignAction, IconDef, MessageKey, ...unknown[]]): TemplateResult =>
-      html`<sf-icon-button label=${kitText(i18n, kitMessages[key])} data-action=${action} @click=${() => this.run(action)}><sf-icon .icon=${icon} size="18"></sf-icon></sf-icon-button>`;
+      html`<sf-icon-button label=${kitText(i18n, pickerMessages[key])} data-action=${action} @click=${() => this.run(action)}><sf-icon .icon=${icon} size="18"></sf-icon></sf-icon-button>`;
     const distribute = DISTRIBUTE.filter(([, , , min]) => this.count >= min);
     const target = alignTarget(this.count, this.to);
     const options: SegmentOption<AlignTo>[] =
       this.count <= 1
-        ? [{ value: 'page', label: kitText(i18n, kitMessages.alignToPage) }]
+        ? [{ value: 'page', label: kitText(i18n, pickerMessages.alignToPage) }]
         : [
-            { value: 'selection', label: kitText(i18n, kitMessages.alignToSelection) },
-            { value: 'page', label: kitText(i18n, kitMessages.alignToPage) },
+            { value: 'selection', label: kitText(i18n, pickerMessages.alignToSelection) },
+            { value: 'page', label: kitText(i18n, pickerMessages.alignToPage) },
           ];
-    return html`<div class="grid" role="group" aria-label=${kitText(i18n, kitMessages.align)}>${ALIGN.map(button)}</div>
-      ${distribute.length === 0 ? nothing : html`<hr /><div class="grid" role="group" aria-label=${kitText(i18n, kitMessages.distribute)}>${distribute.map(button)}</div>`}
+    return html`<div class="grid" role="group" aria-label=${kitText(i18n, pickerMessages.align)}>${ALIGN.map(button)}</div>
+      ${distribute.length === 0 ? nothing : html`<hr /><div class="grid" role="group" aria-label=${kitText(i18n, pickerMessages.distribute)}>${distribute.map(button)}</div>`}
       <div class="to">
-        <span aria-hidden="true">${kitText(i18n, kitMessages.alignTo)}</span>
+        <span aria-hidden="true">${kitText(i18n, pickerMessages.alignTo)}</span>
         <sf-segmented
-          label=${kitText(i18n, kitMessages.alignTo)}
+          label=${kitText(i18n, pickerMessages.alignTo)}
           .options=${options}
           .value=${target}
           @sf-change=${(e: CustomEvent<{ value: AlignTo }>) => {

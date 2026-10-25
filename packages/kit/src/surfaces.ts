@@ -55,6 +55,7 @@ import { closeLayer, openLayer } from './internal/layer.js';
 import { announceOverlay, OVERLAY_CLOSE_EVENT, OVERLAY_OPEN_EVENT } from './internal/overlay-session.js';
 import { floatingStyles } from './internal/floating-styles.js';
 import { baseStyles, t } from './internal/styles.js';
+import { feedbackMessages } from './feedback-messages.js';
 import { kitMessages, kitText } from './messages.js';
 import type { ToastTone } from './surface-defs.js';
 
@@ -716,14 +717,14 @@ export class SfDialogElement extends SfElement<typeof dialogSpec> {
     const i18n = this.deps.i18n;
     const backButton =
       this.step > 1
-        ? html`<sf-icon-button label=${kitText(i18n, kitMessages.back)} size="sm" .tooltip=${false} @click=${() => this.back()}><sf-icon .icon=${chevronLeftIcon}></sf-icon></sf-icon-button>`
+        ? html`<sf-icon-button label=${kitText(i18n, feedbackMessages.back)} size="sm" .tooltip=${false} @click=${() => this.back()}><sf-icon .icon=${chevronLeftIcon}></sf-icon></sf-icon-button>`
         : nothing;
-    const indicator = this.steps >= 3 && this.step > 0 ? html`<span class="indicator">${kitText(i18n, kitMessages.stepOf, { step: this.step, total: this.steps })}</span>` : nothing;
+    const indicator = this.steps >= 3 && this.step > 0 ? html`<span class="indicator">${kitText(i18n, feedbackMessages.stepOf, { step: this.step, total: this.steps })}</span>` : nothing;
     const footer = this.discarding
       ? html`<sf-confirm-row
-          message=${kitText(i18n, kitMessages.discardChanges)}
-          confirm-label=${kitText(i18n, kitMessages.discard)}
-          cancel-label=${kitText(i18n, kitMessages.keepEditing)}
+          message=${kitText(i18n, feedbackMessages.discardChanges)}
+          confirm-label=${kitText(i18n, feedbackMessages.discard)}
+          cancel-label=${kitText(i18n, feedbackMessages.keepEditing)}
           @sf-confirm=${() => this.discard()}
           @sf-cancel=${() => (this.discarding = false)}
         ></sf-confirm-row>`
@@ -809,7 +810,7 @@ export class SfTakeoverElement extends SfElement<typeof takeoverSpec> {
   }
 
   override render(): TemplateResult {
-    const back = this.backLabel === '' ? kitText(this.deps.i18n, kitMessages.back) : this.backLabel;
+    const back = this.backLabel === '' ? kitText(this.deps.i18n, feedbackMessages.back) : this.backLabel;
     return html`<header part="header">
         <h2 part="heading">${this.heading}</h2>
         <span class="meta">${this.meta}</span>

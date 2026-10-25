@@ -8,7 +8,6 @@
  * the top layer, 6 px from its anchor, placed with `anchorFloating`.
  */
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
-import { OVERLAY_GAP } from '../overlay.js';
 import { type AnchorHandle, anchorFloating, type Side } from '../position.js';
 import { closeLayer, openLayer } from './layer.js';
 
@@ -17,6 +16,8 @@ export const TOOLTIP_CLOSE_EVENT = 'sf-tooltip-close';
 
 /** First tooltip delay, warm period and long-press time (ms, §4). */
 export const TOOLTIP_TIMING = Object.freeze({ showDelay: 500, warmMs: 300, longPressMs: 500, hideDelay: 80 });
+/** `OVERLAY_GAP.tooltip` (kept local: every icon button loads this module). */
+const TOOLTIP_GAP = 6;
 /** A finger that moves this far is scrolling, not long-pressing. */
 const LONG_PRESS_SLOP_PX = 10;
 
@@ -193,7 +194,7 @@ export class TooltipController implements ReactiveController {
       if (!this.open || bubble === null || anchor === null) return;
       openLayer(bubble);
       this.anchored?.stop();
-      this.anchored = anchorFloating(anchor, bubble, { side: this.options.side?.() ?? 'block-end', align: 'center', offset: OVERLAY_GAP.tooltip }, this.connection?.signal);
+      this.anchored = anchorFloating(anchor, bubble, { side: this.options.side?.() ?? 'block-end', align: 'center', offset: TOOLTIP_GAP }, this.connection?.signal);
     });
   }
 

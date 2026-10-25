@@ -19,6 +19,7 @@ import { emit } from './internal/events.js';
 import { fieldStyles } from './internal/field-styles.js';
 import { uniqueId } from './internal/ids.js';
 import { baseStyles, t } from './internal/styles.js';
+import { feedbackMessages } from './feedback-messages.js';
 import { kitMessages, kitText } from './messages.js';
 
 /** How long the button reads `Copied` (ms). */
@@ -143,11 +144,11 @@ export class SfCopyFieldElement extends SfElement<typeof copyFieldSpec> {
           />
         </div>
         <sf-button size="sm" variant="secondary" @click=${() => void this.copy()}
-          ><sf-icon slot="start" .icon=${this.copied ? checkIcon : copyIcon}></sf-icon>${this.copied ? kitText(i18n, kitMessages.copied) : kitText(i18n, kitMessages.copy)}</sf-button
+          ><sf-icon slot="start" .icon=${this.copied ? checkIcon : copyIcon}></sf-icon>${this.copied ? kitText(i18n, feedbackMessages.copied) : kitText(i18n, feedbackMessages.copy)}</sf-button
         >
       </div>
-      <span class="sr-only" role="status">${this.copied ? kitText(i18n, kitMessages.copied) : ''}</span>
-      ${this.failed ? html`<span class="error" id=${this.errorId} role="status">${kitText(i18n, kitMessages.copyFailed)}</span>` : nothing}`;
+      <span class="sr-only" role="status">${this.copied ? kitText(i18n, feedbackMessages.copied) : ''}</span>
+      ${this.failed ? html`<span class="error" id=${this.errorId} role="status">${kitText(i18n, feedbackMessages.copyFailed)}</span>` : nothing}`;
   }
 }
 

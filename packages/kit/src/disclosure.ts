@@ -20,6 +20,7 @@ import { chevronRightIcon } from './icons/chevron-right.js';
 import { emit } from './internal/events.js';
 import { uniqueId } from './internal/ids.js';
 import { baseStyles, t } from './internal/styles.js';
+import { feedbackMessages } from './feedback-messages.js';
 import { kitMessages, kitText } from './messages.js';
 
 export interface DisclosureToggleDetail {
@@ -147,7 +148,7 @@ export class SfDisclosureElement extends SfElement<typeof disclosureSpec> {
   }
 
   override render(): TemplateResult {
-    const heading = this.heading === '' && this.variant === 'more' ? kitText(this.deps.i18n, kitMessages.more) : this.heading;
+    const heading = this.heading === '' && this.variant === 'more' ? kitText(this.deps.i18n, feedbackMessages.more) : this.heading;
     if (this.pinned) {
       // Pro: everything open. A `More` row has nothing to say then; a section keeps its heading.
       return html`${this.variant === 'more' ? nothing : html`<span class="pinned-heading heading" role="heading" aria-level="3">${heading}</span>`}

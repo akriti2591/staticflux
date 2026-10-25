@@ -36,6 +36,8 @@ import { defineFontPicker } from './font-picker.js';
 import { defineAlignPopover } from './align-popover.js';
 
 export * from './messages.js';
+export * from './feedback-messages.js';
+export * from './picker-messages.js';
 export * from './errors.js';
 export * from './icon.js';
 export * from './number-field.js';

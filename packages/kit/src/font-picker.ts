@@ -18,6 +18,7 @@ import { emit } from './internal/events.js';
 import { uniqueId } from './internal/ids.js';
 import { ConnectedListeners } from './internal/listeners.js';
 import { baseStyles, t } from './internal/styles.js';
+import { pickerMessages } from './picker-messages.js';
 import { kitMessages, kitText } from './messages.js';
 
 export interface FontEntry {
@@ -283,7 +284,7 @@ export class SfFontPickerElement extends SfElement<typeof fontPickerSpec> {
     const fontCount = rows.filter((r) => r.kind === 'font').length;
     const viewport = 296;
     const { start, end } = fontWindow(rows.length, this.scrollTop, viewport);
-    const headingText = { recent: kitText(i18n, kitMessages.fontsRecent), design: kitText(i18n, kitMessages.fontsInDesign), all: kitText(i18n, kitMessages.fontsAll) };
+    const headingText = { recent: kitText(i18n, pickerMessages.fontsRecent), design: kitText(i18n, pickerMessages.fontsInDesign), all: kitText(i18n, pickerMessages.fontsAll) };
     let position = rows.slice(0, start).filter((r) => r.kind === 'font').length;
     const visible = rows.slice(start, end).map((row, offset) => {
       const index = start + offset;
@@ -291,7 +292,7 @@ export class SfFontPickerElement extends SfElement<typeof fontPickerSpec> {
       if (row.kind === 'heading') return html`<div class="row heading" style=${top} aria-hidden="true">${headingText[row.label]}</div>`;
       position += 1;
       const { font } = row;
-      const label = `${font.family}${font.token === undefined ? '' : `, @${font.token}`}${font.cached ? '' : `, ${kitText(i18n, kitMessages.notDownloaded)}`}`;
+      const label = `${font.family}${font.token === undefined ? '' : `, @${font.token}`}${font.cached ? '' : `, ${kitText(i18n, pickerMessages.notDownloaded)}`}`;
       return html`<div
         role="option"
         class="row"
@@ -313,8 +314,8 @@ export class SfFontPickerElement extends SfElement<typeof fontPickerSpec> {
     return html`<div class="filter">
         <input
           role="combobox"
-          aria-label=${kitText(i18n, kitMessages.searchFonts)}
-          placeholder=${kitText(i18n, kitMessages.searchFonts)}
+          aria-label=${kitText(i18n, pickerMessages.searchFonts)}
+          placeholder=${kitText(i18n, pickerMessages.searchFonts)}
           aria-expanded="true"
           aria-controls=${this.listId}
           aria-autocomplete="list"
@@ -325,8 +326,8 @@ export class SfFontPickerElement extends SfElement<typeof fontPickerSpec> {
         />
       </div>
       <div class="scroller" @scroll=${(e: Event) => (this.scrollTop = (e.target as HTMLElement).scrollTop)} @pointerleave=${() => this.hover(this.opening)}>
-        <div class="rows" id=${this.listId} role="listbox" aria-label=${kitText(i18n, kitMessages.searchFonts)} style=${`block-size:${rows.length * FONT_ROW_HEIGHT}px`}>${visible}</div>
-        ${fontCount === 0 ? html`<div class="empty" role="status">${kitText(i18n, kitMessages.noFonts)}</div>` : nothing}
+        <div class="rows" id=${this.listId} role="listbox" aria-label=${kitText(i18n, pickerMessages.searchFonts)} style=${`block-size:${rows.length * FONT_ROW_HEIGHT}px`}>${visible}</div>
+        ${fontCount === 0 ? html`<div class="empty" role="status">${kitText(i18n, pickerMessages.noFonts)}</div>` : nothing}
       </div>`;
   }
 }

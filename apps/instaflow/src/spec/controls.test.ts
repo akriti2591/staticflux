@@ -4,7 +4,7 @@ import { defineCapability, s } from '@staticflux/capabilities';
 import { describe, expect, it } from 'vitest';
 import { type ControlDecl, defineControls, defineFact, hudControls, inspectorSections, moreMenuControls } from './controls.js';
 
-const run = defineCapability({ id: 'test/run', title: 'Run', input: s.object({}), output: s.object({}) });
+const run = defineCapability({ id: 'test/run', title: 'Run', description: 'A test capability.', input: s.object({}), output: s.object({}), requiresConfirmation: false, destructive: false });
 const transform = { id: 'inspector/transform', label: 'Transform', order: 1 } as const;
 const fill = { id: 'inspector/fill', label: 'Fill', order: 2 } as const;
 

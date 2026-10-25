@@ -28,6 +28,7 @@ import { triangleAlertIcon } from './icons/triangle-alert.js';
 import { xIcon } from './icons/x.js';
 import { emit } from './internal/events.js';
 import { baseStyles, t } from './internal/styles.js';
+import { feedbackMessages } from './feedback-messages.js';
 import { kitMessages, kitText } from './messages.js';
 
 // ------------------------------------------------------------------ mapping
@@ -241,8 +242,8 @@ export class SfBlockingErrorElement extends SfElement<typeof blockingSpec> {
       <p>${this.message}</p>
       <div class="actions">
         ${this.fixLabel === '' ? nothing : html`<sf-button variant="primary" autofocus @click=${() => emit(this, 'sf-fix', {})}>${this.fixLabel}</sf-button>`}
-        <sf-button variant="secondary" @click=${() => emit(this, 'sf-copy-diagnostics', { text: this.diagnostics })}>${kitText(i18n, kitMessages.copyDiagnostics)}</sf-button>
-        <sf-button variant="ghost" @click=${() => emit(this, 'sf-reload', {})}>${kitText(i18n, kitMessages.reload)}</sf-button>
+        <sf-button variant="secondary" @click=${() => emit(this, 'sf-copy-diagnostics', { text: this.diagnostics })}>${kitText(i18n, feedbackMessages.copyDiagnostics)}</sf-button>
+        <sf-button variant="ghost" @click=${() => emit(this, 'sf-reload', {})}>${kitText(i18n, feedbackMessages.reload)}</sf-button>
       </div>
     </div>`;
   }
@@ -333,7 +334,7 @@ export class SfProgressRowElement extends SfElement<typeof progressSpec> {
 
   override render(): TemplateResult {
     const fraction = progressFraction(this.value, this.max);
-    const cancel = this.cancelLabel === '' ? kitText(this.deps.i18n, kitMessages.cancel) : this.cancelLabel;
+    const cancel = this.cancelLabel === '' ? kitText(this.deps.i18n, feedbackMessages.cancel) : this.cancelLabel;
     return html`<span class="label" aria-hidden="true">${this.label}</span>
       <div
         class="track"

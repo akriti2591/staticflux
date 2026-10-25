@@ -29,6 +29,7 @@ import { defineSwatch } from './swatch.js';
 import { emit } from './internal/events.js';
 import { ConnectedListeners } from './internal/listeners.js';
 import { baseStyles, t } from './internal/styles.js';
+import { pickerMessages } from './picker-messages.js';
 import { kitMessages, kitText } from './messages.js';
 
 export interface DocumentColor {
@@ -544,7 +545,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
             class="area"
             role="slider"
             tabindex="0"
-            aria-label=${k(kitMessages.saturation)}
+            aria-label=${k(pickerMessages.saturation)}
             aria-valuemin="0"
             aria-valuemax="100"
             aria-valuenow=${Math.round(this.hsv.s * 100)}
@@ -560,7 +561,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
             type="range"
             min="0"
             max="360"
-            aria-label=${k(kitMessages.hue)}
+            aria-label=${k(pickerMessages.hue)}
             .value=${String(Math.round(this.hsv.h))}
             @input=${(e: Event) => {
               this.hsv = { ...this.hsv, h: Number((e.target as HTMLInputElement).value) };
@@ -574,7 +575,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
         <label class="hex" ?data-invalid=${this.error}
           ><span aria-hidden="true">#</span
           ><input
-            aria-label=${this.label === '' ? k(kitMessages.hex) : `${this.label} ${k(kitMessages.hex)}`}
+            aria-label=${this.label === '' ? k(pickerMessages.hex) : `${this.label} ${k(pickerMessages.hex)}`}
             aria-invalid=${this.error ? 'true' : 'false'}
             maxlength="7"
             spellcheck="false"
@@ -585,7 +586,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
             @blur=${() => this.commitText()}
         /></label>
         <sf-number-field
-          label=${k(kitMessages.opacity)}
+          label=${k(pickerMessages.opacity)}
           label-hidden
           unit="%"
           min="0"
@@ -598,25 +599,25 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
           }}
         ></sf-number-field>
         ${this.canPick
-          ? html`<button type="button" class="icon" aria-label=${k(kitMessages.eyedropper)} @click=${() => void this.pick()}><sf-icon .icon=${pipetteIcon}></sf-icon></button>`
+          ? html`<button type="button" class="icon" aria-label=${k(pickerMessages.eyedropper)} @click=${() => void this.pick()}><sf-icon .icon=${pipetteIcon}></sf-icon></button>`
           : nothing}
       </div>
       ${this.error ? html`<span class="error" role="status">${k(kitMessages.invalidColor)}</span>` : nothing}
       ${this.token !== undefined && !this.unresolved
-        ? html`<button type="button" class="link" @click=${() => emit<ColorChangeDetail>(this, 'sf-change', { kind: 'detach', hex: current })}>${k(kitMessages.detachToken)}</button>`
+        ? html`<button type="button" class="link" @click=${() => emit<ColorChangeDetail>(this, 'sf-change', { kind: 'detach', hex: current })}>${k(pickerMessages.detachToken)}</button>`
         : nothing}
       ${this.unresolved && this.fallback !== undefined
-        ? html`<button type="button" class="link" @click=${() => this.commitColor(this.fallback ?? '')}>${kitText(i18n, kitMessages.replaceWith, { hex: this.fallback.toUpperCase() })}</button>`
+        ? html`<button type="button" class="link" @click=${() => this.commitColor(this.fallback ?? '')}>${kitText(i18n, pickerMessages.replaceWith, { hex: this.fallback.toUpperCase() })}</button>`
         : nothing}
       ${this.grid(
         'docs',
-        k(kitMessages.documentColors),
+        k(pickerMessages.documentColors),
         docs.map((c) => ({ hex: c.hex, name: `${c.hex.toUpperCase()} · ${c.uses} ${c.uses === 1 ? 'use' : 'uses'}`, pressed: c.hex.toUpperCase() === current && this.token === undefined, pick: () => this.commitColor(c.hex) })),
         this.captions,
       )}
       ${this.grid(
         'brand',
-        k(kitMessages.brandColors),
+        k(pickerMessages.brandColors),
         this.brand.map((c) => ({
           hex: c.hex,
           name: `@${c.name}`,
@@ -627,10 +628,10 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
           },
         })),
       )}
-      ${this.grid('palette', k(kitMessages.paletteColors), this.palette.map((hex) => ({ hex, name: hex.toUpperCase(), pressed: false, pick: () => this.commitColor(hex) })))}
-      ${this.grid('recent', k(kitMessages.recentColors), this.recent.slice(0, MAX_RECENT_COLORS).map((hex) => ({ hex, name: hex.toUpperCase(), pressed: false, pick: () => this.commitColor(hex) })))}
+      ${this.grid('palette', k(pickerMessages.paletteColors), this.palette.map((hex) => ({ hex, name: hex.toUpperCase(), pressed: false, pick: () => this.commitColor(hex) })))}
+      ${this.grid('recent', k(pickerMessages.recentColors), this.recent.slice(0, MAX_RECENT_COLORS).map((hex) => ({ hex, name: hex.toUpperCase(), pressed: false, pick: () => this.commitColor(hex) })))}
       <button type="button" class="toggle" aria-expanded=${this.customOpen ? 'true' : 'false'} @click=${() => (this.customOpen = !this.customOpen)}>
-        ${k(kitMessages.customColor)}<sf-icon .icon=${this.customOpen ? chevronDownIcon : chevronRightIcon}></sf-icon>
+        ${k(pickerMessages.customColor)}<sf-icon .icon=${this.customOpen ? chevronDownIcon : chevronRightIcon}></sf-icon>
       </button>
       ${custom}`;
   }
