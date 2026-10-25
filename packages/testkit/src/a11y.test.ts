@@ -114,6 +114,26 @@ describe('audit', () => {
     expect(auditA11y(root).map((i) => i.rule)).toEqual(['hidden-focusable', 'nested-interactive']);
   });
 
+  it('flags unsupported ARIA states, prohibited names and duplicate ids (R15.6)', () => {
+    const root = mount(`
+      <div role="group" aria-label="Card" aria-selected="true"></div>
+      <div role="img" aria-label="Logo" aria-pressed="false"></div>
+      <span aria-label="Fill 1">Linear gradient</span>
+      <p role="paragraph" aria-label="Body">Text</p>
+      <div id="twice" role="heading" aria-level="2">A</div>
+      <div id="twice" role="tab" aria-selected="true" aria-label="Tab">B</div>
+      <button aria-pressed="true">Bold</button>
+      <input type="checkbox" aria-checked="true" aria-label="Native">
+    `);
+    const issues = auditA11y(root);
+    expect(issues.map((i) => i.rule)).toEqual(['allowed-attr', 'allowed-attr', 'prohibited-name', 'prohibited-name', 'duplicate-id', 'required-parent']);
+    expect(issues[0]?.message).toContain('aria-selected is not supported on role "group"');
+    expect(issues[2]?.message).toContain('<span aria-label="Fill 1">');
+    // The same id in two different trees (document and a shadow root) is fine.
+    mount('<span id="shared">A</span>');
+    expect(auditA11y(shadowHost('<span id="shared">B</span>'), { rules: ['duplicate-id'] })).toEqual([]);
+  });
+
   it('checks required parents through slots', () => {
     const host = shadowHost('<div role="listbox" aria-label="Choices"><slot></slot></div>', '<div role="option" aria-selected="false">A</div>');
     expect(auditA11y(host)).toEqual([]);

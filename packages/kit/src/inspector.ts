@@ -26,7 +26,19 @@ export function nameControl(control: Element, label: string): void {
     return;
   }
   if (control.hasAttribute('aria-label') || control.hasAttribute('aria-labelledby')) return;
+  // Plain text (a <span>, <div> or <p> without a role) is not a control: naming it is prohibited (WAI-ARIA) and would
+  // hide its visible text from screen readers.
+  if (!canBeNamed(control)) return;
   control.setAttribute('aria-label', label);
+}
+
+const NAMEABLE_TAGS = new Set(['input', 'select', 'textarea', 'button', 'a', 'img', 'meter', 'progress', 'output']);
+const NAME_PROHIBITED_ROLES = new Set(['generic', 'paragraph', 'presentation', 'none', 'caption', 'code', 'emphasis', 'strong', 'deletion', 'insertion', 'subscript', 'superscript']);
+
+function canBeNamed(control: Element): boolean {
+  const role = control.getAttribute('role')?.trim().split(/\s+/)[0];
+  if (role !== undefined && role !== '') return !NAME_PROHIBITED_ROLES.has(role);
+  return NAMEABLE_TAGS.has(control.localName) || control.localName.includes('-');
 }
 
 // ------------------------------------------------------------------ group
