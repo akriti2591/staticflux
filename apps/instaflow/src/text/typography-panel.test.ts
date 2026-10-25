@@ -144,7 +144,7 @@ describe('text contributions (B0 tokens)', () => {
 
   it('the Text tool places auto-width or fixed-width text', () => {
     const auto = placeTextOps({ node: 'n1', parent: 'page', x: 10, y: 20 });
-    expect(auto.ok && auto.value[0]).toMatchObject({ op: 'create', kind: 'text', props: { 'spatial.x': 10, 'spatial.y': 20, 'text.box': 'auto-width', 'lineage.matchKey': 'n1' } });
+    expect(auto.ok && auto.value[0]).toMatchObject({ op: 'create', kind: 'text', props: { 'spatial.x': 10, 'spatial.y': 20, 'text.box': 'auto-width', 'lineage.key': 'lk_n1' } });
     const fixed = placeTextOps({ node: 'n2', parent: null, x: 0, y: 0, width: 300, text: 'Hi', style: { size: 30 }, paragraph: { align: 'center' } });
     expect(fixed.ok && fixed.value[0]).toMatchObject({ props: { 'spatial.w': 300, 'text.box': 'auto-height' } });
     expect(placeTextOps({ node: 'n3', parent: null, x: Number.NaN, y: 0 }).ok).toBe(false);

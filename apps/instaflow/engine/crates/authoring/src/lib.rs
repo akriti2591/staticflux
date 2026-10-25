@@ -1,14 +1,19 @@
 //! Instaflow authoring engine, loaded in the editor worker.
 //!
-//! - `text` — Parley text layout (B2; IF-7.6, IF-21.x): fonts, blocks, glyph runs, clusters/words/lines,
-//!   caret, selection and character bounds. Exported to TypeScript as `TextEngine` (`wasm.rs`).
-//! - B1 adds geometry and booleans here (separate modules).
+//! - `geometry` (B1): kurbo paths, linesweeper booleans, bounds, hit tests.
+//! - `text` (B2; IF-7.6, IF-21.x): Parley text layout — fonts, blocks, glyph runs, clusters/words/lines, caret,
+//!   selection and character bounds. Exported to TypeScript as `TextEngine` (`wasm.rs`).
 //!
-//! Two builds (sf-wasm.json): `authoring` (≤ 350 KB brotli, IF-15.1) and the lazy `authoring-complex` chunk with
-//! Parley's `complex-scripts` feature (ICU4X dictionary segmenters for Thai, Lao, Khmer, Myanmar; S3: +1.9 MB).
+//! Three Wasm builds by feature (sf-wasm.json), each within its IF-15.1 budget: `authoring` (`geometry`, B1),
+//! `authoring-text` (`text`, B2) and the lazy `authoring-text-complex` chunk (`complex-scripts`: ICU4X dictionary
+//! segmenters for Thai, Lao, Khmer, Myanmar; S3: +1.9 MB). Host builds and tests enable everything.
 use wasm_bindgen::prelude::*;
 
+#[cfg(feature = "geometry")]
+pub mod geometry;
+#[cfg(feature = "text")]
 pub mod text;
+#[cfg(feature = "text")]
 pub mod wasm;
 
 /// ABI version of the authoring module's exports. Bump on any breaking export change.

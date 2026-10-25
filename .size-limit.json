@@ -893,7 +893,7 @@
     "limit": "2 KB"
   },
   {
-    "name": "@instaflow/app/render (Vello RasterBackend + scene IR + Wasm loader; worker only)",
+    "name": "@instaflow/app/render (Vello RasterBackend + scene IR v2 + Wasm loader; worker only; +0.3 KB for B1 stacks, effects, masks)",
     "path": "apps/instaflow/dist/render/index.js",
     "ignore": [
       "mobx",
@@ -901,7 +901,7 @@
       "@staticflux/platform",
       "@staticflux/surface/raster"
     ],
-    "limit": "3.5 KB"
+    "limit": "3.8 KB"
   },
   {
     "name": "@staticflux/kit/tag",
@@ -984,5 +984,57 @@
       "@staticflux/a11y"
     ],
     "limit": "6 KB"
+  },
+  {
+    "name": "@instaflow/app/elements (components, brand kits, geometry service, actions, projection, scene encoder, contributions; excl. framework)",
+    "path": "apps/instaflow/dist/elements/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "lit/directives/live.js",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/document/v2",
+      "@staticflux/document/render-projection",
+      "@staticflux/stage",
+      "@staticflux/capabilities",
+      "@staticflux/shell/spec",
+      "@staticflux/gate"
+    ],
+    "limit": "24.5 KB"
+  },
+  {
+    "name": "@instaflow/app/elements/panel (Fill, stroke and effects inspector; excl. lit, kit and framework)",
+    "path": "apps/instaflow/dist/elements/panel.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "lit/directives/live.js",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/document/v2",
+      "@staticflux/document/render-projection",
+      "@staticflux/stage",
+      "@staticflux/capabilities",
+      "@staticflux/shell/spec",
+      "@staticflux/gate",
+      "@staticflux/kit/button",
+      "@staticflux/kit/color-field",
+      "@staticflux/kit/icon-button",
+      "@staticflux/kit/inspector",
+      "@staticflux/kit/menu",
+      "@staticflux/kit/segmented",
+      "@staticflux/kit/slider",
+      "@staticflux/kit/text-field"
+    ],
+    "limit": "6.25 KB"
   }
 ]

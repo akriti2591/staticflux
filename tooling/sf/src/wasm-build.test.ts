@@ -152,7 +152,7 @@ const dist = (d: TempDir): string[] => (existsSync(join(d.root, 'engine', 'dist'
 
 describe('buildWasm', () => {
   it('builds feature variants in their own cargo invocation and target dir', async () => {
-    const d = engineRepo({ crates: [{ name: 'render' }, { name: 'my-engine' }, { name: 'my-engine-big', package: 'my-engine', features: ['big', 'x/y'] }] });
+    const d = engineRepo({ crates: [{ name: 'render' }, { name: 'my-engine' }, { name: 'my-engine-big', package: 'my-engine', features: ['big', 'x/y'], defaultFeatures: false }] });
     const runner = tools(d.root, { pathBindgen: '0.2.129' });
     const r = await buildWasm(options(d, runner));
     expect(r.ok && r.value.status).toBe('built');
@@ -160,7 +160,7 @@ describe('buildWasm', () => {
     const builds = runner.calls.filter((c) => c.args[0] === 'build').map((c) => c.args);
     expect(builds).toEqual([
       ['build', '--target', 'wasm32-unknown-unknown', '--release', '-p', 'render', '-p', 'my-engine'],
-      ['build', '--target', 'wasm32-unknown-unknown', '--release', '-p', 'my-engine', '--features', 'big,x/y', '--target-dir', join('target', 'sf-variants', 'my-engine-big')],
+      ['build', '--target', 'wasm32-unknown-unknown', '--release', '-p', 'my-engine', '--no-default-features', '--features', 'big,x/y', '--target-dir', join('target', 'sf-variants', 'my-engine-big')],
     ]);
     expect(r.value.manifest.artifacts.map((a) => a.crate)).toEqual(['render', 'my-engine', 'my-engine-big']);
     const big = r.value.manifest.artifacts[2];
@@ -171,6 +171,8 @@ describe('buildWasm', () => {
     expect(isVariantCrate({ name: 'a', package: 'a' })).toBe(false);
     expect(isVariantCrate({ name: 'b', package: 'a' })).toBe(true);
     expect(isVariantCrate({ name: 'a', features: [] })).toBe(false);
+    expect(isVariantCrate({ name: 'a', defaultFeatures: false })).toBe(true);
+    expect(parseWasmConfig({ format: 'sf-wasm/1', crates: [{ name: 'a', defaultFeatures: 'no' }] }).ok).toBe(false);
     const bad = parseWasmConfig({ format: 'sf-wasm/1', crates: [{ name: 'a', package: 'b c', features: ['ok', 'no spaces'] }] });
     expect(!bad.ok && bad.error.message).toContain('crates[0].package');
     expect(!bad.ok && bad.error.message).toContain('crates[0].features');
@@ -386,7 +388,7 @@ describe('sf wasm build (CLI)', () => {
   it('the repo engine config builds render and authoring with SIMD', () => {
     const json = JSON.parse(readFileSync(new URL('../../../apps/instaflow/engine/sf-wasm.json', import.meta.url), 'utf8')) as unknown;
     const config = parseWasmConfig(json);
-    expect(config.ok && config.value.crates.map((c) => c.name)).toEqual(['render', 'authoring']);
+    expect(config.ok && config.value.crates.map((c) => c.name)).toEqual(['render', 'authoring', 'authoring-text', 'authoring-text-complex']);
     expect(config.ok && wasmRustflags(config.value)).toBe('-C target-feature=+simd128');
   });
 });

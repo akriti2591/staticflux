@@ -271,3 +271,13 @@ Consumer: Instaflow's editors — Studio (the maximal spec), mini editors in Cha
 - "Render the layout with enter/exit motion without a DOM in the runtime": `createSpecLayoutPort()` (`entries(group)` with phases,
   `groups()`, `mountedContext`).
 - **Tests**: `runSpecRuntimeContract`, `runSpecMountPortContract` (Studio's `<if-studio>` DOM runs the port suite).
+
+### elements, styles and geometry (Instaflow M1b · B1)
+Consumer: `apps/instaflow/src/elements` (editor and render workers; inspector panel on main).
+- Render what the inspector shows (classes, tokens, variants resolved), not the raw part → the render projector reads a
+  **projection source** (`RenderProjectionSource`, R11.53) that the app builds over `@staticflux/stage`.
+- Brand rules enforced for people and agents on every write → the undo service's `WriteGuard` (stage), composed with
+  `stageWriteGuard` (`composeGuards`).
+- Element actions reachable from the HUD, the keyboard and agents with one pipeline → one capability per action
+  (`@staticflux/capabilities`) plus B0's `HudActionContribution`; the panel is a `PanelContribution` built from kit
+  components (inspector group/row, colour field, text field, segmented, slider, icon button, menu).

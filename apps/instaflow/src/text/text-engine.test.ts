@@ -45,7 +45,7 @@ describe('layout spec and layout decoding (no Wasm)', () => {
     const noEntry = async () => ({ ok: true, status: 200, json: async () => ({ format: 'sf-wasm-manifest/1', artifacts: [] }) });
     const r2 = await loadAuthoringModule({ manifestUrl: 'file:///m.json', fetch: noEntry });
     expect(!r2.ok && r2.error.message).toContain('authoring');
-    const manifest = async () => ({ ok: true, status: 200, json: async () => ({ format: 'sf-wasm-manifest/1', artifacts: [{ crate: 'authoring-complex', wasm: 'a.wasm', js: 'a.js' }] }) });
+    const manifest = async () => ({ ok: true, status: 200, json: async () => ({ format: 'sf-wasm-manifest/1', artifacts: [{ crate: 'authoring-text-complex', wasm: 'a.wasm', js: 'a.js' }] }) });
     const wrongAbi = await loadAuthoringModule({ manifestUrl: 'file:///m.json', build: 'complex', fetch: manifest, importModule: async () => ({ default: async () => undefined, abi_version: () => 1 }) });
     expect(!wrongAbi.ok && wrongAbi.error.details).toEqual({ expected: AUTHORING_ABI_VERSION, got: 1 });
     const throws = await loadAuthoringModule({ manifestUrl: 'file:///m.json', fetch: manifest, build: 'complex', importModule: async () => Promise.reject(new Error('boom')) });

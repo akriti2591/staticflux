@@ -8,7 +8,7 @@
     "ratchet": false
   },
   {
-    "name": "Instaflow authoring Wasm (IF-15.1)",
+    "name": "Instaflow authoring Wasm: geometry (IF-15.1, B1)",
     "category": "authoring-wasm",
     "path": "apps/instaflow/engine/dist/authoring.*.wasm",
     "compression": "brotli",
@@ -16,9 +16,17 @@
     "ratchet": false
   },
   {
-    "name": "Instaflow authoring Wasm + complex-scripts (lazy chunk for Thai, Lao, Khmer, Myanmar; B2, S3)",
-    "category": "authoring-complex-wasm",
-    "path": "apps/instaflow/engine/dist/authoring_complex.*.wasm",
+    "name": "Instaflow authoring text Wasm: Parley layout (IF-15.1, B2)",
+    "category": "authoring-text-wasm",
+    "path": "apps/instaflow/engine/dist/authoring_text.*.wasm",
+    "compression": "brotli",
+    "limit": "350 KB",
+    "ratchet": false
+  },
+  {
+    "name": "Instaflow authoring text Wasm + complex-scripts (lazy chunk for Thai, Lao, Khmer, Myanmar; B2, S3)",
+    "category": "authoring-text-complex-wasm",
+    "path": "apps/instaflow/engine/dist/authoring_text_complex.*.wasm",
     "compression": "brotli",
     "limit": "2.3 MB",
     "ratchet": false

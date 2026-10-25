@@ -4,7 +4,8 @@
   "simd": true,
   "crates": [
     { "name": "render" },
-    { "name": "authoring" },
-    { "name": "authoring-complex", "package": "authoring", "features": ["complex-scripts"] }
+    { "name": "authoring", "defaultFeatures": false, "features": ["geometry"] },
+    { "name": "authoring-text", "package": "authoring", "defaultFeatures": false, "features": ["text"] },
+    { "name": "authoring-text-complex", "package": "authoring", "defaultFeatures": false, "features": ["complex-scripts"] }
   ]
 }

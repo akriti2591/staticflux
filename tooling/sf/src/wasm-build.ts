@@ -14,7 +14,8 @@
  *
  * **Feature builds:** a crate entry with `package` and/or `features` (e.g. the lazy `authoring-complex` chunk:
  * `{ "name": "authoring-complex", "package": "authoring", "features": ["complex-scripts"] }`) is built by its
- * own `cargo build -p <package> --features …` into `target/sf-variants/<name>`, so its features never unify
+ * own `cargo build -p <package> [--no-default-features] --features …` (`defaultFeatures: false`) into
+ * `target/sf-variants/<name>`, so its features never unify
  * with the plain crates' build (cargo unifies features within one invocation).
  *
  * **No Rust locally:** a missing toolchain skips the build with a warning;
@@ -55,11 +56,13 @@ export interface WasmCrateConfig {
   readonly package?: string;
   /** Cargo features for this artifact; built in its own cargo invocation and target dir. */
   readonly features?: readonly string[];
+  /** `false` builds with `--no-default-features` (a variant build). Default true. */
+  readonly defaultFeatures?: boolean;
 }
 
 /** True when the entry needs its own cargo invocation (features or another package). */
 export function isVariantCrate(crate: WasmCrateConfig): boolean {
-  return (crate.features !== undefined && crate.features.length > 0) || (crate.package !== undefined && crate.package !== crate.name);
+  return (crate.features !== undefined && crate.features.length > 0) || (crate.package !== undefined && crate.package !== crate.name) || crate.defaultFeatures === false;
 }
 
 /** Target dir of a variant build, relative to the engine dir. */
@@ -131,6 +134,7 @@ export function parseWasmConfig(json: unknown, source = WASM_CONFIG_FILE): Resul
       const name = entry?.name;
       if (typeof name !== 'string' || !/^[A-Za-z0-9_-]+$/.test(name)) problems.push(`crates[${i}].name must be a cargo package name`);
       if (entry?.package !== undefined && (typeof entry.package !== 'string' || !/^[A-Za-z0-9_-]+$/.test(entry.package))) problems.push(`crates[${i}].package must be a cargo package name`);
+      if ((entry as { defaultFeatures?: unknown } | null)?.defaultFeatures !== undefined && typeof (entry as { defaultFeatures?: unknown }).defaultFeatures !== 'boolean') problems.push(`crates[${i}].defaultFeatures must be a boolean`);
       if (entry?.features !== undefined && !(Array.isArray(entry.features) && entry.features.every((f) => typeof f === 'string' && /^[A-Za-z0-9_/-]+$/.test(f)))) {
         problems.push(`crates[${i}].features must be an array of cargo feature names`);
       }
@@ -258,7 +262,7 @@ export async function buildWasm(options: WasmBuildOptions): Promise<Result<WasmB
   if (plain.length > 0) invocations.push(['build', '--target', WASM_TARGET, '--release', ...plain.flatMap((c) => ['-p', c.name]), ...locked]);
   for (const crate of config.crates.filter(isVariantCrate)) {
     const features = crate.features ?? [];
-    invocations.push(['build', '--target', WASM_TARGET, '--release', '-p', crate.package ?? crate.name, ...(features.length > 0 ? ['--features', features.join(',')] : []), '--target-dir', variantTargetDir(crate), ...locked]);
+    invocations.push(['build', '--target', WASM_TARGET, '--release', '-p', crate.package ?? crate.name, ...(crate.defaultFeatures === false ? ['--no-default-features'] : []), ...(features.length > 0 ? ['--features', features.join(',')] : []), '--target-dir', variantTargetDir(crate), ...locked]);
   }
   for (const cargoArgs of invocations) {
     log(`cargo ${cargoArgs.join(' ')}  (RUSTFLAGS="${rustflags}")`);

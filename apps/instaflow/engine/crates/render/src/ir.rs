@@ -4,13 +4,13 @@
 //! node tree, world transforms, world bounds and image pixels, so a GPU device loss rebuilds every
 //! texture from here without touching the document (IF-7.11).
 //!
-//! # Wire format (version 2, little-endian)
+//! # Wire format (version 3, little-endian)
 //!
 //! ```text
 //! batch   = "SFIR" version:u16 reserved:u16 op_count:u32 op*
 //! op      = CLEAR(1)
-//!         | UPSERT(2) id:u32 parent:u32 index:u32 transform:f64×6 opacity:f32 blend:u8 flags:u8
-//!                     clip geometry fill:paint stroke
+//!         | UPSERT(2) id:u32 parent:u32 index:u32 transform:f64×6 opacity:f32 blend:u8 flags:u8 mask:u8
+//!                     clip geometry fills strokes effects
 //!         | REMOVE(3) id:u32                         (the node and its subtree)
 //!         | IMAGE(4)  image:u32 width:u32 height:u32 alpha:u8 rgba8[width·height·4]
 //!         | DROP_IMAGE(5) image:u32
@@ -20,11 +20,27 @@
 //! geometry = GROUP(0) | RECT(1) w h radius:f64 | ELLIPSE(2) w h:f64 | PATH(3) path
 //!          | IMAGE(4) image:u32 w h:f64
 //!          | GLYPHS(5) font:u32 size:f32 flags:u8 skew:f32 coords:u8 (coord:i16)* count:u32 (glyph:u32 x:f32 y:f32)*
+//!          | RRECT(6) w h tl tr br bl:f64                          (a radius per corner, already fitted)
 //! path     = verbs:u32 verb:u8* points:u32 (x:f64 y:f64)*     verbs: move 0, line 1, quad 2, cubic 3, close 4
-//! paint    = NONE(0) | SOLID(1) rgba8 | LINEAR(2) x0 y0 x1 y1:f64 stops | RADIAL(3) cx cy r:f64 stops | IMAGE(4) image:u32
+//! paint    = NONE(0) | SOLID(1) rgba8 | LINEAR(2) x0 y0 x1 y1:f64 stops | RADIAL(3) cx cy r:f64 stops | IMAGE(4) image:u32 fit:u8
+//!          | SWEEP(5) cx cy start end:f64 stops                    (conic; angles in radians, clockwise from +x)
 //! stops    = count:u8 (offset:f32 rgba8)*
-//! stroke   = width:f32 [paint join:u8 cap:u8 when width > 0]
+//! fills    = count:u8 (paint opacity:f32 blend:u8)*                        (bottom first)
+//! strokes  = count:u8 (width:f32 paint opacity:f32 blend:u8 join:u8 cap:u8 miter:f32
+//!                      dashes:u8 dash:f32* dash_offset:f32 ring:u8 [path when ring = 1])*
+//! effects  = count:u8 effect*
+//! effect   = DROP_SHADOW(1) dx dy blur spread:f32 rgba8 | INNER_SHADOW(2) dx dy blur spread:f32 rgba8
+//!          | LAYER_BLUR(3) radius:f32 | BACKGROUND_BLUR(4) radius:f32
 //! ```
+//!
+//! v2 (M1 B1) adds stacked fills and strokes (each with opacity and blend; strokes with dashes, or a precomputed
+//! `ring` path filled instead of stroked: inside / outside / per-side strokes), conic gradients, per-corner rects,
+//! image fit (0 stretch, 1 cover, 2 contain, 3 tile), the even-odd fill rule
+//! (`flags` bit 1), effects and masks. Effect offsets and blur are in the node's local space (blur = 2σ, like CSS).
+//! **Masks** (`mask` low bits: 0 none, 1 clip = the node's geometry, 2 alpha, 3 luminance; bit 7 = invert): a mask
+//! node is not drawn itself; it masks the siblings that follow it in its parent (a later mask among them nests).
+//! In luminance mode solid and gradient colours become alpha = a × luma; image paints are used as alpha unchanged,
+//! so the sender uploads luminance-as-alpha pixels for an image used as a luminance mask (and a matte's alpha as is).
 //!
 //! `parent` 0 is the root; `index` is the position among the parent's children (`u32::MAX` appends).
 //! `flags` bit 0 = visible. Colors are straight-alpha sRGB. Image paint maps the image onto the
@@ -38,7 +54,7 @@
 //! `flags` bit 0 = synthetic bold, `skew` = synthetic italic angle in degrees, `coords` = variation coordinates
 //! (F2Dot14, the run's `normalized_coords` from Parley; S3: CJK variable fonts default to weight 100 without
 //! them). Glyph `x, y` are pen positions on the baseline in the node's local space; fill paints them.
-//! Version history: 1 (A6) → 2 (B2: FONT/DROP_FONT ops, synthesis and coords on GLYPHS).
+//! Version history: 1 (A6) → 2 (B1: stacks, effects, masks) → 3 (B2: FONT/DROP_FONT ops, synthesis and coords on GLYPHS).
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -47,7 +63,7 @@ use vello_common::peniko::{Blob, FontData, ImageAlphaType};
 use vello_common::pixmap::{PixelMetadata, Pixmap};
 
 pub const MAGIC: [u8; 4] = *b"SFIR";
-pub const VERSION: u16 = 2;
+pub const VERSION: u16 = 3;
 pub const ROOT: u32 = 0;
 pub const APPEND: u32 = u32::MAX;
 
@@ -95,6 +111,34 @@ pub enum Geometry {
     Image { image: u32, w: f64, h: f64 },
     /// Positioned glyphs from the authoring module (B2), drawn with the retained font `run.font`.
     Glyphs(GlyphRun),
+    /// A rect with a radius per corner `[top-left, top-right, bottom-right, bottom-left]`.
+    RRect { w: f64, h: f64, radii: [f64; 4] },
+}
+
+/// Image fit for image paints: how the image maps onto the shape's `w × h` box.
+pub mod fit {
+    pub const STRETCH: u8 = 0;
+    pub const COVER: u8 = 1;
+    pub const CONTAIN: u8 = 2;
+    pub const TILE: u8 = 3;
+}
+
+/// Mask modes (`Node::mask` low bits) and the invert bit.
+pub mod mask {
+    pub const NONE: u8 = 0;
+    pub const CLIP: u8 = 1;
+    pub const ALPHA: u8 = 2;
+    pub const LUMINANCE: u8 = 3;
+    pub const INVERT: u8 = 0x80;
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Effect {
+    DropShadow { dx: f32, dy: f32, blur: f32, spread: f32, color: Rgba8 },
+    InnerShadow { dx: f32, dy: f32, blur: f32, spread: f32, color: Rgba8 },
+    LayerBlur { radius: f32 },
+    /// Blur of what is behind the node, inside its outline (frosted glass).
+    BackgroundBlur { radius: f32 },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -103,7 +147,24 @@ pub enum Paint {
     Solid(Rgba8),
     Linear { start: Point, end: Point, stops: Vec<(f32, Rgba8)> },
     Radial { center: Point, radius: f64, stops: Vec<(f32, Rgba8)> },
-    Image(u32),
+    /// Image id and fit (`fit::*`).
+    Image(u32, u8),
+    /// Conic (sweep) gradient around `center` from `start` to `end` (radians).
+    Sweep { center: Point, start: f64, end: f64, stops: Vec<(f32, Rgba8)> },
+}
+
+/// One fill of a node (fills stack bottom first).
+#[derive(Clone, Debug, PartialEq)]
+pub struct FillStyle {
+    pub paint: Paint,
+    pub opacity: f32,
+    pub blend: u8,
+}
+
+impl FillStyle {
+    pub fn of(paint: Paint) -> Self {
+        FillStyle { paint, opacity: 1.0, blend: 0 }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -141,6 +202,21 @@ pub struct StrokeStyle {
     pub join: u8,
     /// 0 butt, 1 square, 2 round.
     pub cap: u8,
+    pub opacity: f32,
+    pub blend: u8,
+    pub miter: f32,
+    /// Dash pattern (empty = solid) and its offset.
+    pub dash: Vec<f32>,
+    pub dash_offset: f32,
+    /// A precomputed outline of the stroke, filled instead of stroking (inside, outside, per-side widths).
+    pub ring: Option<BezPath>,
+}
+
+impl StrokeStyle {
+    /// A solid, centred stroke.
+    pub fn new(width: f64, paint: Paint, join: u8, cap: u8) -> Self {
+        StrokeStyle { width, paint, join, cap, opacity: 1.0, blend: 0, miter: 4.0, dash: Vec::new(), dash_offset: 0.0, ring: None }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -153,8 +229,13 @@ pub struct Node {
     pub visible: bool,
     pub clip: Clip,
     pub geometry: Geometry,
-    pub fill: Paint,
-    pub stroke: Option<StrokeStyle>,
+    pub fills: Vec<FillStyle>,
+    pub strokes: Vec<StrokeStyle>,
+    /// Even-odd fill rule (default non-zero).
+    pub even_odd: bool,
+    /// Mask mode and invert bit (`mask::*`); a mask node masks the siblings after it.
+    pub mask: u8,
+    pub effects: Vec<Effect>,
 }
 
 impl Node {
@@ -167,7 +248,7 @@ impl Node {
     pub fn local_bounds(&self) -> Option<Rect> {
         let base = match &self.geometry {
             Geometry::Group => return None,
-            Geometry::Rect { w, h, .. } | Geometry::Ellipse { w, h } | Geometry::Image { w, h, .. } => Rect::new(0.0, 0.0, *w, *h),
+            Geometry::Rect { w, h, .. } | Geometry::RRect { w, h, .. } | Geometry::Ellipse { w, h } | Geometry::Image { w, h, .. } => Rect::new(0.0, 0.0, *w, *h),
             Geometry::Path(p) => p.bounding_box(),
             Geometry::Glyphs(run) => {
                 let mut r: Option<Rect> = None;
@@ -181,8 +262,37 @@ impl Node {
                 r?
             }
         };
-        let pad = self.stroke.as_ref().map_or(0.0, |s| s.width);
-        Some(base.inflate(pad, pad))
+        let pad = self.strokes.iter().filter(|s| s.ring.is_none()).map(|s| s.width).fold(0.0, f64::max);
+        let mut ink = base.inflate(pad, pad);
+        for ring in self.strokes.iter().filter_map(|s| s.ring.as_ref()) {
+            ink = ink.union(ring.bounding_box());
+        }
+        Some(self.effect_bounds(ink))
+    }
+
+    /// `ink` grown by the effects (drop shadows and layer blur reach 3σ = 1.5 × blur; inner shadows stay inside).
+    pub fn effect_bounds(&self, ink: Rect) -> Rect {
+        let mut out = ink;
+        for e in &self.effects {
+            match e {
+                Effect::DropShadow { dx, dy, blur, spread, .. } => {
+                    let r = (*spread as f64 + 1.5 * *blur as f64).max(0.0);
+                    out = out.union(ink.inflate(r, r) + vello_common::kurbo::Vec2::new(*dx as f64, *dy as f64));
+                }
+                Effect::InnerShadow { .. } => {}
+                Effect::LayerBlur { radius } => out = out.union(ink.inflate(1.5 * *radius as f64, 1.5 * *radius as f64)),
+                Effect::BackgroundBlur { .. } => {}
+            }
+        }
+        out
+    }
+
+    /// The layer blur radius, if any (applies to the node and its subtree).
+    pub fn layer_blur(&self) -> Option<f32> {
+        self.effects.iter().find_map(|e| match e {
+            Effect::LayerBlur { radius } if *radius > 0.0 => Some(*radius),
+            _ => None,
+        })
     }
 }
 
@@ -307,7 +417,15 @@ impl<'a> Reader<'a> {
             1 => Paint::Solid(self.rgba()?),
             2 => Paint::Linear { start: Point::new(self.f64()?, self.f64()?), end: Point::new(self.f64()?, self.f64()?), stops: self.stops()? },
             3 => Paint::Radial { center: Point::new(self.f64()?, self.f64()?), radius: self.f64()?, stops: self.stops()? },
-            4 => Paint::Image(self.u32()?),
+            4 => {
+                let image = self.u32()?;
+                let fit = self.u8()?;
+                if fit > fit::TILE {
+                    return fail(format!("unknown image fit {fit}"));
+                }
+                Paint::Image(image, fit)
+            }
+            5 => Paint::Sweep { center: Point::new(self.f64()?, self.f64()?), start: self.f64()?, end: self.f64()?, stops: self.stops()? },
             other => return fail(format!("unknown paint kind {other}")),
         })
     }
@@ -344,8 +462,71 @@ impl<'a> Reader<'a> {
                 }
                 Geometry::Glyphs(GlyphRun { font, size, embolden: flags & 1 == 1, skew, coords, glyphs })
             }
+            6 => Geometry::RRect { w: self.f64()?, h: self.f64()?, radii: [self.f64()?, self.f64()?, self.f64()?, self.f64()?] },
             other => return fail(format!("unknown geometry kind {other}")),
         })
+    }
+}
+
+impl Reader<'_> {
+    fn fills(&mut self) -> Result<Vec<FillStyle>, IrError> {
+        let n = self.u8()? as usize;
+        let mut out = Vec::with_capacity(n);
+        for _ in 0..n {
+            let paint = self.paint()?;
+            let opacity = self.f32()?.clamp(0.0, 1.0);
+            let blend = self.u8()?;
+            if blend > 15 {
+                return fail(format!("unknown blend mode {blend}"));
+            }
+            out.push(FillStyle { paint, opacity, blend });
+        }
+        Ok(out)
+    }
+
+    fn strokes(&mut self) -> Result<Vec<StrokeStyle>, IrError> {
+        let n = self.u8()? as usize;
+        let mut out = Vec::with_capacity(n);
+        for _ in 0..n {
+            let width = self.f32()?.max(0.0) as f64;
+            let paint = self.paint()?;
+            let opacity = self.f32()?.clamp(0.0, 1.0);
+            let blend = self.u8()?;
+            if blend > 15 {
+                return fail(format!("unknown blend mode {blend}"));
+            }
+            let join = self.u8()?;
+            let cap = self.u8()?;
+            let miter = self.f32()?.max(1.0);
+            let dashes = self.u8()? as usize;
+            let mut dash = Vec::with_capacity(dashes);
+            for _ in 0..dashes {
+                dash.push(self.f32()?.max(0.0));
+            }
+            let dash_offset = self.f32()?;
+            let ring = match self.u8()? {
+                0 => None,
+                1 => Some(self.path()?),
+                other => return fail(format!("unknown stroke ring flag {other}")),
+            };
+            out.push(StrokeStyle { width, paint, join, cap, opacity, blend, miter, dash, dash_offset, ring });
+        }
+        Ok(out)
+    }
+
+    fn effects(&mut self) -> Result<Vec<Effect>, IrError> {
+        let n = self.u8()? as usize;
+        let mut out = Vec::with_capacity(n);
+        for _ in 0..n {
+            out.push(match self.u8()? {
+                1 => Effect::DropShadow { dx: self.f32()?, dy: self.f32()?, blur: self.f32()?.max(0.0), spread: self.f32()?, color: self.rgba()? },
+                2 => Effect::InnerShadow { dx: self.f32()?, dy: self.f32()?, blur: self.f32()?.max(0.0), spread: self.f32()?, color: self.rgba()? },
+                3 => Effect::LayerBlur { radius: self.f32()?.max(0.0) },
+                4 => Effect::BackgroundBlur { radius: self.f32()?.max(0.0) },
+                other => return fail(format!("unknown effect kind {other}")),
+            });
+        }
+        Ok(out)
     }
 }
 
@@ -396,12 +577,20 @@ pub fn decode(bytes: &[u8]) -> Result<Vec<Op>, IrError> {
                     return fail(format!("unknown blend mode {blend}"));
                 }
                 let flags = r.u8()?;
+                if flags & !0b11 != 0 {
+                    return fail(format!("unknown node flags {flags:#x}"));
+                }
+                let mask_mode = r.u8()?;
+                if mask_mode & 0x7f > mask::LUMINANCE {
+                    return fail(format!("unknown mask mode {mask_mode:#x}"));
+                }
                 let clip = r.clip()?;
                 let geometry = r.geometry()?;
-                let fill = r.paint()?;
-                let width = r.f32()? as f64;
-                let stroke = if width > 0.0 { Some(StrokeStyle { width, paint: r.paint()?, join: r.u8()?, cap: r.u8()? }) } else { None };
-                Op::Upsert { node: Node { id, parent, transform: Affine::new(t), opacity, blend, visible: flags & 1 == 1, clip, geometry, fill, stroke }, index }
+                let fills = r.fills()?;
+                let strokes = r.strokes()?;
+                let effects = r.effects()?;
+                let node = Node { id, parent, transform: Affine::new(t), opacity, blend, visible: flags & 1 == 1, clip, geometry, fills, strokes, even_odd: flags & 2 == 2, mask: mask_mode, effects };
+                Op::Upsert { node, index }
             }
             op::REMOVE => Op::Remove(r.u32()?),
             op::IMAGE => {
@@ -643,8 +832,8 @@ impl Scene {
     fn dirty_users_of(&self, image: u32, dirty: &mut Vec<Rect>) {
         for node in self.nodes.values() {
             let uses = matches!(node.geometry, Geometry::Image { image: i, .. } if i == image)
-                || node.fill == Paint::Image(image)
-                || node.stroke.as_ref().is_some_and(|s| s.paint == Paint::Image(image));
+                || node.fills.iter().any(|f| matches!(f.paint, Paint::Image(i, _) if i == image))
+                || node.strokes.iter().any(|s| matches!(s.paint, Paint::Image(i, _) if i == image));
             if uses {
                 if let Some(b) = self.bounds.get(&node.id) {
                     dirty.push(*b);
@@ -807,9 +996,17 @@ impl IrWriter {
                 }
                 self.stops(stops);
             }
-            Paint::Image(i) => {
+            Paint::Image(i, fit) => {
                 self.u8(4);
                 self.u32(*i);
+                self.u8(*fit);
+            }
+            Paint::Sweep { center, start, end, stops } => {
+                self.u8(5);
+                for v in [center.x, center.y, *start, *end] {
+                    self.f64(v);
+                }
+                self.stops(stops);
             }
         }
     }
@@ -831,7 +1028,8 @@ impl IrWriter {
         }
         self.f32(node.opacity);
         self.u8(node.blend);
-        self.u8(u8::from(node.visible));
+        self.u8(u8::from(node.visible) | (u8::from(node.even_odd) << 1));
+        self.u8(node.mask);
         match &node.clip {
             Clip::None => self.u8(0),
             Clip::Rect(r) => {
@@ -871,6 +1069,12 @@ impl IrWriter {
                 self.f64(*w);
                 self.f64(*h);
             }
+            Geometry::RRect { w, h, radii } => {
+                self.u8(6);
+                for v in [*w, *h, radii[0], radii[1], radii[2], radii[3]] {
+                    self.f64(v);
+                }
+            }
             Geometry::Glyphs(run) => {
                 self.u8(5);
                 self.u32(run.font);
@@ -889,14 +1093,52 @@ impl IrWriter {
                 }
             }
         }
-        self.paint(&node.fill);
-        match &node.stroke {
-            None => self.f32(0.0),
-            Some(s) => {
-                self.f32(s.width as f32);
-                self.paint(&s.paint);
-                self.u8(s.join);
-                self.u8(s.cap);
+        self.u8(node.fills.len() as u8);
+        for f in &node.fills {
+            self.paint(&f.paint);
+            self.f32(f.opacity);
+            self.u8(f.blend);
+        }
+        self.u8(node.strokes.len() as u8);
+        for s in &node.strokes {
+            self.f32(s.width as f32);
+            self.paint(&s.paint);
+            self.f32(s.opacity);
+            self.u8(s.blend);
+            self.u8(s.join);
+            self.u8(s.cap);
+            self.f32(s.miter);
+            self.u8(s.dash.len() as u8);
+            for d in &s.dash {
+                self.f32(*d);
+            }
+            self.f32(s.dash_offset);
+            match &s.ring {
+                None => self.u8(0),
+                Some(ring) => {
+                    self.u8(1);
+                    self.path(ring);
+                }
+            }
+        }
+        self.u8(node.effects.len() as u8);
+        for e in &node.effects {
+            match e {
+                Effect::DropShadow { dx, dy, blur, spread, color } | Effect::InnerShadow { dx, dy, blur, spread, color } => {
+                    self.u8(if matches!(e, Effect::DropShadow { .. }) { 1 } else { 2 });
+                    for v in [*dx, *dy, *blur, *spread] {
+                        self.f32(v);
+                    }
+                    self.rgba(*color);
+                }
+                Effect::LayerBlur { radius } => {
+                    self.u8(3);
+                    self.f32(*radius);
+                }
+                Effect::BackgroundBlur { radius } => {
+                    self.u8(4);
+                    self.f32(*radius);
+                }
             }
         }
         self
@@ -948,7 +1190,7 @@ impl IrWriter {
 
 /// A leaf node with defaults (identity transform, opaque, normal blend, visible, no clip, no stroke).
 pub fn leaf(id: u32, parent: u32, geometry: Geometry, fill: Paint) -> Node {
-    Node { id, parent, transform: Affine::IDENTITY, opacity: 1.0, blend: 0, visible: true, clip: Clip::None, geometry, fill, stroke: None }
+    Node { id, parent, transform: Affine::IDENTITY, opacity: 1.0, blend: 0, visible: true, clip: Clip::None, geometry, fills: if fill == Paint::None { Vec::new() } else { vec![FillStyle::of(fill)] }, strokes: Vec::new(), even_odd: false, mask: mask::NONE, effects: Vec::new() }
 }
 
 /// A group with defaults.
@@ -967,7 +1209,7 @@ pub fn warm_up_batch(image: Option<u32>) -> Vec<u8> {
     layer.blend = 1;
     w.upsert(&layer, APPEND);
     let mut solid = leaf(2, 1, Geometry::Rect { w: 30.0, h: 30.0, radius: 4.0 }, Paint::Solid([200, 40, 40, 255]));
-    solid.stroke = Some(StrokeStyle { width: 2.0, paint: Paint::Solid([0, 0, 0, 255]), join: 2, cap: 2 });
+    solid.strokes = vec![StrokeStyle::new(2.0, Paint::Solid([0, 0, 0, 255]), 2, 2)];
     w.upsert(&solid, APPEND);
     let stops = vec![(0.0, [255, 0, 0, 255]), (1.0, [0, 0, 255, 128])];
     let mut linear = leaf(3, 1, Geometry::Ellipse { w: 30.0, h: 30.0 }, Paint::Linear { start: Point::new(0.0, 0.0), end: Point::new(30.0, 30.0), stops: stops.clone() });
@@ -1015,12 +1257,21 @@ mod tests {
         g.opacity = 0.5;
         g.blend = 1;
         let mut p = leaf(2, 1, Geometry::Path(star.clone()), Paint::Linear { start: Point::new(0.0, 0.0), end: Point::new(10.0, 10.0), stops: vec![(0.0, [1, 2, 3, 4]), (1.0, [5, 6, 7, 8])] });
-        p.stroke = Some(StrokeStyle { width: 2.0, paint: Paint::Solid([0, 0, 0, 255]), join: 2, cap: 1 });
+        p.strokes = vec![StrokeStyle::new(2.0, Paint::Solid([0, 0, 0, 255]), 2, 1)];
+        let mut v2 = leaf(6, ROOT, Geometry::RRect { w: 20.0, h: 10.0, radii: [1.0, 2.0, 3.0, 4.0] }, Paint::Image(9, fit::COVER));
+        v2.even_odd = true;
+        v2.mask = mask::LUMINANCE | mask::INVERT;
+        v2.effects = vec![
+            Effect::DropShadow { dx: 1.0, dy: 2.0, blur: 3.0, spread: 0.5, color: [0, 0, 0, 128] },
+            Effect::InnerShadow { dx: -1.0, dy: 0.0, blur: 2.0, spread: 0.0, color: [255, 0, 0, 255] },
+            Effect::LayerBlur { radius: 4.0 },
+        ];
         let nodes = vec![
             g,
             p,
+            v2,
             leaf(3, 1, Geometry::Ellipse { w: 4.0, h: 6.0 }, Paint::Radial { center: Point::new(2.0, 3.0), radius: 3.0, stops: vec![] }),
-            leaf(4, ROOT, Geometry::Image { image: 9, w: 8.0, h: 8.0 }, Paint::Image(9)),
+            leaf(4, ROOT, Geometry::Image { image: 9, w: 8.0, h: 8.0 }, Paint::Image(9, fit::STRETCH)),
             leaf(5, ROOT, Geometry::Glyphs(GlyphRun { font: 3, size: 12.0, embolden: true, skew: 14.0, coords: vec![16384, -3], glyphs: vec![(65, 0.0, 12.0)] }), Paint::Solid([0, 0, 0, 255])),
         ];
         let mut w = IrWriter::new();
@@ -1030,16 +1281,16 @@ mod tests {
         }
         w.remove(5).drop_image(42).clear().font(4, &[7; 32], b"OTTO").font(5, &[7; 32], b"").drop_font(4);
         let ops = decode(&w.finish()).unwrap();
-        assert_eq!(ops.len(), 12);
-        assert_eq!(ops[9], Op::Font { font: 4, hash: [7; 32], bytes: b"OTTO".to_vec() });
-        assert_eq!(ops[10], Op::Font { font: 5, hash: [7; 32], bytes: vec![] });
-        assert_eq!(ops[11], Op::DropFont(4));
+        assert_eq!(ops.len(), 13);
+        assert_eq!(ops[10], Op::Font { font: 4, hash: [7; 32], bytes: b"OTTO".to_vec() });
+        assert_eq!(ops[11], Op::Font { font: 5, hash: [7; 32], bytes: vec![] });
+        assert_eq!(ops[12], Op::DropFont(4));
         for (i, n) in nodes.iter().enumerate() {
             assert_eq!(ops[i + 1], Op::Upsert { node: n.clone(), index: APPEND });
         }
-        assert_eq!(ops[6], Op::Remove(5));
-        assert_eq!(ops[7], Op::DropImage(42));
-        assert_eq!(ops[8], Op::Clear);
+        assert_eq!(ops[7], Op::Remove(5));
+        assert_eq!(ops[8], Op::DropImage(42));
+        assert_eq!(ops[9], Op::Clear);
     }
 
     #[test]
@@ -1109,7 +1360,7 @@ mod tests {
         let mut big = rect(2, 0.0, 0.0, 100.0, 100.0);
         big.parent = 1;
         let mut stroked = rect(3, 200.0, 200.0, 10.0, 10.0);
-        stroked.stroke = Some(StrokeStyle { width: 4.0, paint: Paint::Solid([0, 0, 0, 255]), join: 1, cap: 0 });
+        stroked.strokes = vec![StrokeStyle::new(4.0, Paint::Solid([0, 0, 0, 255]), 1, 0)];
         let mut w = IrWriter::new();
         w.upsert(&g, APPEND).upsert(&big, APPEND).upsert(&stroked, APPEND);
         scene.apply(&w.finish()).unwrap();
@@ -1169,7 +1420,7 @@ mod tests {
     fn images_are_retained_and_dirty_their_users() {
         let mut scene = Scene::new();
         let mut w = IrWriter::new();
-        w.image(7, 2, 1, &[255, 0, 0, 255, 0, 0, 255, 128]).upsert(&leaf(1, ROOT, Geometry::Image { image: 7, w: 10.0, h: 5.0 }, Paint::Image(7)), APPEND);
+        w.image(7, 2, 1, &[255, 0, 0, 255, 0, 0, 255, 128]).upsert(&leaf(1, ROOT, Geometry::Image { image: 7, w: 10.0, h: 5.0 }, Paint::Image(7, fit::STRETCH)), APPEND);
         let first = scene.apply(&w.finish()).unwrap();
         assert_eq!(first.images_set, vec![7]);
         assert!(scene.image(7).is_some());

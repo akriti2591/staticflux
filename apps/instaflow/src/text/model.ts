@@ -16,6 +16,7 @@
  */
 import type { JsonValue } from '@staticflux/document/v2';
 import { defineComponent, field } from '@staticflux/document/v2';
+import { ELEMENT_COMMON_COMPONENTS, P } from '../elements/components.js';
 
 export const TEXT_KIND = 'text';
 /** The rich-text path of a text element. */
@@ -38,10 +39,16 @@ export const TextComponent = /* @__PURE__ */ defineComponent(
 
 /**
  * Stable lineage key for Auto Animate / Magic Animate (M4): matching elements morph across pages. Text elements
- * carry the same key as every other element (B1's element field; the coordinator reconciles the path at merge).
- * Duplicating a text element or its page keeps it (`duplicateTextOps`).
+ * carry B1's `lineage.key` like every other element; new text gets `lk_<node>` (B1's convention) and duplicates
+ * keep it (`duplicateTextOps`, B1's `duplicate`).
  */
-export const MATCH_KEY_PATH = 'lineage.matchKey';
+export const MATCH_KEY_PATH = P.matchKey;
+
+/** The `text` element kind: B1's common element components (spatial, style, mask, lineage, lock) plus `text`. */
+export const TEXT_KIND_COMPONENTS: Readonly<Record<typeof TEXT_KIND, readonly string[]>> = Object.freeze({ text: [...ELEMENT_COMMON_COMPONENTS, 'text'] });
+
+/** Pass to B1's `createElementRegistry` so text nodes validate with appearance, masks, corners and match keys. */
+export const TEXT_REGISTRY_OPTIONS = Object.freeze({ components: [TextComponent], kinds: TEXT_KIND_COMPONENTS });
 
 /** Character mark keys (UTF-16 ranges on `text.content`). */
 export const CharMark = Object.freeze({

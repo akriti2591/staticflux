@@ -24,6 +24,14 @@
     "./text": {
       "types": "./dist/text/index.d.ts",
       "import": "./dist/text/index.js"
+    },
+    "./elements": {
+      "types": "./dist/elements/index.d.ts",
+      "import": "./dist/elements/index.js"
+    },
+    "./elements/panel": {
+      "types": "./dist/elements/panel.d.ts",
+      "import": "./dist/elements/panel.js"
     }
   },
   "scripts": {

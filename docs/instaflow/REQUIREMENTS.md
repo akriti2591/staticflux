@@ -587,3 +587,93 @@ Refines §5 for the M1 build (`apps/instaflow/src/versioning`). Errors are `IF-V
   `sequencingCanvas`); a canvas that cannot start is an inline alert (`IF-SPEC-005`) and the rest of Studio stays usable.
 - **IF-19.15** The shell passes the testkit a11y audit (names, ARIA references, roles, nested controls) and its DOM satisfies
   `runSpecMountPortContract`.
+
+## 20. Elements, styles and geometry (M1b B1)
+
+Code: `apps/instaflow/src/elements` (TypeScript), `apps/instaflow/engine/crates/authoring/src/geometry` (Rust), scene IR v2
+in `crates/render` + `src/render/scene-ir.ts`. Error codes `IF-EL-001…007`.
+
+- **IF-20.1** **Element kinds** are typed `@staticflux/document/v2` components: `frame` (sized container that clips),
+  `group` (free container; with `geometry.boolean` a live boolean), `shape` (`geometry.shape`: rect, ellipse, polygon, star,
+  line), `vector` (`geometry.path`, SVG path data in the local box) and `image` (`source.asset` = a blob asset, `image.fit`).
+  Text is B2's and plugs into the same components (`ELEMENT_COMMON_COMPONENTS`).
+- **IF-20.2** **Transforms**: `spatial` (x, y, w, h, rotation clockwise in degrees, scale, anchor, flips, opacity, blend mode).
+  x, y is the unrotated box's top-left; rotation, scale and flips act about the anchor.
+- **IF-20.3** **Appearance stacks** (`style.fills`, `style.strokes`, `style.effects`): ordered, reorderable, toggleable
+  (`visible`) lists with stable item `id`s. Fills: solid, linear, radial, conic gradients and images (cover, contain,
+  stretch, tile), each with its own opacity and blend. Strokes: colour or gradient, uniform or per-side width (rects,
+  frames, images), inside / centre / outside, dash pattern and offset, caps, joins, miter limit, own opacity and blend.
+  Effects: drop and inner shadows (x, y, blur, spread, colour; several), outer and inner glows, layer blur and background
+  blur. Values are plain data so they can be animated later.
+- **IF-20.4** **Corner radius** on every element with corners: `style.radius` (linked) and per-corner
+  `radiusTL/TR/BR/BL` (unlinked) on rects, frames and images; polygon vertices and star tips (`radius`) and a star's inner
+  vertices (`radiusInner`); per-vertex radii on vector paths (`geometry.vertexRadii`). `style.smoothing` 0…1 gives smooth
+  (squircle-like) corners. Radii scale down together when adjacent corners do not fit and never exceed half the shortest
+  side. Masks, clips, strokes and shadows follow the rounded outline.
+- **IF-20.5** **Versioned components with migrations**: `style` is version 2 (v1 = DOCUMENT-FORMAT §3.2's draft single
+  `fill` / `stroke`); canonical parts written with v1 upgrade on read (`migrateComponentValues`).
+- **IF-20.6** **Brand kits**: a `brand-kit` asset whose root (`kit`) holds `brand.tokens.<name>` (colours, numbers, fonts,
+  effect presets, aliases to other tokens) and `brand.rules`; its `class` children are named style classes. Any colour,
+  size or effect value may be `@name`. The stage's token rule resolves top-level tokens with provenance; tokens inside
+  stacks resolve against the same kit; unresolved tokens are reported (`issues`) and draw nothing.
+- **IF-20.7** **Style classes**: `style.inherit = { kit, class }` composes the class as the stage's `inherit` arc; a local
+  value is an override visible in provenance (`overridesOf`), and resetting it (`null`) brings the class back. Class
+  `policy.final` paths cannot be overridden (SF-STAGE-003 ↔ IF-CS-013).
+- **IF-20.8** **Brand rules** (`{ when: { role, kind }, path, allow, severity }`, e.g. "CTAs use @primary") are enforced on
+  every write through the undo service's write guard (`brandRuleGuard`, `IF-EL-003`) for people and agents; `warn` rules
+  and existing content show as lints (`lintBrandRules`). Client gating is UX, not security.
+- **IF-20.9** **Locks** (`lock.scope`, `lock.policy`) are enforced by the stage on every element action and panel edit
+  (SF-STAGE-001/002); position-locked elements stay put in align/distribute and still count as anchors.
+- **IF-20.10** **Geometry in the authoring Wasm** (kurbo 0.13.1, linesweeper 0.5.0): shape outlines, rounded and smooth
+  corners, SVG path parsing, transforms, booleans, stroke outlines (with dashes), exact bounds, ink bounds, hit tests and
+  marquee tests behind `GEOMETRY_VERSION` 1; TypeScript wraps them as `GeometryService` (`IF-EL-005`, loader `IF-EL-006`).
+  Budget: authoring Wasm ≤ 350 KB brotli (measured 119.1 KB brotli with geometry only; render Wasm 191.1 KB with IR v2).
+- **IF-20.11** **Booleans** (IF-7.9): union, subtract, intersect, exclude as **live** boolean groups whose operands stay
+  editable children; the result is derived (never stored), robust on self-intersecting input (property tests on random
+  polygons, Rust and TypeScript). Release puts the operands back; **Flatten** bakes a vector path; **Outline stroke** turns
+  each stroke into a filled vector.
+- **IF-20.12** **Masks** are first-class and non-destructive: any element or group with `mask.mode` (clip = its geometry,
+  alpha, luminance; `mask.invert`) masks the siblings after it in its parent; text and images can be masks; releasing
+  (`mask.mode = null`) restores everything. `mask.asset` names a matte image (S9) used as the mask's alpha.
+- **IF-20.13** **Bounds for tools and the spatial index**: page-space geometry bounds, ink bounds (strokes, shadows, glows,
+  blur; clipped by a non-inverted mask), centres, container (frame/page) bounds and centres, sibling bounds (smart guides,
+  B3), and precise hits honouring fill, stroke and masks.
+- **IF-20.14** **Layout grids** (`layout.grids` on frames and pages): columns and rows (count, gutter, margin, alignment,
+  size) and a square baseline grid, several per container with a visibility toggle; `gridLines` gives exact lines and
+  tracks for snapping (B3); they draw as a non-printing overlay (`gridOverlayBatch`) and never export.
+- **IF-20.15** **Align** left / centre / right / top / middle / bottom to the selection, the container, the page or a key
+  object, and **centre in container** as one action, on exact page-space geometry (rotation and curves included).
+- **IF-20.16** **Distribute** horizontally or vertically by equal gaps (first and last stay) or by centres; **tidy up**
+  snaps a rough grid into even rows and columns.
+- **IF-20.17** **Every action is one change set and one undo step** (`commitEdit`): element values validated
+  (`IF-EL-001`), locks and finals checked, brand rules guarded; inapplicable selections are `IF-EL-004`.
+- **IF-20.18** **Match keys** (`lineage.key`) give every element a stable lineage for Smart Move (M4): duplicates of an
+  element or a page keep it (fresh node ids); it is persisted in canonical parts and `.iflow`; repeat generators (B7) give
+  instances the source's key plus an instance suffix.
+- **IF-20.19** **Render projection**: the composed stage → `ElementProjection` (A7 `defineRenderProjection`: affine, size,
+  opacity, blend, flags, mask, look and path ids) plus interned **resources** (looks, paths, stroke rings) sent before the
+  delta that uses them → the render module's scene store → scene IR (`createElementSceneEncoder`, only changed nodes).
+- **IF-20.20** **Scene IR v2** (A6 renders it on Vello GPU and vello_cpu): fill and stroke stacks with opacity and blend,
+  conic gradients, dashes, ring strokes, per-corner rects, image fit, even-odd, drop / inner shadows (spread), layer and
+  background blur, and masks (clip, alpha, luminance; invert). Ink bounds include effects so tiles never clip shadows.
+- **IF-20.21** **Golden tests**: the TypeScript writer is byte-identical with Rust on the `elements` and `appearance`
+  fixtures; the element pipeline's scene is a committed projection snapshot, a vello_cpu reference (cargo test) and a GPU
+  golden plus GPU-vs-CPU parity on SwiftShader (`pnpm test:gpu`).
+- **IF-20.22** **Contributions** (B0): each action is a capability (`instaflow/align-left`, …, `instaflow/flatten`,
+  `instaflow/mask-luminance`, `instaflow/apply-token`; exposed to agents, gated per subject) with a HUD action running it;
+  shortcuts give the keyboard path.
+- **IF-20.23** **The Fill / Stroke / Effects panel** (`instaflow/appearance`, inspector placement) is built only from kit
+  components under Clean Pop: per-item show/hide, reorder, remove and add; colour, opacity, blend, width, dash, position;
+  effect parameters; corner radius with a link toggle and a smoothing slider; layer opacity and blend; brand-token pickers.
+- **IF-20.24** The panel is a view over a headless model (`appearanceModel`) and emits `AppearanceEdit`s
+  (`appearanceEditOps`); it passes the testkit a11y audit and every control is keyboard reachable.
+
+| Code | Meaning |
+|---|---|
+| `IF-EL-001` | Element value has the wrong shape (paint, stack item, effect, radius, grid, mask, geometry) |
+| `IF-EL-002` | Unknown brand token, or a token of the wrong type for the field |
+| `IF-EL-003` | Write breaks a blocking brand rule |
+| `IF-EL-004` | Action does not apply to the selection |
+| `IF-EL-005` | Geometry engine rejected the input |
+| `IF-EL-006` | Authoring Wasm missing or wrong geometry version |
+| `IF-EL-007` | Style class or brand kit unavailable |

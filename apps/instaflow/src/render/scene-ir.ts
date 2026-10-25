@@ -12,8 +12,8 @@
  */
 
 export const SCENE_IR_MAGIC = [0x53, 0x46, 0x49, 0x52] as const; // "SFIR"
-/** 2 (B2): FONT / DROP_FONT ops; glyph runs carry synthesis and variation coordinates. */
-export const SCENE_IR_VERSION = 2;
+/** 3 (B2): FONT / DROP_FONT ops; glyph runs carry synthesis and variation coordinates (2: B1 stacks, effects, masks). */
+export const SCENE_IR_VERSION = 3;
 /** Parent id of top-level nodes. */
 export const SCENE_ROOT = 0;
 /** `index` value that appends a node after its siblings. */
@@ -47,6 +47,13 @@ export type PathVerb = (typeof PATH_VERBS)[keyof typeof PATH_VERBS];
 
 export const STROKE_JOINS = ['bevel', 'miter', 'round'] as const;
 export const STROKE_CAPS = ['butt', 'square', 'round'] as const;
+/** Image paint fit (wire value = index): stretch over the box, cover, contain (letterboxed), tile at natural size. */
+export const IMAGE_FITS = ['stretch', 'cover', 'contain', 'tile'] as const;
+export type ImageFit = (typeof IMAGE_FITS)[number];
+/** Mask modes (wire value = index); a mask node masks the siblings after it in its parent (IR v2). */
+export const MASK_MODES = ['none', 'clip', 'alpha', 'luminance'] as const;
+export type MaskMode = (typeof MASK_MODES)[number];
+const MASK_INVERT = 0x80;
 
 /** Straight-alpha sRGB, 0…255. */
 export type Rgba8 = readonly [number, number, number, number];
@@ -69,6 +76,8 @@ export type SceneClip =
 export type SceneGeometry =
   | { readonly kind: 'group' }
   | { readonly kind: 'rect'; readonly w: number; readonly h: number; readonly radius?: number }
+  /** A radius per corner `[top-left, top-right, bottom-right, bottom-left]`, already fitted to the box. */
+  | { readonly kind: 'rrect'; readonly w: number; readonly h: number; readonly radii: readonly [number, number, number, number] }
   | { readonly kind: 'ellipse'; readonly w: number; readonly h: number }
   | { readonly kind: 'path'; readonly path: ScenePath }
   | { readonly kind: 'image'; readonly image: number; readonly w: number; readonly h: number }
@@ -93,14 +102,43 @@ export type ScenePaint =
   | { readonly kind: 'solid'; readonly color: Rgba8 }
   | { readonly kind: 'linear'; readonly start: readonly [number, number]; readonly end: readonly [number, number]; readonly stops: readonly GradientStop[] }
   | { readonly kind: 'radial'; readonly center: readonly [number, number]; readonly radius: number; readonly stops: readonly GradientStop[] }
-  /** The image stretched over the shape's `w × h` box. */
-  | { readonly kind: 'image'; readonly image: number };
+  /** The image mapped onto the shape's `w × h` box (default `stretch`). */
+  | { readonly kind: 'image'; readonly image: number; readonly fit?: ImageFit }
+  /** Conic gradient from `start` to `end` (radians, clockwise from +x). */
+  | { readonly kind: 'sweep'; readonly center: readonly [number, number]; readonly start: number; readonly end: number; readonly stops: readonly GradientStop[] };
+
+/** Effects in the node's local space; `blur` is 2σ (CSS). Inner shadows never paint outside the shape. */
+export type SceneEffect =
+  | { readonly kind: 'drop-shadow' | 'inner-shadow'; readonly x: number; readonly y: number; readonly blur: number; readonly spread: number; readonly color: Rgba8 }
+  | { readonly kind: 'layer-blur' | 'background-blur'; readonly radius: number };
+
+export interface SceneMask {
+  readonly mode: Exclude<MaskMode, 'none'>;
+  readonly invert?: boolean;
+}
 
 export interface SceneStroke {
   readonly width: number;
   readonly paint: ScenePaint;
   readonly join?: (typeof STROKE_JOINS)[number];
   readonly cap?: (typeof STROKE_CAPS)[number];
+  /** 0…1, default 1. */
+  readonly opacity?: number;
+  readonly blend?: BlendMode;
+  /** Miter limit (default 4). */
+  readonly miter?: number;
+  /** Dash pattern (lengths in local px) and offset. */
+  readonly dash?: readonly number[];
+  readonly dashOffset?: number;
+  /** A precomputed stroke outline filled instead of stroking (inside / outside / per-side strokes). */
+  readonly ring?: ScenePath;
+}
+
+/** One fill of a stack (bottom first) with its own opacity and blend. */
+export interface SceneFill {
+  readonly paint: ScenePaint;
+  readonly opacity?: number;
+  readonly blend?: BlendMode;
 }
 
 export interface SceneNode {
@@ -115,8 +153,19 @@ export interface SceneNode {
   readonly visible?: boolean;
   readonly clip?: SceneClip;
   readonly geometry: SceneGeometry;
+  /** One fill (shorthand for `fills: [{ paint }]`). */
   readonly fill?: ScenePaint;
+  /** One stroke (shorthand for `strokes: [stroke]`). */
   readonly stroke?: SceneStroke;
+  /** Fill stack, bottom first (wins over `fill`). */
+  readonly fills?: readonly SceneFill[];
+  /** Stroke stack, bottom first (wins over `stroke`). */
+  readonly strokes?: readonly SceneStroke[];
+  /** Even-odd fill rule (default non-zero). */
+  readonly evenOdd?: boolean;
+  /** This node masks the siblings after it (it is not drawn itself). */
+  readonly mask?: SceneMask;
+  readonly effects?: readonly SceneEffect[];
 }
 
 export interface SceneWriter {
@@ -244,9 +293,15 @@ export function createSceneWriter(): SceneWriter {
         for (const v of [...p.center, p.radius]) out.f64(finite(v, 'gradient point'));
         stops(p.stops);
         break;
+      case 'sweep':
+        out.u8(5);
+        for (const v of [...p.center, p.start, p.end]) out.f64(finite(v, 'gradient point'));
+        stops(p.stops);
+        break;
       case 'image':
         out.u8(4);
         out.u32(p.image);
+        out.u8(IMAGE_FITS.indexOf(p.fit ?? 'stretch'));
         break;
     }
   };
@@ -296,6 +351,12 @@ export function createSceneWriter(): SceneWriter {
         out.f64(finite(g.w, 'w'));
         out.f64(finite(g.h, 'h'));
         break;
+      case 'rrect':
+        out.u8(6);
+        out.f64(finite(g.w, 'w'));
+        out.f64(finite(g.h, 'h'));
+        for (const r of g.radii) out.f64(finite(r, 'radius'));
+        break;
       case 'glyphs':
         out.u8(5);
         out.u32(g.font);
@@ -335,18 +396,50 @@ export function createSceneWriter(): SceneWriter {
       for (const v of node.transform ?? IDENTITY) out.f64(finite(v, 'transform'));
       out.f32(node.opacity ?? 1);
       out.u8(BLEND_MODES.indexOf(node.blend ?? 'normal'));
-      out.u8(node.visible === false ? 0 : 1);
+      out.u8((node.visible === false ? 0 : 1) | (node.evenOdd === true ? 2 : 0));
+      out.u8(node.mask === undefined ? 0 : MASK_MODES.indexOf(node.mask.mode) | (node.mask.invert === true ? MASK_INVERT : 0));
       clip(node.clip ?? { kind: 'none' });
       geometry(node.geometry);
-      paint(node.fill ?? { kind: 'none' });
-      const stroke = node.stroke;
-      if (stroke === undefined || !(stroke.width > 0)) {
-        out.f32(0);
-      } else {
+      const fills = node.fills ?? (node.fill === undefined || node.fill.kind === 'none' ? [] : [{ paint: node.fill }]);
+      const strokes = (node.strokes ?? (node.stroke === undefined ? [] : [node.stroke])).filter((s) => s.width > 0 || s.ring !== undefined);
+      if (fills.length > 255 || strokes.length > 255) throw new RangeError('scene IR: at most 255 fills and strokes per node');
+      out.u8(fills.length);
+      for (const f of fills) {
+        paint(f.paint);
+        out.f32(f.opacity ?? 1);
+        out.u8(BLEND_MODES.indexOf(f.blend ?? 'normal'));
+      }
+      out.u8(strokes.length);
+      for (const stroke of strokes) {
         out.f32(stroke.width);
         paint(stroke.paint);
+        out.f32(stroke.opacity ?? 1);
+        out.u8(BLEND_MODES.indexOf(stroke.blend ?? 'normal'));
         out.u8(STROKE_JOINS.indexOf(stroke.join ?? 'miter'));
         out.u8(STROKE_CAPS.indexOf(stroke.cap ?? 'butt'));
+        out.f32(stroke.miter ?? 4);
+        const dash = stroke.dash ?? [];
+        out.u8(dash.length);
+        for (const d of dash) out.f32(finite(d, 'dash'));
+        out.f32(stroke.dashOffset ?? 0);
+        if (stroke.ring === undefined) out.u8(0);
+        else {
+          out.u8(1);
+          path(stroke.ring);
+        }
+      }
+      const effects = node.effects ?? [];
+      if (effects.length > 255) throw new RangeError('scene IR: at most 255 effects per node');
+      out.u8(effects.length);
+      for (const e of effects) {
+        if ('radius' in e) {
+          out.u8(e.kind === 'layer-blur' ? 3 : 4);
+          out.f32(finite(e.radius, 'blur radius'));
+        } else {
+          out.u8(e.kind === 'drop-shadow' ? 1 : 2);
+          for (const v of [e.x, e.y, e.blur, e.spread]) out.f32(finite(v, 'shadow'));
+          rgba(e.color);
+        }
       }
       return writer;
     },

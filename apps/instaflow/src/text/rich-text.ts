@@ -235,7 +235,7 @@ export interface CreateTextOptions {
   /** Style of the whole initial text. */
   readonly style?: CharStyle;
   readonly paragraph?: ParagraphStyle;
-  /** Lineage key (Auto Animate); defaults to the node id. */
+  /** Lineage key (Auto Animate); defaults to `lk_<node>` (B1's convention). */
   readonly matchKey?: string;
   /** Other components' properties (spatial, style; B1). */
   readonly props?: Readonly<Record<string, JsonValue>>;
@@ -259,7 +259,7 @@ export function createTextOps(options: CreateTextOptions): Result<PartOp[]> {
       node: options.node,
       kind: TEXT_KIND,
       parent: options.parent,
-      props: { ...options.props, [MATCH_KEY_PATH]: options.matchKey ?? options.node },
+      props: { ...options.props, [MATCH_KEY_PATH]: options.matchKey ?? `lk_${options.node}` },
       texts: { [TEXT_CONTENT]: { text: full, spans } },
     },
   ]);
@@ -275,7 +275,11 @@ export function duplicateTextOps(part: DocumentCRDTv2, node: NodeId, copy: NodeI
     const value = part.text(node, path);
     if (value !== undefined) texts[path] = value;
   }
-  return ok([{ op: 'create', node: copy, kind: TEXT_KIND, parent, props: { ...record.props, [MATCH_KEY_PATH]: record.props[MATCH_KEY_PATH] ?? node }, texts }]);
+  const key = record.props[MATCH_KEY_PATH];
+  const lineage = typeof key === 'string' ? key : `lk_${node}`;
+  const ops: PartOp[] = typeof key === 'string' ? [] : [{ op: 'set', node, path: MATCH_KEY_PATH, value: lineage }];
+  ops.push({ op: 'create', node: copy, kind: TEXT_KIND, parent, props: { ...record.props, [MATCH_KEY_PATH]: lineage }, texts });
+  return ok(ops);
 }
 
 /**

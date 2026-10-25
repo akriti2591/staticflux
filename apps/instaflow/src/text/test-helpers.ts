@@ -11,7 +11,7 @@ export const ENGINE_DIST = new URL('../../engine/dist/', import.meta.url);
 export const TEST_FONTS = new URL('../../test/fonts/', import.meta.url);
 
 /** True when `pnpm build` produced the authoring Wasm. */
-export const authoringBuilt = existsSync(new URL('sf-wasm-manifest.json', ENGINE_DIST)) && readFileSync(new URL('sf-wasm-manifest.json', ENGINE_DIST), 'utf8').includes('"authoring"');
+export const authoringBuilt = existsSync(new URL('sf-wasm-manifest.json', ENGINE_DIST)) && readFileSync(new URL('sf-wasm-manifest.json', ENGINE_DIST), 'utf8').includes('"authoring-text"');
 
 export async function loadAuthoringInNode(build: AuthoringBuild = 'base'): Promise<AuthoringWasm> {
   const loaded = await loadAuthoringModule({

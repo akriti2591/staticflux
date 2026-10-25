@@ -7,6 +7,7 @@ import { contribution, err, type Result } from '@staticflux/core';
 import type { JsonValue, NodeId, PartOp } from '@staticflux/document/v2';
 import { html } from 'lit';
 import { defineHudAction, definePanel, defineTool, hudActionContribution, PanelContributionsToken, type PanelContribution, toolContribution } from '../spec/contributions.js';
+import { P } from '../elements/components.js';
 import { StudioIds } from '../spec/studio-contributions.js';
 import { TextRangeError } from './errors.js';
 import type { CharStyle, ParagraphStyle } from './model.js';
@@ -71,11 +72,11 @@ export interface PlaceTextOptions {
   readonly text?: string;
   readonly style?: CharStyle;
   readonly paragraph?: ParagraphStyle;
-  /** Spatial paths of B1's element component (the coordinator reconciles names at merge). */
+  /** Spatial paths (default B1's `spatial.*`). */
   readonly spatial?: { readonly x: string; readonly y: string; readonly w: string };
 }
 
-const SPATIAL = { x: 'spatial.x', y: 'spatial.y', w: 'spatial.w' } as const;
+const SPATIAL = { x: P.x, y: P.y, w: P.w } as const;
 
 /** The Text tool's create action: a text element at the click point (auto width) or with the dragged width. */
 export function placeTextOps(options: PlaceTextOptions): Result<PartOp[]> {

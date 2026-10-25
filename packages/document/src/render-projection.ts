@@ -196,8 +196,14 @@ export interface RenderProjectorOptions {
   readonly include?: (node: NodeRecord) => boolean;
 }
 
+/**
+ * What a projector reads: a part, or any per-node source with the same reads (e.g. a composed stage view that
+ * flattens resolved values into numeric paths, Instaflow B1).
+ */
+export type RenderProjectionSource = Pick<DocumentCRDTv2, 'node' | 'forEachNode'>;
+
 /** The editor-side projector over one part (see the module header). */
-export function createRenderProjector(projection: RenderProjection, part: DocumentCRDTv2, options: RenderProjectorOptions = {}): RenderProjector {
+export function createRenderProjector(projection: RenderProjection, part: RenderProjectionSource, options: RenderProjectorOptions = {}): RenderProjector {
   const kindCodes = new Map(projection.kinds.map((kind, i) => [kind, i]));
   const slots = new Map<NodeId, number>();
   const nodes: (NodeId | undefined)[] = [];

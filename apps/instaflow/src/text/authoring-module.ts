@@ -10,7 +10,7 @@ import { AuthoringModuleError } from './errors.js';
 /** ABI this TypeScript expects (`abi_version()` in the crate's lib.rs). */
 export const AUTHORING_ABI_VERSION = 2;
 
-export const AUTHORING_BUILDS = { base: 'authoring', complex: 'authoring-complex' } as const;
+export const AUTHORING_BUILDS = { base: 'authoring-text', complex: 'authoring-text-complex' } as const;
 export type AuthoringBuild = keyof typeof AUTHORING_BUILDS;
 
 /** `TextEngine` in `crates/authoring/src/wasm.rs`. Rect arrays are flat `[x0, y0, x1, y1, …]`. */

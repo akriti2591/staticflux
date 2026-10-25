@@ -62,11 +62,14 @@ describe.skipIf(mode === undefined)(`render module on WebGPU (${mode ?? 'off'})`
     expect(data.contract).toHaveLength(10);
 
     // GPU vs CPU parity on every fixture (IF-7.4: vello_cpu is the CI reference).
-    for (const name of ['shapes', 'paints', 'layers', 'tiles']) {
+    for (const name of ['shapes', 'paints', 'layers', 'elements', 'appearance', 'tiles']) {
       expectClose(report.images[`gpu-${name}`], cpu(name), RENDER_THRESHOLDS.gpuVsCpu, `gpu vs cpu: ${name}`);
     }
+    const elementCpu = decodePng(readFileSync(new URL('../elements/__fixtures__/elements-scene.cpu.png', import.meta.url)));
+    if (!elementCpu.ok) throw elementCpu.error;
+    expectClose(report.images['gpu-element-scene'], elementCpu.value, RENDER_THRESHOLDS.gpuVsCpu, 'gpu vs cpu: element scene (B1)');
     // Text (B2): glyph runs drawn by Vello GPU match the vello_cpu golden (Latin, Arabic, Devanagari), and the
-    // TypeScript pipeline in the browser (authoring Wasm layout → scene IR) draws the same pixels.
+    // TypeScript pipeline in the browser (authoring text Wasm layout → scene IR) draws the same pixels.
     expectClose(report.images['gpu-text'], cpu('text'), RENDER_THRESHOLDS.gpuVsCpu, 'gpu vs cpu: text');
     expectClose(report.images['ts-text'], cpu('text'), RENDER_THRESHOLDS.gpuVsCpu, 'ts pipeline vs cpu: text');
     expect(data.text.runs).toBeGreaterThanOrEqual(4);
@@ -92,5 +95,9 @@ describe.skipIf(mode === undefined)(`render module on WebGPU (${mode ?? 'off'})`
     goldens.assert('render-gpu-shapes', report.images['gpu-shapes']!, thresholds);
     goldens.assert('render-gpu-layers', report.images['gpu-layers']!, thresholds);
     goldens.assert('render-gpu-text', report.images['gpu-text']!, thresholds);
+    // IR v2 (B1): effects, masks, per-corner rects, image fit, even-odd.
+    goldens.assert('render-gpu-elements', report.images['gpu-elements']!, thresholds);
+    goldens.assert('render-gpu-appearance', report.images['gpu-appearance']!, thresholds);
+    goldens.assert('render-gpu-element-scene', report.images['gpu-element-scene']!, thresholds);
   });
 });

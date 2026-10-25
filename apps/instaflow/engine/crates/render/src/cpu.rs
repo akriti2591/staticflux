@@ -48,6 +48,12 @@ impl Painter for CpuPainter<'_> {
     fn pop_layer(&mut self) {
         self.ctx.pop_layer();
     }
+    fn push_filter_layer(&mut self, filter: vello_common::filter_effects::Filter) {
+        self.ctx.push_filter_layer(filter);
+    }
+    fn set_even_odd(&mut self, even_odd: bool) {
+        self.ctx.set_fill_rule(if even_odd { vello_common::peniko::Fill::EvenOdd } else { vello_common::peniko::Fill::NonZero });
+    }
 }
 
 /// Render `world` of the scene into a `width × height` straight-alpha RGBA8 image over `background`.

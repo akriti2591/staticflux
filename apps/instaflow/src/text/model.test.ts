@@ -5,13 +5,17 @@ import {
   checkCharMark,
   checkParagraphField,
   isTokenRef,
+  MATCH_KEY_PATH,
   ParaMark,
   paragraphMarks,
   paragraphStyleOf,
+  TEXT_KIND_COMPONENTS,
   TEXT_MARK_EXPAND,
+  TEXT_REGISTRY_OPTIONS,
   TextComponent,
 } from './model.js';
-import { previewReplace, type TextBlockModel } from './rich-text.js';
+import { createElementRegistry, ELEMENT_COMMON_COMPONENTS, P } from '../elements/components.js';
+import { createTextOps, previewReplace, type TextBlockModel } from './rich-text.js';
 
 describe('text model', () => {
   it('declares the text component and a mark-expand entry for every mark key', () => {
@@ -21,6 +25,17 @@ describe('text model', () => {
     expect(TEXT_MARK_EXPAND.link).toBe('none');
     expect(TEXT_MARK_EXPAND['p.align']).toBe('none');
     expect(TEXT_MARK_EXPAND.bold).toBe('after');
+  });
+
+  it('the text kind carries B1 element components (appearance, masks, corners, match keys)', () => {
+    const registry = createElementRegistry(TEXT_REGISTRY_OPTIONS);
+    expect(TEXT_KIND_COMPONENTS.text).toEqual([...ELEMENT_COMMON_COMPONENTS, 'text']);
+    const ops = createTextOps({ node: 't', parent: null, text: 'Hi', props: { [P.x]: 1, [P.radiusTL]: 4, [P.maskMode]: 'alpha', 'text.align': 'center' } });
+    if (!ops.ok) throw ops.error;
+    expect(registry.validateOps(ops.value).ok).toBe(true);
+    expect(MATCH_KEY_PATH).toBe(P.matchKey);
+    const bad = registry.validateOps([{ op: 'create', node: 'x', kind: 'text', parent: null, props: { 'geometry.shape': 'rect' } }]);
+    expect(bad.ok).toBe(false);
   });
 
   it('validates mark values and token refs', () => {

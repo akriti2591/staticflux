@@ -310,6 +310,12 @@ impl Painter for GpuPainter<'_> {
     fn pop_layer(&mut self) {
         self.scene.pop_layer();
     }
+    fn push_filter_layer(&mut self, filter: vello_common::filter_effects::Filter) {
+        self.scene.push_filter_layer(filter);
+    }
+    fn set_even_odd(&mut self, even_odd: bool) {
+        self.scene.set_fill_rule(if even_odd { vello_common::peniko::Fill::EvenOdd } else { vello_common::peniko::Fill::NonZero });
+    }
 }
 
 impl Gpu {

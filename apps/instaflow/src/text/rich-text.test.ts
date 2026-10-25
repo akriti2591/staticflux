@@ -61,7 +61,7 @@ describe('rich text model', () => {
     expect(b.text).toBe('Hi');
     expect(b.paragraphs).toEqual([{ index: 0, start: 0, end: 2, text: 'Hi', style: { align: 'center' }, runs: [{ start: 0, end: 2, style: {} }] }]);
     expect(p.text('t1', TEXT_CONTENT)?.text).toBe('Hi\n');
-    expect(p.prop('t1', MATCH_KEY_PATH)).toBe('t1');
+    expect(p.prop('t1', MATCH_KEY_PATH)).toBe('lk_t1');
     expect(p.prop('t1', 'spatial.x')).toBe(10);
     expect(readTextBlock(p, 'page').ok).toBe(false);
     expect(readTextBlock(p, 'missing').ok).toBe(false);
@@ -164,11 +164,11 @@ describe('rich text model', () => {
     apply(p, setCharMarkOps(block(p), 0, 4, 'italic', true));
     apply(p, duplicateTextOps(p, 't1', 't2', 'page'));
     expect(block(p, 't2').paragraphs).toEqual(block(p, 't1').paragraphs.map((x) => ({ ...x })));
-    expect(p.prop('t2', MATCH_KEY_PATH)).toBe('t1');
+    expect(p.prop('t2', MATCH_KEY_PATH)).toBe('lk_t1');
     expect(p.prop('t2', 'spatial.x')).toBe(10);
     // a duplicate of the duplicate keeps the original lineage
     apply(p, duplicateTextOps(p, 't2', 't3', null));
-    expect(p.prop('t3', MATCH_KEY_PATH)).toBe('t1');
+    expect(p.prop('t3', MATCH_KEY_PATH)).toBe('lk_t1');
     expect(duplicateTextOps(p, 'page', 'x', null).ok).toBe(false);
   });
 });

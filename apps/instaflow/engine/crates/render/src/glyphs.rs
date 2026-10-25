@@ -9,7 +9,10 @@
 
 use crate::ir::GlyphRun;
 use skrifa::instance::{LocationRef, NormalizedCoord, Size};
-use skrifa::outline::{DrawSettings, OutlinePen};
+use skrifa::outline::pen::PathStyle;
+use skrifa::outline::{OutlineGlyphCollection, OutlinePen};
+use skrifa::raw::ps::cff::CffFontRef;
+use skrifa::raw::types::Tag;
 use skrifa::raw::TableProvider;
 use skrifa::{FontRef, GlyphId, MetadataProvider};
 use std::collections::HashMap;
@@ -88,12 +91,7 @@ impl GlyphCache {
             let path = self
                 .paths
                 .entry(key)
-                .or_insert_with(|| {
-                    let outline = outlines.get(GlyphId::new(glyph))?;
-                    let mut pen = Pen(BezPath::new());
-                    outline.draw(DrawSettings::unhinted(Size::unscaled(), LocationRef::new(&coords)), &mut pen).ok()?;
-                    (!pen.0.elements().is_empty()).then(|| Arc::new(pen.0))
-                })
+                .or_insert_with(|| extract(&face, &outlines, glyph, &coords, upem).map(Arc::new))
                 .clone();
             let Some(path) = path else { continue };
             // font units (y up) → local px (y down) at the pen position, sheared around the baseline
@@ -102,6 +100,27 @@ impl GlyphCache {
         }
         Some(out)
     }
+}
+
+/// One glyph in font units (y up). TrueType through skrifa's unhinted glyf scaler, CFF/CFF2 through read-fonts'
+/// charstring evaluator: neither path references a hinter, so the hinting code stays out of the Wasm (skrifa's
+/// `OutlineGlyph::draw` dispatches to the TrueType interpreter and the autohinter at run time).
+fn extract(face: &FontRef<'_>, outlines: &OutlineGlyphCollection<'_>, glyph: u32, coords: &[NormalizedCoord], upem: f32) -> Option<BezPath> {
+    let gid = GlyphId::new(glyph);
+    let mut pen = Pen(BezPath::new());
+    let cff = face.table_data(Tag::new(b"CFF2")).map(|d| (d, true)).or_else(|| face.table_data(Tag::new(b"CFF ")).map(|d| (d, false)));
+    match cff {
+        Some((data, v2)) => {
+            let font = if v2 { CffFontRef::new_cff2(data.as_bytes(), Some(upem as i32)) } else { CffFontRef::new_cff(data.as_bytes(), 0, Some(upem as i32)) }.ok()?;
+            let subfont = font.subfont(font.subfont_index(gid)?, coords).ok()?;
+            font.draw(&subfont, gid, coords, None, &mut pen).ok()?;
+        }
+        None => {
+            let outline = outlines.get(gid)?;
+            outline.with_scaled_glyf_outline(Size::unscaled(), LocationRef::new(coords), None, |scaled| Ok(scaled.to_path(PathStyle::FreeType, &mut pen)?)).ok()?;
+        }
+    }
+    (!pen.0.elements().is_empty()).then_some(pen.0)
 }
 
 #[cfg(test)]
@@ -154,6 +173,18 @@ mod tests {
         assert_eq!(cache.len(), 2);
         cache.clear();
         assert!(cache.is_empty());
+    }
+
+    #[test]
+    fn cff_outlines_through_read_fonts() {
+        // Inter (OFL), subset to "AHlo Instaflow": an OpenType/CFF font.
+        let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../test/fonts/Inter-subset.otf");
+        let font = FontData::new(Blob::new(Arc::new(std::fs::read(path).unwrap())), 0);
+        assert_eq!(&font.data.data()[0..4], b"OTTO");
+        let h = gid(&font, 'H');
+        let mut cache = GlyphCache::default();
+        let b = cache.run_path(&font, &GlyphRun::new(1, 100.0, vec![(h, 0.0, 100.0)])).unwrap().bounding_box();
+        assert!(b.height() > 60.0 && b.height() < 80.0 && b.y1 <= 100.5, "{b:?}");
     }
 
     #[test]
