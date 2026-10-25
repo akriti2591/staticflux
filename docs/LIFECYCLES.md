@@ -259,7 +259,7 @@ Invariants:
   (`SF-DOC-018` names a violation).
 
 
-## Blob store (`@staticflux/blob`, Instaflow A3)
+## 16. Blob store (`@staticflux/blob`, Instaflow M1 A3)
 
 ```
 blob/store-leader:   waiting → recovering → leading
@@ -283,7 +283,7 @@ blob/folder-mirror:  idle → scheduled → flushing → idle | scheduled (more 
 | An object that fails `verify` is quarantined and no longer served | SF-BLOB-002 |
 
 
-## 15. Worker pipeline (SF-Δ17–Δ19, Δ22, Δ28; Instaflow M1 A5)
+## 17. Worker pipeline (SF-Δ17–Δ19, Δ22, Δ28; Instaflow M1 A5)
 
 Topology-neutral pipes between the editor and render modules (D15). Every machine below behaves the same on the
 `local`, `shared` and `message` media; the contract suites in `packages/testkit` run each case on all three.
