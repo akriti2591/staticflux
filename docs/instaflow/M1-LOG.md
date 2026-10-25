@@ -27,20 +27,17 @@ entries at the top of **Journal**.
 | B3 Tools and smart guides | Merged | `main` | #13 |
 | B7 Repeat | Merged | `main` | #14 |
 | B2 Text | Merged; owner IME check pending | `main` | #16 |
-| B6 Accessibility layer | PR open against `main` (full check 4,140 tests); not yet wired to Studio's live canvas | `claude/m1b-b6-a11y` | #17 |
+| B6 Accessibility layer | Merged; not yet wired to Studio's live canvas | `main` | #17 |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
 
-## Overnight plan (owner away, 2026-10-25)
-PRs stack so the owner can merge them in order in the morning:
-1. #14 B7 (working branch → `main`).
-2. B2: fresh agent finishes on `claude/wip-b2-text`; coordinator merges onto `claude/m1b-b2-text`, stacked on the
-   working branch (PR base = working branch).
-3. Flaky timeouts (Loro leak test, `costs.test.ts`, worker threads, headless surface): coordinator fixes on
-   `claude/fix-flaky-timeouts` off `main`, own PR.
-4. B6 accessibility: fresh agent after B2, stacked on B2's branch.
-One agent at a time. Every PR's CI watched; red CI fixed before moving on.
+## Next (proposed, waiting for the owner)
+1. Wire Studio end to end: tools, a11y, repeat and text panels on the live canvas; resource batches to the render
+   worker; text duplicate keeps rich text.
+2. M1c: C0 Home → C1 Export → C2 Import → C3 Modes and identity → C4 Hardening (M1 exit criteria).
+Open M1 decisions: Chrome text input (IME check); which worker mode boots by default (D15 re-measure); folder mirror
+flush policy; SVG parity rule (C1); reference iGPU runner.
 
 ## Owed
 - **Owner:** npm Release rerun (9 packages); deprecate `0.0.0-stage`; set up trusted publishing, then delete
@@ -51,6 +48,7 @@ One agent at a time. Every PR's CI watched; red CI fixed before moving on.
   load: Loro leak test, `costs.test.ts`, worker threads, headless surface.
 
 ## Journal
+- **2026-10-25** #17 (B6) merged: **M1b complete in `main`.** #15 (test timeouts) merged too.
 - **2026-10-25** #14 (B7) and #16 (B2) merged. `main` merged into `claude/m1b-b6-a11y` (no code change); #17 now
   targets `main`.
 - **2026-10-25** B6 finished by a fresh agent (e84ea2e). Full check caught 8 test type errors: my scoped-check list
