@@ -12,6 +12,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 wasm-bindgen = { workspace = true }
 vello_common = { workspace = true }
+skrifa = { workspace = true }
 
 # The GPU path exists only in the Wasm build (WebGPU in the render worker).
 [target.'cfg(target_arch = "wasm32")'.dependencies]

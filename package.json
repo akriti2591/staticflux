@@ -30,7 +30,8 @@
     "goldens:update": "SF_UPDATE_GOLDENS=1 vitest run",
     "test:gpu": "SF_GPU=${SF_GPU:-1} vitest run .gpu.test",
     "gpu:run": "node packages/testkit/dist/gpu-cli.js",
-    "test:browser": "node tooling/browser-test/src/run.ts"
+    "test:browser": "node tooling/browser-test/src/run.ts",
+    "ime-check": "pnpm build && node apps/instaflow/src/text/ime-check/serve.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3",

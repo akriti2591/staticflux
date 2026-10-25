@@ -25,8 +25,8 @@ entries at the top of **Journal**.
 | B1 Elements and styles | Merged | `main` | #12 |
 | B4 Library and lenses | Merged | `main` | #12 |
 | B3 Tools and smart guides | Merged | `main` | #13 |
-| B7 Repeat | PR open (full check: 4,035 tests pass) | working branch | #14 |
-| B2 Text | Checkpointed, nearly done (`handoffs/B2.md`); fresh agent finishing it | `claude/wip-b2-text` @ a2328e6 | — |
+| B7 Repeat | Merged | `main` | #14 |
+| B2 Text | PR open against `main` (full check 4,106 tests + GPU pass); owner IME check pending | `claude/m1b-b2-text` | #16 |
 | B6 Accessibility layer | Not started; after B3, B7, B2 | — | — |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
@@ -51,6 +51,9 @@ One agent at a time. Every PR's CI watched; red CI fixed before moving on.
   load: Loro leak test, `costs.test.ts`, worker threads, headless surface.
 
 ## Journal
+- **2026-10-25** #14 (B7) merged. `main` merged into `claude/m1b-b2-text` (no change to its tree); #16 now targets `main`.
+- **2026-10-25** #14 (B7) and #15 (timeouts) green, waiting for the owner. B2 finished by a fresh agent (177k tokens
+  vs 360–780k for long-running ones) at 8cad75c; merged onto `claude/m1b-b2-text`, PR #16 stacked on #14. Next: B6.
 - **2026-10-25** #13 merged. B7 merged on the working branch, PR #14. Fresh agent finishing B2 from its handoff.
   Owner away until morning: stack PRs (plan above).
 - **2026-10-25** Owner: one branch per work package for work in progress. Pushed `claude/wip-b2-text` and

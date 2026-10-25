@@ -132,12 +132,14 @@ describe('sf wasm size (CLI)', () => {
     expect(await runCli(['wasm'], captureIo(d.root))).toBe(2);
   });
 
-  it('the repo config covers render (300 KB) and authoring (350 KB) Wasm by brotli (IF-15.1)', () => {
+  it('the repo config covers render (300 KB), authoring geometry and text (350 KB each) and the lazy complex-scripts text (2.3 MB) Wasm by brotli (IF-15.1)', () => {
     const json = JSON.parse(readFileSync(new URL('../../../.size-limit.wasm.json', import.meta.url), 'utf8')) as WasmBudgetCheck[];
     expect(parseWasmBudgetConfig(json).ok).toBe(true);
     expect(json.map((c) => [c.category, c.limit, c.compression])).toEqual([
       ['render-wasm', '300 KB', 'brotli'],
       ['authoring-wasm', '350 KB', 'brotli'],
+      ['authoring-text-wasm', '350 KB', 'brotli'],
+      ['authoring-text-complex-wasm', '2.3 MB', 'brotli'],
     ]);
   });
 });

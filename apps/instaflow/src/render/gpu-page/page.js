@@ -4,6 +4,10 @@ import { createGpuDevice, createTiledRenderer, manualTilePrepLane } from '@stati
 import { loadRenderModule } from '/apps/instaflow/dist/render/render-module.js';
 import { createSceneWriter } from '/apps/instaflow/dist/render/scene-ir.js';
 import { createVelloRasterBackend } from '/apps/instaflow/dist/render/vello-backend.js';
+import { loadAuthoringModule } from '/apps/instaflow/dist/text/authoring-module.js';
+import { encodeLayoutSpec, familyList } from '/apps/instaflow/dist/text/layout-spec.js';
+import { createTextLayoutEngine } from '/apps/instaflow/dist/text/text-engine.js';
+import { createSceneFontTable, textSceneNodes } from '/apps/instaflow/dist/text/text-scene.js';
 import { encodePageImage, publishGpuResult } from '/packages/testkit/dist/gpu-readback.js';
 import { rasterBackendContractCases } from '/packages/testkit/dist/raster-backend-contract.js';
 
@@ -98,6 +102,58 @@ async function run() {
     must(backend.apply(await load('elements-images.sfir')), 'apply element images');
     keep('gpu-element-scene', must(await backend.renderRegion({ world: { x0: 0, y0: 0, x1: 128, y1: 128 }, width: 128, height: 128, background: WHITE }, { signal: signal() }), 'region element scene'));
     backend.dispose();
+  }
+
+  // 2b. Text (B2): the Rust-generated `text` batch (Latin, Arabic, Devanagari glyph runs; fonts uploaded once by
+  // content hash), and the same paragraphs through the TypeScript pipeline in the browser (authoring Wasm layout →
+  // textSceneNodes → scene IR). Both are compared with the vello_cpu reference in Node.
+  step('text');
+  {
+    const list = (await (await fetch(`${FIXTURES}text.fonts`)).text()).trim().split('\n').map((l) => l.split(' '));
+    const fonts = [];
+    for (const [id, file] of list) {
+      const bytes = new Uint8Array(await (await fetch(`/apps/instaflow/test/fonts/${file}`)).arrayBuffer());
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+      fonts.push({ id: Number(id), bytes, digest, hash: `sha256:${[...digest].map((b) => b.toString(16).padStart(2, '0')).join('')}` });
+    }
+    const fontBatch = createSceneWriter();
+    for (const f of fonts) fontBatch.font(f.id, f.digest, f.bytes);
+    const rust = await headless(wasm, 256, 160);
+    must(rust.apply(fontBatch.finish()), 'text fonts');
+    must(rust.apply(await batch('text')), 'apply text');
+    keep('gpu-text', must(await rust.renderRegion({ world: { x0: 0, y0: 0, x1: 256, y1: 160 }, width: 256, height: 160, background: WHITE }, { signal: signal() }), 'region text'));
+    rust.dispose();
+
+    const authoring = must(await loadAuthoringModule({ manifestUrl: '/apps/instaflow/engine/dist/sf-wasm-manifest.json' }), 'load authoring wasm');
+    const engine = createTextLayoutEngine({ wasm: authoring });
+    for (const f of fonts) must(engine.registerFont(f.hash, f.bytes), `register ${f.id}`);
+    must(engine.setFallbacks('Arab', ['Noto Sans Arabic']), 'fallback Arab');
+    must(engine.setFallbacks('Deva', ['Noto Sans Devanagari']), 'fallback Deva');
+    must(engine.setFallbacks('Thai', ['Noto Sans Thai']), 'fallback Thai');
+    must(engine.setGeneric('sans-serif', ['Noto Sans']), 'generic');
+    const family = familyList(['Noto Sans', 'Noto Sans Arabic', 'Noto Sans Devanagari']);
+    const texts = ['Hello, Instaflow!', 'مرحبا بالعالم', 'नमस्ते दुनिया'];
+    const spec = encodeLayoutSpec({
+      width: 240,
+      paragraphs: [
+        { text: texts[0], spans: [{ start: 0, end: 6, family, size: 26, weight: 700, brush: 1 }, { start: 6, end: 17, family, size: 26, italic: true, underline: true, brush: 2 }] },
+        { text: texts[1], spans: [{ start: 0, end: texts[1].length, family, size: 26, brush: 3 }] },
+        { text: texts[2], spans: [{ start: 0, end: texts[2].length, family, size: 26, brush: 0 }] },
+      ],
+    });
+    const layout = must(engine.layout(1, spec, texts.join('\n')), 'text layout');
+    const table = createSceneFontTable();
+    const w = createSceneWriter();
+    for (const f of fonts) table.ensure(w, f.hash, () => f.bytes);
+    let next = 2;
+    const brushes = [[20, 20, 30, 255], [200, 40, 60, 255], [30, 90, 200, 255], [20, 140, 80, 255]].map((color) => ({ color }));
+    for (const node of textSceneNodes(layout, { id: 1, transform: [1, 0, 0, 1, 8, 8], brushes, fontId: (id) => table.idFor(engine.fontOf(id).hash), nextId: () => next++ })) w.upsert(node);
+    const ts = await headless(wasm, 256, 160);
+    must(ts.apply(w.finish()), 'apply ts text');
+    keep('ts-text', must(await ts.renderRegion({ world: { x0: 0, y0: 0, x1: 256, y1: 160 }, width: 256, height: 160, background: WHITE }, { signal: signal() }), 'region ts text'));
+    ts.dispose();
+    data.text = { runs: layout.runs().length, words: layout.words().length, lines: layout.lines().length, fontFilesSent: table.sent.size };
+    engine.dispose();
   }
 
   step('tiled vs region');

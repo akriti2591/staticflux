@@ -437,6 +437,30 @@ Element state is document data (no runtime machines): booleans and masks are **d
 | EL-5 | Match keys survive duplication (elements and pages) while node ids stay unique | `actions.test.ts` (duplicate) |
 | EL-6 | Scene IR v2 bytes are identical from TypeScript and Rust; GPU output matches vello_cpu within `gpuVsCpu` | `scene-ir.test.ts`, `render.gpu.test.ts` |
 
+## 22. Text: input, composition, fonts and layout (Instaflow M1b B2; SF-Δ27)
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `TextInput` (port) | created → focused ⇄ blurred; focused → composing (`compose-start`) → composing (`compose-update`, `format`) → focused (`compose-commit` \| `compose-cancel`); any → disposed (listeners removed, hidden textarea removed, `host.editContext = null`) | `packages/surface/src/text-input.ts` |
+| text session (composition) | idle → previewing (`compose-start`: the composition is a local splice, underlined, laid out) → previewing (`compose-update`) → idle (`compose-commit`: one commit replaces the composition range; `compose-cancel`: nothing written) | `apps/instaflow/src/text/text-session.ts` |
+| `instaflow/local-fonts` | unknown → unavailable (no `queryLocalFonts`, terminal) \| prompt \| granted \| denied; prompt → requesting (`request`, from a user gesture) → granted \| denied \| prompt (`cancel`: no user activation); granted → requesting \| prompt (`revoked`) \| denied; denied → prompt \| granted (site settings changed) | `apps/instaflow/src/text/fonts.ts` |
+| layout engine build | base (`authoring-text`) → base + complex (`prepare(text)` with Thai, Lao, Khmer or Myanmar: the `authoring-text-complex` chunk loads once, replays fonts and fallbacks, same font ids); a failed load stays on base (retry on the next `prepare`) | `apps/instaflow/src/text/text-engine.ts` |
+| text block (layout) | absent → laid out (`layout(id, spec)`, retained in the Wasm) → laid out (relayout replaces it; a block moves between builds when its text starts or stops needing complex scripts) → absent (`drop`) | `text-engine.ts`, `crates/authoring/src/text` |
+| scene font (render) | absent → retained (`FONT` with bytes; keyed by sha-256) → aliased (`FONT` without bytes: more ids, one copy) → released (no id references it at the end of a batch); `CLEAR` drops ids, a resnapshot in the same batch re-aliases without resending bytes | `crates/render/src/ir.rs`, `text-scene.ts` (`createSceneFontTable`) |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| TXT-1 | Offsets are UTF-16 code units everywhere (TextInput, session, CRDT, layout); paragraph breaks are one `\n`; the content always ends with its final break, which is never deleted | IF-TXT-003; `rich-text.test.ts` |
+| TXT-2 | IME compositions never reach the document before `compose-commit`; collaborators only see committed text | `text-pipeline.test.ts` (IME preview) |
+| TXT-3 | Collapsed deletes expand by the layout's grapheme / word / line boundaries (conjuncts, ligatures, emoji removed whole) | `text-pipeline.test.ts`, Rust `caret_motions` |
+| TXT-4 | Concurrent rich-text edits converge with marks covering the same characters; paragraph styles live on breaks (expand `none`), so splits and merges converge | `rich-text.test.ts` (fast-check, three peers) |
+| TXT-5 | Every peer creates its Loro engine with `TEXT_MARK_EXPAND` (one mark-expand table, A4 rule) | `model.test.ts` |
+| TXT-6 | Font bytes are content-addressed: registered once per hash in the layout engine and retained once per hash in the render scene | IF-TXT-006; `text-engine.test.ts`, Rust `fonts_are_retained_by_hash…` |
+| TXT-7 | Clusters (logical order), words and lines have stable indices for a given text and layout (animation targets, M4) | Rust `clusters_words_and_lines_have_stable_logical_indices`, `text-engine.test.ts` |
+| TXT-8 | Which TextInput runs is a variant binding on the `editContext` platform fact; feature code never branches on the browser | `text-input.test.ts` (variant binding) |
+| TXT-9 | Text glyphs drawn by Vello GPU match the vello_cpu reference (Latin, Arabic, Devanagari), from both the Rust batch and the TypeScript pipeline | `render.gpu.test.ts` (`gpu-text`, `ts-text`) |
+| TXT-10 | **INCONCLUSIVE until the owner confirms:** with a real OS IME (Japanese, Chinese, Korean) in desktop Chrome, the candidate window sits at the caret / composition, follows wrapped lines and RTL positions, and survives page zoom | Human check: `pnpm ime-check` (page `apps/instaflow/src/text/ime-check/`, steps on the page) |
+
 ## 24. Library: ingest and rendition jobs (Instaflow M1b B4; IF-3.5–3.9, IF-23)
 
 Both machines live in `apps/instaflow/src/library`. Library metadata changes (rename, tags, folder, favourite, trash,

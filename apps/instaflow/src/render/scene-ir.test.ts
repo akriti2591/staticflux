@@ -169,11 +169,38 @@ describe('createSceneWriter', () => {
   });
 
   it('every fixture batch starts with a valid header', () => {
-    for (const name of ['shapes', 'paints', 'layers', 'tiles', 'elements', 'appearance']) {
+    for (const name of ['shapes', 'paints', 'layers', 'tiles', 'elements', 'appearance', 'text']) {
       const bytes = fixture(name);
       expect(String.fromCharCode(...bytes.subarray(0, 4))).toBe('SFIR');
       expect(new DataView(bytes.buffer, bytes.byteOffset).getUint16(4, true)).toBe(SCENE_IR_VERSION);
     }
+  });
+
+  it('writes font ops and glyph runs with synthesis and variation coordinates (v3, B2)', () => {
+    const hash = new Uint8Array(32).fill(7);
+    const w = createSceneWriter();
+    w.font(4, hash, new Uint8Array([0x4f, 0x54, 0x54, 0x4f])).font(5, hash, new Uint8Array()).dropFont(4);
+    w.upsert({ id: 1, geometry: { kind: 'glyphs', font: 5, size: 20, glyphs: [[3, 1, 2]], embolden: true, skew: 14, coords: [16384, -3] } });
+    const bytes = w.finish();
+    const view = new DataView(bytes.buffer);
+    expect(view.getUint32(8, true)).toBe(4);
+    let at = 12;
+    expect(bytes[at]).toBe(SCENE_OPS.font);
+    expect(view.getUint32(at + 1, true)).toBe(4);
+    expect(bytes.subarray(at + 5, at + 37)).toEqual(hash);
+    expect(view.getUint32(at + 37, true)).toBe(4);
+    at += 1 + 4 + 32 + 4 + 4;
+    expect([bytes[at], view.getUint32(at + 37, true)]).toEqual([SCENE_OPS.font, 0]);
+    at += 1 + 4 + 32 + 4;
+    expect(bytes[at]).toBe(SCENE_OPS.dropFont);
+    at += 5;
+    expect(bytes[at]).toBe(SCENE_OPS.upsert);
+    // op tag + id/parent/index (13) + transform 48 + opacity 4 + blend, flags, mask 3 + clip 1 → geometry tag
+    const g = at + 13 + 48 + 4 + 3 + 1;
+    expect(bytes[g]).toBe(5);
+    expect([view.getUint32(g + 1, true), view.getFloat32(g + 5, true), bytes[g + 9], view.getFloat32(g + 10, true), bytes[g + 14]]).toEqual([5, 20, 1, 14, 2]);
+    expect([view.getInt16(g + 15, true), view.getInt16(g + 17, true), view.getUint32(g + 19, true)]).toEqual([16384, -3, 1]);
+    expect(() => createSceneWriter().font(1, new Uint8Array(3), new Uint8Array())).toThrow(/sha-256/);
   });
 
   it('rejects invalid input instead of writing a broken batch', () => {

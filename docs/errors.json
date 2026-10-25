@@ -1983,6 +1983,12 @@
       "fix": "Pass a `RasterImage` whose `data` holds exactly `width × height × 4` RGBA bytes and a positive integer target size; inspect `cause` when `CompressionStream` is missing or failed."
     },
     {
+      "code": "SF-SURF-017",
+      "kind": "unavailable",
+      "summary": "The requested TextInput implementation cannot run here (no EditContext, or no document for the hidden textarea).",
+      "fix": "Bind `TextInputFactoryToken` with `textInputBindings({ editContext })` so the platform fact picks the implementation; create inputs on the main thread."
+    },
+    {
       "code": "SF-TEST-001",
       "kind": "invariant",
       "summary": "`bootTestApp` could not boot the app.",
