@@ -64,6 +64,8 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
 - Fable's job is open-ended UX research that finds gaps itself (market analysis, shortcuts, every flow end to end).
   Never brief it as "write X and Y"; give it the baseline (spec + design + code) and ask it to discover what's missing.
   Briefing only named items is how the Export flow stayed frame-only.
+- Owner: convention is not the default. Design the better thing when we can; keep convention only where it serves
+  people (muscle-memory shortcuts, gestures) and say why.
 - Tests can pass while a person can't use the product. Acceptance comes from `docs/instaflow/ux/FLOWS.md`, written from
   the user's side of the screen.
 - Agents' scoped checks must include `pnpm typecheck` (build skips tests).
