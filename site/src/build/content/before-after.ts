@@ -2,9 +2,10 @@ import { type BeforeAfter, beforeAfter } from '../components.js';
 import { html, md, slug, type Raw } from '../html.js';
 import type { Page } from '../layout.js';
 import { href } from '../site.js';
+import { loadAdapters } from './example.js';
 
 /**
- * Ten everyday problems. "After" snippets use the real StaticFlux APIs (names checked
+ * Everyday problems. "After" snippets use the real StaticFlux APIs (names checked
  * against packages/*\/src); app-level names (DocRoute, DocumentStoreToken, …) are the
  * kind of declarations an app writes in its contracts file — see apps/studio/src/app.
  */
@@ -452,18 +453,119 @@ const EXAMPLES: readonly BeforeAfter[] = [
       'Navigation runs thirteen named stages — resolve, exit, availability, auth, authorize, load, enter, render, commit and more — each a span, each able to redirect, block or cancel. Guards can await real work, code for a route loads only after auth and authorization pass, concurrent navigations cancel the older one, and Back/Forward go through the very same pipeline (reverted if blocked). `?tab=` changes run a light view pipeline without reactivating the feature.',
     packages: ['router', 'urlstate', 'runtime'],
   },
+  {
+    title: 'Redraw on every message → draw on arrival, gap → resnapshot',
+    lede: 'The editor posts scene updates to the renderer as they happen, and the renderer trusts that every one of them arrives, in order.',
+    beforeFile: 'render-bridge.ts',
+    before: `
+      // editor
+      renderWorker.postMessage({ type: 'patch', ops });       // no version: order is hope
+
+      // renderer
+      self.onmessage = (e) => {
+        if (e.data.type === 'patch') applyOps(scene, e.data.ops);  // a dropped or late patch: silent drift
+        draw(scene);                                         // one draw per message, not per frame
+      };
+      // renderer respawned? it starts blank and waits for the next patch
+      // one worker or two? a second copy of this file with direct calls
+    `,
+    afterFile: 'pipeline.ts',
+    after: `
+      import { attachDeltaStream, createDeltaStream, defineDeltaStream, selectMedium } from '@staticflux/worker/pipeline';
+
+      export const Scene = defineDeltaStream({ id: 'app/scene', capacityBytes: 1 << 20 });
+
+      // editor: versioned records; a snapshot whenever a reader asks for one
+      const deltas = createDeltaStream(Scene, { medium: selectMedium({ topology: boot.topology }) });
+      if (!deltas.ok) return deltas;
+      deltas.value.onResnapshot(() => deltas.value.snapshot({ version, payload: encodeScene() }));
+      deltas.value.append({ version: ++version, payload: encodeChange(change) });
+
+      // renderer: per vsync, apply what has arrived — up to the version the view frame shows
+      const reader = await attachDeltaStream(Scene, endpoint);
+      if (!reader.ok) return reader;
+      reader.value.apply(applyToScene, { upTo: viewFrame.docVersion });
+      // a gap or epoch change → resyncing → snapshot → live; never a guess past a hole
+    `,
+    benefit:
+      'Every record carries `base → version`, so a lost, late or reordered update is detected, not drawn: the reader resyncs from a snapshot and goes on. The renderer draws once per frame from what has arrived, a respawned reader asks for a snapshot on reconnect, and the same code runs in one worker (`local`) or two (`shared` / `message`) — `selectMedium` picks at boot. The sequencing oracle suite proves each presented frame equals a single-threaded reference.',
+    packages: ['worker', 'testkit'],
+  },
+  {
+    title: 'Hard-coded panel layouts → layout specs as data',
+    lede: 'Each editing mode shows and hides its own tools and panels, and switching modes rebuilds the layout from scratch.',
+    beforeFile: 'toolbar.ts',
+    before: `
+      function enterMode(mode: 'canvas' | 'pixel') {
+        toolbar.innerHTML = '';                           // everything unmounts, then remounts
+        toolbar.append(penButton());
+        if (mode === 'pixel') toolbar.append(healButton());   // one branch per mode, per panel
+        if (user.plan === 'pro') dock.append(layersPanel());  // gating mixed into layout
+        else dock.querySelector('.layers')?.remove();
+        // no animation, no pins, no way for an agent to ask for a layout
+      }
+    `,
+    afterFile: 'layout.ts',
+    after: `
+      // the vocabulary is closed: only registered contributions can mount
+      defineSpecContribution({ section: 'tool', id: 'app/heal', label: 'Heal', when: { lens: ['app/pixel'] } });
+      defineSpecContribution({ section: 'panel', id: 'app/layers', label: 'Layers', gate: gateResource('ui-slot', 'app/layers') });
+
+      // a screen is data: validated, gated, then applied as a minimal diff
+      const applied = await specs.apply({
+        id: 'app/retouch', context: { lens: 'app/pixel' },
+        slots: [{ section: 'tool', id: 'app/pen' }, { section: 'tool', id: 'app/heal' },
+                { section: 'panel', id: 'app/layers', placement: 'dock' }],
+      }, { signal });
+      // the pen stays mounted; heal enters, layers moves — 120–200 ms each, 0 under reduced motion
+    `,
+    benefit:
+      'Applicability (`when`) and gating are declared once per contribution, so no feature checks a mode. `validateSpec` reports every issue at once; `apply` diffs against what is mounted and only unmounts, moves and mounts what changed — kept slots never flicker, pinned ones survive. An agent can propose a layout as a spec and is gated through its own subject.',
+    packages: ['shell', 'ui', 'testkit'],
+  },
+  {
+    title: 'Tests per implementation → one contract suite on every topology',
+    lede: 'Each implementation of a port has its own tests, so the in-memory fake passes while the cross-worker path has never been run.',
+    beforeFile: 'scene-pipe.test.ts',
+    before: `
+      // in-memory version: tested
+      it('applies patches', () => { fakePipe.send(p1); expect(scene).toEqual(after1); });
+
+      // SharedArrayBuffer version: "same as above", never run
+      // postMessage fallback for non-isolated pages: written later, by someone else
+      // a new GPU backend: tested by looking at it
+    `,
+    afterFile: 'pipeline-contracts.test.ts',
+    after: `
+      import { availableLinkTransports, availablePipeMedia, runDeltaStreamContract, runPeerChannelContract,
+        brokeredPeerSetup, runRasterBackendContract } from '@staticflux/testkit';
+
+      for (const medium of availablePipeMedia()) runDeltaStreamContract(medium, { describe, it });   // local · shared · message
+      for (const transport of availableLinkTransports()) runPeerChannelContract(brokeredPeerSetup(transport), { describe, it });
+
+      // every RasterBackend: the CPU reference in Node, the app's WebGPU backend in Chromium
+      runRasterBackendContract('memory', () => ({ backend: createMemoryRasterBackend({ tileSize: 64 }), scene, tolerance: 0 }), { describe, it });
+    `,
+    benefit:
+      'The contract is the test: every medium, transport and implementation runs the same cases, including gaps, respawns, torn reads and lost devices. A new adapter is done when it passes. Suites cover the pipes, document CRDTs and repos, the undo service, blob stores, raster backends, text input, spec runtimes and themes.',
+    packages: ['testkit', 'worker', 'surface'],
+  },
 ];
+
+const COUNT_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+const count = COUNT_WORDS[EXAMPLES.length] ?? String(EXAMPLES.length);
+const Count = count.charAt(0).toUpperCase() + count.slice(1);
 
 function body(): Raw {
   return html`
 <div class="ba-intro">
-  <p class="lead">${md('Every large app runs into the same handful of problems. Here are ten of them, written the usual way and then the StaticFlux way — with the real APIs. Each “after” is lifted from, or modelled on, the Studio example app.')}</p>
+  <p class="lead">${md(`Every large app runs into the same handful of problems. Here are ${count} of them, written the usual way and then the StaticFlux way — with the real APIs. Each “after” is lifted from, or modelled on, the Studio example app — the last three on the editor packages that Instaflow drove.`)}</p>
   <ol class="ba-index">${EXAMPLES.map((e, i) => html`<li><a href="#${slug(e.title)}"><span>${String(i + 1).padStart(2, '0')}</span>${e.title}</a></li>`)}</ol>
 </div>
 ${EXAMPLES.map((e, i) => beforeAfter(e, i))}
 <section class="cta" aria-labelledby="ba-cta">
   <h2 id="ba-cta" class="display">Most of these “afters” come straight from the Studio example.</h2>
-  <p>Six features, thirty-eight adapters, every vertical — against mock services.</p>
+  <p>Six features, ${loadAdapters().length} adapters, every vertical — against mock services.</p>
   <div class="hero__cta hero__cta--center"><a class="btn btn--primary" href="${href('example/')}">Tour the example app</a><a class="btn btn--ghost" href="${href('getting-started/')}">Get started</a></div>
 </section>`;
 }
@@ -471,14 +573,14 @@ ${EXAMPLES.map((e, i) => beforeAfter(e, i))}
 export const beforeAfterPage: Page = {
   path: 'before-after/',
   title: 'Before / After',
-  description: 'Ten everyday problems in large web apps, side by side: the usual way, and the StaticFlux way with real code — units, component deps, variant bindings, scopes, surfaces, Tasks, metrics, AsyncStore, sessions and the navigation pipeline.',
+  description: `${Count} everyday problems in large web apps, side by side: the usual way, and the StaticFlux way with real code — units, component deps, variant bindings, scopes, surfaces, Tasks, metrics, AsyncStore, sessions, the navigation pipeline, delta streams, layout specs and contract suites.`,
   nav: 'before-after',
   layout: 'doc',
   wide: true,
   hero: {
     eyebrow: 'Before / After',
     title: 'The same problems. A different shape.',
-    lede: 'Ten side-by-side examples — from god objects to navigation races — and why the StaticFlux version holds up as the app and the team grow.',
+    lede: `${Count} side-by-side examples — from god objects to dropped render updates — and why the StaticFlux version holds up as the app and the team grow.`,
   },
   body,
 };

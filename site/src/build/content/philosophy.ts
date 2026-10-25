@@ -155,6 +155,8 @@ ${h2('Enforcement over convention')}
     <tr><td>Every error code unique and catalogued</td><td><code>pnpm errors:check</code></td></tr>
     <tr><td>Bundle budgets per package and per logical chunk</td><td><code>pnpm size</code>, the Vite / Rspack plugins</td></tr>
     <tr><td>Route × mode completeness, valid build manifests</td><td><code>sf routes</code>, <code>sf manifest</code></td></tr>
+    <tr><td>Every implementation of a port passes its shared contract suite, on every medium and topology</td><td><code>@staticflux/testkit</code> contract suites in <code>pnpm test</code></td></tr>
+    <tr><td>No denied or unknown licenses across npm, cargo and model weights</td><td><code>pnpm licenses:check</code></td></tr>
   </tbody>
 </table></div>
 
@@ -167,7 +169,7 @@ ${callout('warn', 'Rule', 'Never treat `allow` as authorization, never skip a se
 
 ${h2('Where to go next')}
 <ul class="cards">
-  <li><a class="card" href="${href('before-after/')}"><h3>Before / After</h3><p>Ten everyday problems, side by side with the StaticFlux way.</p></a></li>
+  <li><a class="card" href="${href('before-after/')}"><h3>Before / After</h3><p>Everyday problems, side by side with the StaticFlux way.</p></a></li>
   <li><a class="card" href="${href('getting-started/')}"><h3>Get started</h3><p>Compose an app from units, add a feature, a route, a component, a test.</p></a></li>
   <li><a class="card" href="${gh('docs/REQUIREMENTS.md')}"><h3>Requirements</h3><p>Every requirement ID (R2.1 … R21.2) the packages trace to.</p></a></li>
 </ul>
