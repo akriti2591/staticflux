@@ -1,7 +1,7 @@
 {
   "name": "@staticflux/worker",
   "version": "0.1.0",
-  "description": "Typed envelopes, supervised workers, store replication, core-context sync.",
+  "description": "Typed envelopes, supervised workers, store replication, core-context sync; editor/render pipeline with sequenced deltas, input ring and brokered peer channels.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

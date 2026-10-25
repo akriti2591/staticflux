@@ -413,7 +413,7 @@ Element state is document data (no runtime machines): booleans and masks are **d
 | TXT-7 | Clusters (logical order), words and lines have stable indices for a given text and layout (animation targets, M4) | Rust `clusters_words_and_lines_have_stable_logical_indices`, `text-engine.test.ts` |
 | TXT-8 | Which TextInput runs is a variant binding on the `editContext` platform fact; feature code never branches on the browser | `text-input.test.ts` (variant binding) |
 | TXT-9 | Text glyphs drawn by Vello GPU match the vello_cpu reference (Latin, Arabic, Devanagari), from both the Rust batch and the TypeScript pipeline | `render.gpu.test.ts` (`gpu-text`, `ts-text`) |
-| TXT-10 | **INCONCLUSIVE until the owner confirms:** with a real OS IME (Japanese, Chinese, Korean) in desktop Chrome, the candidate window sits at the caret / composition, follows wrapped lines and RTL positions, and survives page zoom | Human check: `pnpm ime-check` (page `apps/instaflow/src/text/ime-check/`, steps on the page) |
+| TXT-10 | **PASS (owner, 2026-10-25, Chrome 155 on macOS; `docs/instaflow/checks/2026-10-25-ime.md`):** with a real OS IME (Japanese, Chinese, Korean) in desktop Chrome, the candidate window sits at the caret / composition, follows wrapped lines and RTL positions, and survives page zoom | Human check: `pnpm ime-check` (page `apps/instaflow/src/text/ime-check/`, steps on the page) |
 
 ## 23. Versioning: Latest save state, milestone creation (Instaflow M1 B5; D2, D10)
 

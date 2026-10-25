@@ -1,7 +1,7 @@
 {
   "name": "@staticflux/shell",
   "version": "0.1.0",
-  "description": "Layout slots, theming tokens, workspaces, command palette, error boundaries.",
+  "description": "Layout slots, theming tokens, workspaces, command palette, error boundaries; declarative layout specs with validated, gated, animated diffs.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

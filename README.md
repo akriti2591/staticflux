@@ -69,7 +69,7 @@ through its declared dependencies, checked by `pnpm lint:boundaries`. Each links
 
 | Package | |
 |---|---|
-| [`@staticflux/runtime`](packages/runtime/AGENTS.md) | App supervisor, app & feature lifecycles, resource manager, frame scheduler |
+| [`@staticflux/runtime`](packages/runtime/AGENTS.md) | App supervisor, app & feature lifecycles, resource manager, frame scheduler; memory budgets (`/memory`) |
 | [`@staticflux/storage`](packages/storage/AGENTS.md) | One async key-value interface over any backend, with composable middleware |
 
 **Verticals**
@@ -88,8 +88,10 @@ through its declared dependencies, checked by `pnpm lint:boundaries`. Each links
 | [`@staticflux/perf`](packages/perf/AGENTS.md) | Journey traces, framework-measured feature marks, detectors, budgets, conformance stream |
 | [`@staticflux/i18n`](packages/i18n/AGENTS.md) | Typed ICU catalogs, lazy locales, runtime locale switch, RTL |
 | [`@staticflux/a11y`](packages/a11y/AGENTS.md) | Focus management, live-region announcer, shortcut registry, preference facts |
-| [`@staticflux/worker`](packages/worker/AGENTS.md) | Typed envelopes and protocols, supervised workers, store replication, multi-tab coordinator |
-| [`@staticflux/document`](packages/document/AGENTS.md) | ECS document model over a `DocumentCRDT` (Yjs), projections, presence, collaboration contract |
+| [`@staticflux/worker`](packages/worker/AGENTS.md) | Typed envelopes and protocols, supervised workers, store replication, multi-tab coordinator; editor ↔ render pipeline: sequenced deltas with gap → resnapshot, input ring, brokered peer channels (`/pipeline`) |
+| [`@staticflux/document`](packages/document/AGENTS.md) | ECS document model over a `DocumentCRDT` (v1 on Yjs); v2 port with `DocumentRepo`, versioned components and a Loro engine (one CRDT doc per page); binary render projection and spatial index |
+| [`@staticflux/blob`](packages/blob/AGENTS.md) | Content-addressed blob store: chunked hashing, OPFS with atomic heads, journal and leader tab, folder mirror, zip bundles, GC and quota |
+| [`@staticflux/stage`](packages/stage/AGENTS.md) | Composed stage over document parts (session and local layers, provenance, locks), actor attribution, per-actor undo with conflict flags |
 | [`@staticflux/wasm`](packages/wasm/AGENTS.md) | Wasm modules as worker-scoped units and chunks; feature facts; memory views |
 | [`@staticflux/hydrate`](packages/hydrate/AGENTS.md) | Islands over prerendered HTML with event replay; store-snapshot rehydration |
 | [`@staticflux/pwa`](packages/pwa/AGENTS.md) | Service worker from the chunk manifest, update flow without reload, launch intents |
@@ -103,10 +105,11 @@ through its declared dependencies, checked by `pnpm lint:boundaries`. Each links
 
 | Package | |
 |---|---|
-| [`@staticflux/ui`](packages/ui/AGENTS.md) | Lit components that self-inject `render` / `lazy` / `functional` deps; one render pass per frame |
+| [`@staticflux/ui`](packages/ui/AGENTS.md) | Lit components that self-inject `render` / `lazy` / `functional` deps; one render pass per frame; typed theme contract → CSS custom properties, densities, reduced motion (`/theme`) |
+| [`@staticflux/kit`](packages/kit/AGENTS.md) | UI kit: themed Lit components (buttons, fields, slider, menus, popovers, tabs, toolbar, dock, inspector, tree, command palette) wired to messaging and capabilities |
 | [`@staticflux/messaging`](packages/messaging/AGENTS.md) | One surface manager: dialogs, sheets, popovers, toasts, banners, coach marks — scope-bound, arbitrated |
-| [`@staticflux/surface`](packages/surface/AGENTS.md) | DOM / Canvas2D / WebGL / WebGPU / HTML-in-Canvas surfaces, render workers, input forwarding |
-| [`@staticflux/shell`](packages/shell/AGENTS.md) | Slots, design-token themes, workspaces, command palette, skip links, error boundaries |
+| [`@staticflux/surface`](packages/surface/AGENTS.md) | DOM / Canvas2D / WebGL / WebGPU / HTML-in-Canvas surfaces, render workers, input forwarding; GPU raster backend port with tiles and layers (`/raster`), text input over EditContext or a hidden textarea (`/text-input`), image scaling and PNG (`/image`) |
+| [`@staticflux/shell`](packages/shell/AGENTS.md) | Slots, design-token themes, workspaces, command palette, skip links, error boundaries; declarative layout specs over registered contributions, validated, gated and applied as minimal animated diffs (`/spec`) |
 | [`@staticflux/devtools`](packages/devtools/AGENTS.md) | Devtools on the telemetry fabric: boot waterfall, journeys, DI graph, decisions, violations (dev only) |
 
 **Tooling** (build and test time only)
@@ -118,7 +121,7 @@ through its declared dependencies, checked by `pnpm lint:boundaries`. Each links
 | [`@staticflux/vite-plugin`](tooling/vite-plugin/AGENTS.md) | Vite 8 (default bundler): logical chunks, `sf-manifest.json`, preloads, precache list, budgets |
 | [`@staticflux/rspack-plugin`](tooling/rspack-plugin/AGENTS.md) | Rspack / Module Federation 2.0: the same manifest, remotes as logical chunks, singleton checks |
 
-**Apps:** [`apps/studio`](apps/studio/README.md) — the example app (below) · [`site`](site) — the documentation site, itself built with StaticFlux.
+**Apps:** [`apps/studio`](apps/studio/README.md) — the example app (below) · [`apps/instaflow`](apps/instaflow/AGENTS.md) — Instaflow, a local-first design, video and flow editor built on StaticFlux (in development; plans in [`docs/instaflow`](docs/instaflow)) · [`site`](site) — the documentation site, itself built with StaticFlux.
 
 ## Quick start
 

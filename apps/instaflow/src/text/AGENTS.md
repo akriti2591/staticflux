@@ -85,7 +85,7 @@ createTextSession({ input, target: { read, commit }, engine, blockId, layout: re
 - Brand tokens never throw: unresolved ones fall back and are reported (IF-TXT-009).
 - UI only from kit components under Clean Pop; no one-off styles.
 
-## Human IME check (owner, desktop Chrome, ~5 minutes) — LIFECYCLES TXT-10 is **INCONCLUSIVE** until done
+## Human IME check (owner, desktop Chrome, ~5 minutes) — **passed 2026-10-25** (TXT-10; `docs/instaflow/checks/2026-10-25-ime.md`). Rerun after changes to text input
 **As a zip for the owner's machine** (automated CDP check + a prompt for an agent with computer use):
 `pnpm build && bash apps/instaflow/src/text/ime-check/pack/pack.sh <out-dir>`; instructions inside (`pack/HOW-TO-RUN.txt`).
 In the repo: run `pnpm ime-check` at the repo root (builds, then serves) and open the printed URL

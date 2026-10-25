@@ -1,7 +1,7 @@
 {
   "name": "@staticflux/document",
   "version": "0.1.0",
-  "description": "ECS document model (v1, Yjs) and DocumentCRDT v2, DocumentRepo, versioned components (v2, Loro adapter).",
+  "description": "ECS document model (v1 on Yjs); DocumentCRDT v2 port, DocumentRepo and versioned components with a Loro engine; binary render projection and spatial index.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

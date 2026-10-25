@@ -39,6 +39,6 @@ Wire what M1b built into the live Studio so a person can create, edit and see a 
 ## C-stage specifics
 - **C0** boots with no engine or GPU (D17): check with a size budget and a test that the Home entry imports neither.
 - **C1** decides the SVG parity rule (M1-PLAN "Decisions"): write the decision and its numbers into
-  `docs/instaflow/DECISIONS.md` as D20 and say so in the report.
+  `docs/instaflow/DECISIONS.md` as the next free D-number and say so in the report.
 - **C4** turns every M1 exit criterion (M1-PLAN § Exit criteria) into a CI check, deletes `apps/instaflow/spikes/`,
   and ratchets size budgets. It is the M1 finish line.
