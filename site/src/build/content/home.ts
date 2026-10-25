@@ -1,7 +1,11 @@
+import { fileURLToPath } from 'node:url';
 import { code } from '../components.js';
 import { html, md, raw, type Raw } from '../html.js';
 import type { Page } from '../layout.js';
+import { loadPackages } from '../packages-data.js';
 import { GITHUB, href } from '../site.js';
+
+const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 
 const ORBIT = raw(`<svg class="orbit" viewBox="0 0 480 480" role="img" aria-labelledby="orbit-title orbit-desc">
 <title id="orbit-title">A static core with flux around it</title>
@@ -86,8 +90,11 @@ const VERTICALS: readonly Vertical[] = [
   { title: 'Data & storage', text: 'Transport-agnostic resources with SWR and epochs, one retry layer, breakers, schema-first stores with patches, one async storage interface.', packages: ['data', 'storage'], guide: 'guides/data-storage/' },
   { title: 'Threads, documents & Wasm', text: 'Supervised workers, read-only replicas with intents, a CRDT-backed document engine, Wasm as worker-scoped units, multi-tab coordination.', packages: ['worker', 'document', 'wasm'], guide: 'guides/threads/' },
   { title: 'Rich surfaces', text: 'DOM, Canvas2D, WebGL, WebGPU and HTML-in-Canvas as projections, rendered in a worker via OffscreenCanvas with forwarded input.', packages: ['surface'], guide: 'guides/threads/' },
+  { title: 'Editor ↔ render pipeline', text: 'Sequenced deltas with gap → resnapshot, a lossless input ring, view-state frames and brokered peer channels; one worker or two is a boot setting. A tiled GPU raster port and EditContext text input on top.', packages: ['worker', 'surface'], guide: 'guides/editors/' },
+  { title: 'Local-first documents', text: 'One CRDT doc per page behind an engine-neutral port (Loro), a repo with one commit per gesture, a composed stage with provenance and locks, per-actor undo, a content-addressed blob store on OPFS.', packages: ['document', 'stage', 'blob'], guide: 'guides/editors/' },
   { title: 'Performance & journeys', text: 'Journey traces from first input to feature complete, framework-measured feature marks, budgets per device tier, a conformance stream.', packages: ['perf', 'loader', 'devtools'], guide: 'guides/performance/' },
   { title: 'UI, shell & messaging', text: 'Lit components that self-inject render / lazy / functional deps; slots, workspaces, themes; one surface manager for every overlay.', packages: ['ui', 'shell', 'messaging'], guide: 'guides/ui-shell/' },
+  { title: 'Themes, kit & layout specs', text: 'A typed theme contract with density, contrast and reduced motion; a themed component kit; screens as validated layout specs applied as minimal animated diffs.', packages: ['ui', 'kit', 'shell'], guide: 'guides/ui-shell/' },
   { title: 'Accessible & localizable', text: 'Focus management, traps, announcer and shortcut registry; typed ICU catalogs with lazy locales and RTL — base requirements, not add-ons.', packages: ['a11y', 'i18n'], guide: 'guides/ui-shell/' },
   { title: 'Offline & instant boot', text: 'Service worker from warmup tiers, safe updates without reload, islands over prerendered HTML, store snapshots restored before the network.', packages: ['pwa', 'hydrate', 'loader'], guide: 'guides/pwa-hydration/' },
   { title: 'AI-native', text: 'Typed capabilities callable by UI, palette and agents through one gated, confirmed, metered pipeline; WebMCP publishing; advisors that only tune performance.', packages: ['capabilities', 'webmcp', 'ai', 'advisors'], guide: 'guides/ai/' },
@@ -108,6 +115,8 @@ const PLATFORM: readonly { readonly api: string; readonly how: string }[] = [
   { api: 'Built-in AI', how: 'one model-provider port; availability is a reactive fact' },
   { api: 'WebMCP', how: 'capabilities published as agent tools, gated as subject “agent”' },
   { api: 'IndexedDB · OPFS', how: 'one async AsyncStore; localStorage and memory fallbacks' },
+  { api: 'SharedArrayBuffer + Atomics', how: 'pipes between workers when isolated; ordered postMessage mirrors otherwise' },
+  { api: 'EditContext', how: 'text input port; hidden-textarea fallback chosen by a variant binding' },
 ];
 
 function fabricCard(f: Fabric): Raw {
@@ -119,6 +128,8 @@ function verticalCard(v: Vertical): Raw {
 }
 
 function body(): Raw {
+  const packages = loadPackages(repoRoot);
+  const tools = packages.filter((p) => p.group === 'tooling').length;
   return html`
 <section class="hero">
   <div class="hero__inner">
@@ -132,7 +143,7 @@ function body(): Raw {
       </div>
       <dl class="stats">
         <div><dt>Core boot surface</dt><dd>≤ 7.5 KB</dd></div>
-        <div><dt>Packages</dt><dd>31 + 3 tools</dd></div>
+        <div><dt>Packages</dt><dd>${packages.length - tools} + ${tools} tools</dd></div>
         <div><dt>Boot JS budget</dt><dd>≤ 150 KB</dd></div>
       </dl>
     </div>
@@ -196,7 +207,7 @@ function body(): Raw {
     <p class="section__lede">Opting in is one line and immediately pays off: register <code>perfUnits</code> and you get journey traces; register <code>gateUnits</code> and every route, slot and capability can be gated with explanations.</p>
   </header>
   <ul class="vgrid">${VERTICALS.map(verticalCard)}</ul>
-  <p class="section__more"><a class="link-arrow" href="${href('packages/')}">All 34 packages and tools</a></p>
+  <p class="section__more"><a class="link-arrow" href="${href('packages/')}">All ${packages.length} packages and tools</a></p>
 </section>
 
 <section class="section" aria-labelledby="platform-title">
