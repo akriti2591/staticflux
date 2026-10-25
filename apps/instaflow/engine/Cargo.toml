@@ -1,0 +1,23 @@
+# Instaflow engines: one Rust workspace, built to Wasm by `pnpm build` (`sf wasm build`, IF-2.10).
+# Build config (crates, wasm-opt level, SIMD) lives in sf-wasm.json; budgets in /.size-limit.wasm.json.
+[workspace]
+resolver = "2"
+members = ["crates/render", "crates/authoring"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+# Exact pins: `sf wasm build` installs the wasm-bindgen CLI whose version matches the locked crate.
+[workspace.dependencies]
+wasm-bindgen = "=0.2.129"
+
+# Size-first release profile (research/03 §2.2, S1). SIMD comes from RUSTFLAGS (+simd128), set by `sf wasm build`.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

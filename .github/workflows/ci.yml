@@ -6,6 +6,10 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      # A missing Rust toolchain or unbuilt Wasm artifact fails `sf wasm build`, `sf wasm size` and `sf licenses`
+      # here; locally they skip with a warning so TypeScript-only work does not need Rust.
+      SF_REQUIRE_RUST: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -13,11 +17,29 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Cache cargo registry, engine target and pinned wasm-bindgen
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            apps/instaflow/engine/target
+            apps/instaflow/engine/.tools
+          key: cargo-${{ runner.os }}-${{ hashFiles('apps/instaflow/engine/Cargo.lock', 'apps/instaflow/engine/rust-toolchain.toml') }}
+          restore-keys: cargo-${{ runner.os }}-
+      - name: Install the pinned Rust toolchain and wasm32 target (rust-toolchain.toml)
+        working-directory: apps/instaflow/engine
+        run: rustup toolchain install && rustup target add wasm32-unknown-unknown && rustc -V
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - name: Engine unit tests (host)
+        working-directory: apps/instaflow/engine
+        run: cargo test --locked
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm lint:boundaries
       - run: pnpm lint:sf
       - run: pnpm errors:check
       - run: pnpm size
+      - run: pnpm licenses:check

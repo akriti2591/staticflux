@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CliIo } from './cli.js';
+import type { RunOptions, RunResult, Runner } from './publish.js';
 
 export interface TempDir {
   readonly root: string;
@@ -33,6 +34,28 @@ export function tempDir(options: { importable?: boolean } = {}): TempDir {
     },
     dispose() {
       rmSync(root, { recursive: true, force: true });
+    },
+  };
+}
+
+export interface RecordedCall {
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly cwd: string;
+  readonly options: RunOptions | undefined;
+}
+
+/** A `Runner` that answers from `handler` and records every call. Unhandled commands exit 127 (not installed). */
+export function fakeRunner(handler: (call: RecordedCall) => Partial<RunResult> | undefined): Runner & { calls: RecordedCall[] } {
+  const calls: RecordedCall[] = [];
+  return {
+    calls,
+    run: async (command, args, cwd, options) => {
+      const call = { command, args, cwd, options };
+      calls.push(call);
+      const result = handler(call);
+      if (result === undefined) return { code: 127, stdout: '', stderr: `spawn ${command} ENOENT` };
+      return { code: 0, stdout: '', stderr: '', ...result };
     },
   };
 }

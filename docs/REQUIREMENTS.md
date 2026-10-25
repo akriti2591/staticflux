@@ -420,6 +420,20 @@
 - **R20.5** Custom lint rules: no direct flag reads outside bindings, no bare `addEventListener` without signal/scope, inheritance depth ≤ 1, no string tokens.
 - **R20.6** `sf` CLI: graph check, budget report, manifest generation.
 
+### 20.1 Rust/Wasm build and license allowlist (Instaflow SF-Δ32, M1 A2)
+
+- **R20.7** `sf wasm build <engine-dir>` builds a Rust workspace to Wasm inside `pnpm build`: wasm32 release with
+  SIMD (`+simd128`), wasm-bindgen at the version locked in `Cargo.lock`, wasm-opt from binaryen, content-hashed
+  artifacts and a deterministic `sf-wasm-manifest.json`; skipped when an inputs hash is unchanged. A missing Rust
+  toolchain skips with a warning locally and fails when `SF_REQUIRE_RUST=1` (CI), so TypeScript-only work needs no Rust.
+- **R20.8** Wasm budget categories: `sf wasm size` measures `.wasm` files by brotli (q11) from a size-limit-shaped
+  config (`.size-limit.wasm.json`: `category`, glob `path`, `compression`, `ratchet`) and reports and ratchets them
+  like R20.4 / R12.8. `ratchet: false` marks a requirement ceiling for code not written yet.
+- **R20.9** `sf licenses` fails CI on GPL-family (GPL, LGPL, AGPL), SSPL, non-commercial, watermark, source-available
+  and unknown licenses across npm (pnpm) and cargo (`cargo metadata`) dependencies; exceptions need a written reason
+  in the policy file. A model-weights registry records each model's source, license text and commercial-use flag;
+  a denied or unknown model fails only when code references it.
+
 ## 21. Example app
 
 - **R21.1** A small app in the monorepo exercising every vertical, against mock services.

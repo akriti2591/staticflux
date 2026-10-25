@@ -46,6 +46,29 @@ export const ErrorCatalogConflict = defineError(
   'Give each `defineError` call a unique `SF-<AREA>-NNN` code; codes are stable identifiers and must never be reused.',
 );
 
+export const RustToolchainMissing = defineError(
+  'SF-TOOL-008',
+  'unavailable',
+  'The Rust toolchain (cargo, rustc or the wasm32-unknown-unknown target) is missing, and this run requires it.',
+  'Install Rust with rustup (https://rustup.rs), then run `rustup toolchain install` in the engine directory (it reads rust-toolchain.toml and adds wasm32-unknown-unknown). Locally, unset SF_REQUIRE_RUST to skip the Wasm build with a warning.',
+);
+
+export const ToolStepFailed = defineError(
+  'SF-TOOL-009',
+  'unknown',
+  'An external build or metadata step run by `sf` (cargo, wasm-bindgen, wasm-opt, pnpm) exited with an error.',
+  'Read the step output printed above; rerun the shown command by hand in the shown directory to reproduce. Missing `wasm-opt` means `pnpm install` has not run (binaryen is a root devDependency).',
+);
+
+export const WasmArtifactMissing = defineError(
+  'SF-TOOL-010',
+  'not-found',
+  'A Wasm budget check matched no built artifact, and this run requires every artifact to be measured.',
+  'Run `pnpm build` with the Rust toolchain installed (SF_REQUIRE_RUST=1 makes a missing toolchain an error), and check that the budget `path` glob matches the content-hashed file name in the engine `dist/`.',
+);
+
+export const ToolAborted = defineError('SF-TOOL-011', 'aborted', 'The `sf` command was cancelled before it finished.', 'Nothing to fix; rerun the command. Partial outputs are not recorded in the manifest, so the next run rebuilds.');
+
 export const InvalidRoutesModule = defineError(
   'SF-TOOL-007',
   'validation',

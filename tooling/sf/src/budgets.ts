@@ -18,6 +18,10 @@ export interface SizeLimitCheck {
   readonly path?: string | readonly string[];
   readonly import?: string;
   readonly limit?: string;
+  /** Budget category shown in reports, e.g. `render-wasm` (IF-15.1). */
+  readonly category?: string;
+  /** `false`: never propose tightening (a requirement ceiling for code that is not written yet). */
+  readonly ratchet?: boolean;
   readonly [key: string]: unknown;
 }
 
@@ -33,6 +37,7 @@ export type BudgetStatus = 'over' | 'ok' | 'ratchet' | 'no-result' | 'no-limit';
 export interface BudgetRow {
   readonly index: number;
   readonly name: string;
+  readonly category?: string;
   readonly limit: string | undefined;
   readonly limitBytes: number | undefined;
   readonly actualBytes: number | undefined;
@@ -105,12 +110,12 @@ export function analyzeBudgets(config: readonly SizeLimitCheck[], results: reado
     const limit = typeof check.limit === 'string' ? check.limit : undefined;
     const limitBytes = limit === undefined || isTimeLimit(limit) ? undefined : parseBytes(limit);
     const actualBytes = byName.get(name)?.size;
-    const base = { index, name, limit, limitBytes, actualBytes };
+    const base = { index, name, ...(typeof check.category === 'string' ? { category: check.category } : {}), limit, limitBytes, actualBytes };
     if (limitBytes === undefined) return { ...base, usage: undefined, status: 'no-limit' as const };
     if (actualBytes === undefined) return { ...base, usage: undefined, status: 'no-result' as const };
     const usage = actualBytes / limitBytes;
     if (actualBytes > limitBytes) return { ...base, usage, status: 'over' as const };
-    if (actualBytes < limitBytes * (1 - threshold) && limit !== undefined) {
+    if (actualBytes < limitBytes * (1 - threshold) && limit !== undefined && check.ratchet !== false) {
       const proposedLimit = formatLimitLike(actualBytes * (1 + headroom), limit);
       const proposedBytes = parseBytes(proposedLimit);
       if (proposedBytes !== undefined && proposedBytes < limitBytes) return { ...base, usage, status: 'ratchet' as const, proposedLimit };
@@ -161,8 +166,10 @@ export function writeBudgetConfig(path: string, config: readonly SizeLimitCheck[
 }
 
 export function formatBudgetTable(report: BudgetReport): string {
-  const header = ['check', 'limit', 'actual', 'usage', 'status'];
+  const categories = report.rows.some((r) => r.category !== undefined);
+  const header = [...(categories ? ['category'] : []), 'check', 'limit', 'actual', 'usage', 'status'];
   const body = report.rows.map((r) => [
+    ...(categories ? [r.category ?? '—'] : []),
     r.name,
     r.limit ?? '—',
     r.actualBytes === undefined ? '—' : formatBytes(r.actualBytes),

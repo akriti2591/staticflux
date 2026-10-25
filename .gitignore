@@ -28,3 +28,7 @@ apps/instaflow/spikes/s8-agent-views/evals/prompts/
 
 # Agent worktrees (local only)
 .claude/worktrees/
+
+# Instaflow engines (Rust/Wasm): cargo output, pinned wasm-bindgen CLI. Wasm artifacts land in engine dist/ (ignored above).
+apps/instaflow/engine/target/
+apps/instaflow/engine/.tools/

@@ -1,0 +1,78 @@
+{
+  "format": "sf-model-registry/1",
+  "description": "Every ML model Instaflow may ship or download (IF-2.11). `sf licenses` fails when code references a model whose license is denied or unknown. Seeded from apps/instaflow/spikes/s9-matte/README.md (licence table, 2026-10). Hugging Face cells there are secondary sources: re-verify on huggingface.co before shipping.",
+  "models": [
+    {
+      "id": "mediapipe-selfie-segmenter",
+      "name": "MediaPipe Selfie Segmentation (selfie_segmenter, float16), Google",
+      "sourceUrl": "https://github.com/google-ai-edge/mediapipe",
+      "license": "Apache-2.0",
+      "licenseText": "Model card: \"LICENSED UNDER … Apache License, Version 2.0 … DATE May 6, 2021\". @mediapipe/tasks-vision 1.1.1 package.json: \"license\": \"Apache-2.0\".",
+      "licenseUrl": "https://storage.googleapis.com/mediapipe-assets/Model%20Card%20MediaPipe%20Selfie%20Segmentation.pdf",
+      "commercialUse": true,
+      "references": ["selfie_segmenter"],
+      "files": [
+        {
+          "url": "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite",
+          "sha256": "191ac9529ae506ee0beefa6b2c945a172dab9d07d1e802a290a4e4038226658b"
+        }
+      ],
+      "notes": "Fallback matte tier (S9). Obligations: Apache-2.0 notices. GPU delegate is WebGL, not WebGPU."
+    },
+    {
+      "id": "birefnet-lite",
+      "name": "BiRefNet general, lite (Swin-T, 1024²), ZhengPeng7",
+      "sourceUrl": "https://github.com/ZhengPeng7/BiRefNet/releases/tag/v1",
+      "license": "MIT",
+      "licenseText": "MIT License / Copyright (c) 2024 ZhengPeng / Permission is hereby granted, free of charge, to any person obtaining a copy of this software … to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies…",
+      "licenseUrl": "https://github.com/ZhengPeng7/BiRefNet/blob/main/LICENSE",
+      "commercialUse": true,
+      "files": [
+        {
+          "url": "https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
+          "sha256": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
+          "webgpuSafe": false
+        }
+      ],
+      "notes": "Ship the MIT notice in third-party notices. Stock ONNX is not WebGPU-safe (S9: needs the Split/Concat rewrite). Training-dataset terms (DIS5K, DUTS, HRSOD, UHRSD, P3M-10k, …) not reviewed yet."
+    },
+    {
+      "id": "birefnet-portrait",
+      "name": "BiRefNet portrait (Swin-L), ZhengPeng7",
+      "sourceUrl": "https://github.com/ZhengPeng7/BiRefNet/releases/tag/v1",
+      "license": "MIT",
+      "licenseText": "MIT License / Copyright (c) 2024 ZhengPeng / Permission is hereby granted, free of charge, to any person obtaining a copy of this software … to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies…",
+      "licenseUrl": "https://github.com/ZhengPeng7/BiRefNet/blob/main/LICENSE",
+      "commercialUse": true,
+      "files": [
+        {
+          "url": "https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-portrait-epoch_150.onnx",
+          "sha256": "1ba1c8ff5a7bbfadc8d8d13fb11d7be793f91f23d9d466549e37a854f6668f99",
+          "webgpuSafe": false
+        }
+      ],
+      "notes": "Same obligations and caveats as birefnet-lite."
+    },
+    {
+      "id": "bria-rmbg-1.4",
+      "name": "RMBG-1.4, BRIA AI",
+      "sourceUrl": "https://huggingface.co/briaai/RMBG-1.4",
+      "license": "bria-rmbg-1.4",
+      "licenseText": "LICENSE titled \"BRIA AI on Hugging Face Model License Agreement for Non-Commercial Use\"; \"commercial use is subject to a commercial agreement with BRIA\" (secondary: search snippets of the HF card and LICENSE).",
+      "licenseUrl": "https://huggingface.co/briaai/RMBG-1.4/blob/6d2eb76d224897fe0b68b5fb37a2c39db49b880e/LICENSE",
+      "commercialUse": false,
+      "references": ["RMBG-1.4"],
+      "notes": "Denied: non-commercial. Never downloaded or measured. Do not reference it from code."
+    },
+    {
+      "id": "bria-rmbg-2.0",
+      "name": "RMBG-2.0, BRIA AI (BiRefNet architecture, private training data)",
+      "sourceUrl": "https://huggingface.co/briaai/RMBG-2.0",
+      "license": "CC-BY-NC-4.0",
+      "licenseText": "CC BY-NC 4.0 / bria-rmbg-2.0 (secondary: HF card mirrors). BiRefNet README (primary): \"Note that their weights are for only non-commercial use\".",
+      "commercialUse": false,
+      "references": ["RMBG-2.0"],
+      "notes": "Denied: non-commercial. Not the same weights as BiRefNet despite the shared architecture."
+    }
+  ]
+}

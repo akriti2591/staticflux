@@ -29,8 +29,15 @@ export interface RunResult {
   readonly stderr: string;
 }
 
+export interface RunOptions {
+  /** Extra environment variables, merged over the parent environment. */
+  readonly env?: Readonly<Record<string, string>>;
+  /** Kills the child process when aborted. */
+  readonly signal?: AbortSignal;
+}
+
 export interface Runner {
-  run(command: string, args: readonly string[], cwd: string): Promise<RunResult>;
+  run(command: string, args: readonly string[], cwd: string, options?: RunOptions): Promise<RunResult>;
 }
 
 export interface PublishOptions {

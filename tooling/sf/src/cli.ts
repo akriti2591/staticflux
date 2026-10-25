@@ -10,13 +10,17 @@ import type { SfError, TokenId } from '@staticflux/core';
 import { updateAgentsFiles } from './agents.js';
 import { analyzeBudgets, applyRatchet, formatBudgetTable, readBudgetConfig, readBudgetResults, writeBudgetConfig } from './budgets.js';
 import { collectErrorCatalog, isErrorCatalogCurrent, serializeErrorCatalog, writeErrorCatalog } from './error-catalog.js';
-import { UsageError } from './errors.js';
+import { RustToolchainMissing, UsageError, WasmArtifactMissing } from './errors.js';
 import { formatError, type ModuleImporter, readJson } from './files.js';
 import { checkGraph, formatGraphDot, formatGraphJson, formatGraphText, loadGraphModule } from './graph.js';
 import { formatLintText, LINT_RULES, type LintConfig, type LintRule, lintPaths } from './lint.js';
 import { checkManifest, formatManifestText } from './manifest-check.js';
 import { discoverPackages, publishPackages, type Runner } from './publish.js';
 import { checkRoutes, formatRoutesJson, formatRoutesText, loadRoutesModule } from './routes.js';
+import { checkLicenses, DEFAULT_LICENSE_POLICY, formatLicenseText, parseLicensePolicy } from './licenses.js';
+import { requireRustFrom } from './rust-toolchain.js';
+import { analyzeWasmBudgets, DEFAULT_WASM_BUDGETS, readWasmBudgetConfig } from './wasm-budgets.js';
+import { buildWasm } from './wasm-build.js';
 import { spawn } from 'node:child_process';
 
 export interface CliIo {
@@ -24,6 +28,10 @@ export interface CliIo {
   readonly stdout: (text: string) => void;
   readonly stderr: (text: string) => void;
   readonly importer?: ModuleImporter;
+  /** Environment (`SF_REQUIRE_RUST`). Default `process.env`. */
+  readonly env?: Readonly<Record<string, string | undefined>>;
+  /** Process runner for commands that spawn tools. Default: real child processes. */
+  readonly runner?: Runner;
 }
 
 export interface ParsedArgs {
@@ -33,7 +41,7 @@ export interface ParsedArgs {
 }
 
 /** Flags that take a value (`--out x` or `--out=x`); every other `--flag` is boolean. */
-const VALUE_FLAGS = new Set(['out', 'rules', 'flag-names', 'config', 'results', 'threshold', 'headroom', 'packages', 'size-limit', 'max-fan-out', 'max-fan-in', 'external', 'max-eager-kb', 'max-boot-kb', 'report', 'delay-ms', 'max-attempts', 'backoff-ms', 'max-backoff-ms']);
+const VALUE_FLAGS = new Set(['out', 'rules', 'flag-names', 'config', 'results', 'threshold', 'headroom', 'packages', 'size-limit', 'max-fan-out', 'max-fan-in', 'external', 'max-eager-kb', 'max-boot-kb', 'report', 'delay-ms', 'max-attempts', 'backoff-ms', 'max-backoff-ms', 'policy']);
 
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const positionals: string[] = [];
@@ -115,6 +123,18 @@ Usage: sf <command> [options]
       --max-attempts N     attempts per package on HTTP 429 (default 6)
       --backoff-ms N       first rate-limit backoff, doubles each retry (default 60000)
       --max-backoff-ms N   backoff cap (default 900000)
+  wasm build <engine-dir>  Build a Rust workspace to Wasm (cargo +simd128 → wasm-bindgen → wasm-opt →
+                         content-hashed files + sf-wasm-manifest.json); skipped when inputs are unchanged
+      --force              rebuild even when the cache matches
+      --require-rust       fail when Rust is missing (also SF_REQUIRE_RUST=1); default: skip with a warning
+  wasm size              Wasm budget categories: measure .wasm files by brotli (IF-15.1)
+      --config FILE        default .size-limit.wasm.json
+      --threshold 0.1      --headroom 0.05     --write (apply tightenings only)   --json
+      --require-rust       a budget with no built artifact fails (also SF_REQUIRE_RUST=1)
+  licenses               License allowlist: npm (pnpm), cargo (cargo metadata) and the model-weights
+                         registry; fails on GPL/AGPL/LGPL, non-commercial, watermark or unknown licenses
+      --policy FILE        default license-policy.json
+      --require-rust       fail when cargo is missing (also SF_REQUIRE_RUST=1)   --json
   help
 
 Exit codes: 0 ok · 1 check failed · 2 usage or input error.`;
@@ -299,11 +319,103 @@ function manifestCommand(args: ParsedArgs, io: CliIo): number {
   return result.errorCount > 0 ? 1 : 0;
 }
 
+function requireRust(args: ParsedArgs, io: CliIo): boolean {
+  return args.flags.has('require-rust') || requireRustFrom(io.env ?? process.env);
+}
+
+async function wasmBuildCommand(args: ParsedArgs, io: CliIo): Promise<number> {
+  const engineDir = args.positionals[1];
+  if (engineDir === undefined) {
+    io.stderr(formatError(UsageError({ message: '`sf wasm build` needs the engine (Cargo workspace) directory.' })));
+    return 2;
+  }
+  const result = await buildWasm({
+    root: io.cwd,
+    engineDir,
+    runner: io.runner ?? processRunner,
+    requireRust: requireRust(args, io),
+    force: args.flags.has('force'),
+    log: io.stdout,
+  });
+  if (!result.ok) {
+    io.stderr(formatError(result.error));
+    return result.error.code === RustToolchainMissing.code ? 1 : 2;
+  }
+  const outcome = result.value;
+  if (outcome.status === 'skipped') {
+    io.stderr(`warning: skipped the Wasm build of ${engineDir}: ${outcome.reason}. TypeScript-only work is fine; install Rust (rustup) to build the engines. CI sets SF_REQUIRE_RUST=1 to make this an error.`);
+    return 0;
+  }
+  const names = outcome.manifest.artifacts.map((a) => `${a.wasm} (${(a.bytes.brotli / 1000).toFixed(1)} kB brotli)`).join(', ');
+  io.stdout(`${outcome.status === 'built' ? 'Built' : 'Up to date'}: ${engineDir} → ${names}`);
+  return 0;
+}
+
+function wasmSizeCommand(args: ParsedArgs, io: CliIo): number {
+  const threshold = numberFlag(args, 'threshold');
+  const headroom = numberFlag(args, 'headroom');
+  for (const n of [threshold, headroom]) {
+    if (typeof n === 'object') {
+      io.stderr(formatError(n));
+      return 2;
+    }
+  }
+  const configPath = resolve(io.cwd, stringFlag(args, 'config') ?? DEFAULT_WASM_BUDGETS);
+  const config = readWasmBudgetConfig(configPath);
+  if (!config.ok) {
+    io.stderr(formatError(config.error));
+    return 2;
+  }
+  const report = analyzeWasmBudgets(config.value, io.cwd, {
+    ...(typeof threshold === 'number' ? { threshold } : {}),
+    ...(typeof headroom === 'number' ? { headroom } : {}),
+  });
+  io.stdout(args.flags.has('json') ? JSON.stringify(report, null, 2) : formatBudgetTable(report));
+  if (args.flags.has('write') && report.proposals.length > 0) {
+    writeBudgetConfig(configPath, applyRatchet(config.value, report));
+    io.stdout(`Tightened ${report.proposals.length} budget(s) in ${configPath}.`);
+  }
+  let code = report.overCount > 0 ? 1 : 0;
+  if (report.missing.length > 0) {
+    if (requireRust(args, io)) {
+      io.stderr(formatError(WasmArtifactMissing({ message: `No built artifact for: ${report.missing.join(', ')}.` })));
+      code = 1;
+    } else io.stderr(`warning: not measured (engine not built, usually no Rust toolchain): ${report.missing.join(', ')}.`);
+  }
+  return code;
+}
+
+async function licensesCommand(args: ParsedArgs, io: CliIo): Promise<number> {
+  const policyPath = resolve(io.cwd, stringFlag(args, 'policy') ?? DEFAULT_LICENSE_POLICY);
+  const json = readJson(policyPath);
+  if (!json.ok) {
+    io.stderr(formatError(json.error));
+    return 2;
+  }
+  const policy = parseLicensePolicy(json.value, policyPath);
+  if (!policy.ok) {
+    io.stderr(formatError(policy.error));
+    return 2;
+  }
+  const result = await checkLicenses({ root: io.cwd, policy: policy.value, policyPath, runner: io.runner ?? processRunner, requireRust: requireRust(args, io) });
+  if (!result.ok) {
+    io.stderr(formatError(result.error));
+    return result.error.code === RustToolchainMissing.code ? 1 : 2;
+  }
+  io.stdout(args.flags.has('json') ? JSON.stringify(result.value, null, 2) : formatLicenseText(result.value));
+  return result.value.failures > 0 ? 1 : 0;
+}
+
 /** Real process runner for `sf publish` (inherits env: NODE_AUTH_TOKEN / OIDC, NPM_CONFIG_PROVENANCE). */
-const processRunner: Runner = {
-  run: (command, args, cwd) =>
+export const processRunner: Runner = {
+  run: (command, args, cwd, options = {}) =>
     new Promise((resolveRun) => {
-      const child = spawn(command, [...args], { cwd, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] });
+      const child = spawn(command, [...args], {
+        cwd,
+        env: { ...process.env, ...options.env },
+        stdio: ['ignore', 'pipe', 'pipe'],
+        ...(options.signal === undefined ? {} : { signal: options.signal }),
+      });
       let stdout = '';
       let stderr = '';
       child.stdout.on('data', (chunk: Buffer) => {
@@ -362,6 +474,13 @@ export async function runCli(argv: readonly string[], io: CliIo): Promise<number
       return manifestCommand(args, io);
     case 'publish':
       return publishCommand(args, io);
+    case 'wasm':
+      if (args.positionals[0] === 'build') return wasmBuildCommand(args, io);
+      if (args.positionals[0] === 'size') return wasmSizeCommand(args, io);
+      io.stderr(formatError(UsageError({ message: '`sf wasm` needs a subcommand: `build <engine-dir>` or `size`.' })));
+      return 2;
+    case 'licenses':
+      return licensesCommand(args, io);
     case undefined:
     case 'help':
       io.stdout(HELP);

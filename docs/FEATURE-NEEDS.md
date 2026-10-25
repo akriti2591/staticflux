@@ -83,3 +83,12 @@
 - Instaflow unsupported screen: Safari or a blocklisted GPU boots one screen with the missing capabilities, codes and fixes, and nothing else → `unsupportedHostMode`, `unsupportedBootPlan`, `unsupportedUnits`, `mountUnsupportedScreen`.
 - Instaflow variant bindings (IF-2.3, IF-2.5): `TextInput` picks EditContext vs hidden textarea, font source picks Local Font Access vs uploads, workspace home picks folders (`showDirectoryPicker`, `FileSystemFileHandle.move`) vs OPFS + zip → `facts.apis`.
 - Instaflow render and media modules: the WebGPU adapter's info, features and limits (sizing tiles, fallback-adapter warning) and the WebCodecs codec matrix (export formats) without delaying boot → `createAsyncFactLane`, `webGpuAdapterFact`, `codecSupportFact`, `asyncFactLaneUnit`.
+
+### tooling: Rust/Wasm build and licenses (Instaflow SF-Δ32, M1 A2)
+- Instaflow engines (render: Vello GPU; authoring: Parley) are Rust crates in one workspace
+  (`apps/instaflow/engine`) built by `pnpm build`, SIMD on, with content-hashed files and a manifest a worker
+  loader reads (R20.7). A TypeScript-only contributor runs `pnpm check` without Rust and sees a warning.
+- IF-15.1 budgets: render Wasm ≤ 300 KB brotli and authoring Wasm ≤ 350 KB brotli, reported next to the JS
+  budgets and enforced in CI (R20.8).
+- IF-2.11: CI rejects GPL/AGPL, non-commercial or watermark-licensed npm and cargo dependencies and model weights;
+  the matte feature may use MediaPipe selfie (Apache-2.0) and BiRefNet (MIT) but never RMBG (non-commercial) (R20.9).
