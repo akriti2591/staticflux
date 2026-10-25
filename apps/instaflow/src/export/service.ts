@@ -175,7 +175,9 @@ export function createExportService(options: ExportServiceOptions): ExportServic
       const controller = new AbortController();
       running = controller;
       const stop = (): void => controller.abort(outer?.reason);
-      outer?.addEventListener('abort', stop, { once: true });
+      const detach = new AbortController();
+      if (outer?.aborted === true) stop();
+      else outer?.addEventListener('abort', stop, { once: true, signal: detach.signal });
       set({ kind: 'running', options: opts, progress: undefined });
       try {
         const result = controller.signal.aborted ? err(AbortedError({})) : await runJob(opts, controller.signal);
@@ -184,7 +186,7 @@ export function createExportService(options: ExportServiceOptions): ExportServic
         else set({ kind: 'failed', options: opts, message: result.error.message, code: result.error.code });
         return controller.signal.aborted && result.ok ? err(AbortedError({})) : result;
       } finally {
-        outer?.removeEventListener('abort', stop);
+        detach.abort();
         running = undefined;
       }
     },

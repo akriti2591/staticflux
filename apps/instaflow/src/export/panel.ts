@@ -148,12 +148,12 @@ export function bindExportPanel(element: IfExportPanelElement, port: ExportPanel
   const onCancel = (): void => port.cancel();
   refresh();
   const stop = port.subscribe(refresh);
-  element.addEventListener(EXPORT_RUN_EVENT, onRun);
-  element.addEventListener(EXPORT_CANCEL_EVENT, onCancel);
+  const bound = new AbortController();
+  element.addEventListener(EXPORT_RUN_EVENT, onRun, { signal: bound.signal });
+  element.addEventListener(EXPORT_CANCEL_EVENT, onCancel, { signal: bound.signal });
   return () => {
     stop();
-    element.removeEventListener(EXPORT_RUN_EVENT, onRun);
-    element.removeEventListener(EXPORT_CANCEL_EVENT, onCancel);
+    bound.abort();
   };
 }
 

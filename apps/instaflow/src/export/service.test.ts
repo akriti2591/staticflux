@@ -70,6 +70,14 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('export service (main side, in-
     await vi.waitFor(() => expect(terminated()).toBe(2));
   });
 
+  it('a signal aborted before the run cancels it without starting a worker', { timeout: 60_000 }, async () => {
+    const { service, spawned } = await setup();
+    const out = await service.run({ format: 'png', scale: 1, transparent: false, scope: 'page' }, AbortSignal.abort());
+    expect(!out.ok && out.error.kind).toBe('aborted');
+    expect(service.status.kind).toBe('cancelled');
+    expect(spawned()).toBe(0);
+  });
+
   it('refuses a second export while one runs, and cancels', { timeout: 60_000 }, async () => {
     const { service } = await setup();
     const first = service.run({ format: 'png', scale: 3, transparent: false, scope: 'pages' });
