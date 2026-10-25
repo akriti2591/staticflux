@@ -15,7 +15,7 @@ spike. You start fresh: everything you need is in files, not in anyone's convers
    cover, follow established editor conventions (Figma, Canva, Keynote), say so in your report, and propose the spec
    change; never invent silently.
 6. Your handoff, if one exists: `docs/instaflow/handoffs/<WP>.md`.
-6. The `AGENTS.md` of every package or app folder you touch. Framework shapes (tokens, units, `requires`/`provides`,
+7. The `AGENTS.md` of every package or app folder you touch. Framework shapes (tokens, units, `requires`/`provides`,
    scopes, variant bindings, `Result`/`SfError`): `docs/ARCHITECTURE.md` §3 and `packages/core/AGENTS.md`.
 
 ## Deliverables (definition of done)
