@@ -50,6 +50,55 @@ Empty states (one card, one sentence, one action): no designs → the hero only,
 under Jump back in; no templates → the Templates section is hidden; no projects → "Group designs into projects" with
 `＋ New project`.
 
+### 1.3 New design (`/new`): sizes, presets and custom size
+
+`＋ New design` (header), a format card, `/new?format=` or the palette open the **New design** popover-dialog: a 520 px
+form dialog (routable `/new` on Home; it is the Home page's only dialog) that creates and opens Studio in one step.
+Departure from Canva (a wall of templates before a blank page) and Figma (an empty file, size chosen later): Instaflow
+asks the one question that cannot be undone cheaply, **the page size**, and nothing else.
+
+| Row | Contents | Behaviour |
+|---|---|---|
+| **Formats** (presets row, visible in every mode) | Chips with the lens square: `Post 1 080 × 1 080` · `Story 1 080 × 1 920` · `Landscape 1 920 × 1 080` · `Slide 16:9 1 920 × 1 080` · `Poster A4` · `Letter` · `Custom`. The last used format is pre-selected; `Custom` is pre-selected when the last design was custom. | Choosing a chip fills the Size pair; editing the pair selects `Custom`. |
+| **Size** (the **size field pair**, one block shared with Page › Size and Export) | `W` and `H` mono fields with a unit suffix; a **lock** icon button (ratio; off by default here); an **orientation** switcher `▯ · ▭` (swaps W/H, animates 120 ms); `Units ▾` (`px · mm · in · pt`, default from Settings; mm/in convert at 96 px/in for the canvas and are remembered as the page's display unit); a `Presets ▾` menu with the full list (social: Instagram post/story/reel cover, Facebook, LinkedIn, X, YouTube thumbnail, Pinterest; print: A3–A6, Letter, Legal, Tabloid, business card; screen: HD, 4K, iPhone, iPad, desktop; each with its size in mono). | Validation on blur: 1–16 384 px a side (`Too large for this device (max 16 384 px)` inline), integers for px, one decimal for mm/in. Enter in a field = `Create`. |
+| **Start from** | `Start from ▾`: `Blank` (default) · the workspace's templates (with their size; choosing one sets the Size pair to the template's and locks it with a hint `Template size`) · `Last design` (copies the last design's page size and brand). | Templates whose size differs from a chosen chip replace the chip (the template wins; a muted line says `Uses the template's size`). |
+| **Name** | `Untitled design` pre-selected (optional; Studio focuses it again if left). | — |
+| `More ▾` | Pages (`1`, 1–50), Background (swatch, default white), Orientation lock, Units default. | Folded (DENSITY-DISCLOSURE §8.3). |
+| Footer | `Cancel` · primary `Create` | Create → Studio at `/s/<id>` with the title focused (F-01 step 2); history replaces `/new`. |
+
+The `▾` half of the header button is a menu with the same formats and `Custom size…` (opens the dialog on `Custom`
+with W focused), so a returning person creates a Post in one click and a custom size in two. Keyboard: Tab order
+Formats → W → H → lock → orientation → Units → Presets → Start from → Name → More → Cancel → Create; arrows move
+among chips; `Mod+Enter` creates from anywhere. A11y: the chips are a `radiogroup` named `Format`; the size pair is a
+`group` named `Size` with each field labelled (`Width in pixels`); the orientation switcher announces `Landscape`.
+**Code:** `src/home/formats.ts` has five fixed formats and no custom size; **missing:** the size field pair as a kit
+block (`<sf-size-field>`: W/H, lock, orientation, unit, presets slot — StaticFlux kit, generic), the New design dialog
+(`src/home/new-design.ts`), `format=custom&w=&h=&unit=` query on `/new` (NAVIGATION §2.2, view), the preset table
+(`src/home/size-presets.ts`), page size on `createDocument`.
+
+### 1.4 First run
+
+No tour, no questionnaire, no sample document (departure from Canva's onboarding quiz and Figma's tutorial file:
+people learn by making; the owner's run showed Standard density teaches the model). The first visit to `/` differs
+from every later visit in exactly these ways:
+
+1. **One welcome card** replaces the empty Jump back in section: a white 18 px card, 760 px wide, Bricolage 20
+   heading `Your designs live on this device`, one sentence (`Instaflow saves as you work, in this browser. Move them
+   to a folder any time from Settings.`), and **one button** `Keep my designs on this device` (primary). Pressing it
+   requests `navigator.storage.persist()` on the gesture (Chrome grants more readily with a gesture than at boot;
+   GAP-AUDIT Q-E), then the card becomes a one-line status `Saved on this device · Settings` for the session and is
+   gone on the next visit. If persistence is refused the card's line reads `Chrome may clear this workspace under
+   storage pressure · Pin this site` (HOME-FILES §4). The card is dismissable (`×`); dismissed = seen.
+2. **The formats row** carries a muted line under it, once: `Pick a size to start. You can change it later.`
+3. **Studio's first open** runs F-01: Standard density, the title focused, first-use hints per tool (OVERLAYS §5), the
+   Layers empty state teaching `R` and `T`.
+4. **No accounts** (D3), so nothing asks for a sign-in, an email or a name. The guest identity is created silently.
+5. **Unsupported browser**: the blocking screen instead of Home (OVERLAYS §3.1).
+
+Seen state lives in `instaflow/ui/first-run` (per device). `Reset hints` in Settings › General also resets it, so the
+owner can replay the first run. **Code:** **missing** (`src/home/first-run.ts`, the persist request in
+`src/workspace/browser.ts` moved behind a gesture).
+
 ## 2. Files, projects and the model
 
 ### 2.1 Model
@@ -115,6 +164,35 @@ inside a document. Each operation is a capability (`instaflow/rename-design`, `i
 | Rename / delete project | project header `⋯` | Inline. | Toast with Undo for rename; delete asks inline when the project has designs ("Keep designs, delete project? · Delete · Cancel"). |
 | Export | `⋯ › Export…` | Opens Studio on the design with the Export dialog (C1). | — |
 | Find | the search field, `/` | Filters live across titles, tags and project names; matches highlighted; "No results for 'flyer'" with `Clear`. | — |
+| Import | header `⋯`-free: Files toolbar `Import` (secondary), drop anywhere on Home or Files, `Mod+I`, paste | §3.1 | per file, toast with Undo (trash) |
+
+### 3.1 Import (Home and Studio)
+
+One importer behind every entry; the entry decides only **where the result lands**. Departure: Figma imports only into
+a file and Canva only into Uploads; here the same drop works on Home (library), on a project (library, in that
+project), on the Studio canvas (library **and** placed) and on the Assets panel (library). Nothing is ever imported
+twice (content hash dedupe, F-14).
+
+| What is dropped / picked | Home, Files, project view | Studio canvas | Studio Assets panel |
+|---|---|---|---|
+| Images (PNG, JPG, WebP, GIF, AVIF, HEIC where decodable) | Media in the library (project = the one open); toast `Imported 3 images · Show in Files` | Library + **placed** at the drop point (several: a 24 px-stepped stack, all selected) | Library; the new rows highlight |
+| SVG | **Before C2:** as an image. **After C2:** a `Vector` media entry; on the canvas: vector elements grouped | placed as above | library |
+| `.iflow` | A **design** in the library (project = the one open), card appears first with a rise; toast `Imported 'Night market' · Open` | Opens a question row in a toast: `Open 'Night market' as a new design · Open · Add its pages here`; `Add its pages here` appends the pages after the current page (one undo step `Import pages`) | as Home |
+| PDF | M1: a design with **one page per PDF page as a 2× raster image** (page size from the PDF), toast says so once: `Imported 'brief.pdf' as 4 image pages · Open` (GAP-AUDIT Q-G); M2: vector import | as `.iflow`'s question row | as Home |
+| Fonts (TTF, OTF, WOFF2) | `Font` media; usable in the font picker under `In this workspace`; licence line in Settings › About lists them as "yours" | same, and the font picker opens filtered to it when a text element is selected | same |
+| Video, audio | **M1:** refused with `IF-LIB-001` and the fix `Video arrives with the Timeline lens`; **M2:** media with proxies (IF-8.5) | — | — |
+| A folder | Each supported file as above; unsupported ones counted in one toast `Imported 12 files · 3 skipped (unsupported) · Details` | — | — |
+| Anything else (`.txt`, `.docx`) | Toast `Couldn't import 'notes.txt' · Images, SVG, PDF, fonts and .iflow files are supported` | same | same |
+
+Behaviour: a drop target highlights with the tangerine outline while dragging (the whole page column on Home, the
+project card, the canvas room, the panel); a progress row appears in Assets (Studio) or as a toast with a count on Home
+for ≥ 2 s imports (`Importing 12 files · 4 of 12 · Cancel`); files over 100 MB ask inline once (`'video.mov' is 1.2
+GB · Import · Skip`); quota failures follow §4. The browser's `Open with` (file handler, C2) opens `.iflow` directly in
+Studio. Keyboard and a11y: `Mod+I` opens the picker anywhere; the drop zones are announced (`Drop files to import`);
+every imported item is announced once. Undo: `Imported …` toasts carry `Undo` (moves the imports to trash) for 8 s.
+**Code:** `src/library/ingest.ts` (images, dedupe), `src/library/library-panel.ts` (panel drop); **missing:** Home and
+canvas drop targets (`src/home`, `src/app/studio-canvas.ts`), `.iflow`/SVG (C2), PDF rasteriser (pdf.js in a worker,
+`src/library/pdf-import.ts`), font ingest + Local Font Access merge (`src/app/fonts.ts`), the question toast.
 
 Conflicts: a rename or move that loses the head CAS (`IF-HOME-005`) retries three times, then shows "Someone else
 changed this just now · Try again". Two tabs renaming the same design: last write wins, both show the final title.

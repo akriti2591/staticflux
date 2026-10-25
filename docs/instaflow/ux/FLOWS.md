@@ -563,6 +563,89 @@ market` with 5 pages at 1 080 × 1 080, one loose element on the mist, the folde
 remembered settings; the dialog is visible for the duration of the progress row and closes on success with the toast.
 Two keys, no pointer, no chooser; a stray `Mod+Shift+E` alone downloads nothing.
 
+## F. Product basics (2026-10-25 gap pass)
+
+### F-54 New design with a custom size — **M1 must-pass**
+Blocks: New design dialog (HOME-FILES §1.3), size field pair, presets menu, orientation switcher, routable `/new`.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Home `＋ New design` | `Tab` to it, Enter | The New design dialog (URL `/new`): Formats chips with `Post` pre-selected (first run), Size pair `1 080 × 1 080 px` with lock off, orientation `▯`, `Units ▾ px`, `Presets ▾`, `Start from ▾ Blank`, Name `Untitled design` selected, `More ▾` folded, footer `Cancel · Create`. |
+| 2 | Click `Custom`, type W `1200`, Tab, `628` | arrows to `Custom`, Tab, type | The Size pair reads `1 200 × 628 px`; no chip selected but `Custom`; `Create` stays enabled. |
+| 3 | Click `▭ · ▯` orientation | Tab to it, Space | W/H swap (`628 × 1 200`) with a 120 ms animation; press again to swap back. |
+| 4 | `Presets ▾ › Link preview 1 200 × 628` | Enter, arrows, Enter | The pair fills; the menu names the preset in mono. |
+| 5 | Type W `20000` and Tab | — | Inline error `Too large for this device (max 16 384 px)`; `Create` focuses the field when pressed. Fix to `1200`. |
+| 6 | `Units ▾ mm`, type `210 × 297` | — | Fields show one decimal mm; the hint reads `794 × 1 123 px`; A4 chip becomes selected (same size within 1 px). |
+| 7 | `Create` | `Mod+Enter` | Studio at `/s/<id>` with one page `Page 1 · Custom · 1 200 × 628` (label), inspector Page › Size showing the same pair, title focused. `/new` is replaced in history. |
+| 8 | Home header `▾ › Custom size…` | — | The dialog on `Custom` with W focused; `Start from ▾` lists a saved template; choosing it sets and locks the size with the hint `Template size`. |
+| 9 | In Studio, nothing selected, Page › Size `Presets ▾ › Story` | — | The page card resizes to 1 080 × 1 920; elements keep positions (F-15 step 7); Export's preset row now shows `Social story`. |
+
+### F-55 Import from Home and Studio — **M1** (SVG/`.iflow` steps after C2)
+Blocks: drop targets, importer (HOME-FILES §3.1), progress row, question toast, Assets rows, dedupe.
+
+1. Drag two JPEGs onto Home → the page column outlines tangerine while dragging; on drop a toast `Imported 2 images ·
+   Show in Files · Undo`; Files › Media lists both; dropping the same files again adds nothing (rows highlight). 2.
+   Drag a folder of 12 mixed files onto a project card → `Importing 12 files · 4 of 12 · Cancel`, then `Imported 9
+   files · 3 skipped (unsupported) · Details`; the images carry the project. 3. In Studio, drop a PNG on the canvas →
+   placed at the drop point, selected, a new Assets row; drop three → a 24 px stack, all selected. 4. `Mod+I` in
+   Studio → the picker; pick a `.ttf` → the font appears in the font picker under `In this workspace`. 5. Drop a PDF on
+   Home → `Imported 'brief.pdf' as 4 image pages · Open`; Open shows four pages at the PDF's size, each one image. 6.
+   (after C2) Drop an `.iflow` on the Studio canvas → toast `Open 'Night market' as a new design · Open · Add its
+   pages here`; `Add its pages here` appends its pages after the current one, one undo step `Import pages`. 7. Drop
+   a `.mov` in M1 → `Couldn't import 'clip.mov' · Video arrives with the Timeline lens`. 8. Every import announces
+   once; `Undo` on an import toast moves the items to trash.
+
+### F-56 Find and replace across pages — **M1**
+Blocks: find bar (STUDIO §9.1), Kind menu, Replace disclosure, font picker, colour swatch, toast with Undo.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | `⋯ › Find…` on a 5-page design | `Mod+F` | The find bar under the top bar, field focused, `Kind ▾ Text`, `Scope ▾ All pages`, count empty. |
+| 2 | Type `market` | — | Count `1 of 6`; every match outlined sunflower on the canvas and in Layers; the first is selected and the camera zooms to it. |
+| 3 | Enter ×2, Shift+Enter | — | Steps forward twice (camera follows across pages), then back; the count follows; `Match 3 of 6: Headline on Page 2` announced. |
+| 4 | `Replace ▾`, type `Market`, `Replace all` | `Mod+Alt+F` opens expanded | Six replacements; marks kept (bold stays bold); toast `Replaced 'market' with 'Market' · 6 · Undo`; one undo step. |
+| 5 | `Kind ▾ Font`, pick `Fraunces`, Replace with `Inter`, `Replace all` | — | Every Fraunces text element listed and outlined; after Replace all a toast `Replaced Fraunces with Inter · 14 elements · 2 weights substituted · Undo`. |
+| 6 | `Kind ▾ Colour`, pick the tangerine document colour | — | Fills, strokes, text colours and a page background using it are matched (`9 of 9`); `Replace with a token ▾` appears when a kit exists; replace with cream → all nine change, one undo step. |
+| 7 | Lock one element, run a replace | — | It is counted `1 locked, skipped` and stays. |
+| 8 | Escape | Escape | The bar closes; the current match stays selected; `Mod+G` is Group again. |
+
+### F-57 Learn the shortcuts — **M1**
+Blocks: cheat sheet dialog (STUDIO §2.3.1), search field, platform switch, routable Settings section.
+
+1. `?` in Studio → the dialog `Keyboard shortcuts` (URL `…/d/settings?section=shortcuts`, pushed), search focused,
+   platform switch on the person's OS, cards Tools · Selection · Edit · Arrange · Transform · Text · View · Studio.
+   2. No row for Pen (not built), none for keys 2–4, none for DevTools (off). 3. Type `group` → rows filter to Group,
+   Ungroup, Frame selection with highlighted text. 4. Hover `Rectangle · R` → the Shape tool in the picker behind the
+   dialog highlights. 5. Switch to `Windows` → `⌘` becomes `Ctrl`, `⌥` becomes `Alt`. 6. `Print` → a one-page
+   print preview with no chrome. 7. Escape → closed with `history.back()`; `?` on Home opens `/settings/shortcuts` as
+   a page; in Pro both platform columns show at once.
+
+### F-58 Switch density mode — **M1 must-pass**
+Blocks: View menu, `Mod+.`, rails, floating panels, split dock, disclosure memory, tokens (DENSITY-DISCLOSURE).
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | New design (Standard) | — | Dock docked on Layers, inspector docked with Page sections, no rulers, lens switcher visible, `Milestone` in the bar. |
+| 2 | Select a rectangle; collapse `Effects`; add a shadow via `Effects ▸` then collapse again | — | The collapsed heading shows the summary `Shadow`. |
+| 3 | `View ▾ › Density › Focus` | `Mod+.` | Regions animate 160 ms; the page does not move on screen. Dock and inspector are 44 px rails; the lens switcher is **hidden** (`1`/`5` still work); `Milestone` moved into `⋯`; the toast `Focus · Just your work.` (keyboard path only). |
+| 4 | Click the inspector rail's Fill icon | — | A floating 264 px card with **only** the Fill section over the canvas; click the canvas → it leaves. |
+| 5 | `Mod+.` | `Mod+.` | Standard again; the Effects section is still collapsed with its summary (memory per section). |
+| 6 | `Mod+.` | `Mod+.` | Pro: rulers on; inspector sections **all open** including Effects and the pivot row (no `More ▾`); rows 26 px; eye and lock always visible in Layers; dock split in two panels; undo label in the top bar; tooltips gain a description line. |
+| 7 | `Mod+\` in Pro | `Mod+\` | The dock hides; `View ▾` shows `Show dock` unchecked; switching to Standard and back to Pro restores the hidden state (override remembered per mode). |
+| 8 | Open Settings › General | — | Density radios with the three-frame preview strip and one-liners; the current one checked. Reload → the mode is kept (per device). |
+| 9 | Open Home in Pro | — | The hero is one 44 px row of chips; Files defaults to list view with visible checkboxes and sortable column headers. |
+
+### F-59 First run — **M1 must-pass** (extends F-01 step 1)
+Blocks: welcome card (HOME-FILES §1.4), `persist()` on a gesture, seen store, hints.
+
+1. Fresh profile, open `/` → the hero, the formats row with the line `Pick a size to start. You can change it later.`,
+   and the welcome card `Your designs live on this device` with one button `Keep my designs on this device`; no
+   sign-in, no tour, no sample design. 2. Press the button → `navigator.storage.persist()` is requested; the card
+   becomes `Saved on this device · Settings`; if refused: `Chrome may clear this workspace under storage pressure · Pin
+   this site`. 3. Reload → the card and the line are gone; Settings › Storage shows the persistence state. 4. Settings ›
+   General › `Reset hints` → the next Home visit shows the card again. 5. The forbidden-text test passes on the first-run
+   Home.
+
 ## D. Coverage matrix (block → flows)
 
 | Block | Flows |
@@ -593,3 +676,9 @@ Two keys, no pointer, no chooser; a stray `Mod+Shift+E` alone downloads nothing.
 | Lens model | F-23 |
 | Settings | F-24, F-45, F-51 |
 | Chat errors / long turns / no provider | F-51 |
+| Size field pair / New design / custom size | F-54, F-53 (Export Size row), F-15 |
+| Import (drop targets, question toast, PDF, fonts) | F-55, F-14, F-07 |
+| Find bar / replace | F-56 |
+| Cheat sheet | F-57, F-20 |
+| Density modes / disclosure memory / per-mode overrides | F-58, F-24, F-28 |
+| First run / welcome card / persist | F-59, F-01 |
