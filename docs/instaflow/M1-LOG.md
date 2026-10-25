@@ -25,9 +25,9 @@ entries at the top of **Journal**.
 | B1 Elements and styles | Merged | `main` | #12 |
 | B4 Library and lenses | Merged | `main` | #12 |
 | B3 Tools and smart guides | Merged | `main` | #13 |
-| B7 Repeat | PR open (full check: 4,035 tests pass) | working branch | #14 |
-| B2 Text | PR open, stacked on #14 (full check 4,106 tests + GPU pass); owner IME check pending | `claude/m1b-b2-text` | #16 |
-| B6 Accessibility layer | PR open, stacked on #16 (full check 4,140 tests); not yet wired to Studio's live canvas | `claude/m1b-b6-a11y` | #17 |
+| B7 Repeat | Merged | `main` | #14 |
+| B2 Text | Merged; owner IME check pending | `main` | #16 |
+| B6 Accessibility layer | PR open against `main` (full check 4,140 tests); not yet wired to Studio's live canvas | `claude/m1b-b6-a11y` | #17 |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
@@ -51,6 +51,8 @@ One agent at a time. Every PR's CI watched; red CI fixed before moving on.
   load: Loro leak test, `costs.test.ts`, worker threads, headless surface.
 
 ## Journal
+- **2026-10-25** #14 (B7) and #16 (B2) merged. `main` merged into `claude/m1b-b6-a11y` (no code change); #17 now
+  targets `main`.
 - **2026-10-25** B6 finished by a fresh agent (e84ea2e). Full check caught 8 test type errors: my scoped-check list
   left out `pnpm typecheck` (build skips tests). Fixed, rule updated in M1B-NOTES. PR #17 stacked on #16. **M1b's eight
   work packages are all built.** Next for the owner: merge #14 → #16 → #17 (and #15 anytime), IME check.
