@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { err } from '@staticflux/core';
+import { err, type SfError } from '@staticflux/core';
 import { encodeInputRecord } from '@staticflux/surface/input-ring';
 import { createLink, createPortPair, createProtocolClient, inMemorySpawner, SpawnFailedError } from '@staticflux/worker';
 import { describe, expect, it } from 'vitest';
@@ -88,6 +88,20 @@ describe('bootSequencing', () => {
     });
     expect(!noPort.ok && noPort.error.code).toBe('IF-SEQ-001');
     expect(!noPort.ok && (noPort.error.cause as { code?: string }).code).toBe('IF-SEQ-003');
+    expect(!noPort.ok && noPort.error.message).toContain('IF-SEQ-003'); // the cause survives the link
+    // A worker that never answers because its script failed: boot fails with the worker's error, not a timeout.
+    const crashed = await bootSequencing({
+      settings,
+      spawn: () => () => {
+        const pair = createPortPair({ clone: false });
+        const port = { ...pair.a, onError: (listener: (error: SfError) => void) => (setTimeout(() => listener(SpawnFailedError({ message: 'worker script failed to load' })), 5), () => undefined) };
+        return { ok: true, value: { port, terminate: () => pair.close() } } as const;
+      },
+      scene,
+      peer: '7',
+      media: { input: 'shared', modules: 'local', tick: 'shared' },
+    });
+    expect(!crashed.ok && crashed.error.message).toContain('worker script failed to load');
   });
 });
 

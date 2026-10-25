@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GestureTargetGoneError, RenderPortError, SequencingBootError, SequencingRoleError } from './errors.js';
+import { bootFailure, GestureTargetGoneError, RenderPortError, SequencingBootError, SequencingRoleError, summarizeCause } from './errors.js';
 import { RenderTickFlag, SequencingTopologyFlag } from './flags.js';
 import { MAIN_TICK_PACING } from './pacing.js';
 import { resolveSequencingSettings } from './sequencing.bindings.js';
@@ -64,5 +64,24 @@ describe('errors', () => {
       expect(error.fix.length).toBeGreaterThan(20);
       expect(error().code).toBe(code);
     }
+  });
+});
+
+describe('bootFailure / summarizeCause', () => {
+  it('keeps the cause chain in the message and in plain-data details (wire errors drop `cause`)', () => {
+    const inner = RenderPortError({ message: 'no port', details: { port: 'vello' } });
+    const failure = bootFailure('start pipeline', SequencingRoleError({ cause: inner }));
+    expect(failure.code).toBe('IF-SEQ-001');
+    expect(failure.message).toContain('"start pipeline": IF-SEQ-002');
+    expect(failure.message).toContain('IF-SEQ-003: no port');
+    expect(failure.details['causes']).toEqual([
+      { code: 'IF-SEQ-002', message: SequencingRoleError.summary },
+      { code: 'IF-SEQ-003', message: 'no port', details: { port: 'vello' } },
+    ]);
+    // Re-wrapping a failure that crossed a link continues with its recorded chain.
+    const relayed = bootFailure('start editor', SequencingBootError({ message: failure.message, details: failure.details }));
+    expect(summarizeCause(relayed).map((c) => c.code)).toEqual(['IF-SEQ-001', 'IF-SEQ-001', 'IF-SEQ-002', 'IF-SEQ-003']);
+    expect(bootFailure('spawn').message).toBe('Sequencing boot failed at "spawn".');
+    expect(summarizeCause(new Error('plain'))[0]?.message).toBe('plain');
   });
 });

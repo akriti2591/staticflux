@@ -12,6 +12,11 @@ export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   base: './',
   resolve: {
+    // Pin the production browser conditions. Vite derives `development|production` from process.env.NODE_ENV,
+    // and Vitest (the GPU test builds this page in-process) sets it to "test": loro-crdt then resolves its
+    // `development` entry (the bundler build with an ESM-integrated .wasm import), whose worker chunk fails to
+    // load in the browser, so the sequencing worker never answered `start`.
+    conditions: ['module', 'browser', 'production'],
     alias: [
       { find: /^@staticflux\/([^/]+)\/(.+)$/, replacement: `${packagesDir}/$1/src/$2.ts` },
       { find: /^@staticflux\/([^/]+)$/, replacement: `${packagesDir}/$1/src/index.ts` },

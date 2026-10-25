@@ -3,7 +3,7 @@
  * modules return them in `Result`s or record them (a gesture cancel is not a failure of the
  * pipeline, it is shown as a toast).
  */
-import { defineError } from '@staticflux/core';
+import { defineError, type SfError, toSfError } from '@staticflux/core';
 
 /** E-3: a remote edit deleted (or locked) the target of the gesture in progress. */
 export const GestureTargetGoneError = defineError(
@@ -33,3 +33,39 @@ export const RenderPortError = defineError(
   'The render port failed to draw a frame or is not registered in this worker.',
   'Register the port under the name the boot settings use (`hostSequencingWorker({ renderPorts })`); a draw failure keeps the last good frame on screen.',
 );
+
+/** A cause chain as plain data. Errors cross worker links as wire errors, which keep `details` but drop `cause`. */
+export interface CauseSummary {
+  readonly code: string;
+  readonly message: string;
+  readonly details?: Readonly<Record<string, unknown>>;
+}
+
+export function summarizeCause(error: unknown, depth = 4): CauseSummary[] {
+  const out: CauseSummary[] = [];
+  let current: unknown = error;
+  for (let i = 0; i < depth && current !== undefined && current !== null; i++) {
+    const e: SfError = toSfError(current);
+    const { causes: _nested, ...details } = e.details as Record<string, unknown>;
+    out.push({ code: e.code, message: e.message, ...(Object.keys(details).length === 0 ? {} : { details }) });
+    // A wire error carries its remote chain in details.causes.
+    const nested = (e.details as { causes?: CauseSummary[] }).causes;
+    if (Array.isArray(nested)) {
+      out.push(...nested);
+      break;
+    }
+    current = e.cause;
+  }
+  return out;
+}
+
+/** A boot failure at `step` whose message and details keep the cause chain across worker links. */
+export function bootFailure(step: string, cause?: unknown): SfError {
+  const causes = cause === undefined ? [] : summarizeCause(cause);
+  const reason = causes.map((c) => `${c.code}: ${c.message}`).join(' ← ');
+  return SequencingBootError({
+    message: `Sequencing boot failed at "${step}"${reason === '' ? '.' : `: ${reason}`}`,
+    ...(cause === undefined ? {} : { cause: toSfError(cause) }),
+    details: { step, causes },
+  });
+}

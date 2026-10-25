@@ -17,7 +17,7 @@ import type { InputRecordFields } from '@staticflux/surface/input-ring';
 import { createLink, createProtocolClient, type IsolationFacts, type Link, type ProtocolClient, type Spawner, type SpawnedWorker } from '@staticflux/worker';
 import { createCell, createRecordRing, type RecordRingWriter, type RegionEndpoint, regionTransferList } from '@staticflux/worker/pipeline';
 import { type PipeEndpoints, type ScheduledRemoteUpdate, SequencingControl, type StartArgs, type WorkerFinal } from './control.js';
-import { SequencingBootError } from './errors.js';
+import { bootFailure } from './errors.js';
 import { createMainTick, type MainTick } from './pacing.js';
 import { EditorInputRing, RenderTickCell } from './protocol.js';
 import { planSequencing, type SequencingMedia, type SequencingPlan, type SequencingSettings, type SequencingWorkerPlan } from './topology.js';
@@ -61,7 +61,7 @@ export interface SequencingSession {
   stop(): Promise<void>;
 }
 
-const failed = (step: string, cause?: SfError): SfError => SequencingBootError({ message: `Sequencing boot failed at "${step}".`, ...(cause === undefined ? {} : { cause }), details: { step } });
+const failed = (step: string, cause?: SfError): SfError => bootFailure(step, cause);
 
 const transferOf = (...endpoints: (RegionEndpoint | undefined)[]): Transferable[] => endpoints.flatMap((endpoint) => (endpoint === undefined ? [] : regionTransferList(endpoint)));
 
@@ -77,6 +77,7 @@ export async function bootSequencing(options: BootSequencingOptions): Promise<Re
   const tickCell = createCell(RenderTickCell, { medium: plan.media.tick });
   if (!tickCell.ok) return err(failed('create render tick', tickCell.error));
   const workers: SequencingWorkerSession[] = [];
+  const crashes = new Map<string, Promise<SfError>>();
   const stopAll = async (): Promise<void> => {
     await Promise.all(workers.map((w) => w.client.request('stop', undefined, { timeoutMs: 2_000 })));
     for (const w of workers) {
@@ -94,7 +95,10 @@ export async function bootSequencing(options: BootSequencingOptions): Promise<Re
       return err(failed(`spawn ${worker.name}`, spawned.error));
     }
     const link = createLink({ port: spawned.value.port, name: `instaflow/sequencing-${worker.name}` });
+    // A worker whose script fails to load (or throws at top level) never answers: fail with its error, not a timeout.
+    const crashed = new Promise<SfError>((resolve) => spawned.value.port.onError(resolve));
     workers.push({ plan: worker, client: createProtocolClient(link, SequencingControl), link, worker: spawned.value });
+    crashes.set(worker.name, crashed);
   }
 
   // Split topology: the editor-only worker announces its pipes; relay them once the render worker started.
@@ -133,7 +137,11 @@ export async function bootSequencing(options: BootSequencingOptions): Promise<Re
       ...(options.dropDeltaEvery === undefined ? {} : { dropDeltaEvery: options.dropDeltaEvery }),
       record: options.record === true,
     };
-    const started = await w.client.request('start', args, { transfer: transferOf(input?.value, tick?.value), signal });
+    const crashed = crashes.get(w.plan.name) ?? new Promise<SfError>(() => undefined);
+    const started = await Promise.race([
+      w.client.request('start', args, { transfer: transferOf(input?.value, tick?.value), signal }),
+      crashed.then((error): Result<void> => err(error)),
+    ]);
     if (!started.ok) {
       await stopAll();
       return err(failed(`start ${w.plan.name}`, started.error));

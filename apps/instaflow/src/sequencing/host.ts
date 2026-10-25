@@ -25,7 +25,7 @@ import {
 import { type PipeEndpoints, SequencingControl, type StartArgs, type WorkerFinal } from './control.js';
 import { frameDigest } from './digest-renderer.js';
 import { createEditorModule, type EditorModule, scriptedPeer } from './editor-module.js';
-import { RenderPortError, SequencingBootError, SequencingRoleError } from './errors.js';
+import { bootFailure, RenderPortError, SequencingBootError, SequencingRoleError } from './errors.js';
 import { cellTicks, type RafLike, rafTicks, type TickDriver, type TickSource } from './pacing.js';
 import { EditorInputRing, RenderTickCell, SceneDeltas, ViewFrameCell, type ViewFrameFields } from './protocol.js';
 import { createRenderModule, type RenderModule } from './render-module.js';
@@ -68,7 +68,7 @@ const defaultRaf = (): RafLike | undefined => {
   return typeof raf === 'function' ? raf.bind(globalThis) : undefined;
 };
 
-const bootFailed = (step: string, cause: SfError): SfError => SequencingBootError({ message: `Sequencing boot failed at "${step}".`, cause, details: { step } });
+const bootFailed = (step: string, cause?: SfError): SfError => bootFailure(step, cause);
 
 /** Serve the sequencing control protocol on `port` (see the module header). */
 export function hostSequencingWorker(options: HostSequencingOptions): SequencingWorkerHost {

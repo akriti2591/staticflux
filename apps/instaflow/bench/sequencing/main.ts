@@ -21,6 +21,7 @@ import { inputRingSink } from '@staticflux/surface/input-ring';
 import { checkPresentedFrames, generateSequencingScript, publishGpuResult } from '@staticflux/testkit';
 import { fromWorker } from '@staticflux/worker';
 import { bootSequencing } from '../../src/sequencing/boot.js';
+import { summarizeCause } from '../../src/sequencing/errors.js';
 import type { RenderPacing, TickDriver } from '../../src/sequencing/pacing.js';
 import type { PresentedRecord } from '../../src/sequencing/render-module.js';
 import { gridSceneSnapshot } from '../../src/sequencing/scene.js';
@@ -200,7 +201,8 @@ run().then(
     publishGpuResult({ ok: true, data: result });
   },
   (error: unknown) => {
-    say(`ERROR ${String((error as Error)?.stack ?? error)}`);
-    publishGpuResult({ ok: false, error: { message: String((error as Error)?.message ?? error) } });
+    const causes = summarizeCause(error);
+    say(`ERROR ${String((error as Error)?.stack ?? error)}\ncauses: ${JSON.stringify(causes, null, 1)}`);
+    publishGpuResult({ ok: false, error: { message: causes.map((c) => `${c.code}: ${c.message}`).join(' ← '), ...(causes[0] === undefined ? {} : { code: causes[0].code }) } });
   },
 );
