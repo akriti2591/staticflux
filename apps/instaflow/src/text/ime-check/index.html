@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Instaflow IME check</title>
+<!--
+  Human IME check (B2, IF-7.7; LIFECYCLES §22 criterion "IME candidate at the caret" stays INCONCLUSIVE until the owner
+  confirms). Serve-only: `pnpm build && pnpm --filter @instaflow/app ime-check`, then open the printed URL in desktop
+  Chrome. The text is laid out by the authoring text Wasm (Parley), drawn by the render Wasm (Vello on WebGPU), and
+  edited through the TextInput port (EditContext in Chrome; add ?input=textarea for the hidden-textarea adapter).
+  Steps: apps/instaflow/src/text/AGENTS.md ("Human IME check").
+-->
+<script type="importmap">
+  {
+    "imports": {
+      "@staticflux/core": "/packages/core/dist/index.js",
+      "@staticflux/platform": "/packages/platform/dist/index.js",
+      "@staticflux/surface/raster": "/packages/surface/dist/raster.js",
+      "@staticflux/surface/text-input": "/packages/surface/dist/text-input.js",
+      "@staticflux/document/v2": "/packages/document/dist/v2.js",
+      "mobx": "/packages/core/node_modules/mobx/dist/mobx.esm.production.min.js"
+    }
+  }
+</script>
+<style>
+  body { font: 14px/1.4 system-ui, sans-serif; margin: 24px; color: #1b1b22; background: #fafafa; }
+  #stage { position: relative; width: 640px; height: 320px; border: 1px solid #c8c8d0; background: #fff; }
+  #stage:focus-within { outline: 2px solid #3b6cff; outline-offset: 2px; }
+  #ink, #overlay { position: absolute; inset: 0; width: 640px; height: 320px; }
+  #overlay { pointer-events: none; }
+  #host { position: absolute; inset: 0; outline: none; cursor: text; caret-color: transparent; }
+  .row { display: flex; gap: 8px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+  #status { color: #555; }
+  pre { background: #f0f0f4; padding: 8px; max-height: 220px; overflow: auto; font-size: 12px; }
+</style>
+<h1>Instaflow IME check</h1>
+<p id="status">Loading…</p>
+<div class="row">
+  <button id="local">Use local CJK fonts (asks for permission)</button>
+  <button id="arabic">Insert an Arabic word</button>
+  <button id="wrap">Fill a long line (wraps)</button>
+  <span id="input-kind"></span>
+</div>
+<div id="stage">
+  <canvas id="ink" width="640" height="320"></canvas>
+  <canvas id="overlay" width="640" height="320"></canvas>
+  <div id="host" aria-label="Text under test"></div>
+</div>
+<p>Click the box, switch your OS input method to Japanese, Chinese (Pinyin) or Korean, and type. The candidate window must
+  sit at the caret (under the underlined composition). Results to report: <code>window.__imeCheck.log</code>.</p>
+<pre id="log"></pre>
+<script type="module" src="./page.js"></script>
