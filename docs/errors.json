@@ -903,6 +903,18 @@
       "fix": "Generate a fresh id (`createIdGenerator`) or update the existing node; ids are asset-local and never reused."
     },
     {
+      "code": "SF-DOC-020",
+      "kind": "invariant",
+      "summary": "A render projection payload was written with another projection (id, kinds, fields or version) than the scene store reading it.",
+      "fix": "Use the same `defineRenderProjection()` value in the editor and render modules and deploy both bundles together; bump `version` on breaking field changes."
+    },
+    {
+      "code": "SF-DOC-021",
+      "kind": "invariant",
+      "summary": "A render projection payload is truncated or references an unknown kind or an out-of-range slot.",
+      "fix": "Payloads must come from `createRenderProjector` unchanged; if the delta stream delivered it, request a resnapshot and report the payload."
+    },
+    {
       "code": "SF-FT-001",
       "kind": "invariant",
       "summary": "A feature UI was mounted while its logic was not activated (I-5).",

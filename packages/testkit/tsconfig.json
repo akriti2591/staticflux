@@ -52,6 +52,9 @@
     },
     {
       "path": "../stage"
+    },
+    {
+      "path": "../surface"
     }
   ]
 }

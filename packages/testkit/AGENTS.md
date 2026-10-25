@@ -131,6 +131,18 @@ Cross-thread concurrency (torn reads, real respawn) is tested in `packages/worke
 - `windowed-replica-contract.ts` — `runWindowedReplicaContract(transport, driver, runner)`, `windowedReplicaContractCases`,
   `memoryWindowedDriver` (a store's own `WindowedSource` plugs in through `WindowedSourceDriver`).
 
+### Sequencing oracle (Instaflow M1 A7: IF-7.3, D15; the S2 spike's oracle)
+- `sequencing-oracle-contract.ts` — `runSequencingOracleContract(name, subject, runner, { gestures, seed, configs, faultConfigs,
+  view, timeoutMs, skip })`, `sequencingOracleCases`; `generateSequencingScript(reference, { gestures, seed, view })` (G-1…G-6
+  pan/zoom/drag one/drag 100/marquee/nudge, remote moves and deletes incl. mid-drag, Esc; the display after every input),
+  `checkPresentedFrames(script, frames, final)` (snap-back / double draw / camera / monotonic / torn / final state),
+  `driveSequencingScript(pipeline, script, { maxBurst, vsyncEvery })`, `sequencingRandom(seed)`, `SEQUENCING_GESTURES`,
+  `SEQUENCING_GESTURE_MIX`. Ports: `SequencingSubject { reference(), boot({ config, remote }) }`, `SequencingReference`,
+  `SequencingPipelineUnderTest` (`push`, `vsync`, `settled`, `presented`, `finish`, `dispose`), `SequencingConfig` (topology ×
+  pipe medium × input medium, `dropDeltaEvery`). Remote updates are scheduled "after input n", so the expected display is a
+  pure function of the frame's `inputSeq`. Scripts are memoized per subject. The subject for Instaflow lives in
+  `apps/instaflow/src/sequencing/testing/oracle-subject.ts` (structurally typed; apps never import testkit at runtime).
+
 ## How to test a unit
 Register the unit under test with its real dependencies or overrides; assert on values *and* on telemetry.
 ```ts
@@ -256,6 +268,8 @@ No size budget declared in `.size-limit.json` for this package.
 **Layer:** tooling
 
 - Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/stage`, `@staticflux/storage`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
+
+- Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/surface`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
 - External: `fast-check` (4.10.2)
 
 Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.

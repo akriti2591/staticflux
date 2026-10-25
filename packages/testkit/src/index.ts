@@ -39,3 +39,6 @@ export * from './blob-side-channel-contract.js';
 export * from './handle-channel-contract.js';
 export * from './peer-channel-contract.js';
 export * from './windowed-replica-contract.js';
+
+// Sequencing oracle (Instaflow M1 A7: IF-7.3, D15; the S2 oracle as a shared suite).
+export * from './sequencing-oracle-contract.js';

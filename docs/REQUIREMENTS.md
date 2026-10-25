@@ -596,3 +596,26 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
   `history-unavailable`, never guessed.
 - **R11.8s** **Contract suite** `runUndoServiceContract` in testkit, including fast-check properties over random
   interleavings of two humans and an agent on separate peers (own edits only, conflicts flagged, convergence).
+
+## 23.1 Render projection, spatial index and the sequencing oracle (Instaflow M1 A7: SF-Δ25, D15, IF-7.1–7.3)
+
+- **R11.50** **Binary render projection** (`@staticflux/document/render-projection`): `defineRenderProjection({ id, kinds,
+  fields })` declares which node kinds are drawn and which numeric property paths become columns; a projector over a
+  `DocumentCRDTv2` part turns each `PartChange` into one compact binary payload (dense slots reused after delete, deletes
+  before upserts, structure records with id, parent slot and order key, the gesture ids the delta supersedes) and encodes
+  snapshots; a scene store on the render side decodes payloads into SoA columns. Both ends check the projection hash
+  (SF-DOC-020); malformed payloads fail with SF-DOC-021. Payloads may be views into shared memory.
+- **R11.51** **Spatial index system** (`@staticflux/document/spatial-index`): an R-tree (`rbush`) over ink bounds (geometry
+  grown by stroke and effect outsets), bulk-built from a part and kept current from `PartChange`s (re-index only nodes whose
+  bounds paths changed); point hits half-open on the max side, box search for marquee; precise tests run on the candidates.
+- **R11.52** **Editor and render are modules with fixed ports** (D15): input ring in, scene deltas published before the
+  view frame that references them, view-state frames out. Topology (one worker or two) is a boot setting resolved into a
+  data plan; module code never branches on it. The render module applies deltas only up to the frame's `docVersion`,
+  draws only at equality (otherwise keeps the last good frame), draws on arrival with a small coalescing delay, and is
+  paced by the worker rAF or by a main-thread rAF tick cell (switchable).
+- **R16.30** **Sequencing oracle contract suite** (testkit `runSequencingOracleContract`): scripted gestures G-1…G-6 (pan,
+  zoom, drag one, drag 100, marquee, nudge) plus remote moves and deletes (some mid-drag) and Esc cancels are replayed on a
+  single-threaded reference; every frame a pipeline presents must equal the reference at the input it consumed (no
+  snap-back, no double draw, no torn read, monotonic generations, same camera), and final editor and render states must
+  equal the reference. Runs on every topology × pipe medium (and with lost deltas for E-1) in CI with a fake (digesting)
+  renderer; the checker's own detectors are tested.

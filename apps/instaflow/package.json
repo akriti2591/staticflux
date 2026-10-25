@@ -1,0 +1,26 @@
+{
+  "name": "@staticflux/instaflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Instaflow: a canvas-first design, video and flow editor on StaticFlux (docs/instaflow).",
+  "license": "MIT",
+  "staticflux": {
+    "layer": "app"
+  },
+  "scripts": {
+    "bench:build": "vite build -c bench/sequencing/vite.config.ts",
+    "bench:run": "node ../../packages/testkit/dist/gpu-cli.js bench/sequencing/dist index.html"
+  },
+  "dependencies": {
+    "@staticflux/config": "workspace:*",
+    "@staticflux/core": "workspace:*",
+    "@staticflux/document": "workspace:*",
+    "@staticflux/surface": "workspace:*",
+    "@staticflux/worker": "workspace:*"
+  },
+  "devDependencies": {
+    "@staticflux/testkit": "workspace:*",
+    "vite": "8.3.5"
+  }
+}

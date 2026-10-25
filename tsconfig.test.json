@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": { "noEmit": true, "composite": false, "declaration": false, "declarationMap": false, "types": ["node"] },
-  "include": ["packages/*/src", "tooling/*/src"]
+  "include": ["packages/*/src", "tooling/*/src", "apps/instaflow/src", "apps/instaflow/bench"],
+  "exclude": ["apps/instaflow/bench/**/dist"]
 }

@@ -853,5 +853,24 @@
       "@staticflux/document/v2"
     ],
     "limit": "9.5 KB"
+  },
+  {
+    "name": "@staticflux/document/render-projection (binary render projection, SF-Δ25)",
+    "path": "packages/document/dist/render-projection.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker"
+    ],
+    "limit": "4.25 KB"
+  },
+  {
+    "name": "@staticflux/document/spatial-index (spatial index system incl. rbush, SF-Δ25)",
+    "path": "packages/document/dist/spatial-index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "2.9 KB"
   }
 ]

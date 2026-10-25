@@ -48,7 +48,8 @@
     "fast-check": "4.10.2",
     "@staticflux/blob": "workspace:*",
     "@staticflux/ui": "workspace:*",
-    "@staticflux/stage": "workspace:*"
+    "@staticflux/stage": "workspace:*",
+    "@staticflux/surface": "workspace:*"
   },
   "devDependencies": {
     "@staticflux/browser-test": "workspace:*"

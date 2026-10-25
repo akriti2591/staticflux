@@ -326,3 +326,24 @@ Topology-neutral pipes between the editor and render modules (D15). Every machin
 | U-4 | Every write through the undo service (edit, gesture, undo, redo) passes the write guard (locks, final paths) | SF-STAGE-001…003 |
 | S-1 | A stage read equals a fresh composition: invalidation removes every cached composition that read a changed dependency, transitively | — |
 | S-2 | Final paths and policy locks win regardless of strength; the opinions they beat are reported as `ignored` | — |
+
+## 18. Editor ↔ render sequencing (Instaflow M1 A7; D15, ARCHITECTURE §4)
+
+Editor and render are modules behind fixed ports (input ring, scene deltas, view-state frames, optional main tick cell).
+One worker (`colocated`, default) or two (`split`) is a boot setting; both run the same module code and the same oracle suite.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/render-module` | waiting → presenting (first consistent frame drawn) \| holding; presenting → holding (frame ahead of the deltas, or the delta reader resyncing); holding → presenting; any → disposed | `apps/instaflow/src/sequencing/render-module.ts` |
+| Boot (`bootSequencing`, not a machine) | plan (topology → workers + media) → create input ring and tick cell → spawn workers → `start` each with its roles → (split) relay the editor's pipe endpoints to the render worker (`attach`) → running; any failure stops every worker (IF-SEQ-001) | `apps/instaflow/src/sequencing/boot.ts`, `host.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| E-1 | Ordered apply: deltas apply in increasing `docVersion`; a gap or epoch change resyncs from a snapshot and the last good frame stays | P-1; oracle fault cases (every 25th delta lost) |
+| E-2 | Atomic supersede: the render applies deltas only up to the frame's `docVersion` and draws only at equality, so overlay `g` disappears in the frame that applies the delta superseding `g` | `overlayAfterCommit` = 0 in every oracle run |
+| E-3 | Overlays are offsets over committed state; a remote move of a target composes; a remote delete of a target cancels the gesture | IF-ENG-001 (value, toast) |
+| E-4 | A hit test uses the camera after exactly the inputs before it (the view frame carries `inputSeq`) | oracle camera equality |
+| E-5 | One transaction per gesture (pointerup) or per nudge; moves never write the CRDT | oracle commit counts |
+| E-6 | Animation is an override (no playback path in M1; enforced when M3 adds it) | — |
+| Q-1 | Deltas are published before the view frame that references them; a resnapshot is answered at a step boundary with a fresh frame | `editor-module.test.ts` |
+| Q-2 | The render port is called at most once per new (viewSeq, docVersion) and only with a consistent pair | IF-SEQ-003 on draw failure (last good frame kept) |

@@ -194,3 +194,14 @@ Consumer: the Instaflow editor worker (`docs/instaflow/`), over `@staticflux/doc
 - History and attribution badges: every commit's actor record (`actorOf(meta)`), from capability runs
   (`metaForRun(attribution, run, label)`), WebMCP clients named by their client name.
 - Proposals (M2): a `proposal/<id>` layer plugs into `stage.addLayer`; accepting it is one undo step via `changeSet`.
+
+### document render projection + spatial index, sequencing oracle (Instaflow M1 A7: SF-Δ25, D15)
+- The editor module sends the render module only what it draws, as compact binary deltas with array slots instead of
+  node ids, and a snapshot after a gap (`defineRenderProjection`, `createRenderProjector`: `project(change, { supersedes })`,
+  `snapshot()`; render side `createSceneStore`: `apply(payload)`, `column(field)`, `forEach`).
+- A drag's overlay disappears in exactly the frame that shows its commit: the delta lists the gesture ids it supersedes.
+- Hit tests and marquee selection look up candidates by ink bounds without scanning the page (`bindSpatialIndex({ part,
+  bounds, paths })`: `rebuild`, `apply(change)`, `follow`; `createSpatialIndex`: `hit`, `search`; `inkBox`).
+- One worker or two for editor and render is a boot setting, and the S2 correctness check runs on every topology and
+  medium in CI (`runSequencingOracleContract(name, subject, runner, { gestures, configs, faultConfigs })`,
+  `generateSequencingScript`, `checkPresentedFrames`, `driveSequencingScript`).
