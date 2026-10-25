@@ -1,6 +1,6 @@
 # @staticflux/ui — AGENTS.md
 
-**Layer:** ui (depends on `@staticflux/core`, `@staticflux/runtime`, `lit` 3.3.3, `@lit/context` 1.1.6).
+**Layer:** ui (depends on `@staticflux/core`, `@staticflux/runtime`, `lit` 3.3.3, `@lit/context` 1.1.6; `theme-tokens.ts` takes `unsafeCSS` from `@lit/reactive-element/css-tag.js`, Lit's own CSS module, so `@staticflux/ui/theme` and `/default-theme` load in workers: no DOM at import).
 **Budget:** no size-limit entry yet; the boot surface (SfElement, deps controller, MobxController,
 scope element, ports) is ~6 KB gzip of tsc output (unminified). Counts toward "Total boot JS" (R12.7).
 
@@ -96,7 +96,7 @@ R12.13–R12.16, R12.19 (placeholders), R15.5, invariant I-11.
 |---|---|---|
 | @staticflux/ui (full, excl. lit) | 9 KB | packages/ui/dist/index.js |
 | @staticflux/ui/theme (contract, appearance, units) | 6 KB | packages/ui/dist/theme.js |
-| @staticflux/ui/default-theme | 2.5 KB | packages/ui/dist/default-theme.js |
+| @staticflux/ui/default-theme (B9: +8 B for the worker-safe @lit/reactive-element/css-tag.js import path) | 2.52 KB | packages/ui/dist/default-theme.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

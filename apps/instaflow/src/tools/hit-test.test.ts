@@ -52,6 +52,12 @@ describe.skipIf(!authoringBuilt)('hit testing (rbush broad phase → exact geome
     expect(f.index.stats.rebuilds).toBe(1);
   });
 
+  it('hits a text element across its box, not only on its edge (B9: double click to edit inside the text)', async () => {
+    const f = await createToolFixture([{ op: 'create', node: 'tx', kind: 'text', parent: 'p1', props: { [P.x]: 100, [P.y]: 400, [P.w]: 300, [P.h]: 60 } }]);
+    expect(unwrap(hitTest(f.ctx, f.index, 250, 430))).toMatchObject({ target: 'tx', kind: 'fill' });
+    expect(unwrap(hitTest(f.ctx, f.index, 250, 470))).toBeUndefined();
+  });
+
   it('selects through frames, not into groups (Mod+click goes deep), and inside an entered container', async () => {
     const f = await createToolFixture([
       rect('fr', 0, 0, 400, 400, {}, 'p1', 'frame'),

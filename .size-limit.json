@@ -485,6 +485,7 @@
     "ignore": [
       "mobx",
       "lit",
+      "@lit/reactive-element",
       "@lit/context",
       "@staticflux/core",
       "@staticflux/runtime"
@@ -492,16 +493,17 @@
     "limit": "6 KB"
   },
   {
-    "name": "@staticflux/ui/default-theme",
+    "name": "@staticflux/ui/default-theme (B9: +8 B for the worker-safe @lit/reactive-element/css-tag.js import path)",
     "path": "packages/ui/dist/default-theme.js",
     "ignore": [
       "mobx",
       "lit",
+      "@lit/reactive-element",
       "@lit/context",
       "@staticflux/core",
       "@staticflux/runtime"
     ],
-    "limit": "2.5 KB"
+    "limit": "2.52 KB"
   },
   {
     "name": "@staticflux/kit/button",

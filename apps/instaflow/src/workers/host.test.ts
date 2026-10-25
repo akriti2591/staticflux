@@ -11,7 +11,7 @@ import { bootStudioWorkers } from './boot.js';
 import { DOUBLE_CLICK } from './editor-module.js';
 import { WorkerBootError } from './errors.js';
 import { StudioWorkerLifecycle } from './host.js';
-import { dragEvents, inProcessWorkers, inputWriter, until } from './testing.js';
+import { dragEvents, inProcessWorkers, inputWriter, until } from './test-helpers.js';
 
 const boot = async (topology: Topology, workers = inProcessWorkers(), asset = `as_host_${topology}`) => {
   const scope = createScope('host-test');
@@ -40,6 +40,10 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('Studio w
     expect(w.plan.topology).toBe(topology);
     expect(workers.hosts.map((h) => h.state)).toEqual(topology === 'split' ? ['running', 'running'] : ['running']);
     expect(w.started.pages).toEqual(['p1', 'p2']);
+    const inspect = async () => {
+      const r = await w.editor.request('inspect', {});
+      return r.ok ? r.value : undefined;
+    };
     // The render module waits for the canvas; the editor opens a page.
     unwrap(await w.render.request('canvas', { canvas: {}, width: 800, height: 600, dpr: 1 }));
     await Promise.all(workers.hosts.filter((h) => h.render !== undefined || topology === 'colocated').map((h) => h.drawing));
@@ -51,14 +55,14 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('Studio w
     unwrap(await w.editor.request('tool', { tool: 'instaflow/shape' }));
     const push = inputWriter(w.input);
     push(dragEvents([100, 100], [220, 200]));
-    const created = async () => (await w.editor.request('inspect', {})).value?.elements.length === 1;
+    const created = async () => (await inspect())?.elements.length === 1;
     await until(created, 'a rectangle from the ring');
     workers.draw();
     expect(workers.rasters[0]?.presents).toBeGreaterThan(0);
 
     // Keys from the ring reach the canvas shortcuts (Escape clears the selection).
     push([{ t: InputCode.keyDown, key: 'Escape', code: 'Escape' }]);
-    await until(async () => (await w.editor.request('inspect', {})).value?.view.selection.length === 0, 'Escape cleared the selection');
+    await until(async () => (await inspect())?.view.selection.length === 0, 'Escape cleared the selection');
     // Two presses within the double-click time and distance edit text (the ring carries no click count).
     expect(DOUBLE_CLICK).toEqual({ ms: 500, px: 4 });
 

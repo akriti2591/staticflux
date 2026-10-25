@@ -9,7 +9,7 @@ import type { LibraryEntry } from '../library/library-doc.js';
 import { DEFAULT_SEQUENCING_SETTINGS } from '../sequencing/topology.js';
 import { StudioIds } from '../spec/studio-ids.js';
 import { AppearanceMirror, StoryMirror } from '../workers/mirrors.js';
-import { dragEvents, inProcessWorkers, inputWriter, until } from '../workers/testing.js';
+import { dragEvents, inProcessWorkers, inputWriter, until } from '../workers/test-helpers.js';
 import { openStudioWorkspace } from './document.js';
 import { createStudioApp } from './studio-app.js';
 import { authoringBuilt, lendDom, manualTimers, person, scriptedTextInput, unwrap } from './test-helpers.js';
@@ -51,6 +51,10 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     expect(app.studio.port.groups()['panel@dock']).toContain('panel:instaflow/milestones');
     expect(app.workers.started.capabilities).toContain('instaflow/repeat-radial');
     expect(app.workers.started.pages).toEqual(['p1', 'p2']);
+    const inspect = async () => {
+      const r = await app.inspect();
+      return r.ok ? r.value : undefined;
+    };
     const session = unwrap(await app.canvas.start(surface as never, signal));
     await until(() => app.tab?.page === 'p1', 'page 1 open');
     expect(workers.rasters.length).toBe(1); // the render module drew into the handed-off canvas
@@ -102,7 +106,7 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     expect(app.canvas.text?.host?.getAttribute('role')).toBe('textbox');
     const input = inputs.at(-1) as ReturnType<typeof scriptedTextInput>;
     input.emit({ kind: 'insert', text: 'Hi', range: [0, 0] });
-    await until(async () => (await app.inspect()).value?.editing?.text === 'Hi', 'typed through the port');
+    await until(async () => (await inspect())?.editing?.text === 'Hi', 'typed through the port');
     await until(() => input.controlBounds.length > 0, 'control bounds came back');
     input.emit({ kind: 'key', key: 'Escape', shift: false, mod: false, alt: false });
     await until(() => app.canvas.text?.host === undefined && app.tab?.editing === undefined, 'editing ended');
@@ -122,7 +126,7 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     // The Pages panel's lens controller moves the canvas to page 2.
     unwrap(app.lens.goTo('p2'));
     await until(() => app.tab?.page === 'p2', 'page 2 shown');
-    expect((await app.inspect()).value?.elements.length).toBe(0);
+    expect((await inspect())?.elements.length).toBe(0);
 
     const metrics = unwrap(await app.metrics());
     expect(metrics.render?.drawFailures).toBe(0);
