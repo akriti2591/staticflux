@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Instaflow export GPU test</title>
+<!--
+  Real-WebGPU page for export.gpu.test.ts (served from the repo root by testkit's runGpuPage after `pnpm build`).
+  Renders the export parity corpus (engine/crates/export/fixtures) through the export worker's PNG path (headless Vello
+  region render → encodePng) at 1×, 2× and 3×, opaque and transparent, and rasterizes the committed SVG exports in
+  Chrome. Publishes globalThis.__sfGpuResult (testkit page protocol).
+-->
+<script type="importmap">
+  {
+    "imports": {
+      "@staticflux/core": "/packages/core/dist/index.js",
+      "@staticflux/platform": "/packages/platform/dist/index.js",
+      "@staticflux/surface/image": "/packages/surface/dist/image.js",
+      "@staticflux/surface/raster": "/packages/surface/dist/raster.js",
+      "mobx": "/packages/core/node_modules/mobx/dist/mobx.esm.production.min.js"
+    }
+  }
+</script>
+<script type="module" src="./page.js"></script>
