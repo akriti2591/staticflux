@@ -44,8 +44,8 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
 ## Where things are (2026-10-25, end of day)
 - `main`: M1a, M1b (B0–B7), B8 Studio integration, B9 editor in workers, B10a transform basics, site refresh, C0 Home.
 - **Working branch** `claude/affectionate-ramanujan-wbyz2g`: C1 Export merged and green (full check + smokes), the UX spec (`docs/instaflow/ux/`), the brand assets
-  (`apps/instaflow/brand/`), docs updates. **C1 PR is open** (C1 + UX spec + brand assets + notes); once the owner
-  merges it, reset the working branch and start **B11a**.
+  (`apps/instaflow/brand/`), docs updates. C1 merged (#25). **B11a agent running** on `claude/wip-b11a-foundations`;
+  when it reports, run the merge loop, then start B11b.
 - **Next work, in order:** B11a (foundations: kit building blocks, `<sf-icon>` with Lucide, toasts, menus, number
   field, inline edit) → B11b (Studio and Home surfaces per the UX docs, logo wiring, nothing inert) → C2 Import →
   C3 Modes and identity → C4 Hardening (end-to-end checkpoint in CI, performance and loading pass, exit criteria).
