@@ -586,7 +586,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "1.6 KB"
+    "limit": "1.95 KB"
   },
   {
     "name": "@staticflux/kit/color-field",
@@ -902,5 +902,22 @@
       "@staticflux/surface/raster"
     ],
     "limit": "3.5 KB"
+  },
+  {
+    "name": "@staticflux/kit/tag",
+    "path": "packages/kit/dist/tag.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "1.1 KB"
   }
 ]

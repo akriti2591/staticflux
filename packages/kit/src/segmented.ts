@@ -55,9 +55,9 @@ export class SfSegmentedElement extends SfElement<typeof segmentedSpec> {
         display: inline-flex;
         gap: 2px;
         padding: 2px;
-        border-radius: ${t.radius.md.css};
-        background: ${t.color.surfaceSunken.css};
-        border: 1px solid ${t.color.border.css};
+        border-radius: ${t.radius.control.css};
+        background: ${t.color.neutral3.css};
+        border: 1px solid ${t.color.controlEdge.css};
       }
       [role='radio'] {
         all: unset;
@@ -67,7 +67,7 @@ export class SfSegmentedElement extends SfElement<typeof segmentedSpec> {
         gap: ${t.space.xs.css};
         min-block-size: calc(var(--kit-height) - 6px);
         padding-inline: var(--kit-pad-inline);
-        border-radius: ${t.radius.sm.css};
+        border-radius: max(0px, calc(${t.radius.control.css} - 3px));
         color: ${t.color.textMuted.css};
         font-weight: ${t.font.weightMedium.css};
         cursor: pointer;
@@ -87,7 +87,7 @@ export class SfSegmentedElement extends SfElement<typeof segmentedSpec> {
       }
       [role='radio']:focus-visible {
         outline: 2px solid ${t.color.focusRing.css};
-        outline-offset: 1px;
+        outline-offset: 2px;
       }
       [role='radio'][aria-disabled='true'] {
         color: ${t.color.textDisabled.css};

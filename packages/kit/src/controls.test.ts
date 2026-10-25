@@ -3,7 +3,7 @@ import { html } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { defineColorField, pickerValue, SfColorFieldElement } from './color-field.js';
 import { defineSegmented, SfSegmentedElement } from './segmented.js';
-import { defineSlider, SfSliderElement, snapToStep } from './slider.js';
+import { defineSlider, SfSliderElement, sliderFill, snapToStep } from './slider.js';
 import { defineTextField, SfTextFieldElement } from './text-field.js';
 import { cleanup, events, fixture, settle, shadow, shadowAll } from './test-helpers.js';
 
@@ -122,6 +122,19 @@ describe('<sf-text-field>', () => {
   });
 });
 
+describe('control shapes and edges', () => {
+  it('segmented tracks and segments follow radius.control; the track carries the control edge', () => {
+    const cssText = SfSegmentedElement.styles.map((s) => String(s)).join('\n');
+    expect(cssText).toMatch(/\.track \{[^}]*border-radius: var\(--sf-radius-control\)[^}]*background: var\(--sf-color-neutral-3\)[^}]*border: 1px solid var\(--sf-color-control-edge\)/);
+    expect(cssText).toContain('max(0px, calc(var(--sf-radius-control) - 3px))');
+  });
+
+  it('fields keep radius.md and use the control edge', () => {
+    const cssText = SfTextFieldElement.styles.map((s) => String(s)).join('\n');
+    expect(cssText).toMatch(/\.field \{[^}]*border-radius: var\(--sf-radius-md\)[^}]*border: 1px solid var\(--sf-color-control-edge\)/);
+  });
+});
+
 describe('<sf-slider>', () => {
   it('snaps values to the step within bounds', () => {
     expect(snapToStep(7.3, 0, 10, 0.5)).toBe(7.5);
@@ -149,6 +162,38 @@ describe('<sf-slider>', () => {
     element.format = (v) => `${v} percent`;
     await element.updateComplete;
     expect(element.valueText).toBe('55 percent');
+  });
+
+  it('computes the filled share of the track', () => {
+    expect(sliderFill(18, 0, 50)).toBe(36);
+    expect(sliderFill(-5, 0, 10)).toBe(0);
+    expect(sliderFill(15, 0, 10)).toBe(100);
+    expect(sliderFill(1, 0, 3)).toBe(33.3);
+    expect(sliderFill(5, 10, 10)).toBe(0);
+    expect(sliderFill(Number.NaN, 0, 10)).toBe(0);
+  });
+
+  it('fills the track, shows the value in a replaceable slot and keeps native keyboard semantics', async () => {
+    const { element } = await fixture<SfSliderElement>(html`<sf-slider label="Warmth" min="0" max="50" value="18"></sf-slider>`);
+    const input = shadow<HTMLInputElement>(element, 'input');
+    expect(input.style.getPropertyValue('--kit-fill')).toBe('36%');
+    expect(element.fillPercent).toBe(36);
+    expect(shadow(element, '.value slot[name="value"]').textContent).toBe('18');
+    expect(input.classList.contains('inline')).toBe(false);
+    // Dragging and arrow keys (native range) fire `input`; it drives the fill.
+    input.value = '25';
+    input.dispatchEvent(new Event('input'));
+    await element.updateComplete;
+    expect(input.style.getPropertyValue('--kit-fill')).toBe('50%');
+    element.labelHidden = true;
+    await element.updateComplete;
+    expect(input.classList.contains('inline')).toBe(true);
+    expectNoA11yIssues(element);
+    const cssText = SfSliderElement.styles.map((s) => String(s)).join('\n');
+    expect(cssText).toContain('::-webkit-slider-thumb');
+    expect(cssText).toContain('::-moz-range-progress');
+    expect(cssText).toContain('border: 2px solid var(--kit-fill-color)');
+    expect(cssText).toContain('--kit-fill-color: var(--sf-color-accent)');
   });
 });
 

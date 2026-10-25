@@ -4,6 +4,10 @@
  * accent, calm neutrals with a slight cool bias; light and dark; a `prefers-contrast:
  * more` variant; Focus / Standard / Pro density; motion 120–200 ms, 0 ms when reduced.
  *
+ * Agent actions are a quiet violet, distinct from the blue accent; control edges reuse the
+ * strong-border step (≥ 3:1), so secondary buttons, fields and segmented tracks read as
+ * controls; `radius.control` matches `radius.md`.
+ *
  * Every text/surface pair in `TEXT_CONTRAST_PAIRS` reaches 4.5:1 and every pair in
  * `UI_CONTRAST_PAIRS` 3:1 (WCAG 2.2 AA), checked by the testkit theme contract.
  * Brand themes start from it with `extendTheme(defaultTheme, { id, values, dark })`.
@@ -55,11 +59,17 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
       textOnAccent: '#ffffff',
       border: '#e3e7ec',
       borderStrong: '#808998',
+      controlEdge: '#808998',
       accent: '#3a5bd9',
       accentHover: '#2f4fc8',
       accentActive: '#2843ad',
       accentSubtle: '#e9eefc',
       accentText: '#2f4fc8',
+      agent: '#6847d1',
+      agentHover: '#5a3bbf',
+      onAgent: '#ffffff',
+      agentSoft: '#efeafc',
+      agentInk: '#5232b5',
       success: '#1f8a55',
       successSubtle: '#e5f4ec',
       successText: '#1c6b43',
@@ -79,9 +89,11 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
     font: {
       family: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       familyMono: 'ui-monospace, Menlo, Consolas, monospace',
+      familyDisplay: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       weightRegular: '400',
       weightMedium: '500',
       weightSemibold: '600',
+      weightDisplay: '600',
     },
     type: {
       sizeXs: '11px',
@@ -95,7 +107,7 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
     },
     space: { xs: '4px', sm: '8px', md: '12px', lg: '16px', xl: '24px', xxl: '32px' },
     size: { controlSm: '24px', control: '28px', controlLg: '32px', row: '28px', toolbar: '40px', icon: '16px', railWidth: '44px' },
-    radius: { sm: '4px', md: '6px', lg: '10px', full: '9999px' },
+    radius: { sm: '4px', md: '6px', lg: '10px', full: '9999px', control: '6px' },
     shadow: {
       level1: '0 1px 2px rgba(15, 20, 30, 0.06)',
       level2: '0 4px 12px rgba(15, 20, 30, 0.08)',
@@ -133,11 +145,17 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
       textOnAccent: '#0b1020',
       border: '#2a3039',
       borderStrong: '#6b7584',
+      controlEdge: '#6b7584',
       accent: '#6f8cff',
       accentHover: '#819bff',
       accentActive: '#93a9ff',
       accentSubtle: '#1d2843',
       accentText: '#9db2ff',
+      agent: '#a48bff',
+      agentHover: '#b49fff',
+      onAgent: '#140b2e',
+      agentSoft: '#2a2147',
+      agentInk: '#c4b3ff',
       success: '#3fb57a',
       successSubtle: '#15291f',
       successText: '#6fd39c',
@@ -168,6 +186,7 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
         textSubtle: '#4f5866',
         border: '#5f6877',
         borderStrong: '#3d4450',
+        controlEdge: '#3d4450',
         focusRing: '#1e3fb8',
         accentText: '#1f3a9e',
       },
@@ -179,6 +198,7 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
         textSubtle: '#b4bcc8',
         border: '#7d8796',
         borderStrong: '#aab3c0',
+        controlEdge: '#aab3c0',
         focusRing: '#a9bcff',
         accentText: '#bccbff',
       },

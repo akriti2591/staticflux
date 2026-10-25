@@ -15,6 +15,15 @@ authoritative; M1-PLAN lists the work packages; `design/` is the approved Clean 
 | `models/` | Model-weights license registry (A2) | `models/AGENTS.md` |
 | `spikes/` | Phase 0 spikes, read only, deleted at M1 end (not in the workspace) | `docs/instaflow/PHASE0-FINDINGS.md` |
 
+- `engine/` — Rust workspace (render and authoring Wasm, A2/A6), built by `pnpm build:wasm`; see `engine/AGENTS.md`.
+- `models/` — model-weights registry for the license check.
+- `src/sequencing/` — editor ↔ render sequencing (A7, D15): editor and render **modules** with fixed ports, the topology boot
+  setting, the S2 protocol rules, the oracle subject. See `src/sequencing/AGENTS.md`.
+- `src/theme/` — the Clean Pop theme (`cleanPopTheme`, DS1) and the lens palette. See `src/theme/AGENTS.md`.
+- `bench/sequencing/` — bench page for the owner's real-GPU run (`pnpm bench:build`, then `pnpm gpu:run … --real-gpu --headed`).
+- `test/threads/` — Node `worker_threads` fixtures (load TypeScript through the worker package's module hooks).
+- `spikes/` — Phase 0 spikes, read only, deleted at M1 end (not in the workspace).
+
 ## Rules
 - Repo rules 1–10 apply (`CLAUDE.md`). Errors are `IF-*` codes defined with `defineError` next to the code that raises them.
 - Modules never branch on topology, mode or flags: boot settings resolve into data (plans, variant tables) in `*.bindings.ts`.

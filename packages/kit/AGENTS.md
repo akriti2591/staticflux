@@ -12,11 +12,15 @@ capability command palette. Every value is a theme-contract token (`themeTokens`
 themes, density (Focus / Standard / Pro), contrast and reduced motion restyle everything. Implements R13.15–R13.20.
 
 ## Public API (entry point → exports)
-- `button` — `<sf-button>` (`variant: secondary|primary|ghost|danger`, `size: sm|md|lg`, `disabled`, `pressed`, `type`), `defineButton`.
+- `button` — `<sf-button>` (`variant: secondary|primary|agent|agent-soft|ghost|danger`, `size: sm|md|lg`, `disabled`, `pressed`, `type`), `defineButton`.
+  `agent` hands work to an agent (`color.agent`/`onAgent`), `agent-soft` is an agent action in a toolbar (`agentSoft`/`agentInk`).
 - `icon-button` — `<sf-icon-button label shortcut>` (label = name + tooltip; `aria-keyshortcuts`), `defineIconButton`.
 - `segmented` — `<sf-segmented label .options .value>` (APG radio group, `sf-change`), `SegmentOption`, `defineSegmented`.
 - `text-field` — `<sf-text-field label label-hidden hint error multiline>` (`input` composed, `change` + `sf-change`), `defineTextField`.
-- `slider` — `<sf-slider label min max step value unit .format>` (native range, `sf-input`/`sf-change`), `snapToStep`, `defineSlider`.
+- `slider` — `<sf-slider label min max step value unit .format>` (native range + keyboard, `sf-input`/`sf-change`; thin `neutral7` track,
+  accent fill and thumb ring, `surface3` thumb, value in a mono pill, `value` slot), `snapToStep`, `sliderFill`, `defineSlider`.
+- `tag` — `<sf-tag tone=neutral|agent .color .ink mono>` (non-interactive label pill: no role, not focusable; custom colour pairs are the
+  caller's to test), `defineTag`.
 - `color-field` — `<sf-color-field label value>` (hex + native picker, validates via ui `normalizeHex`), `pickerValue`, `defineColorField`.
 - `popover` — `<sf-popover label side align .anchor>` (`trigger` slot; non-modal dialog; `sf-toggle`), `firstFocusable`, `definePopover`.
 - `tooltip` — `<sf-tooltip text shortcut side>` (light-DOM `role=tooltip`, `aria-describedby` on the anchor), `defineTooltip`.
@@ -40,6 +44,8 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 
 ## Rules
 - Components extend `SfElement` only; reactive properties via `static properties` + `declare` + constructor init; no decorators.
+- Shapes and edges: pressable controls (button, icon button, segmented track + segments) and tags take `radius.control`; fields keep
+  `radius.md`. Secondary buttons, fields and segmented tracks draw `color.controlEdge` (≥ 3:1); `color.border` is for dividers.
 - Styles use theme tokens only (`t.color.text.css`), logical properties only, motion on compositor properties via `motion.*` tokens
   (0 under reduced motion); add a `forced-colors` rule for any state shown by color alone.
 - ARIA ids never cross a shadow boundary: label/describe inside one root, or put roles on hosts / light-DOM children
@@ -65,7 +71,7 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 | @staticflux/kit/icon-button | 4.5 KB | packages/kit/dist/icon-button.js |
 | @staticflux/kit/segmented | 2.75 KB | packages/kit/dist/segmented.js |
 | @staticflux/kit/text-field | 2 KB | packages/kit/dist/text-field.js |
-| @staticflux/kit/slider | 1.6 KB | packages/kit/dist/slider.js |
+| @staticflux/kit/slider | 1.95 KB | packages/kit/dist/slider.js |
 | @staticflux/kit/color-field | 2.25 KB | packages/kit/dist/color-field.js |
 | @staticflux/kit/menu | 5.5 KB | packages/kit/dist/menu.js |
 | @staticflux/kit/popover | 3.5 KB | packages/kit/dist/popover.js |
@@ -81,6 +87,7 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 | @staticflux/kit/roving | 1.25 KB | packages/kit/dist/roving.js |
 | @staticflux/kit/position | 1.5 KB | packages/kit/dist/position.js |
 | @staticflux/kit (full, excl. lit + framework) | 22.5 KB | packages/kit/dist/index.js |
+| @staticflux/kit/tag | 1.1 KB | packages/kit/dist/tag.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

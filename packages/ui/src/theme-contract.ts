@@ -3,9 +3,11 @@
  * component reads (`themeTokens.color.text.css`). Brand themes (e.g. the Instaflow theme)
  * supply values for these tokens; they never add private tokens that components depend on.
  *
- * Categories: color (neutral ramp, surface levels, text levels, borders, one accent,
- * semantic success/warning/danger/info, focus ring), font + type scale, spacing on a
- * 4 px grid, control sizes (density-dependent), radius, elevation, motion, z-index.
+ * Categories: color (neutral ramp, surface levels, text levels, borders and control
+ * edges, one accent, agent actions, semantic success/warning/danger/info, focus ring),
+ * font (UI, mono, display) + type scale, spacing on a
+ * 4 px grid, control sizes (density-dependent), radius (incl. control shape), elevation,
+ * motion, z-index.
  *
  * Density (`focus | standard | pro`) overrides `space.*` and `size.*`; reduced motion
  * overrides `motion.*` durations. Legacy `--sf-*` variables that framework elements
@@ -43,12 +45,18 @@ export const themeTokens = /* @__PURE__ */ defineTokens('sf', {
     'textDisabled', // Disabled text (exempt from contrast minimums)
     'textOnAccent', // Text and icons on the accent fill
     'border', // Hairline borders and dividers
-    'borderStrong', // Field and control outlines (≥ 3:1 on surfaces, SC 1.4.11)
-    'accent', // The single accent: primary actions, selection, generative ✦
+    'borderStrong', // Strong outlines (≥ 3:1 on surfaces, SC 1.4.11)
+    'controlEdge', // Edge of controls (secondary buttons, fields, segmented tracks); not a divider (≥ 3:1 on surfaces)
+    'accent', // The single accent: primary actions, selection
     'accentHover', // Accent fill on hover
     'accentActive', // Accent fill when pressed
     'accentSubtle', // Accent tint for selected backgrounds
     'accentText', // Accent-colored text and links (≥ 4.5:1)
+    'agent', // Agent (generative) action fill: hands work to an agent
+    'agentHover', // Agent fill on hover / pressed
+    'onAgent', // Text and icons on the agent fill (≥ 4.5:1)
+    'agentSoft', // Soft agent fill: agent actions inside toolbars, agent tags
+    'agentInk', // Text on the soft agent fill and agent-colored text (≥ 4.5:1)
     'success', // Success fill
     'successSubtle', // Success background tint
     'successText', // Success text (≥ 4.5:1)
@@ -68,9 +76,11 @@ export const themeTokens = /* @__PURE__ */ defineTokens('sf', {
   font: [
     'family', // UI font stack
     'familyMono', // Monospace stack (shortcuts, code, numbers)
+    'familyDisplay', // Display stack (headings, titles)
     'weightRegular', // Regular weight
     'weightMedium', // Medium weight (labels, buttons)
     'weightSemibold', // Semibold weight (headings)
+    'weightDisplay', // Display headings weight
   ],
   type: [
     'sizeXs', // Extra small (captions, badges)
@@ -104,6 +114,7 @@ export const themeTokens = /* @__PURE__ */ defineTokens('sf', {
     'md', // Default radius (controls, menus)
     'lg', // Large radius (dialogs, panels)
     'full', // Pill / circle
+    'control', // Pressable controls: buttons, icon buttons, segmented tracks and segments, tags
   ],
   shadow: [
     'level1', // Elevation 1: raised (menus, popovers)

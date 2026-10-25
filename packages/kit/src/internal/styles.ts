@@ -71,7 +71,7 @@ export const controlStyles = css`
   .control {
     box-sizing: border-box;
     min-block-size: var(--kit-height);
-    border-radius: ${t.radius.md.css};
+    border-radius: ${t.radius.control.css};
     transition:
       background-color ${t.motion.durationFast.css} ${t.motion.easeStandard.css},
       border-color ${t.motion.durationFast.css} ${t.motion.easeStandard.css},

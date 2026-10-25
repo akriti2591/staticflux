@@ -24,7 +24,11 @@
     "@staticflux/document": "workspace:*",
     "@staticflux/platform": "workspace:*",
     "@staticflux/surface": "workspace:*",
-    "@staticflux/worker": "workspace:*"
+    "@staticflux/worker": "workspace:*",
+    "@staticflux/kit": "workspace:*",
+    "@staticflux/ui": "workspace:*",
+    "@lit/context": "1.1.6",
+    "lit": "3.3.3"
   },
   "devDependencies": {
     "@staticflux/runtime": "workspace:*",

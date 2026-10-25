@@ -25,7 +25,7 @@ import { DocRoute, HomeRoute, LoginRoute, NotFoundRoute, OnboardingRoute, Settin
 const linkStyles = css`
   a { color: ${t.color.accentText.css}; text-underline-offset: 2px; }
   a:focus-visible { outline: 2px solid ${t.color.focusRing.css}; outline-offset: 2px; border-radius: ${t.radius.sm.css}; }
-  sf-button:not(:defined) { display: inline-flex; align-items: center; box-sizing: border-box; min-block-size: ${t.size.control.css}; padding-inline: ${t.space.md.css}; border: 1px solid ${t.color.border.css}; border-radius: ${t.radius.md.css}; font-weight: ${t.font.weightMedium.css}; }
+  sf-button:not(:defined) { display: inline-flex; align-items: center; box-sizing: border-box; min-block-size: ${t.size.control.css}; padding-inline: ${t.space.md.css}; border: 1px solid ${t.color.controlEdge.css}; border-radius: ${t.radius.control.css}; font-weight: ${t.font.weightMedium.css}; }
   sf-text-field:not(:defined) { display: inline-block; min-block-size: calc(${t.size.control.css} + 20px); }
 `;
 

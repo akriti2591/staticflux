@@ -221,3 +221,18 @@ Consumer: the Instaflow editor worker (`docs/instaflow/`), over `@staticflux/doc
   `createMemoryBudgets` (`MemoryBudgetsToken` in workers); pressure evicts caches before features are demoted.
 - **Tests**: Studio and Instaflow render code is tested in Node against `createMemoryRasterBackend` and testkit's
   GPU fake; real pixels through `pnpm test:gpu`.
+
+### theme contract: control shape, control edge, agent actions, tag, slider (Instaflow design track · DS1)
+Consumer: the Instaflow **Clean Pop** theme (`apps/instaflow/src/theme`, `docs/instaflow/design/README.md`) and any app
+that themes the kit (R13.21–R13.23).
+- "Anything you press is a pill", but cards stay 18 px and fields 12 px: one shape token for pressables
+  (`radius.control`) that buttons, icon buttons, switchers and tags read; fields keep `radius.md`.
+- Secondary buttons, fields and switcher tracks need an edge that reads as a control (≥ 3:1) while dividers stay hairline:
+  `color.controlEdge` next to `color.border`.
+- "Claude" actions (Start making, Send, Accept) and "✦ Rewrite" in toolbars look different from the one primary action:
+  `<sf-button variant="agent">` / `variant="agent-soft"` over `color.agent*` tokens; agent tags use the same soft pair.
+- Headings use a display face (Bricolage Grotesque in Instaflow): `font.familyDisplay`, `font.weightDisplay`.
+- Labels that are not pressable — brand kit, "✦ Claude · Accept edits", lens type (solid lens colour), tokens (mono):
+  `<sf-tag tone .color .ink mono>`; the lens colours stay in the app's typed lens palette (`lensTag(lens)`).
+- Dials (Warmth, Exposure): `<sf-slider>` with a thin track, filled part, ringed thumb and the value in a pill.
+

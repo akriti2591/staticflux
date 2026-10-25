@@ -84,6 +84,32 @@ describe('<sf-button>', () => {
     expect(reset).toBe(1);
   });
 
+  it('offers agent and agent-soft variants with the same button semantics', async () => {
+    const { element } = await fixture<HTMLDivElement>(
+      html`<div><sf-button variant="agent">✦ Start making</sf-button><sf-button variant="agent-soft" size="sm">✦ Rewrite</sf-button></div>`,
+    );
+    const [agent, soft] = [...element.children] as SfButtonElement[];
+    expect(agent?.variant).toBe('agent');
+    expect(agent?.getAttribute('role')).toBe('button');
+    expect(soft?.getAttribute('variant')).toBe('agent-soft');
+    expect(soft?.getAttribute('size')).toBe('sm');
+    let clicks = 0;
+    soft?.addEventListener('click', () => (clicks += 1), { signal: new AbortController().signal });
+    press(soft as SfButtonElement, 'Enter');
+    expect(clicks).toBe(1);
+    expectNoA11yIssues(element);
+  });
+
+  it('takes its shape from radius.control and its edge from color.controlEdge', () => {
+    const cssText = SfButtonElement.styles.map((s) => String(s)).join('\n');
+    expect(cssText).toContain('border-radius: var(--sf-radius-control)');
+    expect(cssText).toContain('border: 1px solid var(--sf-color-control-edge)');
+    expect(cssText).toMatch(/variant='agent'\]\) \.control \{\s*background: var\(--sf-color-agent\)/);
+    expect(cssText).toMatch(/variant='agent-soft'\]\) \.control \{\s*background: var\(--sf-color-agent-soft\)/);
+    const iconCss = SfIconButtonElement.styles.map((s) => String(s)).join('\n');
+    expect(iconCss).toContain('border-radius: var(--sf-radius-control)');
+  });
+
   it('respects a roving parent that owns the tab stop', async () => {
     const { element } = await fixture<SfButtonElement>(html`<sf-button data-roving tabindex="-1">A</sf-button>`);
     element.variant = 'ghost';
