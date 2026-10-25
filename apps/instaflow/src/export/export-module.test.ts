@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { EXPORT_ABI_VERSION, loadExportModule } from './export-module.js';
-import { exportBuilt, loadExportInNode } from './testing/fixtures.js';
+import { exportBuilt, loadExportInNode } from './testing/test-helpers.js';
 
 const manifest = (artifacts: unknown[]) => async () => ({ ok: true, status: 200, json: async () => ({ format: 'sf-wasm-manifest/1', artifacts }) });
 

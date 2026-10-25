@@ -6,7 +6,7 @@ import { P } from '../elements/components.js';
 import { decodePlan } from './export-module.js';
 import { DEFAULT_EXPORT_OPTIONS, type ExportOptions } from './formats.js';
 import { ExportJobLifecycle, type ExportJobRequest, type ExportJobState, type ExportProgress, runExportJob } from './job.js';
-import { createExportFixture, exportBuilt, pdfToText, recordingRaster } from './testing/fixtures.js';
+import { createExportFixture, exportBuilt, pdfToText, recordingRaster } from './testing/test-helpers.js';
 
 const opts = (o: Partial<ExportOptions>): ExportOptions => ({ ...DEFAULT_EXPORT_OPTIONS, ...o });
 const utf8 = new TextDecoder();

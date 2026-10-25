@@ -6,7 +6,7 @@ import { authoringBuilt } from '../app/test-helpers.js';
 import type { ExportFile } from './formats.js';
 import { hostExportWorker } from './host.js';
 import { createExportService, type ExportStatus } from './service.js';
-import { createExportFixture, exportBuilt } from './testing/fixtures.js';
+import { createExportFixture, exportBuilt } from './testing/test-helpers.js';
 
 const ASSETS = { manifest: 'memory://manifest', fonts: [] };
 

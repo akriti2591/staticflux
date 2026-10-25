@@ -8,7 +8,7 @@ import { InputCode } from '@staticflux/surface';
 import { describe, expect, it } from 'vitest';
 import type { ExportFile } from '../export/formats.js';
 import { hostExportWorker } from '../export/host.js';
-import { createExportFixture, exportBuilt } from '../export/testing/fixtures.js';
+import { createExportFixture, exportBuilt } from '../export/testing/test-helpers.js';
 import type { LibraryEntry } from '../library/library-doc.js';
 import { DEFAULT_SEQUENCING_SETTINGS } from '../sequencing/topology.js';
 import { StudioIds } from '../spec/studio-ids.js';

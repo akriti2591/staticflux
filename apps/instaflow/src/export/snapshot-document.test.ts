@@ -5,7 +5,7 @@ import { createLoroEngine } from '@staticflux/document/loro-crdt';
 import { describe, expect, it } from 'vitest';
 import { authoringBuilt, unwrap } from '../app/test-helpers.js';
 import { openSnapshotDocument, readOnlyOpenDocument } from './snapshot-document.js';
-import { createExportFixture } from './testing/fixtures.js';
+import { createExportFixture } from './testing/test-helpers.js';
 
 describe('read-only snapshot document', () => {
   it('refuses every write (IF-EXP-003) and reads only the parts it holds', async () => {
