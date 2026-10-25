@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** Owner: "all recommended" for the six OVERLAYS-FEEDBACK §6 questions (recorded there, ff151d2). Spec
+  merged into the working branch (so #26 now carries it too; #27 stays mergeable either order). B11a2 launched,
+  stacked, on `claude/wip-b11a2-overlays` (IDs IF-35.14+, §37, IF-POL-001…049).
 - **2026-10-25** UX primitives spec done (PR #27, docs only): OVERLAYS-FEEDBACK, NAVIGATION-DEEPLINKS, DEVTOOLS-UX-SPEC,
   HUD §4.2 (one control model), Chat §7–9, F-47–F-52. Six owner questions in OVERLAYS-FEEDBACK §6 (asked). Next after
   #26 and #27 merge: B11a2 (overlay and feedback blocks), then B11b.
