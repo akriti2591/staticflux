@@ -2049,6 +2049,24 @@
       "fix": "Use one of the keys declared in `component({ deps })`; the types list them."
     },
     {
+      "code": "SF-UI-008",
+      "kind": "validation",
+      "summary": "A theme is incomplete or malformed: a token has no value, an unknown token was set, or a value is empty.",
+      "fix": "Give every token of the token set a value in `values` (the types list them); variants (`dark`, `density`, `contrast`, `reducedMotion`) may only override declared tokens. See `details.issues`."
+    },
+    {
+      "code": "SF-UI-009",
+      "kind": "not-found",
+      "summary": "The appearance controller has no theme: nothing was contributed to `ThemesToken`, or the requested theme id is not contributed.",
+      "fix": "Register a theme contribution, e.g. `defaultThemeContribution` from `@staticflux/ui/default-theme`, or `themeContribution(myTheme)`; check the id passed to `useTheme` / `appearanceUnitWith({ theme })`."
+    },
+    {
+      "code": "SF-UI-010",
+      "kind": "validation",
+      "summary": "A color value could not be parsed.",
+      "fix": "Use `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` or `rgb()/rgba()`; contrast checks need concrete sRGB values, not color names or `var()` references."
+    },
+    {
       "code": "SF-URL-001",
       "kind": "forbidden",
       "summary": "An intent from the URL tried to auto-execute, but its policy is prefill-only.",

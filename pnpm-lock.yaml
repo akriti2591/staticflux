@@ -80,6 +80,9 @@ importers:
       '@staticflux/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@staticflux/kit':
+        specifier: workspace:*
+        version: link:../../packages/kit
       '@staticflux/loader':
         specifier: workspace:*
         version: link:../../packages/loader
@@ -285,6 +288,37 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/kit:
+    dependencies:
+      '@staticflux/a11y':
+        specifier: workspace:*
+        version: link:../a11y
+      '@staticflux/capabilities':
+        specifier: workspace:*
+        version: link:../capabilities
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@staticflux/messaging':
+        specifier: workspace:*
+        version: link:../messaging
+      '@staticflux/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      '@lit/context':
+        specifier: 1.1.6
+        version: 1.1.6
+      '@staticflux/testkit':
+        specifier: workspace:*
+        version: link:../testkit
+      lit:
+        specifier: 3.3.3
+        version: 3.3.3
+
   packages/loader:
     dependencies:
       '@staticflux/core':
@@ -425,6 +459,9 @@ importers:
       '@staticflux/storage':
         specifier: workspace:*
         version: link:../storage
+      '@staticflux/ui':
+        specifier: workspace:*
+        version: link:../ui
       '@staticflux/urlstate':
         specifier: workspace:*
         version: link:../urlstate

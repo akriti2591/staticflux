@@ -306,3 +306,6 @@ Topology-neutral pipes between the editor and render modules (D15). Every machin
 | P-6 | Peer generations only increase; a re-wire cleans up the previous connection before `onConnect` runs again | SF-WK-040 |
 | P-7 | Supersede-on-ack: an overlay disappears in the step that applies its acked version; a late ack of an older intent never removes a newer overlay (E-2) | — |
 | P-8 | Worker scheduler: nothing runs while paused (I-1); interaction before critical before visible before idle | SF-SCHED-002 |
+
+| `kit/resize` | idle → resizing (pointer drag, `move` repeats) → idle (`end` commits one `sf-resize`, `cancel` restores the size); keyboard steps commit directly | `packages/kit/src/internal/resize.ts` |
+| `kit/tree-drag` | idle → dragging (`over` repeats, drop target filtered by `canDrop`, never into the own subtree) → idle (`drop` fires cancelable `sf-reorder`, `cancel` on dragend) | `packages/kit/src/tree.ts` |

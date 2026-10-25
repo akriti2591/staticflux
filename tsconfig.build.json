@@ -105,6 +105,9 @@
     },
     {
       "path": "packages/blob"
+    },
+    {
+      "path": "packages/kit"
     }
   ]
 }

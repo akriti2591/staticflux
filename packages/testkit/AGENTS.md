@@ -4,6 +4,8 @@
 `worker`, `router`, `urlstate`, `document` (v2 entry); `fast-check` drives property suites; `vitest` is a **peer** and is never imported at runtime (contract suites take
 
 `worker`, `router`, `urlstate`, `blob`; `vitest` is a **peer** and is never imported at runtime (contract suites take
+
+`worker`, `router`, `urlstate`, `ui` (theme contract); `vitest` is a **peer** and is never imported at runtime (contract suites take
 `describe`/`it` as parameters). Never import testkit from app or package source — only from `*.test.ts`.
 **Budget:** none (not shipped to browsers).
 
@@ -55,6 +57,14 @@ comparison, golden render snapshots, a real-GPU runner (Chromium on SwiftShader 
   `blobStoreContractCases` (`@staticflux/blob` `BlobStore`: digests, dedupe, chunking above 8 MiB, ranges, encoding,
   quarantine, abort, `putEncoded`, dispose). Runs in Vitest (memory; directory over the memory FS, both write modes)
   and in Chromium over real OPFS (`blob-store-contract.browser.ts`: main thread + dedicated worker; `pnpm test:browser`).
+
+- `theme-contract.ts` — `runThemeContract(name, factory, runner, { skip })`, `themeContractCases`: a theme over `themeTokens`
+  is complete and compiles; WCAG 2.2 AA text (4.5:1) and non-text (3:1) pairs in light, dark and both contrast-more
+  variants; spacing on the 4 px grid in every density; control heights Focus ≥ Standard ≥ Pro ≥ 24 px; motion 120–200 ms, 0 reduced.
+- `a11y.ts` (subpath `@staticflux/testkit/a11y`) — `auditA11y(root, { rules })` / `expectNoA11yIssues(root)`: composed-tree
+  (shadow roots + slots) checks `name`, `aria-ref` (ids never cross a shadow boundary), `required-attr`, `required-parent`,
+  `valid-role`, `positive-tabindex`, `hidden-focusable`, `nested-interactive`; helpers `accessibleName`, `roleOf`, `flatText`,
+  `composedParent`, `allElements`, `deepFocused`, `press(target, key, { shift, ctrl, alt, meta, type })`.
 - `app.ts` — `bootTestApp({ units, overrides, subsystems, routes, router, initialUrl, session, time, telemetryLevel })` →
   `{ app, injector, router?, history?, session?, time?, get, shutdown, …TestTelemetry }` (boot failure throws SF-TEST-001);
   `fakeFrameSchedulerUnit(time)`.
@@ -156,6 +166,8 @@ Use `@staticflux/ui/testing` (`mountTestRoot`, `manualVisibility`, `settle`) for
 build the injector with `createTestInjector({ units: [...uiUnits, ...], overrides })`, pass `injector: t.injector` to
 `mountTestRoot`, drive frames with a `fakeFrameSchedulerUnit(time)` override + `await time.flush()`, and platform
 facts with `createFakePlatformEnv()` (`platformEnvUnit(env)` override). Browser-mode tests (R16.1) run the same code in a real browser.
+Accessibility (R15.4): end every component test with `expectNoA11yIssues(element)` from `@staticflux/testkit/a11y` and drive
+keyboard patterns with `press(…)` (layout-dependent checks — rendered contrast, target size — belong to the theme contract and e2e).
 
 ## Contract suites (R16.4)
 Every implementation of a contract runs the shared suite; a new adapter is not done until it passes.
@@ -165,6 +177,8 @@ runTransportContract('fetch', (fixture) => createFetchTransport({ baseUrl: '/api
 runHistoryContract('router memory', (url) => createRouterMemoryHistory({ initial: url }), { describe, it }, { level: 'adapter' });
 runStoreContract('memory', () => createMemoryStore(), { describe, it });
 runBlobStoreContract('memory', () => ({ store: createMemoryBlobStore() }), { describe, it });
+
+runThemeContract('default theme', () => defaultTheme, { describe, it });
 ```
 The transport fixture is addressed by path (`/echo`, `/query`, `/status/<n>`, `/hang`, `/stream`, `/stream-hang`, `/stream-fail`);
 the factory adapts it to its wire (see `contracts.test.ts` for a fake `fetch` speaking JSON + NDJSON). Suites use real timers
@@ -239,6 +253,8 @@ No size budget declared in `.size-limit.json` for this package.
 - External: `fast-check` (4.10.2)
 
 - Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/urlstate`, `@staticflux/worker`
+
+- Internal: `@staticflux/auth`, `@staticflux/core`, `@staticflux/data`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
 
 Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.
 <!-- sf:generated:end -->

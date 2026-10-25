@@ -13,6 +13,14 @@
     "./testing": {
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js"
+    },
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "import": "./dist/theme.js"
+    },
+    "./default-theme": {
+      "types": "./dist/default-theme.d.ts",
+      "import": "./dist/default-theme.js"
     }
   },
   "files": [

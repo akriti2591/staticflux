@@ -12,6 +12,8 @@ export * from './contract-runner.js';
 export * from './transport-contract.js';
 export * from './history-contract.js';
 export * from './blob-store-contract.js';
+
+export * from './theme-contract.js';
 export * from './app.js';
 export * from './fakes.js';
 // Render, GPU and media testing (environment-free; Node-only helpers are in `@staticflux/testkit/node`).

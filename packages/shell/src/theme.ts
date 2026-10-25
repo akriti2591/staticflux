@@ -7,8 +7,13 @@
  *   against platform preferences (color scheme, `prefers-contrast: more`, `forced-colors`),
  *   applies the variables + `color-scheme` to an element, switches at runtime, and
  *   persists the preference through an async KV port (AsyncStore-compatible).
+ *
+ * Tokens (`ThemeControllerToken`, `ThemePreferenceStoreToken`) live in `tokens.ts`, so the shell
+ * element can name the controller without bundling it. New apps theme with the contract in
+ * `@staticflux/ui/theme` (typed tokens, density, reduced motion); its default theme also emits
+ * these `--sf-*` names as aliases, so shell elements follow either.
  */
-import { box, createNoopTelemetry, ok, type Result, type Scope, type Telemetry, token, watch } from '@staticflux/core';
+import { box, createNoopTelemetry, ok, type Result, type Scope, type Telemetry, watch } from '@staticflux/core';
 import type { KeyValuePort } from '@staticflux/messaging';
 import { SHELL_SUBSYSTEM } from './telemetry.js';
 
@@ -289,5 +294,3 @@ export function createThemeController(options: ThemeControllerOptions = {}): The
   };
 }
 
-export const ThemeControllerToken = /* @__PURE__ */ token('shell/theme-controller').type<ThemeController>();
-export const ThemePreferenceStoreToken = /* @__PURE__ */ token('shell/theme-preference-store').type<KeyValuePort<string>>();

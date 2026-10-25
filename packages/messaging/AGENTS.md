@@ -21,7 +21,8 @@ Implements R13.4–R13.10, R7.16–R7.21 (surface side), LIFECYCLES §8, I-7.
   `dismissTop`, `setUserBusy`, `targets` (coach targets), `startSequence`, `onTransition`, `dispose`; `ownerOf(injector)`.
 - `routable.ts` — `createRoutableDialogBridge({ manager, owner, surfaces, decide })`: `openDialog(key, params,
   { source: 'in-app'|'deep-link', owner })`, `closeDialog`, `current`, `onDismissIntent` (`back`|`replace`), `register`.
-- `host.ts` — `<sf-surface-host>` (`defineSurfaceHost`): layers, focus trap/restore, Escape, aria-modal, inert
+- `host.ts` — `<sf-surface-host>` (`defineSurfaceHost`; the platform-native alternative is `@staticflux/kit/surfaces`'
+  `<sf-surface-layer>`: native `<dialog>`, Popover API, anchor positioning — same manager, no second dialog system): layers, focus trap/restore, Escape, aria-modal, inert
   background, live regions, anchored placement via measure→mutate, reduced motion.
 - `outlet.ts` — `<sf-surface-outlet outlet="…">` (inline alerts), `coachTarget(target)` element directive.
 - `focus.ts` — `deepActiveElement`, `focusableWithin`, `focusFirst`, `trapTab`, `inertSiblings`.

@@ -13,6 +13,10 @@
     "./node": {
       "types": "./dist/node.d.ts",
       "import": "./dist/node.js"
+    },
+    "./a11y": {
+      "types": "./dist/a11y.d.ts",
+      "import": "./dist/a11y.js"
     }
   },
   "bin": {
@@ -42,7 +46,8 @@
     "@staticflux/urlstate": "workspace:*",
     "@staticflux/document": "workspace:*",
     "fast-check": "4.10.2",
-    "@staticflux/blob": "workspace:*"
+    "@staticflux/blob": "workspace:*",
+    "@staticflux/ui": "workspace:*"
   },
   "devDependencies": {
     "@staticflux/browser-test": "workspace:*"

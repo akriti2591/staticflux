@@ -155,3 +155,25 @@ Instaflow's editor and render modules run in one worker or two (D15). Each need 
 - CRDT merges and index rebuilds in the editor worker yield to input work, and stalls are reported (`createWorkerScheduler`,
   `scheduler.yield`, `createLongTaskDetector` from `@staticflux/runtime/worker`).
 - M3: the playhead position is shared with the render worker and an AudioWorklet without messages (`defineClockCell`).
+
+### ui theme contract + kit (`@staticflux/ui/theme`, `@staticflux/kit`; Instaflow M1 A10)
+Two consumers, so the kit stays generic: Studio (migrated, every control) and Instaflow (`docs/instaflow/UX.md`).
+- **Studio** — theme: default theme as a contribution, appearance applied to `<html>` before the first frame,
+  restored after first paint (device store); the settings slice maps System / Light / Dark / High contrast onto the
+  appearance, density Focus / Standard / Pro remembered per device. Controls: header and login buttons, guest draft
+  field (lazy kit chunk, boot stays ≤ 150 KB), editor title field, **toolbar** of document actions, **tabs** for the
+  document views, block paragraphs as multiline fields, chat composer (form submit from a kit button), settings as
+  **segmented** controls, onboarding and billing buttons. Messaging: confirm / share / upgrade / reconnecting dialogs in
+  the kit **dialog frame** (routable `/d/share`, `/d/upgrade` unchanged), saved **toast**, credit banner, coach mark —
+  rendered by `<sf-surface-layer>` (native `<dialog>`, Popover API). Keyboard: `Mod+K` opens the **capability palette**
+  (summarize, clear document) instead of an empty command list; capability shortcuts show in it (`Mod+Shift+U`).
+- **Instaflow** — the "Say what you need" bar (`Mod+K`) is the capability palette over the same registry agents use;
+  the contextual **HUD** is a `toolbar` pill (roving focus, `Alt+Enter` focus, ≥ 1 ✦ accent action, `⋯ More` → menu,
+  every action labelled or tooltipped with its shortcut); the right **dock** is tabbed, resizable and collapsible to an
+  icon rail; **Layers** is a virtualized tree (50k nodes, lock/visibility actions, ✦ badges, drag **and** keyboard
+  reorder through the undo model); **Properties** (Pro density) are inspector groups and rows (precise numbers, color
+  fields for brand kits, sliders for dials, `explain` hints); lens switch Pages | Canvas | Timeline | Flow is a
+  segmented control; Share/Export is a routable dialog (`/d/share`); toasts ("Saved", `Mod+S` → "Create milestone"
+  action); density Focus (default, dock collapsed to a rail) / Standard / Pro; motion 120–200 ms, none when reduced;
+  one accent for generative ✦ and calm neutrals; the **Instaflow brand theme** from the design track is
+  `extendTheme(defaultTheme, …)` contributed with a higher order and must pass the shared theme contract suite.
