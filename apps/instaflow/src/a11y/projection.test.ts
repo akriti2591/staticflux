@@ -14,7 +14,7 @@ import { createElementIndex, type ToolContext } from '../tools/hit-test.js';
 import { createToolFixture } from '../tools/testing/fixtures.js';
 import { createViewState } from '../tools/view-state.js';
 import { a11yRoleOf, ELEMENT_A11Y_ROLES, SEMANTIC_A11Y_ROLES } from './roles.js';
-import { CanvasProjectionLifecycle, createCanvasProjector, focusTargetOf, type ProjectionInput, projectCanvas, visibleRegion } from './projection.js';
+import { CanvasProjectionLifecycle, createCanvasProjector, focusTargetOf, hasOwnBounds, type ProjectionInput, projectCanvas, visibleRegion } from './projection.js';
 
 const fill = [{ paint: '#ff5c39' }];
 const sq = (id: string, x: number, y: number, extra: Record<string, unknown> = {}, parent = 'p1', kind = 'shape'): PartOp =>
@@ -127,7 +127,7 @@ describe.skipIf(!authoringBuilt)('canvas projection', () => {
         }
       };
       walk('p1');
-      for (const n of all) {
+      for (const n of all.filter((m) => hasOwnBounds(ctx, m))) {
         const b = elementBounds(ctx, n);
         if (b.ok && b.value.ink.minX <= region.maxX && b.value.ink.maxX >= region.minX && b.value.ink.minY <= region.maxY && b.value.ink.maxY >= region.minY) add(n);
       }
@@ -161,7 +161,9 @@ describe.skipIf(!authoringBuilt)('canvas projection', () => {
             f.seed([{ op: 'set', node: picked, path: P.x, value: Number(ctx.stage.value(picked, P.x) ?? 0) + s.dx }, { op: 'set', node: picked, path: P.y, value: Number(ctx.stage.value(picked, P.y) ?? 0) + s.dy }]);
           } else if (s.kind === 'delete' && picked !== undefined) {
             f.seed([{ op: 'delete', node: picked }]);
-            f.view.select(f.view.selection.filter((n) => ctx.stage.read(n) !== undefined));
+            // Prune like B3: whatever is no longer in the page tree (deleted, or under a deleted group) leaves the selection.
+            const remaining = new Set(reference(ctx, { minX: -1e9, minY: -1e9, maxX: 1e9, maxY: 1e9 }, []));
+            f.view.select(f.view.selection.filter((n) => remaining.has(n)));
           } else if (s.kind === 'camera') {
             unwrap(f.view.setCamera({ tx: s.tx, ty: s.ty, zoom: s.zoom }));
           } else if (s.kind === 'select' && picked !== undefined) {
@@ -175,7 +177,7 @@ describe.skipIf(!authoringBuilt)('canvas projection', () => {
         await scope.dispose();
         expect(projector.state).toBe('disposed');
       }),
-      { numRuns: 20 },
+      { numRuns: 40 },
     );
   });
 

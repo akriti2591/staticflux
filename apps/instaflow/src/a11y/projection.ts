@@ -5,7 +5,9 @@
  *
  * - **Virtualized**: only elements whose ink bounds meet the visible region (the tab camera's viewport in page space,
  *   grown by `margin` of its size per side) get nodes, found through B3's rbush element index; their ancestors, the
- *   selection and the entered container are kept so the tree and the focus path stay whole.
+ *   selection and the entered container are kept so the tree and the focus path stay whole. Plain groups are never
+ *   taken from the index (their bounds are their children's, which the index does not keep current): a group is in
+ *   view when one of its descendants is.
  * - **Reading order** is the document tree (child order), never the paint stack or screen position.
  * - **Names**: the element's `name`, else its text (B2, through the `text` port, first line, at most
  *   `NAME_MAX_CHARS`), else its role description. **Roles** come from `roles.ts` tables.
@@ -24,6 +26,7 @@ import type { NodeId } from '@staticflux/document/v2';
 import type { AccessibleNode } from '@staticflux/surface';
 import { P } from '../elements/components.js';
 import { elementBounds, isElement } from '../elements/layout.js';
+import { resolveElement } from '../elements/resolve.js';
 import { instanceCount } from '../repeat/params.js';
 import type { RepeatStage } from '../repeat/stage.js';
 import { canvasSelectable, type ElementIndex, type ToolContext } from '../tools/hit-test.js';
@@ -153,7 +156,7 @@ export function projectCanvas(input: ProjectionInput): Result<CanvasSnapshot> {
     }
   };
   index.refresh();
-  for (const hit of index.index.search(region)) add(hit);
+  for (const hit of index.index.search(region)) if (hasOwnBounds(ctx, hit)) add(hit);
   for (const selected of view.selection) add(selected);
   if (view.context !== view.root) add(view.context);
 
@@ -194,6 +197,12 @@ export function projectCanvas(input: ProjectionInput): Result<CanvasSnapshot> {
   const nodes = walk(view.root);
   const pageName = stringValue(stage.value(view.root, 'name')) ?? view.root;
   return ok({ root: view.root, label: a11yMessages.canvas(pageName), nodes, ids, focus: focus !== undefined && ids.includes(focus) ? focus : undefined, region });
+}
+
+/** False for plain groups (their bounds are their children's union); true for every element with its own geometry. */
+export function hasOwnBounds(ctx: Pick<ToolContext, 'stage' | 'kit'>, node: NodeId): boolean {
+  const el = resolveElement(ctx.stage, node, ctx.kit);
+  return el !== undefined && el.geometry.kind !== 'group';
 }
 
 function screenBounds(view: Pick<ViewState, 'camera'>, box: Box): NonNullable<AccessibleNode['bounds']> {
