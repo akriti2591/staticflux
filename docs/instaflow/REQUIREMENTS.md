@@ -1408,3 +1408,35 @@ warp are B10b (early M2).
 |---|---|
 | `IF-XF-001` | A numeric transform value is not a finite number in its range |
 | `IF-XF-002` | A transform session was committed or cancelled while none was active |
+
+## 35. Foundations: kit building blocks and icons (M1c B11a)
+
+The building blocks `docs/instaflow/ux/FOUNDATIONS.md` §6 marks as missing and non-overlay, built where it assigns them
+(generic → `@staticflux/kit`, R13.32–R13.35; app-specific → Instaflow). Overlays and feedback (menus, context menus, tooltips,
+toasts, popovers, dialogs) wait for their deeper spec (B11a part 2). B11b composes these into the Studio and Home surfaces.
+
+- **IF-35.1** **One icon set** (FOUNDATIONS §5.9, STUDIO-UX-SPEC §10.2): Lucide outline icons plus the custom gap icons (boolean
+  union / subtract / intersect / exclude, mask, skew, pivot, radial / grid / mirror repeat, drop shadow, smooth corner, text
+  auto width / auto height / fixed) on Lucide's 24-unit grid, through `<sf-icon>` (R13.32). No emoji and no text glyphs as icons.
+- **IF-35.2** The set covers every icon STUDIO-UX-SPEC §10.2 point 4 names; adding one is a manifest line and a generator run.
+- **IF-35.3** Only imported icons ship: one icon module is about 0.2 KB, the whole set stays well under Studio's 20 KB cap
+  (size budgets).
+- **IF-35.4** The Lucide licence (ISC, with the MIT notice for Feather-derived icons) ships with the icon modules and the `lucide`
+  package is a recorded dependency, so `licenses:check` covers it; Settings › About (B11b) shows the attribution.
+- **IF-35.5** Icons render 16 px in rows, menus, the inspector and tags (stroke 1.75), 18 px in icon buttons and the tool picker,
+  24 px on cards and empty states; they paint in `currentColor`, so the selected (soft tangerine) and hover states recolour them.
+- **IF-35.6** An icon is decorative inside a named control and labelled (`role="img"`) only when it stands alone.
+- **IF-35.7** Instaflow's **icon tables** (`src/theme/icons.ts`): layer kind → icon (Layers rows, the inspector header), tool →
+  icon (tool picker), repeat kind and boolean operation → icon; every kind and operation has one.
+- **IF-35.8** **Scrubbable numbers** (FOUNDATIONS §4.5, STUDIO-UX-SPEC §5.3) through `<sf-number-field>` (R13.33): units inside
+  the field, expressions and units typed, label drag with Shift / Alt, ↑/↓ steps, `Mixed`, angle wrap, W/H minimum by `min`.
+- **IF-35.9** A scrub previews live and commits once on release, so the app writes one undo step per gesture; Escape during a
+  drag restores the start value.
+- **IF-35.10** **Inline rename** (FOUNDATIONS §4.19) through `<sf-inline-edit>` (R13.34): text pre-selected, Enter / blur save,
+  Escape cancels, empty refused inline ("A name is required"), the design-title variant is a real button.
+- **IF-35.11** The **colour swatch** (FOUNDATIONS §4.6, STUDIO-UX-SPEC §5.4) shows the resolved colour and a hatched pattern when a
+  token cannot resolve, never a guessed colour (R13.35).
+- **IF-35.12** Kit chrome Studio already shows (dock rail and collapse buttons, panel and inspector group disclosures, tree
+  twisties) draws its chevrons with the icon set instead of text glyphs.
+- **IF-35.13** Every B11a block passes the full accessibility audit under Clean Pop in each state a person meets (rest, mixed,
+  invalid, editing, refused), and the colours they use keep AA contrast; `chrome.test.ts` pins the list of audited blocks.

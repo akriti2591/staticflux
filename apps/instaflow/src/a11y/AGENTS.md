@@ -57,6 +57,8 @@ units.push(...a11yContributionUnits({ canvas: () => a11y }));
 - Never move focus unless the canvas already has it; never send announced text anywhere but the live region.
 - Colours only from the theme (the focus ring is `color.focusRing`); strings only in `messages.ts`.
 - Every new Instaflow custom element must run the full audit under Clean Pop in its test (`chrome.test.ts` guards it).
+- Every kit building block added for Studio and Home is mounted under Clean Pop in `foundations.test.ts` (B11a: `sf-icon`,
+  `sf-number-field`, `sf-inline-edit`, `sf-swatch`); `chrome.test.ts` pins that list — extend both together.
 
 ## Test
 `pnpm vitest run apps/instaflow/src/a11y` (needs `pnpm build` for the Wasm-backed suites): roles and region (data), the
