@@ -1,6 +1,6 @@
 # Instaflow — M1 work plan: core authoring
 
-> Status: **draft for review** (2026-10-25). Inputs: [PLAN.md](PLAN.md) §2–3 (M1 row and SF-Δ list),
+> Status: **approved; Wave 1 started** (2026-10-25). Agent brief: [M1-BRIEF.md](M1-BRIEF.md). Inputs: [PLAN.md](PLAN.md) §2–3 (M1 row and SF-Δ list),
 > [PHASE0-FINDINGS.md](PHASE0-FINDINGS.md), [DECISIONS.md](DECISIONS.md) (D1–D15). Nothing here is built yet.
 
 ## Goal
@@ -50,7 +50,8 @@ Sizes are relative (S ≈ days, M ≈ 1–2 weeks, L ≈ 2–3 weeks for one own
 | **A6** Render module | `RasterBackend` (Vello GPU), 512 px tiles per √2 zoom, lifted layers, WGSL compositor, tile prep in a helper/idle lane, pipeline warm-up with a cached first frame, GPU device-loss recovery, GPU memory budgets | Δ23, Δ24 (headless part), Δ29, IF-7.4–7.5, 7.11 | S1, S7 | A2, A5 | L |
 | **A7** Editor ↔ render sequencing | Editor and render **modules** with fixed ports; one-or-two-worker boot setting, **default one (D15)**; draw on arrival; deltas before view frames; binary render projection; spatial index (rbush); the **S2 oracle as a shared test suite**; the main-rAF tick experiment for the split | D15, Δ25, IF-7.1–7.3 | S2 | A5 | M |
 | **A8** Stage, attribution, undo | `@staticflux/stage` (local + session layers, composed stage, provenance); actor records into transactions; per-actor undo service, 200 steps, persisted; undo-over-overwrite conflict flag | Δ7 (part), Δ9, Δ10, IF-4.12–4.13 | S4 | A4 | M |
-| **A9** Testkit | GPU device fake, golden render snapshots, perceptual diff; contract suites for BlobStore, DocumentRepo, N-peer convergence | Δ31 (M1 part) | S1, S4, S6 | – | M |
+| **A9** Testkit | GPU device fake, golden render snapshots, perceptual diff, media fakes groundwork. (Each port's contract suite is written by the package that owns the port: A3 BlobStore, A4 DocumentRepo and N-peer convergence, A7 the sequencing oracle.) | Δ31 (M1 part) | S1 | – | M |
+| **A10** UI kit (framework) | **Theme contract** in `@staticflux/ui` (typed tokens → CSS custom properties, light/dark, density Focus/Standard/Pro, reduced motion) and a neutral **default theme**; new package **`@staticflux/kit`**: core components (button, icon button, segmented, text field, slider, color field, menu, popover, tooltip, dialog and toast wired to `@staticflux/messaging`, tabs) and shell components (toolbar, dock/panels, inspector rows, tree view, **command palette over the capabilities registry**); keyboard, focus, RTL and a11y tests; **Studio migrated** as the second consumer | new; R-entries + FEATURE-NEEDS | – | – | L |
 
 **M1a demo:** open a generated 50k-node, 200-page document in under a second; pan, zoom and drag 100 elements on a
 10k-element page; kill the tab mid-edit and reopen with nothing lost; two tabs editing the same page converge.
@@ -105,9 +106,11 @@ flowchart LR
   A8 --> B1
   A8 --> B5
   A8 --> C3
-  A9 --> A3
-  A9 --> A4
   A9 --> A6
+  A10 --> B3
+  A10 --> B4
+  A10 --> B5
+  A10 --> B6
   B1 --> B3
   B1 --> C1
   B2 --> C1
@@ -121,7 +124,7 @@ flowchart LR
 
 | Wave | Work packages in parallel | Starts when |
 |---|---|---|
-| 1 | A1, A2, A3, A4, A5, A9 | this plan is approved |
+| 1 | A1, A2, A3, A4, A5, A9, A10 | this plan is approved |
 | 2 | A6, A7, A8 | A2 + A5 (A6, A7), A4 (A8) are merged |
 | — | **M1a demo and review** | wave 2 merged |
 | 3 | B1, B2, B4, B5 | M1a review |
@@ -129,6 +132,12 @@ flowchart LR
 | — | **M1b demo and review** (incl. IME check) | wave 4 merged |
 | 5 | C1, C3, then C2 | M1b review |
 | 6 | C4 | all merged |
+
+## Design track (parallel to M1a)
+
+Visual direction (2–3 options on one editor screen), then the **Instaflow theme** on top of A10's contract, then the
+editor-only components (HUD, presence chip, proposal card, milestone list, canvas overlay styling). UX stays as in
+[UX.md](UX.md). Lands before wave 3 so M1b builds designed screens.
 
 ## Decisions to make during M1
 
