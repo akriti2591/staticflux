@@ -35,6 +35,9 @@ Keep `yjs` and `loro-crdt` out of main-thread chunks; load the Loro Wasm in the 
 - `collab.ts` — `CollaborationTransport` / `CollaborationSession` contract, `createMockCollaborationNetwork()`
   (`partition`/`heal`), `connectCollaboration({ engine, session, presence })`.
 - `units.ts` — `documentEngineUnit`, `collaborationTransportUnit` (`CollaborationTransportToken`), `documentReplica(id)`.
+- `crdt-v1-adapter.ts` — `adaptToV1(part: DocumentCRDTv2, { clientId, meta })` → v1 `DocumentCRDT`: the migration path for
+  v1 engines onto Loro (`createDocumentEngine({ …, crdt: adaptToV1(createLoroEngine().create({ peer }), { clientId }) })`).
+  Studio keeps the Yjs default. Difference from Yjs: a deleted entity id is not resurrected by a later create.
 - `errors.ts` — `SF-DOC-001` … `SF-DOC-007` (v1), `SF-DOC-008` … `SF-DOC-019` (v2; field validation reuses `SF-DOC-003`).
 
 ### v2 (`@staticflux/document/v2`)

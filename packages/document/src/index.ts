@@ -8,3 +8,4 @@ export * from './projection.js';
 export * from './presence.js';
 export * from './collab.js';
 export * from './units.js';
+export * from './crdt-v1-adapter.js';

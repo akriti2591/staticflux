@@ -215,6 +215,7 @@ class LoroPart implements DocumentCRDTv2 {
   private isDisposed = false;
   /** Enabled on first write: querying or enabling it materializes the lazily imported tree (~8 ms per 1k-node part). */
   private fractionalIndex = false;
+  private idsPrefetched = false;
 
   constructor(
     doc: LoroDoc,
@@ -260,6 +261,17 @@ class LoroPart implements DocumentCRDTv2 {
     if (typeof id !== 'string') return undefined;
     this.nodeOf.set(tree, id);
     return id;
+  }
+
+  /** Load the whole NodeId → TreeID index in one crossing (before O(size) walks; events keep it fresh afterwards). */
+  private prefetchIds(): void {
+    if (this.idsPrefetched) return;
+    this.idsPrefetched = true;
+    for (const [node, tid] of Object.entries(this.ids.toJSON() as Record<string, unknown>)) {
+      if (!isTreeId(tid)) continue;
+      this.treeOf.set(node, tid);
+      this.nodeOf.set(tid, node);
+    }
   }
 
   /** Live, non-orphan tree id for a node. */
@@ -420,12 +432,16 @@ class LoroPart implements DocumentCRDTv2 {
 
   forEachNode(visit: (node: NodeRecord) => boolean | void): void {
     if (this.isDisposed) return;
-    // One boundary crossing for the shape (ids and container ids only), then one per node.
+    // One crossing for the shape (tree ids only), one for the id index, then one per node (its data map).
     const shape = this.tree.getShallowValue();
+    this.prefetchIds();
     const walk = (list: readonly { id: TreeID; fractional_index?: string; fractionalIndex?: string; children: unknown[] }[], parent: NodeId | null): boolean => {
       for (const entry of list) {
-        if (!this.isCanonical(entry.id)) continue;
-        const record = this.record(entry.id, parent, entry.fractional_index ?? entry.fractionalIndex ?? '', this.readData(entry.id));
+        const data = this.readData(entry.id);
+        const id = data['id'];
+        if (typeof id !== 'string' || this.treeIdOf(id) !== entry.id) continue; // orphan
+        this.nodeOf.set(entry.id, id);
+        const record = this.record(entry.id, parent, entry.fractional_index ?? entry.fractionalIndex ?? '', data);
         if (record === undefined) continue;
         if (visit(record) === false) return false;
         if (!walk(entry.children as never, record.id)) return false;

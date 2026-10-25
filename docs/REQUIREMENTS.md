@@ -497,4 +497,5 @@
 - **R11.8i** Performance targets from S4 are tracked in a bench file, not unit tests: 50k-node open ≤ 1 s, 1k-move drag commit
   ≤ 20 KB, divergent merge ≤ 200 ms per page off the main thread.
 - **R11.8j** The v1 `DocumentCRDT` interface and ECS engine (`@staticflux/document`) stay available and unchanged for existing
-  consumers (Studio).
+  consumers (Studio); `adaptToV1(part)` implements the v1 interface over any v2 part, so a v1 engine can move to Loro by
+  configuration.
