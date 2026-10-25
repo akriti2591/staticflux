@@ -204,42 +204,126 @@ and keys for the Canvas lens:
 - Choosing a creation tool changes the cursor to a crosshair; after one creation the picker returns to Select (Figma),
   unless the tool was double-clicked (sticky, shown with a small dot under the icon).
 
-### 4.2 Selection pill (the HUD)
+### 4.2 Selection pill (the contextual HUD)
 
 A small floating contextual pill (StudioCP: `Fraunces ▾ · 120 · Fit to box · ✦ Rewrite · ⋯`), **not** the current
-three-row action bar. Rules:
+three-row action bar. Canva is the convention: selecting a shape puts its colour in the pill; selecting text puts font,
+size, colour and alignment there; and the inspector still has everything. Overlay rules (layer 1, nesting, light
+dismiss, roles) are `OVERLAYS-FEEDBACK.md` §1; this section states what the pill contains and how it behaves.
 
-- **Placement:** centred above the selection's screen bounds with a 12 px gap; below it when there is no room above;
-  clamped to the canvas region with 8 px margins; snapped to the selection's top edge when the selection is taller than
-  the viewport. Hidden while dragging, resizing, rotating or marquee-selecting; reappears 120 ms after the gesture.
-  Never moves the canvas, never overlaps the tool picker (it moves below the selection instead).
-- **Capacity:** at most **6** visible items plus `⋯`. Items are ghost-small buttons (28 px) with an icon and, when the
-  item is a value, text. Dividers between groups. The `⋯` opens the **More** menu: a searchable menu (`sf-menu` with a
-  filter field, same as the command palette filtered to the selection), grouped by Arrange · Transform · Combine ·
-  Style · Repeat · Describe, each item with its shortcut; actions the selection cannot run are **not listed** (never
-  disabled rows).
-- **Stability:** the first three slots are fixed per selection kind; the pill re-lays out only when the selection kind
-  changes, never while open.
-- **Contents per selection kind** (Standard density; Pro adds shortcut hints in tooltips; Focus is identical):
+#### 4.2.1 One model for the HUD and the inspector
 
-| Selection | Visible items (max 6) | Always in More |
+The HUD and the inspector are **two views of one control model**; neither has logic of its own.
+
+- Every editable property or action of a selection kind is declared once as a **control**: `id`, `kind` (`swatch` ·
+  `number` · `menu` · `toggle` · `font` · `action` · `chip`), the fact it reads and the capability it runs, `label`,
+  `icon`, `shortcut`, its inspector `section` and position, and an optional **HUD rank** (1–6). Controls are declared
+  per selection kind in `src/spec/controls.ts` (plumbing §12), keyed by `selectionFacts`.
+- The **inspector** renders every control of the kind, grouped by section (§5.1). The **HUD** renders the controls with
+  a HUD rank, in rank order, at most six, then `⋯`. Both read the same reactive facts, both commit through the same
+  capability, both show the same `Mixed` placeholder and the same resolved swatch; a value changed in one updates the
+  other within the same frame. One undo step, named once.
+- Popovers are shared components: the **colour popover**, the **font picker**, the **alignment popover** open from a
+  HUD item and from the inspector field alike, anchored to whichever opened them. There is no second colour picker.
+- Actions (Duplicate, Delete, Group, Crop…) are capabilities already; the pill, the More menu, the context menu and the
+  command palette list the same capabilities filtered by `selectionFacts`. An action absent from one is absent from all.
+
+#### 4.2.2 Placement, collision, drag
+
+- Centred above the selection's screen bounds with a 12 px gap; **below** when there is no room above; clamped to the
+  canvas region with 8 px margins; snapped to the selection's visible top edge when the selection is taller than the
+  viewport; when the selection is **entirely off-screen** the pill is hidden (the inspector still has everything).
+  Never overlaps the tool picker (it moves below the selection instead), never moves the canvas.
+- **Hidden** while dragging, resizing, rotating, marquee-selecting, panning or zooming; reappears 120 ms after the
+  gesture ends, at the new position, with no slide. While one of its popovers is open the pill **freezes** (no
+  re-layout, no repositioning) until the popover closes.
+- **Text editing:** the pill stays visible above the text element (Canva) and acts on the caret's range: `B` bolds the
+  selected run, `Size` changes the run, `Colour` the run; with no range they act on the whole element.
+- **Stability:** the first three slots are fixed per selection kind; the pill re-lays out only when the kind changes,
+  never while open, never because a value changed. Items are 28 px ghost-small buttons with an icon and, for values,
+  text in Geist Mono; dividers between groups; a leading mono **chip** names the kind when useful (`Radial · 8`,
+  `Instance 3 of 8`, `Locked`).
+- `Alt+Enter` focuses the first item; arrows move; Enter opens or runs; `Escape` closes an open popover first, then
+  returns focus to the canvas (the ladder, §9). The pill is a `toolbar` named `Selection actions`.
+
+#### 4.2.3 Inline, popover, or More
+
+| Kind of control | Inline in the pill | Opens a popover | Lives in More `⋯` |
+|---|---|---|---|
+| Colour (fill, stroke, text colour, page background) | the 16 px round swatch showing the **resolved** colour; hatched when a token cannot resolve | the **colour popover** | — |
+| Font | `Font ▾` showing the family name in that font | the **font picker** | — |
+| Number (size, radius, count, stroke width) | a 64 px scrubbable number (§5.3) with its unit | — | the rest of the section's numbers |
+| Toggle (bold, clip, invert, lock) | an icon button with `aria-pressed`; pressed = soft tangerine | — | — |
+| Choice with ≤ 3 options (fit mode, mask mode, operation) | `Label ▾` | a **menu** (one level) | — |
+| Alignment | `Align ▾` | the **alignment popover** (3 × 2 grid + distribute row + `Align to: Selection · Page`) | — |
+| Action (Duplicate, Delete, Crop, Ungroup…) | an icon button for the top-ranked actions | — | every other applicable action, grouped Arrange · Transform · Combine · Style · Repeat · Describe, with shortcuts |
+| Agent action (M2) | `✦ Rewrite`, `✦ Remove background` as the 6th item (agent-soft) | — | the other `✦` actions |
+
+The `⋯` opens the **More** menu: a searchable menu (filter field on top, same engine as the command palette filtered to
+the selection), grouped, each row with its shortcut; actions the selection cannot run are **not listed** (never
+disabled rows). The context menu (§8.2) is the same list without the filter.
+
+#### 4.2.4 Contents per selection kind
+
+Standard density; Pro adds the second tooltip line; Focus is identical. `⋯` is always the last item and is not counted.
+
+| Selection | Pill (≤ 6, in rank order) | Always in More |
 |---|---|---|
 | Nothing | No pill. | — |
-| Shape (rect / ellipse / polygon / star / line / path) | Fill swatch · Stroke swatch · Corner radius field (rect only; polygon/star show Points) · Duplicate · Delete · ⋯ | Rotate 90°, Flip H/V, Free transform, Bring forward/backward, Group with…, Use as mask, Radial/Grid/Mirror repeat, Outline stroke, Flatten, Describe |
-| Text | Font ▾ · Size field · Bold · Align ▾ · Fill swatch · ⋯ (`✦ Rewrite` joins as 6th from M2, Fit to box moves to More) | Fit to box, Italic/Underline, Letter spacing, Line height, Rotate 90°, Flip, Duplicate, Delete, Repeat…, Describe |
-| Image | Crop · Fit ▾ (Fill/Fit/Stretch) · Replace… · Use as mask ▾ · Duplicate · Delete · ⋯ (`✦ Remove background` from M2) | Rotate, Flip, Bring/Send, Repeat…, Describe |
-| Group | Ungroup · Align ▾ · Duplicate · Delete · ⋯ | Rotate, Flip, Tidy up, Use as mask, Repeat…, Flatten, Describe |
-| Frame | Fill swatch · Clip toggle · Rename · Duplicate · Delete · ⋯ | Align children, Tidy up, Layout grid…, Rotate, Repeat…, Describe |
-| Multi-selection | Align ▾ · Distribute ▾ · Group · Combine ▾ (Union/Subtract/Intersect/Exclude) · Delete · ⋯ | Tidy up, Centre in container, Use as mask, Radial/Grid/Mirror repeat, Flip, Rotate, Describe |
-| Repeat | Kind chip (`Radial · 8`) · Count field · Edit · Expand · Release · ⋯ | Duplicate, Delete, Align, Flip, Describe |
-| Boolean group | Operation ▾ (Union…) · Release · Flatten · Duplicate · Delete · ⋯ | Align, Rotate, Flip, Describe |
-| Masked group | Mask mode ▾ (Clip/Alpha/Luminance) · Invert · Release · Duplicate · Delete · ⋯ | Align, Rotate, Describe |
-| Page (label clicked) | Rename · Size ▾ · Duplicate page · Delete page · ⋯ | Fit, Export this page… |
+| **Shape** (rect · ellipse · polygon · star · line · path) | Fill swatch · Stroke swatch · Radius (rect; polygon/star: Points; line: Stroke width) · Duplicate · Delete | Rotate 90°, Flip H/V, Free transform, Bring forward/backward, Group with…, Use as mask, Radial/Grid/Mirror repeat, Outline stroke, Flatten, Copy link to selection, Describe |
+| **Text** | Font ▾ · Size · Colour swatch · Bold · Align ▾ · Delete (M2: `✦ Rewrite` takes slot 6 and Delete moves to More) | Fit to box, Italic, Underline, Letter spacing, Line height, Vertical align, Auto-size, Rotate 90°, Flip, Duplicate, Repeat…, Describe |
+| **Image** | Crop · Fit ▾ (Fill / Fit / Stretch) · Replace… · Use as mask ▾ · Duplicate · Delete (M2: `✦ Remove background` as slot 6) | Rotate, Flip, Bring/Send, Repeat…, Describe |
+| **Frame** | Fill swatch · Clip toggle · Rename · Duplicate · Delete | Align children, Tidy up, Layout grid…, Stroke, Rotate, Repeat…, Describe |
+| **Group** | Ungroup · Align ▾ · Duplicate · Delete | Rotate, Flip, Tidy up, Use as mask, Repeat…, Flatten, Describe |
+| **Multi-selection, same kind** | the kind's first two value controls when every element has them (shapes: Fill · Stroke; text: Font ▾ · Size) · Align ▾ · Distribute ▾ · Group · Delete | Combine ▾ (shapes), Tidy up, Centre in container, Use as mask, Repeat…, Flip, Rotate, Describe |
+| **Mixed** (different kinds) | Fill swatch (only when every element has a fill; shows `Mixed` hatch when values differ) · Align ▾ · Distribute ▾ · Group · Delete | Combine ▾ (when ≥ 2 shapes), Tidy up, Centre in container, Use as mask, Flip, Rotate, Describe |
+| **Locked** (any kind, or a selection containing a locked element) | chip `Locked` · Unlock | Copy, Copy link to selection, Describe — nothing that edits |
+| **Repeat** (source selected, or an instance clicked) | chip `Radial · 8` (or `Instance 3 of 8` when an instance was clicked) · Count · Edit · Expand · Release | Duplicate, Delete, Align, Flip, Go to source (instance), Describe |
+| **Boolean group** | Operation ▾ (Union…) · Fill swatch · Release · Flatten · Delete | Duplicate, Align, Rotate, Flip, Describe |
+| **Masked group** | Mask mode ▾ (Clip / Alpha / Luminance) · Invert · Release · Duplicate · Delete | Align, Rotate, Describe |
+| **Page** (label clicked) | Background swatch · Size ▾ · Rename · Duplicate page · Delete page | Fit, Export this page…, Copy link to page |
+| **Milestone preview** (read-only) | Copy | Copy link to selection, Describe |
 
-- `Delete` is always visible on a non-text pill (the owner could not find it) with the tooltip "Delete · ⌫".
-- Swatches open the colour popover (kit `color-field`): hex field, brand tokens row, recent colours, opacity slider.
-- Value fields in the pill (Size, Radius, Count) are scrubbable numbers (§5.3).
-- `Alt+Enter` focuses the pill's first item; arrows move; `Escape` returns to the canvas.
+- `Delete` is visible on every editable non-text pill (the owner could not find it); tooltip `Delete · ⌫`.
+- A repeat **instance** is Instaflow's component instance: clicking it selects the source, highlights the instance,
+  and the pill is the repeat's with the `Instance n of N` chip; edits apply to the source (F-13). Per-instance
+  overrides are not in M1.
+- Value fields in the pill (Size, Radius, Count, Stroke width) are scrubbable numbers (§5.3) with the same expressions
+  and `Mixed` rules as the inspector.
+
+#### 4.2.5 The colour popover (one for the pill, the inspector and dialogs)
+
+264 px wide (the inspector's width), 12 px corners, 14 px padding, anchored to the swatch that opened it, light dismiss
+passes the click through (`OVERLAYS-FEEDBACK.md` §1.4). Top to bottom:
+
+| Row | Contents | Behaviour |
+|---|---|---|
+| Value | the hex field (Geist Mono, `#` fixed), an opacity number (`100 %`), the eyedropper icon button (rendered only when `EyeDropper` exists) | Typing a complete hex previews live; Enter / blur commits one undo step; Escape restores the opening value and closes. Eyedropper: a mode; the popover hides while picking; Escape cancels the pick. |
+| **Document colours** | the colours used in this design, most used first, ≤ 12 swatches of 24 px in a 6-column grid, a mono tag on hover (`#FFF4E0 · 3 uses`) | Click commits. This is the Canva row the owner asked for: recolouring to something already on the page is one click. |
+| **Brand** (when the document has a kit) | the brand tokens as swatches with their `@name` on hover; the current token outlined | Click binds the **token** (the field shows `@cream`); `Detach from token` appears in the value row while a token is bound. Unresolvable token: hatched swatch + `Replace with #FF5C39` (§5.4). |
+| **Palette** | a fixed 24-colour default palette (6 × 4) chosen for Clean Pop | Click commits. |
+| **Recent** | the last 8 colours committed on this device | Click commits. |
+| `Custom ▸` | expands **inline** (never a second popover): a saturation/brightness square and a hue slider, 200 px tall | Dragging previews live, commits on release. |
+
+Keyboard: Tab between rows; arrows move within a grid; Enter picks; `Mod+C` / `Mod+V` on a swatch copy and paste a hex.
+Hover never previews (Figma); click commits. Multi-selection: the popover edits every element with that property;
+`Mixed` shows the hatch in the value swatch and an empty hex field.
+
+#### 4.2.6 The font picker
+
+A 264 × 360 popover: a filter field on top (`Search fonts`), then a virtualised list of 36 px rows showing each family
+**in its own face** with the family name, grouped `Recent · In this design · All`; a mono tag `@display` on brand fonts.
+Hovering a row for 150 ms **previews** it on the selection (Canva natives expect it); moving on previews the next; click
+commits one undo step `Font`; Escape restores and closes; Enter commits the focused row. Fonts not yet cached show a
+muted `Download` glyph and preview only after download; offline shows the fallback with the banner rule
+(`OVERLAYS-FEEDBACK.md` §3.3). Weight is a separate `Weight ▾` menu in the inspector (and in the pill's More), never
+part of the family list.
+
+#### 4.2.7 The alignment popover
+
+A 3 × 2 grid of icon buttons (left · centre · right / top · middle · bottom), a divider, a distribute row (horizontal ·
+vertical · tidy up), and `Align to: Selection · Page` as a switcher (Page is the only option for a single element).
+Each button commits immediately and the popover stays open (people align twice); Escape closes.
 
 ### 4.3 Zoom control
 
@@ -261,6 +345,12 @@ Today the bar emits `if-command` that nothing listens to (plumbing §11).
 StudioCP style (11 px uppercase muted), 14 px padding, hairline between. **Each section heading appears once** (today
 "Transform › Transform" nests a panel title inside a section; the panel renders without its own title when placed in a
 section).
+
+The inspector is the **full view of the control model** the selection pill projects (§4.2.1): every control of the
+selection kind, by section; the pill shows the top six. The same swatch opens the same colour popover (§4.2.5), the same
+`Font ▾` opens the same font picker, the same number fields scrub (§5.3). A deep link `?inspect=<section>` expands and
+scrolls to a section once (`NAVIGATION-DEEPLINKS.md` §2.2). The header's lock state is the same `Lock` control the pill
+shows as `Unlock`.
 
 ### 5.1 Section order per selection kind
 
@@ -497,7 +587,8 @@ A `sf-menu` at the pointer, kit styling, items with icons and shortcuts; only ap
 | Space+drag | Pan with any tool. |
 | Escape ladder | Text editing → element selected → container left → nothing selected → tool back to Select. |
 
-**Feedback per Studio action** (the **Toast** and inline feedback block, FOUNDATIONS §4.10 and §5.3):
+**Feedback per Studio action** (the feedback hierarchy, toast rules and error copy rules are `OVERLAYS-FEEDBACK.md` §3;
+FOUNDATIONS §5.3 says what gets a toast):
 
 | Action | Feedback |
 |---|---|
@@ -511,6 +602,9 @@ A `sf-menu` at the pointer, kit styling, items with icons and shortcuts; only ap
 | Template used / document created | Studio opens; the title field is focused for naming. |
 | Errors (any `SfError`) | Toast with the error's `message` and `fix` as a link where it is a URL or action; never a bare code. |
 | `Mod+S` | Toast "Instaflow saves automatically · Create milestone". |
+| Worker crash | Banner over the canvas, one automatic restart, then toast or blocking error (`OVERLAYS-FEEDBACK.md` §3.3; F-50). |
+| Copy link (any target) | Toast "Link copied" (1.5 s, deduped; `NAVIGATION-DEEPLINKS.md` §5). |
+| Deep link to a missing page / element / milestone | Fallback one level up + neutral toast (`NAVIGATION-DEEPLINKS.md` §4; F-49). |
 
 ## 10. Polish rules
 
@@ -610,7 +704,12 @@ Settings › Assistant. The forbidden-text test covers the rendered Studio chrom
 | Loose elements and re-parenting on drop | `src/tools/gesture.ts` (drop target), `src/elements/layout.ts` (`containerOf`), `src/lenses/structure.ts` | `structure.loose` exists |
 | Export clipping rule and "outside the pages" line | C1 export dialog | |
 | Delete / shortcuts active with a selection even when focus is on chrome | `src/app/studio-canvas.ts` (activate `CanvasToolsShortcutScope` while `if-studio` has focus and no text field is active, not only while the surface has focus) | Likely why Delete "didn't work" |
-| Visible Delete, Duplicate, swatches in the pill; pill per kind; More menu with search | `src/spec/studio-spec.ts` (per-kind HUD tables keyed by `selectionFacts`), `src/studio/studio-element.ts` (pill placement near the selection, needs the selection's screen bounds from the view projection) | Replace the two-row bar |
+| **Control model** (one declaration per selection kind feeding the pill and the inspector) | new `src/spec/controls.ts` (`defineControl({ id, kind, fact, capability, label, icon, shortcut, section, hudRank })`, tables keyed by `selectionFacts`), consumed by `src/spec/studio-spec.ts` (HUD = ranked projection) and `src/elements/panel.ts` / inspector (sections) | §4.2.1; replaces the per-WP `*HudActions` lists |
+| Pill placement near the selection, freeze while a popover is open, hide during gestures | `src/studio/studio-element.ts` (needs the selection's screen bounds from the view projection), `src/tools/view-state.ts` | Replace the two-row bar |
+| Colour popover (document colours, brand, palette, recent, custom), font picker, alignment popover | generic parts in `packages/kit` (`<sf-color-popover>`, `<sf-font-picker>` list + hover preview events, `<sf-align-popover>`); Instaflow supplies document colours from a `ColorsMirror` (`src/workers/mirrors.ts`), the brand row, the font list (`src/app/fonts.ts`) | §4.2.5–4.2.7; one instance each, shared by pill and inspector |
+| Routes, view params, intents, copy link | `src/home/routes.ts` (all paths), new `src/app/url-contract.ts`, `src/app/url.ts`, `src/app/links.ts` | `NAVIGATION-DEEPLINKS.md` §7 |
+| Milestone preview and Compare takeovers, `/m/:milestone` | `src/versioning/` (`preview.ts`, `compare.ts`), `src/studio/studio-element.ts` takeover slot | `OVERLAYS-FEEDBACK.md` §2.3 |
+| Worker crash banner, automatic restart, blocking error | `src/workers/boot.ts` (crash promise exists), new `src/app/recovery.ts`, `src/app/feedback.ts` (error → level adapter) | `OVERLAYS-FEEDBACK.md` §3.3 |
 | Rotate handle | `src/tools/transform.ts` (`ROTATE_HANDLE` below bottom-centre), `src/tools/overlay.ts`, `gesture.ts` | Keep corner zones |
 | Clipboard | new `src/tools/clipboard.ts` (editor side: serialise subtree, paste ops with offsets) + `src/app/studio-canvas.ts` (DOM `copy`/`paste` events, async Clipboard API) + library ingest for images | capabilities `instaflow/copy`, `instaflow/paste`, `instaflow/paste-in-place` |
 | Group / Ungroup / Frame selection | `src/elements/actions.ts` (`group`, `ungroup`, `frameSelection`) + capabilities + HUD/context entries | |
