@@ -28,7 +28,7 @@ entries at the top of **Journal**.
 | B7 Repeat | Merged | `main` | #14 |
 | B2 Text | Merged; IME check passed (D20) | `main` | #16 |
 | B6 Accessibility layer | Merged; not yet wired to Studio's live canvas | `main` | #17 |
-| B8 Studio integration | In progress (fresh agent, from `main` after #18) | `claude/wip-b8-studio` | — |
+| B8 Studio integration | PR open (full check 4,151 tests + Studio smoke pass). **Editor and render run on the main thread: temporary, contradicts D15** | working branch | #20 |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
@@ -61,6 +61,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** B8 done (e4a375b): first clickable Studio (`pnpm --filter @instaflow/app dev`), smoke test, integration
+  fixes. **Deviation:** editor and render modules run on the main thread instead of the D15 worker; proposed B9 moves
+  them into the worker (input ring in; caret, accessibility and overlay data out; OffscreenCanvas) before C4. B10
+  Transform tools proposed (flip, skew, pivot, numeric bar; then distort, perspective, warp). Both await the owner.
 - **2026-10-25** IME check passed on the owner's Mac (Chrome 155): 8/8 automated, 7/7 by hand, both text inputs →
   **D20** (keep EditContext on Chrome). Results in `docs/instaflow/checks/`. Findings: no CJK fallback fonts / no
   .notdef boxes (follow-up); EditContext control bounds grow by a line per key during composition (sent to B8).
