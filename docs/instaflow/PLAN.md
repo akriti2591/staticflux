@@ -1,6 +1,7 @@
 # Instaflow — Plan
 
-> Status: **draft for owner review** (2026-10-24). [DECISIONS.md](DECISIONS.md) is authoritative. Phase 0
+> Status: **Phase 0 complete; M1 next** (2026-10-25). Results: [PHASE0-FINDINGS.md](PHASE0-FINDINGS.md); M1 work
+> plan: [M1-PLAN.md](M1-PLAN.md). Previously: draft for owner review (2026-10-24). [DECISIONS.md](DECISIONS.md) is authoritative. Phase 0
 > produces **measurements, not product**. Every spike has a kill criterion and a named fallback. Durations assume
 > one core team of 4–6 engineers plus a UX researcher; M2 and M3 can run in parallel with two teams.
 
@@ -37,6 +38,21 @@ one-page result.
 | **S9** | **Matte:** a BiRefNet-class ONNX model on ORT Web (WebGPU) in the ML worker; license sign-off of weights | ≥ 5 fps at 720p on the iGPU machine; temporally stable edges after smoothing; weights licensed for commercial use | Too slow or unlicensed → MediaPipe-quality matte for V1 plus "Fix edges", and revisit at M5 |
 | **R0** | **UX research** (UX.md §8) on a Figma prototype with a Wizard-of-Oz agent | Ranked job list; HUD slot map; T5 and T7 comprehension data | Findings change M2 scope, never the format |
 
+### 1.1 Phase 0 outcome (2026-10-25)
+
+All nine spikes ran; details in [PHASE0-FINDINGS.md](PHASE0-FINDINGS.md). Changes to this plan:
+
+| Spike | Outcome | Plan change |
+|---|---|---|
+| S1, S7 | PASS (owner GPU); SVG parity 0.9945 median | Tiles mandatory; tile prep off the frame; pipeline warm-up; SVG metric or per-feature rasterize list in M1 |
+| S2 | PASS with one worker | **D15**: editor and render are modules; topology is a boot setting, default one worker |
+| S3 | PASS (IME placement needs a human) | `complex-scripts` lazy |
+| S4 | PASS with the merge criterion restated per page | **D14**: one CRDT document per page |
+| S5 | PASS (owner Mac, Bluetooth included) | Catch-up rule, settled-clock start, per-machine encoder settings in M3 |
+| S6 | PASS (real-folder crash test) | Folder backend is a batched mirror of the OPFS journal |
+| S8 | PASS on two model families | Markup view + relational ops is the M2 default; fragments optional |
+| S9 | Fallback | V1 live mask = MediaPipe; baked matte model chosen at M5 |
+
 ## 2. Milestones
 
 Each milestone ends with green e2e tests for its scenarios, budgets enforced in CI, and `AGENTS.md` for every
@@ -44,11 +60,11 @@ new package and app area.
 
 | Milestone | Delivers | Requirements | Needs (SF-Δ) |
 |---|---|---|---|
-| **M1 Core authoring** | Workspace store (OPFS and folder), library doc, ingest and hashing, renditions (thumbnails); Latest with continuous save, per-actor undo, multi-tab co-editing; Milestones, compare, New document from milestone, templates with slots; Pages and Canvas lenses; shapes, images, vectors, booleans, rich text, effects, brand-kit tokens and classes; select, marquee, transform, snapping; PNG/PDF/SVG/`.iflow` export and import; unsupported screen; guest identity; read-only mode | IF-2, IF-3, IF-4, IF-5, IF-7, IF-13.1, IF-13.3–4, IF-14 | Δ1–6, Δ7 (local + session layers), Δ9, Δ10, Δ17–19, Δ22–29, Δ31–33 |
+| **M1 Core authoring** | Workspace store (OPFS journal, folder as a batched mirror), library doc, ingest and hashing, renditions (thumbnails); Latest with continuous save, per-actor undo, multi-tab co-editing; Milestones, compare, New document from milestone, templates with slots; Pages and Canvas lenses; shapes, images, vectors, booleans, rich text, effects, brand-kit tokens and classes; select, marquee, transform, snapping; PNG/PDF/SVG/`.iflow` export and import; unsupported screen; guest identity; read-only mode | IF-2, IF-3, IF-4, IF-5, IF-7, IF-13.1, IF-13.3–4, IF-14 | Δ1–6, Δ7 (local + session layers), Δ9, Δ10, Δ17–19, Δ22–29, Δ31–33 |
 | **M2 Agent layer** | Capability metadata and applicability; HUD, command bar, chat; mock providers plus OpenAI and Anthropic (built on the model-provider contribution point); agent views (layout) and `agent/*` tools; change sets, proposals, conflict UI, attribution, agent presence, autonomy levels; WebMCP; format eval (IF-6.16); first-party extension host (in-process, manifest-checked) | IF-1.4, IF-6, IF-10.1–6, IF-12, IF-17.6 | Δ7 (proposal layers), Δ8, Δ11–13, Δ20, Δ21, Δ30 (chat), Δ34, Δ35 |
 | **M3 Timeline** | `@staticflux/media` and `@staticflux/motion`; tracks; import, trim, split, ripple, roll, slip; constant speed, reverse, freeze; volume, fades, crossfades; clip transitions; keyframes on every animatable property; proxies, filmstrips, waveforms; audio-master playback; MP4 export; timeline and transcript agent views | IF-8.1–8.7, IF-8.10–11, IF-9.1, IF-15.3–4 | Δ14 (jobs), Δ15, Δ16, Δ24 (clocked and offline loops), Δ34 (timeline codec) |
 | **M4 Motion & presentation** | Motion preset assets; text animation; page transitions including Smart move; Zoom here and Ken Burns; Animate HUD; presentation and presenter view; viewer HTML; WebM, GIF, image sequence | IF-9, IF-13.2–3 | Δ15 (complete) |
-| **M5 Reaction & generative** | Baked matte jobs with live preview mask; PiP cutout presets; transcription and captions; silence and filler removal; generate image, video and audio; Extend this clip; recipes and lineage badges | IF-8.8–9, IF-10.7–9 | Δ14 (complete), Δ30 (media tasks) |
+| **M5 Reaction & generative** | Baked matte jobs (model chosen here; BiRefNet at 512² first) with the MediaPipe live preview mask; PiP cutout presets; transcription and captions; silence and filler removal; generate image, video and audio; Extend this clip; recipes and lineage badges | IF-8.8–9, IF-10.7–9 | Δ14 (complete), Δ30 (media tasks) |
 | **M6 Flows** | Workflow assets; record → flow; collapse into unit (registered capability); App view and batch runs; lineage view; graph agent view | IF-11 | Δ12 (`invokePlan`), Δ34 (graph codec) |
 | **M7 V1 hardening** | Accessibility audit (WCAG 2.2 AA chrome, canvas layer); performance lab runs; Firefox best-effort pass; license audit; scenarios A–E green; documentation | IF-2.5, IF-15, IF-16 | — |
 
@@ -67,7 +83,7 @@ suites where there is a port).
 | Δ | Package (layer) | Contents | Phase |
 |---|---|---|---|
 | **Δ1** | **`@staticflux/blob`** (vertical) | `BlobStore` port: `put(stream, { signal }) → Result<BlobRef>` with chunked hashing, `get(digest, { range })`, `has`, `stat`, `verify`; chunk manifests; GC roots and mark-sweep with a grace period; quota facts; errors `SF-BLOB-*` | M1 |
-| **Δ2** | `@staticflux/blob` backends | OPFS (sync-handle writer in dedicated workers, `getFile().slice` readers); File System Access folder (create-only objects, atomic head swap, permission re-grant flow); zip bundle reader/writer (central directory, stored entries, Compression Streams); resolver port | M1 |
+| **Δ2** | `@staticflux/blob` backends | OPFS (sync-handle writer in dedicated workers, `getFile().slice` readers); File System Access folder as a **batched mirror** of the OPFS journal (create-only objects, temp + `move()` head swap under a Web Lock, permission re-grant flow; S6); zip bundle reader/writer (central directory, stored entries, Compression Streams); resolver port | M1 |
 | **Δ7** | **`@staticflux/stage`** (vertical, on document) | Layer stack (session, proposal/*, local); arcs `reference`, `inherit`, `variant`; final paths; incremental composed stage with a dependency index; `read(node)` with value provenance; `explain()` | M1 (local + session), M2 (proposals) |
 | **Δ15** | **`@staticflux/motion`** (vertical, pure) | `Ticks`, `Rational`, `TickRange`, conversions; channels; easing (cubic-bezier, steps, hold, sampled springs); typed interpolators (linear-light color); `TimeMap`; seeded PRNG; lint banning ambient time and randomness | M3 (core), M4 (presets, text units) |
 | **Δ16** | **`@staticflux/media`** (vertical) | `MediaClock` (audio, wall, offline, scrub); `DecoderPool` and `DecoderSession` lifecycle; `MediaIndex`; codec facts; Mediabunny container port (the only importer); `ExportJob` lifecycle with checkpoints; AudioWorklet host, mixer graph and offline render (shared DSP) | M3 |
@@ -120,10 +136,10 @@ content.
 
 | Risk | Mitigation |
 |---|---|
-| Vello maturity (0.3) | `RasterBackend` port; S1 corpus; CanvasKit kept as the measured fallback; pinned versions; upstream contributions |
-| Loro maturity or size | S4 numbers; `DocumentCRDT` seam; LWW v2 fallback; canonical, engine-independent milestones and bundles |
+| Vello maturity (0.3) | `RasterBackend` port; S1 corpus; pinned versions; upstream contributions. S1: passes on a real GPU; CanvasKit's npm build has no WebGPU, so a fallback would mean our own Skia build |
+| Loro maturity or size | S4 numbers; `DocumentCRDT` seam; one doc per page (D14); LWW v2 fallback; canonical, engine-independent milestones and bundles; 822 KB brotli loads in the background |
 | Co-editing bugs (ripple, proposals, undo) | Explicit-move intents; N-peer property tests; multi-tab is real co-editing from M1 |
-| Agent edit quality (geometry, composition confusion) | Lints, relational ops, `from=` and `@token` annotations, the screenshot verify loop, format eval before lock-in |
+| Agent edit quality (geometry, composition confusion) | S8: relational ops beat hand-computed geometry on Claude and Qwen; lints, relational ops, `from=` and `@token` annotations, the screenshot verify loop, format eval before lock-in |
 | Rust toolchain adds build complexity | One pinned toolchain, one workspace, CI caches; built artifacts are content-hashed chunks |
 | Licensing contamination (codecs, weights) | Δ32 allowlist; model-card registry; MPL used unmodified |
 | Scope creep from "everything is an asset" | Blob assets immutable; tree assets share one mechanism; no per-kind special cases in the store |
@@ -131,14 +147,7 @@ content.
 
 ## 5. Open questions for the owner
 
-1. **Default home:** start every new user in the browser store and offer "Move to a folder" at 2 GB (proposed), or
-   ask for a folder at first run on Chrome?
-2. **Undo horizon:** 200 steps per actor, kept across reloads (proposed). Is that enough, or should undo end at
-   session close?
-3. **Exports always create a milestone** (IF-5.10). Is the extra list entry per export acceptable, or should quick
-   exports skip it?
-4. **Comments timing:** the model is designed now. Ship a basic single-level comments panel in V1 (M7), or strictly
-   post-V1?
-5. **External agents beyond the browser:** WebMCP only in V1 (proposed), or also a local MCP bridge for desktop
-   agents?
-6. **Default autonomy:** `auto-apply-safe` for every model (proposed), or `suggest` for external WebMCP agents?
+All six were answered on 2026-10-24 and are locked in [DECISIONS.md](DECISIONS.md): default home → D8; undo
+horizon → D9; exports and milestones → D10 (publishing creates a Release, plain exports create nothing); comments →
+D11 (fast follow after V1); external agents → D12 (WebMCP + chat, local bridge as an M7 stretch); default autonomy →
+D13 (Ask for external agents, Accept edits for the in-app agent).

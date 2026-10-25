@@ -169,9 +169,10 @@
 - **IF-5.9** **Costs scale with document size, never with age or ancestry.** Opening Latest, creating a milestone,
   opening a milestone and creating a document from one are each O(size of the document), independent of how
   many milestones or edits exist.
-- **IF-5.10** **Exports are built from a milestone.** Exporting from Latest creates the milestone in the same
-  user action (name prefilled: "Export · <format> · <date>"). Clipboard copy and drag-out of a selection are
-  exempt and leave no record.
+- **IF-5.10** **Exports render from a frozen snapshot and leave no record (D10).** The export reads an internal,
+  content-addressed snapshot of Latest taken when the export starts, so later edits never leak into a running
+  export. Plain exports create no milestone and no list entry. **Publishing** creates a Release asset (rendered
+  output, the frozen snapshot, and a "published from" label), never a milestone.
 - **IF-5.11** Milestones open read-only (IF-13.1). Comparing two milestones visually (side by side) is in V1.
   Diffing them structurally is not.
 
@@ -254,7 +255,8 @@
 - **IF-7.1** **Threads:** main (chrome, input, EditContext, accessibility layer, AudioContext), a per-tab
   **editor worker** (CRDT peer, composition, tools, view state), a per-tab **render worker** (WebGPU), per-tab
   **media workers**, one **store worker** per workspace, and on-demand export and ML workers. ARCHITECTURE §2 is
-  normative.
+  normative. **D15:** editor and render are modules with fixed ports; whether they share one worker (default) or
+  use two is a boot setting.
 - **IF-7.2** **View state is per tab.** Camera, selection, active tool, gesture overlays and lens live in the
   tab's editor worker. They are never in the CRDT and never shared through the store.
 - **IF-7.3** **Sequencing invariants E-1…E-6** (ARCHITECTURE §4) are tested invariants: ordered apply, atomic

@@ -117,11 +117,12 @@ from the same clock cell.
 
 ### 3.5 Export
 
-The user picks a format. The app creates a milestone if needed (IF-5.10). The export worker loads the milestone's
+The user picks a format. The app freezes an internal snapshot of Latest (IF-5.10, D10: no milestone, no record for
+plain exports; publishing wraps the same snapshot in a Release). The export worker loads the snapshot's
 parts into a headless editor module (compose, layout) and a headless render module (SF-Δ24 headless surface),
 with its own decoder sessions in exact mode. It renders frames out of order with in-order submission, encodes
-through WebCodecs and Mediabunny, and streams to the store. The store writes the output blobs and an
-`ExportRecord`.
+through WebCodecs and Mediabunny, and streams to the store. The store writes the output blobs; only a publish
+also writes an `ExportRecord` inside its Release.
 
 ## 4. Sequencing protocol (from report 03, adopted unchanged)
 
