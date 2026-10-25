@@ -17,6 +17,10 @@
     "./coordinator": {
       "types": "./dist/coordinator-entry.d.ts",
       "import": "./dist/coordinator-entry.js"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline.d.ts",
+      "import": "./dist/pipeline.js"
     }
   },
   "files": [

@@ -25,3 +25,14 @@ export * from './media-fake.js';
 export * from './document-store-contract.js';
 export * from './document-repo-contract.js';
 export * from './document-crdt-contract.js';
+
+// Pipeline contract suites (Instaflow M1 A5: SF-Δ17–Δ19).
+export * from './pipe-contract-support.js';
+export * from './seqlock-cell-contract.js';
+export * from './clock-cell-contract.js';
+export * from './record-ring-contract.js';
+export * from './delta-stream-contract.js';
+export * from './blob-side-channel-contract.js';
+export * from './handle-channel-contract.js';
+export * from './peer-channel-contract.js';
+export * from './windowed-replica-contract.js';
