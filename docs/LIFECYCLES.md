@@ -588,6 +588,26 @@ document from the URL.
 | HOME-6 | Leaving Studio by the Home link loses no edit: Latest and the index are flushed before the navigation | `studio-session.test.ts`; `home.smoke.mjs` |
 | HOME-7 | The persistent store never reuses a log seq and serializes head swaps and appends per asset | SF-DOC-011; `document-store.test.ts` (DocumentStore contract) |
 
+## 31. Export: the export job, the export worker, the export service (Instaflow M1c C1; D10, D21)
+
+An export freezes Latest into a snapshot (B5), spawns one export worker, runs one job there and hands the files to the
+person. Nothing is written to the document (D10).
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/export-job` | queued → opening (`open`: the snapshot opened read-only) → composing (`compose`: a page's scene) → rendering (`render`: PNG chunks or D21 raster patches) → composing (next page) \| writing (`write`: PNG encode, SVG / PDF writer) → done; any non-terminal → failed (`fail`) \| cancelled (`cancel`: the signal). Terminal: done, failed, cancelled | `apps/instaflow/src/export/job.ts` |
+| Export service status | idle → running (`run`; progress events update it) → done \| failed \| cancelled; any of those → running on the next `run`; a `run` while running is refused (IF-EXP-007, `busy`) | `apps/instaflow/src/export/service.ts` |
+| Export worker | spawned per `run` → started (`start`: store port, Wasm manifest, fonts) → running (`run`: one job) → stopped (`stop`, then terminated) whatever the outcome; a crash fails the run (IF-EXP-007) | `apps/instaflow/src/export/service.ts`, `host.ts`, `export.worker.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| EXP-1 | An export reads only its frozen snapshot: later edits never appear, and nothing (head, milestones, undo, library) changes | IF-EXP-003; `job.test.ts`, `snapshot-document.test.ts`; smoke |
+| EXP-2 | One export at a time per Studio; every export has its own worker, terminated after the job | IF-EXP-007; `service.test.ts` |
+| EXP-3 | Cancelling (panel, signal, Studio closing) ends the job `cancelled`, delivers nothing and stops the worker | `job.test.ts`, `service.test.ts` |
+| EXP-4 | The export Wasm is loaded only inside an export worker, only for SVG, PDF or selection exports | `job.test.ts`; smoke (no `export.*.wasm` request before the PDF export) |
+| EXP-5 | Every element keeps its full matrix (rotation, scale, skew, flips) in every format; repeats are expanded | `job.test.ts`; `cargo test -p export` (`skew_and_flips_match_the_renderer`) |
+| EXP-6 | PNG is the renderer's own output (golden parity); SVG and PDF meet D21 | `export.gpu.test.ts`; `cargo test -p export` (corpus) |
+
 ## 35. Editor in the worker: Studio's worker topology (Instaflow M1c B9; D15)
 
 Studio's editor module and render module run in workers by the boot setting (one worker by default, two available);

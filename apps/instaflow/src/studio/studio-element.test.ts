@@ -80,7 +80,7 @@ describe('<if-studio> frame', () => {
 
     const landmarks = [...root.querySelectorAll('aside, main')].map((el) => `${el.localName}:${el.getAttribute('aria-label')}`);
     expect(landmarks).toEqual(['aside:Chat', 'aside:Dock', 'main:Canvas', 'aside:Typography']);
-    expect([...root.querySelectorAll('aside[data-region="dock"] sf-tab')].map((t) => t.textContent?.trim())).toEqual(['Layers', 'Pages', 'Assets', 'Milestones', 'Brand']);
+    expect([...root.querySelectorAll('aside[data-region="dock"] sf-tab')].map((t) => t.textContent?.trim())).toEqual(['Layers', 'Pages', 'Assets', 'Milestones', 'Brand', 'Export']);
     const main = root.querySelector('main') as HTMLElement;
     expect(main.querySelector('sf-toolbar.tools')?.getAttribute('aria-label')).toBe('Tools');
     expect(main.querySelector('sf-toolbar.hud')?.getAttribute('aria-label')).toBe('Selection actions');
@@ -265,14 +265,30 @@ describe('<if-studio> keyboard paths', () => {
     await until(() => studio.lens?.label === 'Pixel');
   });
 
-  it('the dock tabs are an APG tablist: arrows move between Layers, Pages, Assets, Milestones and Brand', async () => {
+  it('the dock tabs are an APG tablist: arrows move between Layers, Pages, Assets, Milestones, Brand and Export', async () => {
     const { root } = await mount();
     const tabs = [...root.querySelectorAll('aside[data-region="dock"] sf-tab')] as HTMLElement[];
-    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false', 'false']);
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false', 'false', 'false']);
     tabs[0]?.focus();
     press(tabs[0] as HTMLElement, 'ArrowRight');
     await settle(4);
-    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'true', 'false', 'false', 'false']);
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'true', 'false', 'false', 'false', 'false']);
+  });
+
+  it('showPanel selects a dock panel by id and focuses its tab (C1: Share shows Export)', async () => {
+    const { element, root } = await mount();
+    expect(await element.showPanel('instaflow/export')).toBe(true);
+    await settle(4);
+    const tabs = [...root.querySelectorAll('aside[data-region="dock"] sf-tab')] as HTMLElement[];
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'false', 'false', 'false', 'false', 'true']);
+    expect(await element.showPanel('instaflow/nope')).toBe(false);
+    // A control inside a panel (a segmented control's composed `sf-change`) does not switch the dock's tab.
+    const inner = root.querySelector('aside[data-region="dock"] sf-tab-panel:last-of-type') as HTMLElement;
+    const probe = document.createElement('span');
+    inner.append(probe);
+    probe.dispatchEvent(new CustomEvent('sf-change', { detail: { value: 'pdf' }, bubbles: true, composed: true }));
+    await settle(4);
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'false', 'false', 'false', 'false', 'true']);
   });
 
   it('the HUD, intents and the command bar emit events for the features that handle them', async () => {

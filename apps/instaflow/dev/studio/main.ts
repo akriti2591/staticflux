@@ -8,7 +8,7 @@
  *
  * Which document: the URL (`src/home/routes.ts`) — `/s/:asset` opens a design, `/new?format=…` or `/new?template=…`
  * makes one (the URL then becomes `/s/:asset`), and `/dev/studio/` opens the demo document (created on first use).
- * The logo goes back to Home (`/`) after saving. `window.__studio` exposes the app (and `window.__session` the
+ * The logo goes back to Home (`/`) after saving; exports run in an export worker spawned per export (C1). `window.__studio` exposes the app (and `window.__session` the
  * session) for the smoke checks and devtools.
  */
 import type { FlagDefinition } from '@staticflux/config';
@@ -79,6 +79,13 @@ async function main(): Promise<StudioSession> {
         },
         isolation: { crossOriginIsolated: globalThis.crossOriginIsolated === true },
         assets: { manifest: new URL(MANIFEST, location.href).href, fonts: FONTS.map((f) => new URL(f, location.href).href) },
+      },
+      // C1: one export worker per export (headless Vello, the export Wasm on demand); files go to the downloads.
+      exporter: {
+        spawn: () => () => {
+          const worker = new Worker(new URL('../../src/export/export.worker.ts', import.meta.url), { type: 'module', name: 'export' });
+          return ok({ port: fromWorker(worker), terminate: () => worker.terminate() });
+        },
       },
       textInput,
       isMac: /Mac/.test(navigator.platform),

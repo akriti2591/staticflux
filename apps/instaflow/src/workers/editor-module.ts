@@ -56,6 +56,8 @@ import type { GuideLabel } from '../tools/snapping.js';
 import { type Camera, toPage } from '../tools/view-state.js';
 import { implementCreateMilestone } from '../versioning/command.js';
 import { createVersioningServices } from '../versioning/units.js';
+import { ExportSnapshotError } from '../export/errors.js';
+import type { ExportTarget } from '../export/service.js';
 import { CapabilityNotServedError, WorkerBootError } from './errors.js';
 import { createMirrorServers, type MirrorCall, type MirrorServers, type MirrorUpdate } from './mirror.js';
 import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, StoryMirror, type TransformBarModel, TransformMirror, TypographyMirror } from './mirrors.js';
@@ -135,6 +137,11 @@ export interface StudioEditor {
   /** Zoom one step in or out about the viewport centre. */
   zoom(step: 1 | -1): Result<void>;
   inspect(nodes?: readonly NodeId[]): StudioInspection;
+  /**
+   * C1: freeze Latest for an export (B5's snapshot: content blobs only, no record, no head change, D10) and report the
+   * page shown, every page and the selection. IF-EXP-003 when the snapshot cannot be written.
+   */
+  exportTarget(signal: AbortSignal): Promise<Result<ExportTarget>>;
 }
 
 /** Double click: a second press within this time and distance (the ring carries no click count). */
@@ -571,6 +578,12 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       if (tool !== undefined) return onTab((t) => tool(t.commands));
       const command = TEXT_HUD_COMMANDS[action];
       return command === undefined ? ok() : command(typography);
+    },
+    async exportTarget(exportSignal) {
+      const frozen = await versioning.snapshots.freeze(exportSignal);
+      if (!frozen.ok) return err(ExportSnapshotError({ cause: frozen.error, details: { step: 'freeze' } }));
+      const { id, ref: blob, manifest } = frozen.value;
+      return ok({ snapshot: { id, ref: blob, manifest }, page: tab()?.page, pages: document.pages.map((p) => p.id), selection: [...selection()] });
     },
     inspect(nodes) {
       const t = tab();

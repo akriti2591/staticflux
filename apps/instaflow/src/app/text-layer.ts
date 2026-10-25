@@ -50,6 +50,8 @@ export interface TextLayer extends SceneIrSource {
   readonly nodes: readonly NodeId[];
   /** The layout block id of a text element (stable while the layer lives). */
   blockId(node: NodeId): number;
+  /** The scene id of a text element's group (C1: selection exports), once it was drawn. */
+  sceneGroup(node: NodeId): number | undefined;
   /** Lay `model` out with `node`'s box and styles (the editing session's preview; also the default model). */
   layout(node: NodeId, model?: TextBlockModel): Result<TextLayout>;
   dispose(): void;
@@ -137,7 +139,10 @@ export function createTextLayer(options: TextLayerOptions): TextLayer {
       }
       const group = (nextScene += 2);
       const placed: number[] = [group];
+      const source = part();
+      const block = source === undefined ? undefined : readTextBlock(source, node);
       const nodes = textSceneNodes(laid.value, {
+        ...(block?.ok === true ? { text: block.value.text } : {}),
         id: group,
         transform: [...pageTransform(document.context(), node)] as unknown as SceneTransform,
         brushes: brushes(node),
@@ -171,6 +176,7 @@ export function createTextLayer(options: TextLayerOptions): TextLayer {
       return [...known];
     },
     blockId,
+    sceneGroup: (node) => sceneIds.get(node)?.[0],
     layout,
     changes,
     dispose() {

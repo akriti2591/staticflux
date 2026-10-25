@@ -1,0 +1,25 @@
+[package]
+name = "export"
+description = "Instaflow export engine (C1; IF-7.10, IF-29.x): the scene IR drawn through the render crate's one traversal into an SVG writer and a PDF writer (pdf-writer, real text), with raster patches for what a format cannot express."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = { workspace = true }
+# The scene IR, the draw traversal and glyph outlines only: no GPU code and no render exports in the export Wasm.
+render = { path = "../render", default-features = false, features = ["outlines"] }
+vello_common = { workspace = true }
+pdf-writer = { workspace = true }
+flate2 = { workspace = true }
+base64 = { workspace = true }
+
+# Host-only test helpers: vello_cpu reference renders (render's `cpu` module), resvg for the SVG parity corpus, PNG.
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+resvg = { workspace = true }
+png = { workspace = true }
+skrifa = { workspace = true }

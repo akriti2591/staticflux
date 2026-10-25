@@ -72,6 +72,14 @@
     "./home": {
       "types": "./dist/home/index.d.ts",
       "import": "./dist/home/index.js"
+    },
+    "./export": {
+      "types": "./dist/export/index.d.ts",
+      "import": "./dist/export/index.js"
+    },
+    "./export/panel": {
+      "types": "./dist/export/panel.d.ts",
+      "import": "./dist/export/panel.js"
     }
   },
   "scripts": {

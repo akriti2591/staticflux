@@ -9,7 +9,7 @@
 //! `DestOut` when inverted), drawn in its mode: clip (geometry only, opaque), alpha (as drawn) or luminance (colours
 //! become alpha = a × luma).
 
-use crate::ir::{Clip, Effect, Geometry, Node, Paint, ROOT, Rgba8, Scene, StrokeStyle, fit, mask};
+use crate::ir::{Clip, Effect, Geometry, GlyphRun, Node, Paint, ROOT, Rgba8, Scene, StrokeStyle, fit, mask};
 use std::collections::HashSet;
 use vello_common::color::{AlphaColor, Srgb};
 use vello_common::filter_effects::{EdgeMode, Filter as Effects, FilterPrimitive};
@@ -33,6 +33,28 @@ pub trait Painter {
     fn push_filter_layer(&mut self, filter: Effects);
     fn pop_layer(&mut self);
     fn set_even_odd(&mut self, even_odd: bool);
+    /// A glyph run's outline in local space (None: draw nothing). Default: the scene's glyph cache (`outlines`
+    /// feature); the export crate brings its own (its PDF library already links a font scaler).
+    fn glyph_outline(&mut self, scene: &Scene, run: &GlyphRun) -> Option<BezPath> {
+        #[cfg(feature = "outlines")]
+        return scene.glyph_path(run);
+        #[cfg(not(feature = "outlines"))]
+        {
+            let _ = (scene, run);
+            None
+        }
+    }
+    /// Fill a glyph run whose outline is `outline` (local space) with the current paint. Raster backends fill the
+    /// outline (the default); vector exports (C1: PDF) write the run as real text instead.
+    fn fill_glyphs(&mut self, _run: &GlyphRun, outline: &BezPath) {
+        self.fill_path(outline);
+    }
+    /// Vector exports draw some nodes from a raster patch (C1: effects the format cannot express). Return true when
+    /// the painter drew `node` and its subtree itself (at `transform`, view × world); the traversal then skips both.
+    /// Called for nodes drawn normally only (never while drawing a mask). Raster backends never replace (default).
+    fn replace_node(&mut self, _node: &Node, _transform: Affine) -> bool {
+        false
+    }
 }
 
 /// Which nodes a pass draws.
@@ -274,12 +296,20 @@ fn draw_leaf<P: Painter>(p: &mut P, scene: &Scene, node: &Node, transform: Affin
         Geometry::Glyphs(run) => {
             // B2: the run becomes one path (`glyphs.rs` outlines) filled with the node's fill stack; synthetic bold
             // adds a 1/24 em round-joined stroke in the same paint. Unknown font ids draw nothing.
-            if let Some(glyphs) = scene.glyph_path(run).filter(|g| !g.elements().is_empty()) {
+            if let Some(glyphs) = p.glyph_outline(scene, run).filter(|g| !g.elements().is_empty()) {
                 let fills: Vec<(Paint, f32, u8)> =
                     if mode == Mode::Clip { vec![(Paint::Solid([0, 0, 0, 255]), 1.0, 0)] } else { node.fills.iter().map(|f| (f.paint.clone(), f.opacity, f.blend)).collect() };
                 for (paint, opacity, blend) in fills {
                     with_layer(p, opacity, blend, mode, |p| {
-                        fill_with(p, &paint, size, mode, &glyphs);
+                        match apply_paint(p, &paint, size, mode) {
+                            None => {}
+                            Some(None) => p.fill_glyphs(run, &glyphs),
+                            Some(Some(keep)) => {
+                                p.push_layer(Some(&keep.to_path(0.1)), BlendMode::default(), 1.0);
+                                p.fill_glyphs(run, &glyphs);
+                                p.pop_layer();
+                            }
+                        }
                         if run.embolden && apply_paint(p, &paint, size, mode).is_some() {
                             p.stroke_path(&glyphs, &Stroke::new((run.size as f64 / 24.0).max(0.5)).with_join(Join::Round));
                         }
@@ -471,6 +501,9 @@ impl Pass<'_> {
             return;
         }
         let transform = self.view * self.scene.world_transform(id);
+        if mode == Mode::Normal && inside && p.replace_node(node, transform) {
+            return;
+        }
         let clip_mode = mode == Mode::Clip;
         let layered = node.needs_layer() && !(clip_mode && node.clip == Clip::None);
         if layered {

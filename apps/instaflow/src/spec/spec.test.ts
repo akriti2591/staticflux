@@ -63,7 +63,7 @@ describe('contributions', () => {
     expect(registries.lenses.map((l) => l.label)).toEqual(['Canvas', 'Pixel', 'Timeline', 'Flow', 'Pages']);
     expect((await test.get(LensContributionsToken)).length).toBe(5);
     expect((await test.get(ToolContributionsToken)).length).toBe(12);
-    expect((await test.get(PanelContributionsToken)).length).toBe(9);
+    expect((await test.get(PanelContributionsToken)).length).toBe(10);
     expect((await test.get(HudActionContributionsToken)).length).toBe(5);
     expect([lensContribution, panelContribution, hudActionContribution].every((f) => typeof f === 'function')).toBe(true);
     await test.dispose();

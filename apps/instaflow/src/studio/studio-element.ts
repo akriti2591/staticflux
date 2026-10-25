@@ -363,6 +363,20 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     this.query<HTMLElement>('.surface')?.focus();
   }
 
+  /**
+   * Show a dock panel by contribution id (C1: "Share" shows Export): its tab selected, the dock expanded, focus on
+   * its tab. False when the spec does not place it in the dock.
+   */
+  async showPanel(id: string): Promise<boolean> {
+    const entry = this.studio?.port.entries('panel@dock').find((e) => e.slot.id === id && !isExiting(e));
+    if (entry === undefined) return false;
+    this.dockTab = entry.slot.key;
+    this.setExpanded('dock', false);
+    await this.updateComplete;
+    this.query<HTMLElement>(`sf-tab[value="${entry.slot.key}"]`)?.focus();
+    return true;
+  }
+
   /** The current canvas session (after the canvas port started). */
   get canvasActive(): CanvasSession | undefined {
     return this.canvasSession;
@@ -543,6 +557,11 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     >`;
   }
 
+  /** The dock's tab changed; `sf-change` from controls inside its panels (composed, bubbling) is not a tab change. */
+  private pickDockTab(e: CustomEvent<{ value: SpecSlotKey }>): void {
+    if (e.target === e.currentTarget) this.dockTab = e.detail.value;
+  }
+
   private renderDock(context: PanelContext): TemplateResult | typeof nothing {
     const studio = this.studio as Studio;
     const entries = studio.port.entries('panel@dock');
@@ -551,7 +570,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const selected = present.find((e) => e.slot.key === this.dockTab)?.slot.key ?? present[0]?.slot.key;
     return html`<aside aria-label=${studioMessages.dock} data-region="dock">
       <sf-dock side="start" label=${studioMessages.dock} ?collapsed=${this.collapsed('dock', entries, context.density)} @sf-collapse=${(e: CustomEvent<{ collapsed: boolean }>) => this.setExpanded('dock', e.detail.collapsed)}>
-        <sf-tabs label=${studioMessages.dock} .value=${selected ?? ''} @sf-change=${(e: CustomEvent<{ value: SpecSlotKey }>) => (this.dockTab = e.detail.value)}>
+        <sf-tabs label=${studioMessages.dock} .value=${selected ?? ''} @sf-change=${(e: CustomEvent<{ value: SpecSlotKey }>) => this.pickDockTab(e)}>
           ${present.map((entry) => html`<sf-tab value=${entry.slot.key} data-slot=${entry.slot.key} data-group="panel@dock" data-phase=${entry.phase} style=${motionStyle(entry)}>${entry.slot.contribution.label}</sf-tab>`)}
           ${present.map((entry) => {
             const panel = studio.registries.panel(entry.slot.id);

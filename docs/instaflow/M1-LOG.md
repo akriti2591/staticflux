@@ -63,6 +63,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** C1 done (232aeb9; restarted agent wrote a handoff first): PNG / PDF / SVG export in a worker, Export
+  panel and capability, D21 (SVG/PDF parity rule with measured numbers). PDF via pdf-writer (krilla was 481 KB);
+  render and library budgets +0.25 KB each (scene IR text runs carry their text).
 - **2026-10-25** UX spec done (creative director, cdaf58b): `docs/instaflow/ux/` README, FOUNDATIONS (principles, vocabulary,
   building blocks with a StaticFlux-vs-Instaflow code map), STUDIO / HOME-FILES / CHAT specs, FLOWS. Ten open questions
   for the owner in STUDIO-UX-SPEC §14. B11 waits for the owner's answers. Logo: owner chose the cursive "if"; rounds 3

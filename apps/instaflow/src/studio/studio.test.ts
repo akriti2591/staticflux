@@ -30,7 +30,7 @@ describe('createStudio', () => {
     expect(studio.port.groups()).toMatchObject({
       'lens@default': ['lens:instaflow/lens-canvas'],
       'panel@side': ['panel:instaflow/chat'],
-      'panel@dock': ['panel:instaflow/layers', 'panel:instaflow/pages', 'panel:instaflow/assets', 'panel:instaflow/milestones', 'panel:instaflow/brand'],
+      'panel@dock': ['panel:instaflow/layers', 'panel:instaflow/pages', 'panel:instaflow/assets', 'panel:instaflow/milestones', 'panel:instaflow/brand', 'panel:instaflow/export'],
       'panel@inspector': ['panel:instaflow/typography'],
       'hud@default': ['hud:instaflow/rewrite', 'hud:instaflow/animate', 'hud:instaflow/ask'],
     });

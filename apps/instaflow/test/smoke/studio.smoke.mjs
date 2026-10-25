@@ -10,11 +10,17 @@
 // B10a (IF-34.21): flip (Shift+H twice is the identity), skew (Mod+Shift-drag the top handle of the rotated element:
 // 15° steps), a numeric-bar edit (W typed + Enter) and transform mode (Mod+T: Escape cancels the session, Enter
 // applies a nudge and a flip as one undo step).
+// C1 (IF-29.26): the Export panel exports PNG (2×, the page), PDF (all pages) and SVG (the page) to the downloads, in
+// the export worker; the files are checked (PNG: signature, size, decoded pixels with the shape's colour; PDF: header,
+// page count, the typed text extractable with `pdftotext` when poppler is installed; SVG: root, page box, text
+// labelled), the export Wasm is fetched only once a PDF is asked for (lazy), and the document gained nothing (D10).
 //
 // Starts the Studio dev server (dev/studio/vite.config.ts) on a free port, drives the page by role and name (the same
 // paths a person and a screen reader use), and reads the editor through `window.__studio.inspect()`. Options:
 // `--headed`, `--screenshot=<prefix>` (one PNG per topology), `--topology=colocated|split` (default both),
 // `SF_GPU=real` (the real GPU instead of SwiftShader). Exit code 1 on failure.
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
@@ -80,6 +86,9 @@ async function scenario(page) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => (m.type() === 'error' ? errors.push(m.text()) : undefined));
   page.on('worker', (w) => w.on('console', (m) => (m.type() === 'error' ? errors.push(`worker: ${m.text()}`) : undefined)));
+  // C1: requests for the export Wasm (the page's and its workers'), to show it loads only for an SVG or PDF export.
+  const exportWasm = [];
+  page.on('request', (r) => (/\/export\.[^/]*\.wasm(\?|$)/.test(r.url()) ? exportWasm.push(r.url()) : undefined));
   const url = `${base}?topology=${topology}`;
   log(`open ${url}`);
   await page.goto(url);
@@ -378,6 +387,61 @@ async function scenario(page) {
     log(`scope ${JSON.stringify(await page.evaluate(() => ({ scope: window.__studio.studio.spec?.scope, lens: window.__studio.studio.lens?.id, selection: window.__studio.view?.selection })))}`);
     throw e;
   });
+
+  // ---------------------------------------------------------------- C1: export PNG, PDF and SVG
+  const beforeExport = await state();
+  const undoBeforeExport = await undoDepth();
+  await page.getByRole('tab', { name: 'Export' }).click();
+  const exportPanel = page.locator('if-export-panel');
+  await exportPanel.waitFor({ timeout: 20_000 });
+  const download = async (button) => {
+    const [file] = await Promise.all([page.waitForEvent('download', { timeout: 180_000 }), exportPanel.getByRole('button', { name: button }).click()]);
+    const path = await file.path();
+    if (path === null) fail(`${button}: no file`);
+    return { name: file.suggestedFilename(), bytes: readFileSync(path) };
+  };
+  await exportPanel.getByRole('radio', { name: 'PNG' }).click();
+  await exportPanel.getByRole('radio', { name: '2×' }).click();
+  await exportPanel.getByRole('radio', { name: 'Page', exact: true }).click();
+  const png = await download('Export PNG');
+  if (!png.name.endsWith('.png') || png.bytes.subarray(1, 4).toString('latin1') !== 'PNG') fail(`PNG export: ${png.name} (${png.bytes.length} bytes)`);
+  const decoded = await page.evaluate(
+    async ({ data, rgb }) => {
+      const img = await createImageBitmap(new Blob([new Uint8Array(data)], { type: 'image/png' }));
+      const g = new OffscreenCanvas(img.width, img.height).getContext('2d');
+      g.drawImage(img, 0, 0);
+      const px = g.getImageData(0, 0, img.width, img.height).data;
+      let shape = 0;
+      for (let i = 0; i < px.length; i += 4) if (Math.abs(px[i] - rgb[0]) + Math.abs(px[i + 1] - rgb[1]) + Math.abs(px[i + 2] - rgb[2]) < 40) shape += 1;
+      return { width: img.width, height: img.height, shape };
+    },
+    { data: [...png.bytes], rgb: TANGERINE },
+  );
+  if (decoded.width !== 2160 || decoded.height !== 2700 || decoded.shape === 0) fail(`PNG export pixels: ${JSON.stringify(decoded)}`);
+  log(`exported ${png.name}: ${decoded.width}×${decoded.height} (2× the page), ${decoded.shape} shape pixels, ${Math.round(png.bytes.length / 1024)} KB`);
+  // The export Wasm is lazy (IF-29.20): nothing fetched it while editing, nor for a PNG of the page.
+  if (exportWasm.length > 0) fail(`the export Wasm loaded before an SVG or PDF export: ${exportWasm.join(', ')}`);
+  log('export Wasm not loaded by editing or a PNG export');
+  await exportPanel.getByRole('radio', { name: 'PDF' }).click();
+  await exportPanel.getByRole('radio', { name: 'All pages' }).click();
+  const pdf = await download('Export PDF');
+  const pdfText = pdf.bytes.toString('latin1');
+  if (!pdf.name.endsWith('.pdf') || !pdfText.startsWith('%PDF-1.7') || !pdfText.includes('/Count 2')) fail(`PDF export: ${pdf.name} (${pdf.bytes.length} bytes)`);
+  const extracted = spawnSync('pdftotext', ['-enc', 'UTF-8', '-', '-'], { input: pdf.bytes, encoding: 'utf8' });
+  if (extracted.error === undefined) {
+    if (!extracted.stdout.includes('Hello Studio')) fail(`PDF export: the text is not extractable: ${JSON.stringify(extracted.stdout)}`);
+    log(`exported ${pdf.name}: 2 pages, text extractable (${JSON.stringify(extracted.stdout.trim().split('\n')[0])})`);
+  } else log(`exported ${pdf.name}: 2 pages (pdftotext not installed: text not checked)`);
+  if (exportWasm.length === 0) fail('the PDF export did not load the export Wasm');
+  await exportPanel.getByRole('radio', { name: 'SVG' }).click();
+  await exportPanel.getByRole('radio', { name: 'Page', exact: true }).click();
+  const svg = await download('Export SVG');
+  const svgText = svg.bytes.toString('utf8');
+  if (!svg.name.endsWith('.svg') || !svgText.startsWith('<svg xmlns="http://www.w3.org/2000/svg"') || !svgText.includes('viewBox="0 0 1080 1350"')) fail(`SVG export: ${svg.name} (${svg.bytes.length} bytes)`);
+  if (!svgText.includes('aria-label="Hello')) fail('SVG export: the text is not labelled with its text');
+  log(`exported ${svg.name}: the page, text labelled, ${Math.round(svg.bytes.length / 1024)} KB`);
+  if ((await state()) !== beforeExport || (await undoDepth()) !== undoBeforeExport) fail('exporting changed the document');
+  log('exports created nothing in the document');
 
   // The canvas drew something (GPU path on SwiftShader): its pixels changed.
   await page.waitForTimeout(1500);

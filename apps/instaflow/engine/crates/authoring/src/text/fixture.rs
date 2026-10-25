@@ -42,7 +42,7 @@ pub fn layout_nodes(w: &mut IrWriter, encoded: &[f32], first_id: u32, x: f64, y:
         let first = r[9] as usize;
         let count = r[10] as usize;
         let glyphs = d.glyphs[first..first + count].iter().map(|q| (q[0] as u32, q[1], q[2])).collect();
-        let run = GlyphRun { font: r[1] as u32 + 1, size: r[2], embolden: r[7] != 0.0, skew: r[8], coords: coords.iter().map(|c| *c as i16).collect(), glyphs };
+        let run = GlyphRun { font: r[1] as u32 + 1, size: r[2], embolden: r[7] != 0.0, skew: r[8], coords: coords.iter().map(|c| *c as i16).collect(), glyphs, text: String::new(), clusters: Vec::new() };
         w.upsert(&leaf(id, first_id, Geometry::Glyphs(run), Paint::Solid(COLORS[r[3] as usize % COLORS.len()])), APPEND);
         id += 1;
     }
