@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { P } from './components.js';
-import { boxCenter, containerBounds, containerGrids, containerOf, elementBounds, gridLines, hitElement, intersectBox, isElement, localOutline, maskOf, pageTransform, siblingBounds, unionBox } from './layout.js';
+import { boxCenter, containerBounds, containerGrids, containerOf, elementBounds, gridLines, hitBox, hitElement, intersectBox, isElement, localOutline, maskOf, pageTransform, siblingBounds, unionBox } from './layout.js';
 import { resolveElement } from './resolve.js';
 import { authoringBuilt, createFixture, loadGeometry, shape, unwrap } from './testing/fixtures.js';
 
@@ -76,6 +76,24 @@ describe.skipIf(!authoringBuilt)('page-space geometry queries', () => {
     const group = unwrap(elementBounds(ctx, 'g')).geometry;
     expect([group.minX, group.minY, group.maxX, group.maxY].map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([0, 0, 100, 100]);
     expect(elementBounds(ctx, 'p1').ok).toBe(false);
+  });
+
+  it('hitBox covers every point a stroke hit can land on, beyond the ink at sharp corners and inside strokes', async () => {
+    const g = await loadGeometry();
+    const f = await createFixture([
+      shape('star', { [P.x]: 0, [P.y]: 1, [P.w]: 4, [P.h]: 10, [P.shape]: 'star', [P.strokes]: [{ paint: '#000', width: 8, align: 'center' }] }),
+      shape('in', { [P.x]: 100, [P.y]: 0, [P.w]: 20, [P.h]: 20, [P.strokes]: [{ paint: '#000', width: 4, align: 'inside' }] }),
+      shape('plain', { [P.x]: 200, [P.y]: 0, [P.w]: 20, [P.h]: 20, [P.fills]: [{ paint: '#f00' }] }),
+    ]);
+    const ctx = f.ctx(g);
+    const star = unwrap(elementBounds(ctx, 'star'));
+    expect(star.ink.minY).toBeGreaterThan(0);
+    expect(hitElement(ctx, 'star', 0, 0)).toEqual({ ok: true, value: 'stroke' });
+    expect(hitBox(ctx, star)).toEqual({ minX: star.ink.minX, minY: -3, maxX: star.ink.maxX, maxY: 15 });
+    // an inside stroke draws nothing outside, but hits up to its width beyond the edge
+    expect(hitBox(ctx, unwrap(elementBounds(ctx, 'in')))).toEqual({ minX: 96, minY: -4, maxX: 124, maxY: 24 });
+    const plain = unwrap(elementBounds(ctx, 'plain'));
+    expect(hitBox(ctx, plain)).toEqual(plain.ink);
   });
 
   it('hits honour fill, stroke and masks (inverted too)', async () => {

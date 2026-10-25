@@ -20,7 +20,7 @@ import { type Box, createSpatialIndex, type SpatialIndex } from '@staticflux/doc
 import type { NodeId } from '@staticflux/document/v2';
 import type { Stage } from '@staticflux/stage';
 import type { HitKind } from '../elements/geometry.js';
-import { type ElementContext, elementBounds, hitElement, isElement, localOutline, pageTransform } from '../elements/layout.js';
+import { type ElementContext, elementBounds, hitBox, hitElement, isElement, localOutline, pageTransform } from '../elements/layout.js';
 import { resolveElement } from '../elements/resolve.js';
 
 /** What tools read: B1's element context plus locks and invalidations. */
@@ -54,7 +54,7 @@ export function createElementIndex(ctx: ToolContext, root: NodeId, scope?: Scope
     if (isElement(composed.kind)) {
       const b = elementBounds(ctx, node);
       stats.reindexed += 1;
-      if (b.ok) into(node, b.value.ink);
+      if (b.ok) into(node, hitBox(ctx, b.value));
       else index.delete(node);
     }
     for (const child of ctx.stage.children(node)) indexSubtree(child, into);
@@ -92,7 +92,7 @@ export function createElementIndex(ctx: ToolContext, root: NodeId, scope?: Scope
         if (composed === undefined || !isElement(composed.kind)) continue;
         const b = elementBounds(ctx, node);
         stats.reindexed += 1;
-        if (b.ok) index.set(node, b.value.ink);
+        if (b.ok) index.set(node, hitBox(ctx, b.value));
         else index.delete(node);
       }
     },
@@ -232,11 +232,16 @@ const topFirst = (stage: Pick<Stage, 'read' | 'children'>, nodes: readonly NodeI
     .sort((a, b) => comparePaintOrder(b.order, a.order))
     .map((e) => e.node);
 
+/** A few ulps at the point's magnitude: the narrow phase can count a point within rounding of an edge as on it. */
+const edgeSlack = (x: number, y: number): number => 2 ** -20 * Math.max(1, Math.abs(x), Math.abs(y));
+
 /** The topmost hit at a page point (broad phase: the index; narrow phase: exact geometry). */
 export function hitTest(ctx: ToolContext, index: ElementIndex, x: number, y: number, options: HitOptions = {}): Result<Hit | undefined> {
   index.refresh();
   const t = Math.max(0, options.tolerance ?? 0);
-  const candidates = index.index.search({ minX: x - t, minY: y - t, maxX: x + t, maxY: y + t }).filter((n) => isHittableLeaf(ctx, n) && chainFrom(ctx.stage, index.root, n).length > 0);
+  // Pad the broad phase so its candidates stay a superset of what the narrow phase hits (the narrow phase decides).
+  const pad = t + edgeSlack(x, y);
+  const candidates = index.index.search({ minX: x - pad, minY: y - pad, maxX: x + pad, maxY: y + pad }).filter((n) => isHittableLeaf(ctx, n) && chainFrom(ctx.stage, index.root, n).length > 0);
   return firstHit(ctx, index.root, topFirst(ctx.stage, candidates), x, y, options);
 }
 

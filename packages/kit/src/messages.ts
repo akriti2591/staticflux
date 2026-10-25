@@ -21,6 +21,11 @@ export const kitMessages = /* @__PURE__ */ defineMessages('kit', {
   paletteEmpty: 'No matching actions',
   pickColor: 'Pick {label}',
   invalidColor: 'Enter a hex color such as #3a5bd9',
+  numberInvalid: 'Enter a number',
+  mixed: 'Mixed',
+  nameRequired: 'A name is required',
+  nameTooLong: 'Use at most {max} characters',
+  renameLabel: '{value} · Rename {label}',
 });
 
 /** Format a kit message through the (lazy) I18n dependency, falling back to the source text. */

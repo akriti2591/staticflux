@@ -205,6 +205,20 @@ describe.skipIf(!authoringBuilt)('hit-testing parity: broad + narrow phase ≡ b
     );
   });
 
+  it('a point a denormal outside an edge agrees with brute force (the narrow phase rounds it onto the edge)', async () => {
+    const base = { parent: 0, x: 0, y: 0, w: 4, h: 4, rotation: 0, form: 'rect', fill: false, stroke: 0, locked: false } as const;
+    const f = await createToolFixture(sceneOps([{ ...base, kind: 'frame' }, { ...base, kind: 'shape' }]));
+    for (const [x, y] of [[0, -5e-324], [-5e-324, 0], [4, 4 + 1e-12]] as const) {
+      expect(unwrap(hitTest(f.ctx, f.index, x, y))).toEqual(unwrap(hitTestBrute(f.ctx, 'p1', x, y)));
+    }
+  });
+
+  it('a thick stroke on a sharp corner is indexed as far as the stroke hit reaches (miter outline stops short)', async () => {
+    const star = { kind: 'shape', parent: 0, x: 0, y: 1, w: 4, h: 10, rotation: 0, form: 'star', fill: false, stroke: 8, locked: false } as const;
+    const f = await createToolFixture(sceneOps([star]));
+    expect(unwrap(hitTest(f.ctx, f.index, 0, 0))).toEqual(unwrap(hitTestBrute(f.ctx, 'p1', 0, 0)));
+  });
+
   it('marquee results agree with brute force (touch and contain)', async () => {
     await fc.assert(
       fc.asyncProperty(

@@ -94,6 +94,30 @@
       "types": "./dist/roving.d.ts",
       "import": "./dist/roving.js"
     },
+    "./icon": {
+      "types": "./dist/icon.d.ts",
+      "import": "./dist/icon.js"
+    },
+    "./icons": {
+      "types": "./dist/icons/index.d.ts",
+      "import": "./dist/icons/index.js"
+    },
+    "./number-field": {
+      "types": "./dist/number-field.d.ts",
+      "import": "./dist/number-field.js"
+    },
+    "./inline-edit": {
+      "types": "./dist/inline-edit.d.ts",
+      "import": "./dist/inline-edit.js"
+    },
+    "./swatch": {
+      "types": "./dist/swatch.d.ts",
+      "import": "./dist/swatch.js"
+    },
+    "./icons/*": {
+      "types": "./dist/icons/*.d.ts",
+      "import": "./dist/icons/*.js"
+    },
     "./position": {
       "types": "./dist/position.d.ts",
       "import": "./dist/position.js"
@@ -125,7 +149,8 @@
   "devDependencies": {
     "lit": "3.3.3",
     "@lit/context": "1.1.6",
-    "@staticflux/testkit": "workspace:*"
+    "@staticflux/testkit": "workspace:*",
+    "lucide": "1.54.0"
   },
   "repository": {
     "type": "git",

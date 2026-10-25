@@ -24,6 +24,10 @@ import { ConnectedListeners } from './internal/listeners.js';
 import { attachResizeHandle, clampSize } from './internal/resize.js';
 import { baseStyles, focusRing, t } from './internal/styles.js';
 import { kitMessages, kitText } from './messages.js';
+import { defineIconElement } from './icon.js';
+import { chevronDownIcon } from './icons/chevron-down.js';
+import { chevronLeftIcon } from './icons/chevron-left.js';
+import { chevronRightIcon } from './icons/chevron-right.js';
 
 const handleStyles = css`
   .handle {
@@ -179,7 +183,7 @@ export class SfDockElement extends SfElement<typeof dockSpec> {
     if (this.collapsed) {
       return html`<div class="rail" part="rail">
         <sf-icon-button label=${kitText(i18n, kitMessages.expandPanel, { label })} tooltip-side=${this.side === 'end' ? 'inline-start' : 'inline-end'} @click=${() => this.setCollapsed(false)}
-          ><span aria-hidden="true">${this.side === 'end' ? '‹' : '›'}</span></sf-icon-button
+          ><sf-icon .icon=${this.side === 'end' ? chevronLeftIcon : chevronRightIcon}></sf-icon></sf-icon-button
         >
         <slot name="rail"></slot>
       </div>`;
@@ -198,7 +202,7 @@ export class SfDockElement extends SfElement<typeof dockSpec> {
         <div class="bar">
           <slot name="header"></slot>
           <sf-icon-button label=${kitText(i18n, kitMessages.collapsePanel, { label })} size="sm" tooltip-side="block-end" @click=${() => this.setCollapsed(true)}
-            ><span aria-hidden="true">${this.side === 'end' ? '›' : '‹'}</span></sf-icon-button
+            ><sf-icon .icon=${this.side === 'end' ? chevronRightIcon : chevronLeftIcon}></sf-icon></sf-icon-button
           >
         </div>
         <slot></slot>
@@ -349,7 +353,7 @@ export class SfPanelElement extends SfElement<typeof panelSpec> {
   override render(): TemplateResult {
     return html`<header part="header">
         <button class="toggle" id=${this.ids.header} aria-expanded=${this.collapsed ? 'false' : 'true'} aria-controls=${this.ids.body} @click=${() => this.toggle()}>
-          <span class="chevron" aria-hidden="true">▾</span>${this.label}
+          <sf-icon class="chevron" .icon=${chevronDownIcon}></sf-icon>${this.label}
         </button>
         <slot name="actions"></slot>
       </header>
@@ -370,6 +374,7 @@ export class SfPanelElement extends SfElement<typeof panelSpec> {
 }
 
 export function defineDock(registry: CustomElementRegistry = customElements): void {
+  defineIconElement(registry);
   defineIconButton(registry);
   if (registry.get(dockSpec.tag) === undefined) defineComponent(SfDockElement, registry);
   if (registry.get(panelSpec.tag) === undefined) defineComponent(SfPanelElement, registry);

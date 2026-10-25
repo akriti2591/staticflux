@@ -727,7 +727,7 @@
     "limit": "2.5 KB"
   },
   {
-    "name": "@staticflux/kit/dock",
+    "name": "@staticflux/kit/dock (raised 7 → 7.6 KB by B11a: chevrons are <sf-icon> + Lucide modules, no text glyphs)",
     "path": "packages/kit/dist/dock.js",
     "ignore": [
       "mobx",
@@ -741,10 +741,10 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "7 KB"
+    "limit": "7.6 KB"
   },
   {
-    "name": "@staticflux/kit/inspector",
+    "name": "@staticflux/kit/inspector (raised 1.85 → 2.65 KB by B11a: the group chevron is <sf-icon>)",
     "path": "packages/kit/dist/inspector.js",
     "ignore": [
       "mobx",
@@ -758,10 +758,10 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "1.85 KB"
+    "limit": "2.65 KB"
   },
   {
-    "name": "@staticflux/kit/tree",
+    "name": "@staticflux/kit/tree (raised 4.4 → 5.1 KB by B11a: the twisty is <sf-icon>)",
     "path": "packages/kit/dist/tree.js",
     "ignore": [
       "mobx",
@@ -775,7 +775,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "4.4 KB"
+    "limit": "5.1 KB"
   },
   {
     "name": "@staticflux/kit/command-palette",
@@ -829,7 +829,7 @@
     "limit": "1.5 KB"
   },
   {
-    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component)",
+    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch)",
     "path": "packages/kit/dist/index.js",
     "ignore": [
       "mobx",
@@ -843,7 +843,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "22.6 KB"
+    "limit": "27.5 KB"
   },
   {
     "name": "@staticflux/stage (stage, attribution, undo service; excl. framework)",
@@ -1375,5 +1375,107 @@
       "@staticflux/kit/status"
     ],
     "limit": "3 KB"
+  },
+  {
+    "name": "@staticflux/kit/icon (<sf-icon> + icon data helpers; B11a)",
+    "path": "packages/kit/dist/icon.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "1.65 KB"
+  },
+  {
+    "name": "@staticflux/kit/icons (the whole kit icon set: 89 Lucide + 15 custom; well under STUDIO-UX-SPEC §10.2's 20 KB cap for Studio's set; B11a)",
+    "path": "packages/kit/dist/icons/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "@staticflux/kit/icons/trash-2 (one icon module ≈ 0.2 KB, STUDIO-UX-SPEC §10.2; B11a)",
+    "path": "packages/kit/dist/icons/trash-2.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "0.3 KB"
+  },
+  {
+    "name": "@staticflux/kit/number-field (<sf-number-field>: expressions, units, scrub, mixed; B11a)",
+    "path": "packages/kit/dist/number-field.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "4.8 KB"
+  },
+  {
+    "name": "@staticflux/kit/inline-edit (<sf-inline-edit>; B11a)",
+    "path": "packages/kit/dist/inline-edit.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "2.75 KB"
+  },
+  {
+    "name": "@staticflux/kit/swatch (<sf-swatch>; B11a)",
+    "path": "packages/kit/dist/swatch.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "1.3 KB"
   }
 ]

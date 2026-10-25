@@ -1215,6 +1215,18 @@
       "fix": "Pass a well-formed tag such as `fr`, `pt-BR` or `zh-Hant-TW`."
     },
     {
+      "code": "SF-KIT-001",
+      "kind": "validation",
+      "summary": "The text typed into a number field is not a number, an expression over numbers, or a number with a known unit.",
+      "fix": "Type a number (`120`), an expression (`+10`, `*2`, `(100 + 20) / 2`), a percentage when the field has `percentOf`, or a unit listed in the field’s `units` (`2in`, `10mm`)."
+    },
+    {
+      "code": "SF-KIT-002",
+      "kind": "validation",
+      "summary": "An inline edit was committed empty while a name is required, or longer than its maximum length.",
+      "fix": "Type at least one non-space character (or set `required` to false), and stay within `maxlength`; Escape restores the previous name."
+    },
+    {
       "code": "SF-LOAD-001",
       "kind": "not-found",
       "summary": "The logical chunk id is not in the build manifest.",
