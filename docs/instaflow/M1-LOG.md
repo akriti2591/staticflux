@@ -29,7 +29,8 @@ entries at the top of **Journal**.
 | B2 Text | Merged; IME check passed (D20) | `main` | #16 |
 | B6 Accessibility layer | Merged; not yet wired to Studio's live canvas | `main` | #17 |
 | B8 Studio integration | Merged; editor on the main thread until B9 | `main` | #20 |
-| B9 Editor in the worker | PR open (full check 4,210 tests; smoke 30/30 per topology under load) | working branch | #21 |
+| B9 Editor in the worker | Merged; owner IME re-check pending | `main` | #21 |
+| Site refresh | In progress (fresh agent, docs site only) | `claude/wip-site-refresh` | — |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
@@ -42,7 +43,8 @@ Open M1 decisions: which worker mode boots by default (D15 says one; the split b
 main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D-number); reference iGPU runner (C4).
 
 ## Owed
-- **Owner:** npm Release rerun (9 packages); deprecate `0.0.0-stage`; set up trusted
+- **Owner:** manual IME re-check after B9 (typing now crosses a worker); optional real-GPU timing run in both
+  topologies (feeds D15's default); npm Release rerun (9 packages); deprecate `0.0.0-stage`; set up trusted
   publishing, then delete `NPM_TOKEN`; reference iGPU runs; optional: protect `main` (no force push or deletion,
   require PRs; no required approvals; bypass for the version PR if status checks are required).
 - **Taken by B8:** repeat-aware render source and resource batches ahead of projection deltas (B1, B7); per-tab tool
@@ -58,6 +60,7 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** #21 (B9) merged: Studio's editor and renderer run in workers. Site refresh started (docs site only).
 - **2026-10-25** B9 smoke failure root-caused (not Shift, not a flake): the selection HUD grew from one to two rows and
   moved the canvas 40 px under a drag. HUD now has a fixed height (test fails without it); smoke 30/30 per topology.
 - **2026-10-25** B9 done (7a10e9a): editor and render in workers, one by default, two with `?topology=split`; main keeps
