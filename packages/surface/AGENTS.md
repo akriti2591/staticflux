@@ -153,8 +153,8 @@ renderer and headless surface against `createMemoryRasterBackend` with exact pix
 | @staticflux/surface (full) | 10.5 KB | packages/surface/dist/index.js |
 | @staticflux/surface/input-ring | 1.75 KB | packages/surface/dist/input-ring.js |
 | @staticflux/surface/raster (render and export workers: tiled renderer, GPU device lifecycle, headless) | 9.5 KB | packages/surface/dist/raster.js |
-| @staticflux/surface/text-input (TextInput port: EditContext + hidden textarea, variant binding; main thread, with text editing) | 3.75 KB | packages/surface/dist/text-input.js |
 | @staticflux/surface/image (area scaling + deterministic PNG encoder; renditions and export workers) | 1.6 KB | packages/surface/dist/image.js |
+| @staticflux/surface/text-input (TextInput port: EditContext + hidden textarea, variant binding; main thread, with text editing) | 3.75 KB | packages/surface/dist/text-input.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

@@ -41,7 +41,7 @@ Each work package's work in progress is pushed to its own branch `claude/wip-<wp
 this container.
 
 ## Next (one work package at a time; order, scope and IDs in M1C-NOTES.md)
-1. B11a running, narrowed to icons, number field, inline rename and other non-overlay controls
+1. B11a done (PR open), narrowed to icons, number field, inline rename and other non-overlay controls
    (`claude/wip-b11a-foundations`). In parallel, docs only: the UX primitives spec (Fable, `claude/wip-ux-primitives`):
    overlays, dialogs and nesting (Share, Milestones), the error/feedback hierarchy, tooltips, coach marks, the HUD per
    selection type, deep links, Chat expansion, DevTools UX.
@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** B11a merged on the working branch (58201ab…74721f1): `<sf-icon>` + 89 Lucide and 15 custom icons,
+  number field, inline edit, swatch; R13.32–35, SF-KIT-001–002, IF-35.1–35.13, §37. Full check, smokes and
+  agents:check green (regenerated the stale surface AGENTS.md row order, drift from main). PR opened.
 - **2026-10-25** Owner: primitives need real design (dialogs, errors, toasts, coach marks, tooltips, nested pop-ups like
   Share and Milestones, a Canva-style HUD per selection type, deep links to everything). FOUNDATIONS had about 7 lines
   each and no deep links. B11a was narrowed to non-overlay blocks; a Fable agent is writing OVERLAYS-FEEDBACK.md,
