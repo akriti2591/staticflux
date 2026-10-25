@@ -1,47 +1,61 @@
 # Brief for M1 work-package agents
 
-You build ONE work package (WP) of Instaflow M1 in this repository. You work in your own git worktree; the
-coordinator merges your branch. Production code, not a spike.
+You build ONE work package (WP) of Instaflow M1 in this repository, in your own git worktree. Production code, not a
+spike. You start fresh: everything you need is in files, not in anyone's conversation history.
 
-## Read first
-1. `CLAUDE.md` (repo rules 1–10, style). They are enforced by tooling; do not work around them.
-2. `docs/ARCHITECTURE.md`, `docs/LIFECYCLES.md`, `docs/FEATURE-NEEDS.md`, `docs/REQUIREMENTS.md` (framework).
-3. `docs/instaflow/M1-PLAN.md` (your WP row), `docs/instaflow/DECISIONS.md` (D1–D15),
-   `docs/instaflow/PHASE0-FINDINGS.md`, and the relevant parts of `docs/instaflow/{ARCHITECTURE,DOCUMENT-FORMAT,
-   REQUIREMENTS}.md` and `docs/instaflow/PLAN.md` §3 (the SF-Δ rows your WP implements).
-4. The spike README your WP comes from (`apps/instaflow/spikes/<spike>/README.md`) and its code, **read only**.
-   Port ideas and measurements into tests; never copy spike code wholesale (spikes ignore the repo rules).
-5. One existing package as a template for structure and conventions (for example `packages/document`,
-   `packages/storage`, `packages/worker`): `AGENTS.md`, `errors.ts`, `units.ts`, tests next to sources.
+## Read first (only these up front; read more when the work needs it)
+1. `CLAUDE.md` (repo rules 1–10, style). Enforced by tooling; never work around them.
+2. `docs/instaflow/M1-LOG.md`: what has landed, what is open, follow-ups.
+3. The stage notes for your WP: `docs/instaflow/M1B-NOTES.md` (all of M1b and the rules that still apply) and
+   `docs/instaflow/M1C-NOTES.md` (B8 and M1c). They hold your **pre-assigned IDs** and your WIP branch name.
+4. Your WP row in `docs/instaflow/M1-PLAN.md`; `docs/instaflow/DECISIONS.md` (D1–D19, plus any later ones).
+5. Your handoff, if one exists: `docs/instaflow/handoffs/<WP>.md`.
+6. The `AGENTS.md` of every package or app folder you touch. Framework shapes (tokens, units, `requires`/`provides`,
+   scopes, variant bindings, `Result`/`SfError`): `docs/ARCHITECTURE.md` §3 and `packages/core/AGENTS.md`.
 
 ## Deliverables (definition of done)
-- Code in the package(s) your WP names. Framework packages never import `apps/`.
-- **Unit tests for every exported function**; a **contract suite** for every port you define (in
-  `packages/testkit`, one file per port, named after it).
-- `AGENTS.md` for each new or changed package (purpose, public API, allowed deps, budgets, rules).
-- Lifecycles for new state machines in `docs/LIFECYCLES.md`; `SF-*` errors with stable codes and `fix` text
-  (run `pnpm errors` to regenerate the catalog).
-- Requirement IDs in `docs/REQUIREMENTS.md` and needs in `docs/FEATURE-NEEDS.md` for every new API.
-- Size budget entries in `.size-limit.json` for new entry points (pick a tight, justified number).
-- **`pnpm check` passes** on your worktree (build, typecheck, test, boundaries, sf lint, errors, size).
-- Commit on your worktree branch with clear messages ending with:
+- Code in the folders your WP names. Framework packages never import `apps/`. App features are headless services plus
+  B0 contributions; UI only from `@staticflux/kit` under `cleanPopTheme`.
+- Unit tests for every exported function; a contract suite in `packages/testkit` for every port you define.
+- `AGENTS.md` for each new or changed folder (one row in the `apps/instaflow/AGENTS.md` table: no blank lines in it).
+- Lifecycles in `docs/LIFECYCLES.md`, requirements, error codes with a `fix`, and `docs/FEATURE-NEEDS.md` entries,
+  all within your pre-assigned IDs. Keep numbered sections in order.
+- Size budgets in `.size-limit.json` for new entry points (tight, with the reason in the name when you raise one).
+
+## Checks (no duplicate runs)
+Run only your scope: `pnpm build`, `pnpm typecheck` (the only step that type-checks tests), `pnpm vitest run <your
+paths>`, `pnpm lint:boundaries`, `pnpm lint:sf`, `pnpm size`, `pnpm errors:check` (plus `cargo test` in
+`apps/instaflow/engine` if you touch Rust, `SF_GPU=1 pnpm test:gpu` if you touch rendering). After a fix, rerun only
+what it touched. **Do not run the full `pnpm check`**: the coordinator runs it once at merge. Send long output to a
+file and read only the summary.
+
+## Durability
+- Commit and push to your WIP branch (`git push origin HEAD:refs/heads/<branch from the notes>`) after every
+  meaningful step. It need not pass checks.
+- **End every session with a handoff**, finished or not: write `docs/instaflow/handoffs/<WP>.md` (template in
+  `handoffs/README.md`), commit and push.
+- Commit messages end with:
   ```
   Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_01A3sHuDbT6kQw9Xvoh3q46g
   ```
-  Do not push, do not open PRs, do not touch other WPs' packages.
+  No model identifiers in files. Don't open PRs. Push only to your WIP branch.
 
 ## Shared files
-Several WPs edit `docs/REQUIREMENTS.md`, `docs/FEATURE-NEEDS.md`, `docs/LIFECYCLES.md`, `.size-limit.json`,
-`tsconfig.build.json`, root `package.json` and `pnpm-lock.yaml`. Keep your edits to these as **appended,
-self-contained sections or entries** (no reformatting of others' content) so merges stay mechanical.
+`docs/REQUIREMENTS.md`, `docs/FEATURE-NEEDS.md`, `docs/LIFECYCLES.md`, `docs/instaflow/REQUIREMENTS.md`,
+`.size-limit.json`, `apps/instaflow/package.json`, `apps/instaflow/AGENTS.md`, root `package.json`, `pnpm-lock.yaml`:
+add self-contained entries only; never reformat others' content.
 
-## Environment facts
-4 CPU cores shared with other agents (timings are noisy; never assert wall-clock numbers in unit tests; put
-performance checks in clearly marked bench files). No GPU: WebGPU only via SwiftShader in Chromium
-(`apps/instaflow/spikes/_harness/serve-and-run.cjs` shows the flags). Chromium + Playwright preinstalled
-(`NODE_PATH=/opt/node-tools/node_modules`). Rust 1.97 with `wasm32-unknown-unknown`. Network to npm and crates.io.
+## Environment
+4 shared CPU cores (never assert wall-clock numbers in unit tests; give heavy tests an explicit, commented timeout).
+No GPU: WebGPU via SwiftShader in Chromium. Chromium + Playwright preinstalled (`NODE_PATH=/opt/node-tools/node_modules`).
+Rust with `wasm32-unknown-unknown`. Network to npm and crates.io.
 
-## Final message to the coordinator (≤ 250 words)
-What you built (packages, public API headlines), test counts, `pnpm check` status, decisions you made that the
-plan did not specify, anything left undone, and the worktree branch name.
+## Final report to the coordinator (under 25 lines)
+Final commit on your WIP branch, state (done or what is left), IDs and framework IDs used, decisions the plan did not
+specify, follow-ups, and the shared files the coordinator must reconcile.
+
+## Coordinator (for whoever runs the merges)
+One agent at a time. Merge a finished WIP branch onto a PR branch, run `SF_REQUIRE_RUST=1 pnpm check` once (skip it
+when the merged tree equals what was already checked), open one PR per WP, watch CI. Helpers and known merge traps:
+`tooling/coordinator/README.md`. Record every step in `docs/instaflow/M1-LOG.md` and push it.

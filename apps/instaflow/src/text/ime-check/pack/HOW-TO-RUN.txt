@@ -1,0 +1,21 @@
+Instaflow IME check (Japanese / Chinese / Korean typing in the canvas text editor)
+
+Needs: Node 18+ and desktop Chrome. Unzip, open a terminal in this folder.
+
+PART 1 — automated (about 1 minute, no typing from you)
+  npm install
+  node auto-check.mjs
+A Chrome window opens and closes by itself. It types Japanese through Chrome's own IME path in both text inputs
+(EditContext, and the hidden-textarea fallback), after a long wrapped line, after Arabic text and at 150 % zoom, and
+checks that the page tells the OS the right place for the candidate window.
+Each line prints PASS or FAIL; it ends with ALL PASS or SOME FAILED. Results and screenshots go to results/.
+
+PART 2 — the real candidate window (needs real macOS input methods)
+A script can't see the OS's own candidate window, so this part needs eyes: yours, or an agent's.
+  - With an agent: give Claude (desktop app, with computer use) the file AGENT-PROMPT.md and this folder.
+  - By hand: run  node serve.mjs , open the printed URL in Chrome and follow the four steps on the page.
+Either way you need these input sources (System Settings → Keyboard → Input Sources → Edit → +):
+  Japanese – Romaji, Chinese Simplified – Pinyin, Korean – 2-Set Korean. You can remove them afterwards.
+
+SEND BACK
+  results/results.json, plus ime-results.md from the agent (or pass/fail per step if you did it by hand).

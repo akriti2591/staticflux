@@ -348,52 +348,6 @@ One worker (`colocated`, default) or two (`split`) is a boot setting; both run t
 | Q-1 | Deltas are published before the view frame that references them; a resnapshot is answered at a step boundary with a fresh frame | `editor-module.test.ts` |
 | Q-2 | The render port is called at most once per new (viewSeq, docVersion) and only with a consistent pair | IF-SEQ-003 on draw failure (last good frame kept) |
 
-## 28. Render: GPU devices, tiles, layers, cache budgets (SF-Δ23, Δ24, Δ29; Instaflow M1 A6)
-
-| Machine | States / transitions | Source |
-|---|---|---|
-| `surface/gpu-device` | idle → attaching → running; attaching → failed; running → lost (`device.lost`, any reason but our own dispose) → attaching (fresh adapter + `restore`) → running; attaching → failed → attaching (next recovery attempt, back-off); failed → attaching (manual retry); * → disposed | `packages/surface/src/gpu-device.ts` |
-| renderer phase | cold → warming (`warmUp`) → ready; warming → cold (warm-up failed) | `packages/surface/src/tiled-renderer.ts` |
-| tile (cache entry) | absent → fresh (rendered) → stale (an edit hit it; still drawn) → fresh (re-rendered into the same slot); any → evicted (LRU, budget or pressure; never while pinned by the frame); all → forgotten (device lost) | `packages/surface/src/raster-tile-cache.ts` |
-| lifted layer | lifted (`lift`: nodes leave the tiles) → dragging (quad moves, no raster) → dropping (`drop`: nodes back in the tiles, texture still drawn) → released (every visible tile under it fresh) | `packages/surface/src/tiled-renderer.ts` |
-| cache registration (memory ledger) | registered → reporting ⇄ evicting (budget or pressure) → disposed | `packages/runtime/src/memory-budgets.ts` |
-
-| ID | Invariant | Error |
-|---|---|---|
-| G-1 | A lost device is never reused: recovery always requests a new adapter and rebuilds from the retained CPU-side scene, never the document | SF-SURF-011 |
-| G-2 | Recovery time is reported; over its budget (1 s) it is flagged but completes | SF-SURF-012 |
-| G-3 | No holes: a visible tile is drawn from its stale copy, another level or the snapshot until it is fresh | — |
-| G-4 | In-frame raster starts only while the in-frame budget is left; the rest goes to the idle lane | — |
-| G-5 | A dropped layer is drawn until the tiles under it are fresh (overlay off and committed on in one frame, E-2) | — |
-| G-6 | Frames never rasterize before warm-up (cold pipelines); the snapshot is drawn instead | — |
-| G-7 | Caches are evicted before features are demoted; pinned (visible) tiles are never evicted | SF-MEM-001 |
-
-## 23. Versioning: Latest save state, milestone creation (Instaflow M1 B5; D2, D10)
-
-Latest is saved continuously (no save button); milestones are explicit, immutable full snapshots of canonical parts.
-Both machines live in `apps/instaflow/src/versioning`. The frozen export snapshot and New document from milestone are
-single calls, not machines.
-
-| Machine | States / transitions | Source |
-|---|---|---|
-| `instaflow/latest-save` | saved → saving (commit) → saved (acked: the newest commit is durable); saving → stalled (2 s without an ack, or an append failed) → saving (retry after `retryMs`) \| saved (acked); stalled → stalled (commit, stall); any → disposed | `apps/instaflow/src/versioning/latest.ts` |
-| `instaflow/milestone-create` (one per call, queued per document) | queued → flushing (Latest flushed) → capturing (canonical parts; only changed parts encoded and written) → recording (record blob; id = digest) → swapping (head CAS + retry, then mirror flush) → created; any non-terminal → failed | `apps/instaflow/src/versioning/milestones.ts` |
-
-Top-bar status derived from `instaflow/latest-save` and the folder mirror (`blob/folder-mirror`): saving/stalled →
-`saving` (stalled = "Not saved yet: <cause>"); saved + mirror paused, read-only or failing with pending changes →
-`offline-mirror-behind`; otherwise `saved`.
-
-| ID | Invariant | Error / test |
-|---|---|---|
-| V-1 | An acknowledgement only clears `saving` when no newer commit is unacknowledged | `latest.test.ts` |
-| V-2 | A milestone writes only parts whose canonical digest is new; unchanged parts share digests with earlier milestones | `milestones.test.ts` |
-| V-3 | Milestone records are immutable: pin and rename change head fields only | `milestones.test.ts` |
-| V-4 | Creating, opening and branching from a milestone never read older milestones (cost independent of age) | `costs.test.ts`, `versioning.bench.ts` |
-| V-5 | Versioning head updates are CAS with retry and survive the repo's compaction (which adopts the newer head) | IF-VER-004 |
-| V-6 | A new document from a milestone names no source object (fresh peer and history; `createdFrom` is a label) | IF-VER-008; `new-document.test.ts` |
-| V-7 | A frozen snapshot writes no record and no head; later edits never change what it reads | `snapshot.test.ts` |
-| V-8 | A template use with an invalid fill or an empty required slot writes nothing | IF-VER-006, IF-VER-007 |
-
 ## 20. Editor spec runtime (`@staticflux/shell/spec` + `apps/instaflow/src/spec`; Instaflow M1b B0, D16)
 
 An editor is a spec over a closed vocabulary of registered contributions. The runtime validates and gates a spec, diffs
@@ -460,6 +414,32 @@ Element state is document data (no runtime machines): booleans and masks are **d
 | TXT-8 | Which TextInput runs is a variant binding on the `editContext` platform fact; feature code never branches on the browser | `text-input.test.ts` (variant binding) |
 | TXT-9 | Text glyphs drawn by Vello GPU match the vello_cpu reference (Latin, Arabic, Devanagari), from both the Rust batch and the TypeScript pipeline | `render.gpu.test.ts` (`gpu-text`, `ts-text`) |
 | TXT-10 | **INCONCLUSIVE until the owner confirms:** with a real OS IME (Japanese, Chinese, Korean) in desktop Chrome, the candidate window sits at the caret / composition, follows wrapped lines and RTL positions, and survives page zoom | Human check: `pnpm ime-check` (page `apps/instaflow/src/text/ime-check/`, steps on the page) |
+
+## 23. Versioning: Latest save state, milestone creation (Instaflow M1 B5; D2, D10)
+
+Latest is saved continuously (no save button); milestones are explicit, immutable full snapshots of canonical parts.
+Both machines live in `apps/instaflow/src/versioning`. The frozen export snapshot and New document from milestone are
+single calls, not machines.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/latest-save` | saved → saving (commit) → saved (acked: the newest commit is durable); saving → stalled (2 s without an ack, or an append failed) → saving (retry after `retryMs`) \| saved (acked); stalled → stalled (commit, stall); any → disposed | `apps/instaflow/src/versioning/latest.ts` |
+| `instaflow/milestone-create` (one per call, queued per document) | queued → flushing (Latest flushed) → capturing (canonical parts; only changed parts encoded and written) → recording (record blob; id = digest) → swapping (head CAS + retry, then mirror flush) → created; any non-terminal → failed | `apps/instaflow/src/versioning/milestones.ts` |
+
+Top-bar status derived from `instaflow/latest-save` and the folder mirror (`blob/folder-mirror`): saving/stalled →
+`saving` (stalled = "Not saved yet: <cause>"); saved + mirror paused, read-only or failing with pending changes →
+`offline-mirror-behind`; otherwise `saved`.
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| V-1 | An acknowledgement only clears `saving` when no newer commit is unacknowledged | `latest.test.ts` |
+| V-2 | A milestone writes only parts whose canonical digest is new; unchanged parts share digests with earlier milestones | `milestones.test.ts` |
+| V-3 | Milestone records are immutable: pin and rename change head fields only | `milestones.test.ts` |
+| V-4 | Creating, opening and branching from a milestone never read older milestones (cost independent of age) | `costs.test.ts`, `versioning.bench.ts` |
+| V-5 | Versioning head updates are CAS with retry and survive the repo's compaction (which adopts the newer head) | IF-VER-004 |
+| V-6 | A new document from a milestone names no source object (fresh peer and history; `createdFrom` is a label) | IF-VER-008; `new-document.test.ts` |
+| V-7 | A frozen snapshot writes no record and no head; later edits never change what it reads | `snapshot.test.ts` |
+| V-8 | A template use with an invalid fill or an empty required slot writes nothing | IF-VER-006, IF-VER-007 |
 
 ## 24. Library: ingest and rendition jobs (Instaflow M1b B4; IF-3.5–3.9, IF-23)
 
@@ -539,3 +519,23 @@ transition except a handle drag's preview is one change set, undoable as one ste
 | REP-4 | Expand is one undo step and its render equals the live render | `actions.test.ts` (property) |
 | REP-5 | Match keys are deterministic: instance `k` of key `key` is `key~k` live and expanded; re-expanding writes the same keys | `actions.test.ts` (property) |
 | REP-6 | A handle drag writes nothing until commit and leaves no session opinion behind on any exit | IF-REP-005; `handles.test.ts` |
+
+## 28. Render: GPU devices, tiles, layers, cache budgets (SF-Δ23, Δ24, Δ29; Instaflow M1 A6)
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `surface/gpu-device` | idle → attaching → running; attaching → failed; running → lost (`device.lost`, any reason but our own dispose) → attaching (fresh adapter + `restore`) → running; attaching → failed → attaching (next recovery attempt, back-off); failed → attaching (manual retry); * → disposed | `packages/surface/src/gpu-device.ts` |
+| renderer phase | cold → warming (`warmUp`) → ready; warming → cold (warm-up failed) | `packages/surface/src/tiled-renderer.ts` |
+| tile (cache entry) | absent → fresh (rendered) → stale (an edit hit it; still drawn) → fresh (re-rendered into the same slot); any → evicted (LRU, budget or pressure; never while pinned by the frame); all → forgotten (device lost) | `packages/surface/src/raster-tile-cache.ts` |
+| lifted layer | lifted (`lift`: nodes leave the tiles) → dragging (quad moves, no raster) → dropping (`drop`: nodes back in the tiles, texture still drawn) → released (every visible tile under it fresh) | `packages/surface/src/tiled-renderer.ts` |
+| cache registration (memory ledger) | registered → reporting ⇄ evicting (budget or pressure) → disposed | `packages/runtime/src/memory-budgets.ts` |
+
+| ID | Invariant | Error |
+|---|---|---|
+| G-1 | A lost device is never reused: recovery always requests a new adapter and rebuilds from the retained CPU-side scene, never the document | SF-SURF-011 |
+| G-2 | Recovery time is reported; over its budget (1 s) it is flagged but completes | SF-SURF-012 |
+| G-3 | No holes: a visible tile is drawn from its stale copy, another level or the snapshot until it is fresh | — |
+| G-4 | In-frame raster starts only while the in-frame budget is left; the rest goes to the idle lane | — |
+| G-5 | A dropped layer is drawn until the tiles under it are fresh (overlay off and committed on in one frame, E-2) | — |
+| G-6 | Frames never rasterize before warm-up (cold pipelines); the snapshot is drawn instead | — |
+| G-7 | Caches are evicted before features are demoted; pinned (visible) tiles are never evicted | SF-MEM-001 |

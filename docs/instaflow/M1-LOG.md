@@ -32,22 +32,33 @@ entries at the top of **Journal**.
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
 
-## Next (proposed, waiting for the owner)
-1. Wire Studio end to end: tools, a11y, repeat and text panels on the live canvas; resource batches to the render
-   worker; text duplicate keeps rich text.
-2. M1c: C0 Home → C1 Export → C2 Import → C3 Modes and identity → C4 Hardening (M1 exit criteria).
-Open M1 decisions: Chrome text input (IME check); which worker mode boots by default (D15 re-measure); folder mirror
-flush policy; SVG parity rule (C1); reference iGPU runner.
+## Next (one work package at a time; details and IDs in M1C-NOTES.md)
+1. **B8 Studio integration** (the M1b demo): the first Studio you can click through.
+2. **M1c:** C0 Home → C1 Export → C2 Import → C3 Modes and identity → C4 Hardening (the M1 exit criteria).
+
+Open M1 decisions: Chrome text input (IME check; zip built by `apps/instaflow/src/text/ime-check/pack/pack.sh`);
+which worker mode boots by default (D15 says one; the split becomes default only if it meets the budget after the
+main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, becomes D20); reference iGPU runner (C4).
 
 ## Owed
-- **Owner:** npm Release rerun (9 packages); deprecate `0.0.0-stage`; set up trusted publishing, then delete
-  `NPM_TOKEN`; reference iGPU runs; B2's IME check (page comes with B2).
-- **Engineering follow-ups:** resource batches ahead of projection deltas on A7's pipes (B1); blob ↔ DocumentStore
-  adapter (B5); asset "Place" host hook (B4/B3); page thumbnails (B4); import capability for agents (B4); B3's
-  follow-ups (in its PR); luminance masks approximate where translucent mask shapes overlap (B1); flaky timeouts under
-  load: Loro leak test, `costs.test.ts`, worker threads, headless surface.
+- **Owner:** IME check (zip sent 2026-10-25); npm Release rerun (9 packages); deprecate `0.0.0-stage`; set up trusted
+  publishing, then delete `NPM_TOKEN`; reference iGPU runs; optional: protect `main` (no force push or deletion,
+  require PRs; no required approvals; bypass for the version PR if status checks are required).
+- **Taken by B8:** repeat-aware render source and resource batches ahead of projection deltas (B1, B7); per-tab tool
+  session with B3's overlay and B6's accessibility layer on the live canvas; all M1b panels and HUD actions in the
+  Studio spec; text duplicate keeps rich text (B2); fresh group bounds in B3's index (B6); `textbox` role while
+  editing text (B6); asset "Place" host hook (B4, B3).
+- **Later follow-ups:** blob ↔ DocumentStore adapter (B5); page and cover thumbnails, large-image downscale before GPU
+  upload, import capability for agents (B4); resize snapping for rotated elements, flip on negative resize, snapping
+  outside the container, a guides toggle, remote edit to a dragged element overwritten on release (B3); edits inside a
+  repeat re-project every instance (benchmark), nested-repeat key order after expand (B7); colour emoji (B2);
+  projection snapshots across the worker boundary, real-browser axe and screen-reader passes (B6); luminance masks
+  approximate where translucent mask shapes overlap (B1); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** M1c prep: B8 added to the plan; `M1C-NOTES.md` (IDs, order, scope); `M1-BRIEF.md` rewritten for the
+  current rules (scoped checks, WIP branches, handoffs, D1–D19); merge helpers moved to `tooling/coordinator/`; IME
+  check zip sources and `pack.sh` committed; LIFECYCLES and Instaflow REQUIREMENTS sections sorted.
 - **2026-10-25** #17 (B6) merged: **M1b complete in `main`.** #15 (test timeouts) merged too.
 - **2026-10-25** #14 (B7) and #16 (B2) merged. `main` merged into `claude/m1b-b6-a11y` (no code change); #17 now
   targets `main`.
