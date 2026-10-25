@@ -56,7 +56,7 @@ interface ContributionBase<Kind extends string> {
 export interface LensContribution extends Omit<ContributionBase<'instaflow/lens'>, 'lenses'> {
   /** The lens palette entry (colour + shape) it is drawn with. */
   readonly palette: LensId;
-  /** Lens switch shortcut (UX §9: `1`–`4`). */
+  /** Lens switch shortcut (UX §9: `1`–`4`; Pages `5`). */
   readonly shortcut?: KeyCombo;
 }
 

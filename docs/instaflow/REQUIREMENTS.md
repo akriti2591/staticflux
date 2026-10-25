@@ -756,3 +756,236 @@ Error codes `IF-TXT-001…010`. Lifecycles: LIFECYCLES §22. Implements IF-7.6 a
 | `IF-TXT-008` | Local Font Access unavailable |
 | `IF-TXT-009` | Brand token unresolved |
 | `IF-TXT-010` | Font blob store failure |
+
+## 23. Library and lenses in M1 (work package B4; D4, D19; IF-1.3, IF-3.5–3.10)
+
+- **IF-23.1** The workspace **library document** is the `library` asset of the workspace's `DocumentRepo`
+  (`heads/library.json`, one part `root`), created on first open (`openLibraryDocument`). Each listed asset is one
+  top-level `asset` node (id = the asset id) with the `library` component (`libraryRegistry`, version 1); reads are per
+  node and every write is a validated op batch committed through the open document (one commit per action).
+- **IF-23.2** Library metadata is mutable and lives only in the library document: title (1–200 characters), tags
+  (1–40 characters, lower case, no commas, a CRDT list deduplicated on read), folder (`/`-separated names of 1–60
+  characters), favourite, trash state and time. Invalid metadata is `IF-LIB-007`; an unknown asset `IF-LIB-003`; listing
+  an id twice `IF-LIB-008`.
+- **IF-23.3** **Trash is a state**, not a delete: `trash` stamps `trashedAt`, `restore` clears it. `gcRoots()` returns live
+  entries plus trashed ones younger than 30 days (`TRASH_RETENTION_MS`, IF-3.10 grace period).
+- **IF-23.4** Ingest classifies a file by its media type, its aliases or its extension (`MEDIA_TYPES`,
+  `EXTENSION_TYPES`; data) into a blob asset kind before reading a byte; anything else is `IF-LIB-001`.
+- **IF-23.5** An import is listed at once under a **provisional id** (`pv_…`) with its progress (`pending()`), and
+  `resolve(pv)` names the asset once listed (IF-3.5: usable before hashing finishes).
+- **IF-23.6** Content is hashed and stored by `@staticflux/blob` (`BlobStore.put`: SHA-256, chunk manifests above 8 MiB,
+  progress, cancellation). The same bytes already live in the library return that entry (`deduplicated`); no second
+  asset is listed. A store failure is `IF-LIB-002`; cancellation is `SF-CORE-002` and lists nothing.
+- **IF-23.7** The kind's **media probe** (a data table; images: decode once) records media facts (width, height,
+  alpha); a decode failure is `IF-LIB-005` and lists nothing.
+- **IF-23.8** Every import writes one immutable **`instaflow.asset/1` record** (canonical JSON, RFC 8785, stored as a
+  `application/vnd.instaflow.asset+json` blob) with `content`, `media` and C2PA-aligned provenance (`imported`, actor,
+  no ingredients; IF-3.8), then lists the entry pointing at the record and the content.
+- **IF-23.9** **Renditions** are derived, regenerable blobs recorded in the library document
+  (`library.renditions.<role>`), never in the immutable record. `RENDITION_PRODUCERS` (data) says which roles each kind
+  gets; in M1 images get a `thumbnail` fitted in 256 × 256 px, never upscaled.
+- **IF-23.10** Rendition jobs are background work: a queue (concurrency 1 by default) with one machine per job
+  (`instaflow/rendition-job`); a job writes nothing before its blob is stored, so a cancelled or failed job leaves no
+  trace (`IF-LIB-006` with the cause). `resume()` re-queues every live entry still missing a rendition (resumable across
+  sessions); regenerating with the same params gives the same blob (deterministic PNG).
+- **IF-23.11** Thumbnails render **through the A6 render path** where a raster backend exists
+  (`sceneThumbnailRenderer`: the pixels become one scene IR image node rendered headlessly by the backend at the target
+  size, then the scene is cleared; jobs serialized per backend). The **documented fallback** is
+  `scaleThumbnailRenderer` (CPU area averaging) for contexts without WebGPU. The choice is a DI binding, never a branch.
+- **IF-23.12** The **Assets panel** (`<if-library-panel>`, the `instaflow/assets` panel contribution) is built only from
+  kit components under Clean Pop: Import (the one primary action), search, a filter switcher (`LIBRARY_FILTERS`: all,
+  images, video, audio, designs, favorites, trash; predicates in a table), the asset list, a preview of the selected
+  thumbnail (12 px corners), an actions toolbar (Place, Favorite, Rename, Trash/Restore) and an inline rename form. Each
+  row carries the lens mark of its kind (`ASSET_KIND_LENS`, the typed lens palette).
+- **IF-23.13** Every Assets panel action has a keyboard path: Tab order Import → search → filter → list → toolbar; in the
+  list Enter places, Delete trashes (restores in Trash), F2 renames; Enter / Escape in the rename field; dropping files has
+  the Import button as its keyboard path. Results are announced in a polite live region; the panel passes the testkit a11y
+  audit.
+- **IF-23.14** Placing an asset and picking files are host ports (`LibraryHost.place`, `pickFiles`; element creation is
+  B1/B3's). `browserPickFiles` uses a transient file input (never laid out) and reports a cancelled pick as `SF-CORE-002`.
+  Thumbnail object URLs load lazily and are revoked with the panel.
+- **IF-23.15** **One authoring core, lenses as features** (IF-1.3, D4, D19): a lens's arrangement, focus and overview are a
+  `LensFeature` looked up by lens id in the feature registry (`LensFeaturesToken`). Pixel, Timeline and Flow fall back to
+  the Canvas feature. No code outside a feature asks which lens is mounted; lens chrome comes from the spec's variant
+  tables (`STUDIO_LENS_TOOLS`, `STUDIO_LENS_HUD`, `STUDIO_LENS_PANELS`).
+- **IF-23.16** The lenses read the composition from its root part only (`readCompositionStructure`: the `composition`
+  node, page stubs in story `order` with `page.size` and `page.canvas` as `vec2`, loose elements with a `spatial` box);
+  a page without a valid size takes `composition.format`, else 1080 × 1350. A part without a composition is `IF-LIB-010`.
+- **IF-23.17** **Pages lens** (`instaflow/lens-pages`, Layout palette, shortcut `5`): pages at their own sizes stacked
+  down a centred column in story order, no loose elements; navigation follows the story; focusing a page fits it.
+- **IF-23.18** **Canvas lens** feature (`instaflow/lens-canvas`): pages at `page.canvas` plus loose elements; unplaced
+  pages go to the right of everything placed, in story order; navigation is reading order (rows top to bottom, left to
+  right); focusing keeps the zoom when the page fits at it, else fits it.
+- **IF-23.19** The **lens controller** follows the mounted lens and the root part reactively: a lens switch re-arranges and
+  keeps the focused page in view (or shows the overview), remote edits re-arrange, a deleted current page is forgotten.
+  The camera is the canvas's; the controller only asks the `CameraPort` to show one. Unknown pages are `IF-LIB-011`.
+- **IF-23.20** Page navigation has keyboard paths from anywhere in Studio (`bindLensShortcuts`): PageDown / PageUp next and
+  previous, Mod+Home / Mod+End first and last, Alt+0 fit everything; never while typing.
+- **IF-23.21** **Story edits**: moving a page in the story is one `move` of its stub in the root part, one commit,
+  attributed and undoable per actor (`createStoryWriter`); an index out of range is `IF-LIB-013`.
+- **IF-23.22** The **Pages panel** (`<if-pages-panel>`, the `instaflow/pages` panel contribution) lists the story in order
+  from kit components only; selecting a page shows it through the controller, Alt+↑/↓ moves it in the story, the toolbar
+  has Previous, Next and Fit all; announcements go to a polite live region; it passes the testkit a11y audit.
+
+## 24. Tools: hit testing, selection, transforms, smart guides and snapping (M1b B3; IF-7.2, IF-7.8)
+
+Code: `apps/instaflow/src/tools` (editor worker, headless; export `@instaflow/app/tools`). Error codes `IF-TOOL-001…004`.
+Lifecycle: LIFECYCLES §25.
+
+- **IF-24.1** **Per-tab view state** (IF-7.2): camera (pan, zoom 0.02–256), selection, the entered container, the active
+  tool, hover and the tool overlay live in the tab's editor worker (`createViewState`, `createViewStates`); they never enter
+  the CRDT or the store, and two tabs on one document keep independent cameras and selections. Bad cameras and unknown
+  tabs are `IF-TOOL-003`.
+- **IF-24.2** **Hit testing** (IF-7.8): a broad phase over A7's rbush spatial index of B1's page-space ink bounds, then an
+  exact narrow phase on B1 geometry in the authoring Wasm (kurbo: fills, strokes, tolerance), honouring masks, frame
+  clips and live booleans (operands stand for their boolean group). The topmost hit in paint order wins.
+- **IF-24.3** The **element index** of a page is bulk-built once and kept current from the stage's invalidations (a moved
+  container re-indexes its subtree; deleted nodes drop), refreshed lazily before a query and disposed with its scope.
+- **IF-24.4** **Selection targets**: a click selects the child of the entered container under the pointer, seen through
+  frames (transparent) but not into groups (opaque); Mod+click selects the leaf itself; a double click or Enter enters a
+  group or frame, Shift+Enter selects the parent, a click on empty canvas leaves it. Fully locked elements (position and
+  content) are not selectable on the canvas and let the click through.
+- **IF-24.5** **Click and marquee**: click selects, Shift+click toggles, pressing an element of a multi-selection keeps it
+  for dragging (releasing without a drag selects just that element), a click on empty canvas clears. A drag on empty
+  canvas is a live **marquee** over the entered container's children (exact geometry: touched; with Alt: fully inside);
+  Shift adds to the selection; Escape restores the selection from before the marquee.
+- **IF-24.6** **Transform handles** are round (Clean Pop): eight resize handles and four rotate zones outside the corners,
+  sized in screen pixels; one element's frame follows its rotation, several elements use the union of their bounds.
+- **IF-24.7** **Move, resize, rotate** work in page space and write `spatial.*` in each element's parent space (nested and
+  rotated containers included). One element resizes in its own frame with the opposite handle fixed on the page;
+  Shift keeps the aspect ratio, Alt resizes about the centre, sizes never go below 1. Several elements scale with their
+  frame. Rotation is about the frame centre; Shift snaps it to 15°.
+- **IF-24.8** **Snap targets** per gesture: edges and centres of the moving elements' siblings (snapping to other
+  elements, plus optional extra elements), the container's edges and centre lines, and the lines of the container's layout
+  grids (B1 `containerGrids` / `gridLines`).
+- **IF-24.9** **Snapping** picks per axis the nearest candidate within 6 screen pixels (divided by zoom) over the box's
+  min edge, centre and max edge; a resize snaps only the dragged edges (axis-aligned frames); Mod disables snapping while
+  dragging; Shift locks a move to one axis.
+- **IF-24.10** **Equal spacing**: a moving box snaps to the centre between its row neighbours, or to a gap that already
+  exists between two boxes of its row, next to the nearest neighbour on either side; the equal gaps carry **distance
+  labels**.
+- **IF-24.11** **Smart guides** show every line the snapped box touches (edges, centres, container centre lines, grid
+  lines) and the equal gaps; they render as a non-printing overlay and never reach the document or an export.
+- **IF-24.12** **Snapping properties** (fast-check): the snapped box is never further than the threshold from the input,
+  and snapping a snapped box again moves it by zero (stable).
+- **IF-24.13** **Align, centre in container and distribute** are B1's actions and capabilities (IF-20.15–20.16); the tools
+  reuse them and define no duplicates.
+- **IF-24.14** **One drag is one undo step**: while dragging, new values are previews in the stage's session layer (drawn
+  through the render projection, never persisted); release commits them as one change set through B1's `commitEdit`
+  (value shapes, locks, final paths, brand rules). Escape or pointercancel commits nothing and clears the preview.
+- **IF-24.15** **Locks**: position-locked elements never move (they stay out of the gesture); a gesture or command with
+  nothing movable is `IF-TOOL-002`. The stage checks every committed write as well (SF-STAGE-001…003).
+- **IF-24.16** A target deleted during a gesture (collaborator, agent) is dropped and pruned from the selection; when every
+  target is gone, nothing commits (`IF-TOOL-004`). Pointer events out of order are `IF-TOOL-001`.
+- **IF-24.17** The **overlay** (selection frame, round handles, hover outline, marquee, guides) is its own scene IR batch
+  (`toolOverlayBatch`) with stroke widths constant on screen and colours from the active theme's tokens (Clean Pop
+  `accent`, `surface1`, `accentSubtle`); no colour is hard-coded.
+- **IF-24.18** Distance labels render as kit tags (`<sf-tag mono>`, `guideLabelTemplate`) placed in screen space.
+- **IF-24.19** **No branch on mode** (rule 4): what a press starts is data (`PRESS_GESTURES[behaviour][pressTarget]`), each
+  gesture kind is a strategy (`GESTURES`), a tool's pointer behaviour comes from `TOOL_BEHAVIOURS` and the arrow keys'
+  meaning from `ARROW_ACTIONS`; the gesture state machine is `instaflow/tool-gesture`.
+- **IF-24.20** **Nudge**: arrow keys move the selection 1 unit, Shift+arrows 10; each key press is one undo step.
+- **IF-24.21** **Keyboard transforms**: Mod+Alt+arrows grow or shrink width and height by 1 (Shift 10) with the top-left
+  corner fixed; Alt+] / Alt+[ rotate ±15° (Mod+Alt+] / Mod+Alt+[ ±1°).
+- **IF-24.22** **Keyboard selection**: Tab / Shift+Tab select the next / previous element of the entered container in paint
+  order, Mod+Shift+ArrowRight / ArrowLeft extend the selection (the keyboard path for a marquee), Mod+A selects all,
+  Enter / Shift+Enter go in and out, Escape clears.
+- **IF-24.23** **Keyboard view**: Mod+= / Mod+- zoom in steps, Shift+0 100 %, Shift+1 fit everything, Shift+2 fit the
+  selection; with the hand tool the arrows pan. Bindings live in `CanvasToolsShortcutScope` (a child of Studio's scope)
+  and have no conflicts.
+- **IF-24.24** **Contributions** (B0): the Select (V) and Hand (H) tools under B0's ids `instaflow/select` and
+  `instaflow/hand`; capabilities `instaflow/move-by`, `instaflow/resize-by`, `instaflow/rotate-by`,
+  `instaflow/rotate-90-cw`, `instaflow/rotate-90-ccw` (exposed to agents, gated per subject, attributed, one undo step) and
+  HUD actions for the two 90° turns.
+- **IF-24.25** **Wheel**: the wheel pans; Mod+wheel (and pinch) zooms about the pointer; handles keep their screen size.
+- **IF-24.26** **Parity** (fast-check): on random nested scenes (frames, groups, rotations, strokes, ellipses, stars,
+  locks), the broad + narrow hit test and marquee equal their brute-force references for every point, tolerance, entered
+  container and deep flag, also after edits.
+- **IF-24.27** Capability runs honour the run's `AbortSignal`; the element index registers in its scope (`scope.defer`).
+
+| Code | Meaning |
+|---|---|
+| `IF-TOOL-001` | Pointer event in a gesture state that does not accept it |
+| `IF-TOOL-002` | Nothing to transform (empty selection, or every element position-locked) |
+| `IF-TOOL-003` | View state out of range (camera, zoom) or unknown tab |
+| `IF-TOOL-004` | Every gesture target was deleted before the gesture ended |
+
+## 26. Repeat (M1b B7)
+
+Code: `apps/instaflow/src/repeat` (exports `@instaflow/app/repeat`, `@instaflow/app/repeat/panel`). Error codes
+`IF-REP-001…005`. Lifecycle: LIFECYCLES §27.
+
+- **IF-26.1** **Live, non-destructive repeats**: a `group` with the `repeat` component (`repeat.kind` = `radial` | `grid` |
+  `mirror`) repeats its children (the **source**). Instances are derived when the stage is read, never stored as elements;
+  releasing or switching the generator never changes the source.
+- **IF-26.2** **Radial**: `count` (1…360, the source included), `radius` (≥ 0), `startAngle` (degrees clockwise from
+  12 o'clock: where the source sits on the circle), `sweep` ((0, 360]; 360 spreads copies evenly with no overlap at the end,
+  less spreads them over the arc, ends included) and `rotate` (copies turn with the circle, or keep the source's orientation).
+- **IF-26.3** **Grid**: `rows` and `columns` (1…100), `gapX` / `gapY` between cells of the source's bounds, `rowOffset`
+  (x shift per row) and `columnOffset` (y shift per column), `brick` (`none` | `rows` | `columns`) with `brickShift`
+  (−1…1 cells; 0.5 = brick or hex pattern).
+- **IF-26.4** **Mirror**: the source and its reflection across an axis — `vertical`, `horizontal` or `angle` (`angle` in
+  degrees) — that touches the source's bounds and moves out by `offset`.
+- **IF-26.5** Parameters are typed, one LWW register each (concurrent edits of different parameters merge); writes are
+  validated (IF-REP-001); a repeat makes at most 1,000 instances (IF-REP-002); reads clamp, so the live view never exceeds the
+  limits.
+- **IF-26.6** **The repeat view** (`createRepeatStage`) presents each repeat as one zero-size **instance wrapper** group per
+  instance (`<repeat>~<k>`, spatial values = the placement) holding the source (instance 0, the real nodes) or **copies**
+  (`<repeat>~<k>^<id>`, the source's composed values: classes, tokens and appearance as the source shows them). Nested
+  repeats nest.
+- **IF-26.7** **Instance 0 is the identity**: the source is drawn where it is stored, so editing it on canvas edits the
+  document directly.
+- **IF-26.8** **Editing the source updates every instance**: the view invalidates a node's copies and the wrappers of every
+  repeat above it (placements depend on the source bounds); a smaller count invalidates the wrappers it drops.
+- **IF-26.9** Placements are pure similarity transforms (rotation, reflection, translation) computed in the repeat's local
+  space from the parameters and the source's geometry bounds (`instancePlacements`); live and expanded instances use the same
+  spatial values, so they draw identically.
+- **IF-26.10** **Render**: B1's element render projection runs over the view unchanged; instances are projected as groups
+  and leaves like any element (A7 → A6 scene IR).
+- **IF-26.11** **Composition with B1**: appearance stacks, classes and tokens are copied as resolved; masks act per instance
+  (each wrapper scopes the masks of its copy); a boolean group that is also a repeat combines all instances (groups are
+  boolean operands: a plain group's outline is the union of its children); a repeat may be the source of another repeat.
+- **IF-26.12** **Instance-aware hit query** for B3: `hitInstance(ctx, node, x, y)` returns the top-most drawn leaf with its
+  editable `source`, instance `index` and the full instance `path` (nested repeats); `resolveInstance(id)` maps any view id
+  back; `instanceBounds` gives per-instance page bounds for guides.
+- **IF-26.13** **Derived nodes are read-only**: the view reports them locked and refuses any write that targets them
+  (IF-REP-004 names the source to edit instead). Client gating is UX, not security.
+- **IF-26.14** **Make repeat** (radial, grid, mirror) wraps sibling elements in a new repeat group at the bottom element's
+  place, keeping their page positions; on a selected repeat it switches the generator (IF-REP-003 otherwise).
+- **IF-26.15** **Edit** writes any parameters as one change set; a `kind` switches the generator and keeps the other
+  generator's values for switching back.
+- **IF-26.16** **Release** clears the repeat: the group keeps only the source, unchanged.
+- **IF-26.17** **Expand** turns a repeat into real elements in **one undo step**: one group per instance with the wrapper's
+  exact spatial values, the source moved into the first one unchanged, deep copies (local opinions: classes, tokens and nested
+  live repeats kept) in the others.
+- **IF-26.18** **Deterministic match keys**: instance `k` of a node keyed `key` is `key~k` (wrappers `<repeat key>~k`), in
+  the live view and after expand alike, so Auto Animate (M4) matches live and expanded instances; nodes without a key get
+  `lk_<id>` first (as duplicate does); re-expanding the same repeat writes the same keys. The source keeps its keys (lineage).
+- **IF-26.19** **Expand → render equals the live render** for any parameters (property-tested over the canonical render
+  tree: projected records with resources resolved, ids dropped).
+- **IF-26.20** **On-canvas handles** (headless, for B3's overlay): radial radius (at the circle's centre) and count (on the
+  second instance), grid columns and rows (past the last column / row), mirror offset (on the axis); `repeatHandles` gives
+  page positions and drag directions, `handlePatch` maps a page point to a parameter patch.
+- **IF-26.21** **Handle drags** (`beginHandleDrag`) preview in the stage's session layer (the instances follow live, nothing
+  is written), map against the state at drag start, commit **one change set** on release, and cancel cleanly on Esc or when
+  the `AbortSignal` aborts (machine `instaflow/repeat-handle-drag`; IF-REP-005 after the drag ended).
+- **IF-26.22** Every handle has a keyboard path: the same parameter in the Repeat panel.
+- **IF-26.23** **The Repeat panel** (`instaflow/repeat`, inspector placement) is built only from kit components under Clean
+  Pop: generator switch, number fields per parameter, segmented choices, a sweep slider, Expand and Release; it passes the
+  testkit a11y audit.
+- **IF-26.24** The panel is a view over a headless model (`repeatModel`) and emits `RepeatEdit`s (`repeatEditOps`: one change
+  set each).
+- **IF-26.25** **Contributions** (B0): each operation is a capability (`instaflow/repeat-radial`, `-grid`, `-mirror`, `-edit`,
+  `-expand` (destructive), `-release`; input `{ nodes, params? }`, exposed to agents, gated per subject, attributed) with a
+  HUD action running it; capability runs honour the run's `AbortSignal`.
+- **IF-26.26** Applicability is input validation (IF-REP-003 / IF-REP-004), never a lens or mode check; parameter variants are
+  tables (generators, handles, brick shifts, mirror axes), never branches on flags.
+- **IF-26.27** The view registers in a scope (`scope.defer`) and stops forwarding invalidations when disposed.
+
+| Code | Meaning |
+|---|---|
+| `IF-REP-001` | Repeat parameter has the wrong type or is out of range |
+| `IF-REP-002` | The repeat would make more than 1,000 instances |
+| `IF-REP-003` | Repeat action does not apply to the selection |
+| `IF-REP-004` | Write, expand or edit targets a derived instance |
+| `IF-REP-005` | Handle drag used after it ended, or an unknown handle |

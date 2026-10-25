@@ -286,7 +286,7 @@ Consumer: `apps/instaflow/src/elements` (editor and render workers; inspector pa
 Consumer: `apps/instaflow/src/text` (editor worker: layout, rich text, session; main: TextInput, Typography panel).
 - Canvas text needs IME, EditContext where available and a Firefox fallback, without browser branches → the
   `TextInput` port with two implementations and a variant binding on the `editContext` fact (`@staticflux/surface/text-input`,
-  R11.54–R11.57), with a shared contract suite (R16.31).
+  R11.56–R11.59), with a shared contract suite (R16.31).
 - One Rust crate, several Wasm artifacts within their budgets (geometry, text, lazy complex-scripts text) → `sf wasm build`
   variant entries (`package`, `features`, `defaultFeatures: false`) built in their own cargo invocation so features never
   unify (`tooling/sf/src/wasm-build.ts`).
@@ -295,3 +295,46 @@ Consumer: `apps/instaflow/src/text` (editor worker: layout, rich text, session; 
 - Rich-text marks and paragraph styles that converge under concurrent edits → A4's v2 marks with one mark-expand table
   (`createLoroEngine({ marks: TEXT_MARK_EXPAND })`); paragraph styles as marks on paragraph breaks (no new framework API).
 - Text exposed to assistive technology through B6 → data in the surface `AccessibleNode` shape (`textAccessibleNode`).
+
+### library and lenses: workspace assets, renditions, Pages and Canvas lenses (Instaflow M1b B4)
+Consumer: Instaflow (`apps/instaflow/src/library`, `src/lenses`; D4, D19; IF-3.5–3.10, IF-23). Built on `@staticflux/blob`
+(content hashing), `@staticflux/document/v2` (the library document, the composition's root part), `@staticflux/stage`
+(actors), `@staticflux/surface` (`raster` headless render, `image` scaling and PNG, R11.54–R11.55) and the B0 spec runtime.
+- "Drop my photos in and use them right away" → `ingest.ingest(file, { signal })`: a provisional id with progress at once,
+  SHA-256 in the blob store, dedupe by digest, an immutable asset record, one library commit.
+- "Find, rename, tag, favourite, trash and restore my assets" → `createLibrary({ source, actor })` (reactive `entries()`,
+  validated single commits) and `queryLibrary(entries, { filter, text, tag, folder })`.
+- "Show me thumbnails, even after a crash" → `createRenditionQueue({ decoder, renderer, encoder })`: background jobs,
+  `resume()` on session start, `sceneThumbnailRenderer({ backend })` through A6 or `scaleThumbnailRenderer()` without a GPU,
+  `pngImageEncoder()` (deterministic → idempotent).
+- "Browse the library by keyboard" → `<if-library-panel>` over `createLibraryPanelModel({ library, ingest, blobs, host })`,
+  contributed as B0's `instaflow/assets` panel.
+- "The same document as a story or as a canvas, without a mode switch in feature code" → `LensFeature` (`arrange`, `focus`,
+  `overview`) with `pagesLensFeature` and `canvasLensFeature` in `createLensFeatureRegistry`; `createLensController`
+  (reactive arrangement, next / previous page, camera requests through `CameraPort`) and `bindLensShortcuts`.
+- "Reorder the story" → `createStoryWriter({ doc, structure, actor }).movePage(page, to)` (one undoable commit) from the
+  `<if-pages-panel>` (B0's `instaflow/pages` panel) with Alt+↑/↓.
+
+### tools: hit testing, selection, transforms, snapping (Instaflow M1b · B3)
+Consumer: `apps/instaflow/src/tools` (editor worker, headless).
+- "Clicks land on what I see, fast, on thousands of elements" → A7's rbush index (`@staticflux/document/spatial-index`)
+  over B1's ink bounds as the broad phase, B1's exact geometry (`hitElement`, `GeometryService.intersects`) as the narrow
+  phase; kept current from `@staticflux/stage`'s `onInvalidate`.
+- "A drag previews live but is one undo step" → the stage's **session layer** for previews (never persisted, drawn
+  through the render projection) and one `commitEdit` (B1) per gesture through the undo service.
+- "Locked things stay put; agents move things through the same rules" → `stage.lockOf` / `checkWrite`; transform
+  capabilities (`@staticflux/capabilities`) gated per subject and attributed.
+- "Every tool works from the keyboard" → `@staticflux/a11y` shortcuts in a canvas scope under Studio's scope.
+- "Guides are chrome, not content" → an overlay scene IR batch (A6 wire format) with theme colours; labels as kit tags.
+
+### repeat (Instaflow M1b · B7)
+Consumer: `apps/instaflow/src/repeat` (editor worker; Repeat panel on main).
+- Live repeats that render, hit-test, mask and combine like elements without being stored → a read-only **view over the
+  composed stage** (`Pick<Stage, read | children | value | explain | lockOf | checkWrite | onInvalidate>`) that B1's render
+  projection (`RenderProjectionSource`, R11.53) and geometry queries read instead of the stage; no framework change needed.
+- Instances that never accept writes → the view's `checkWrite` in the `commitEdit` target (stage write checks, SF-STAGE-*).
+- Live handle previews that never commit → the stage's **session layer** (`SessionLayer.set` / `clear`), then one
+  undo-service commit.
+- Repeat operations reachable from the HUD, the panel, the keyboard and agents with one pipeline → one capability per
+  operation plus B0's `HudActionContribution`; the panel is a `PanelContribution` built from kit components (inspector
+  group/row, text field, segmented, slider, button).

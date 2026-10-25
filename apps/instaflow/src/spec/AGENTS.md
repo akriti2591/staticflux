@@ -33,7 +33,7 @@ schema, Studio spec and the proposal pipeline.
   (`state`, `preview`, `applied`, `error`, `open`, `decline`); `PROPOSAL_ROUTES` (source × autonomy → preview | mount),
   `PROPOSAL_SUBJECTS`, `AUTONOMY_MODES`; the **`SpecProposer`** port + `SpecProposerToken`; machine `SpecProposalLifecycle`
   (`instaflow/spec-proposal`, LIFECYCLES §20).
-- `studio-contributions.ts` — `StudioIds` (stable ids), `studioLenses` (Canvas, Pixel, Timeline, Flow; `1`–`4`), `studioTools`,
+- `studio-contributions.ts` — `StudioIds` (stable ids), `studioLenses` (Canvas, Pixel, Timeline, Flow; `1`–`4`; Pages `5`, whose feature and panel are B4's `src/lenses`), `studioTools`,
   `studioPanels` (placeholders: Chat, Layers, Pages, Assets, Brand, Properties, Adjust), `studioHudActions`.
 - `studio-spec.ts` — **`studioSpec`** (D19, the maximal spec), `studioSpecFor(lens, base)`, variant tables `STUDIO_LENS_TOOLS`,
   `STUDIO_LENS_HUD`, `STUDIO_LENS_PANELS`, `STUDIO_PANELS`, `STUDIO_CAPABILITIES`.

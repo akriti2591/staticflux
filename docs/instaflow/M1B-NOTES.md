@@ -42,6 +42,21 @@ Read with [M1-BRIEF.md](M1-BRIEF.md). These rules keep parallel M1b work package
 Instaflow requirements go in `docs/instaflow/REQUIREMENTS.md`. Framework additions still use `R*` IDs in
 `docs/REQUIREMENTS.md`: append after the highest existing number in your area and say which in your final message.
 
+## Checks (no duplicate runs)
+- Agents run only their own scope: `pnpm build`, then `pnpm vitest run <your paths>` and `pnpm lint:boundaries`. After a
+  fix, rerun only what the fix touched. Never rerun the full suite to confirm a passing change.
+- The coordinator runs `SF_REQUIRE_RUST=1 pnpm check` once per merge, and skips it when the merged tree is identical to
+  the tree the agent checked.
+- State lives in these docs (plan, decisions, this file), not in agent history. Start a fresh agent with a short brief
+  rather than resuming a long one.
+- One PR per work package.
+- **End every session with a handoff:** write `docs/instaflow/handoffs/<WP>.md` (template in `handoffs/README.md`)
+  and commit it with your work, even when you stop early. Commit work in progress as you go, not only at the end.
+- **Each work package has its own branch** `claude/wip-<wp>-<name>` (for example `claude/wip-b2-text`). Commit and
+  push work in progress to it often; it does not need to pass checks. The coordinator merges it into the working
+  branch when the package is done.
+- The coordinator's record of what has landed and what is in flight is `docs/instaflow/M1-LOG.md`.
+
 ## Sequencing
 - **Wave 3a (parallel):** B0, B1, B2, B5 (services and panels).
 - **Wave 3b, after B0 merges:** B4, B3 (incl. smart guides: centre lines, equal spacing, edges, snapping to B1 layout grids), B7 (repeat), then B6.

@@ -348,7 +348,7 @@ One worker (`colocated`, default) or two (`split`) is a boot setting; both run t
 | Q-1 | Deltas are published before the view frame that references them; a resnapshot is answered at a step boundary with a fresh frame | `editor-module.test.ts` |
 | Q-2 | The render port is called at most once per new (viewSeq, docVersion) and only with a consistent pair | IF-SEQ-003 on draw failure (last good frame kept) |
 
-## 18. Render: GPU devices, tiles, layers, cache budgets (SF-Δ23, Δ24, Δ29; Instaflow M1 A6)
+## 28. Render: GPU devices, tiles, layers, cache budgets (SF-Δ23, Δ24, Δ29; Instaflow M1 A6)
 
 | Machine | States / transitions | Source |
 |---|---|---|
@@ -460,3 +460,62 @@ Element state is document data (no runtime machines): booleans and masks are **d
 | TXT-8 | Which TextInput runs is a variant binding on the `editContext` platform fact; feature code never branches on the browser | `text-input.test.ts` (variant binding) |
 | TXT-9 | Text glyphs drawn by Vello GPU match the vello_cpu reference (Latin, Arabic, Devanagari), from both the Rust batch and the TypeScript pipeline | `render.gpu.test.ts` (`gpu-text`, `ts-text`) |
 | TXT-10 | **INCONCLUSIVE until the owner confirms:** with a real OS IME (Japanese, Chinese, Korean) in desktop Chrome, the candidate window sits at the caret / composition, follows wrapped lines and RTL positions, and survives page zoom | Human check: `apps/instaflow/src/text/ime-check/` (steps in `apps/instaflow/src/text/AGENTS.md`) |
+
+## 24. Library: ingest and rendition jobs (Instaflow M1b B4; IF-3.5–3.9, IF-23)
+
+Both machines live in `apps/instaflow/src/library`. Library metadata changes (rename, tags, folder, favourite, trash,
+restore) are single commits on the library document, not machines; trash is a state (`trashedAt`), never a delete.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/library-ingest` (one per file) | provisional (listed under `pv_…`) → hashing (blob store put, progress) → probing (kind's media probe) → recording (asset record blob) → listed (one library commit); hashing → listed (same content already live: deduplicated); any non-terminal → failed (error, or cancelled through the signal: `SF-CORE-002`) | `apps/instaflow/src/library/ingest.ts` |
+| `instaflow/rendition-job` (one per asset × role) | queued → decoding → rendering → storing → done (rendition recorded in the library document); queued \| decoding \| rendering \| storing → failed (`IF-LIB-006`) \| cancelled (`cancel(asset)`, queue disposed) | `apps/instaflow/src/library/renditions.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| L-1 | Nothing is listed before the content and the immutable record are stored; a failed or cancelled import lists nothing | IF-LIB-001/002/005, SF-CORE-002; `ingest.test.ts` |
+| L-2 | The same bytes never become two live assets (dedupe by content digest); a trashed copy does not count | `ingest.test.ts` |
+| L-3 | Asset records are immutable; all mutable metadata and late renditions live in the library document | `records.test.ts`, `library.test.ts` |
+| L-4 | A rendition job writes nothing before its blob is stored; regenerating with the same params gives the same blob | IF-LIB-006; `renditions.test.ts` |
+| L-5 | `resume()` re-queues exactly the live entries still missing a rendition their kind gets (`RENDITION_PRODUCERS`) | `renditions.test.ts`, `units.test.ts` |
+| L-6 | Trashed entries stay GC roots for 30 days (`TRASH_RETENTION_MS`) | `library.test.ts` |
+| L-7 | Lens code never branches on the lens: the arrangement, focus and overview come from the feature registry (Canvas is the fallback) | IF-LIB-012; `features.test.ts`, `controller.test.ts` |
+
+## 25. Tools: pointer gestures (Instaflow M1b B3)
+
+The pointer tools of one tab are a small machine; everything a gesture changes is a session-layer preview until the
+release commits it as one change set.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/tool-gesture` (one per tab) | idle → pressed (`press`: pointer down; a press on an unselected element selects it at once); pressed → idle (`release` within the drag slop: click semantics; `cancel`); pressed → moving \| resizing \| rotating \| marqueeing \| panning (the kind is `PRESS_GESTURES[behaviour][pressTarget]`); each of those → idle (`release`: commit or keep the selection; `cancel`: Escape or pointercancel, nothing committed). A gesture that cannot begin (IF-TOOL-002) returns to idle | `apps/instaflow/src/tools/gesture.ts` |
+| view state (per tab, data) | selection, entered container and camera change only through the tab's `ViewState`; Escape or a click on empty canvas returns to the root container with an empty selection | `apps/instaflow/src/tools/view-state.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| TL-1 | One gesture (move, resize, rotate) commits exactly one change set = one undo step on release; pointer moves write only session-layer previews; cancel writes nothing and clears them | `gesture.test.ts` |
+| TL-2 | Position-locked elements never move; a gesture or key command with nothing movable is a value, not a throw | IF-TOOL-002; `transform.test.ts`, `keyboard.test.ts` |
+| TL-3 | A target deleted during a gesture is dropped and pruned from the selection; with none left nothing commits | IF-TOOL-004; `gesture.test.ts` |
+| TL-4 | Broad + narrow hit testing and marquee equal their brute-force references | `hit-test.test.ts` (fast-check parity) |
+| TL-5 | Snapping moves a box by at most the threshold, and a snapped box snaps to itself | `snapping.test.ts` (fast-check) |
+| TL-6 | View state is per tab and never written to the CRDT or the store | `view-state.test.ts` |
+
+## 27. Repeat (Instaflow M1b B7)
+
+A repeat is document data (`repeat.*` on a group); its instances are derived by the repeat view and never stored. Every
+transition except a handle drag's preview is one change set, undoable as one step.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| repeat group (data) | plain group → live repeat (`makeRepeat` wraps siblings, or `repeat.kind` set) ⇄ parameter / generator changes (`setRepeat`); live → plain group (`releaseRepeat`: parameters cleared, source unchanged); live → expanded (`expandRepeat`: real instance groups, the source in the first, deterministic keys; the group stays a plain group) | `apps/instaflow/src/repeat/actions.ts` |
+| derived instance (view) | absent → present (count grows, the repeat becomes live, or a source node is created) → present (source or parameters change: re-derived) → absent (count shrinks, release, expand, source deleted) | `apps/instaflow/src/repeat/stage.ts` |
+| `instaflow/repeat-handle-drag` | dragging → dragging (`move`: session-layer preview) → committed (`commit`: one change set) \| cancelled (`cancel`, Esc, `AbortSignal`, or a commit with nothing to write) \| failed (the commit was refused: locks, values); the session preview is cleared on every exit. Terminal: committed, cancelled, failed | `apps/instaflow/src/repeat/handles.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| REP-1 | Instances are derived: the document holds only the source and the parameters; derived nodes are locked in the view and any write that targets one is refused | IF-REP-004; `stage.test.ts` |
+| REP-2 | The view shows exactly `instanceCount(params)` instance wrappers, each with a full copy of the source; instance 0 is the identity and holds the real source nodes | `stage.test.ts`, `instances.test.ts` (properties) |
+| REP-3 | Editing the source invalidates every copy and the wrappers of every repeat above it; dropped wrappers are invalidated so the projection deletes them | `stage.test.ts`, `actions.test.ts` (incremental projection) |
+| REP-4 | Expand is one undo step and its render equals the live render | `actions.test.ts` (property) |
+| REP-5 | Match keys are deterministic: instance `k` of key `key` is `key~k` live and expanded; re-expanding writes the same keys | `actions.test.ts` (property) |
+| REP-6 | A handle drag writes nothing until commit and leaves no session opinion behind on any exit | IF-REP-005; `handles.test.ts` |

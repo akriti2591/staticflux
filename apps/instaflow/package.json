@@ -32,6 +32,34 @@
     "./elements/panel": {
       "types": "./dist/elements/panel.d.ts",
       "import": "./dist/elements/panel.js"
+    },
+    "./library": {
+      "types": "./dist/library/index.d.ts",
+      "import": "./dist/library/index.js"
+    },
+    "./library/ui": {
+      "types": "./dist/library/ui.d.ts",
+      "import": "./dist/library/ui.js"
+    },
+    "./lenses": {
+      "types": "./dist/lenses/index.d.ts",
+      "import": "./dist/lenses/index.js"
+    },
+    "./lenses/ui": {
+      "types": "./dist/lenses/ui.d.ts",
+      "import": "./dist/lenses/ui.js"
+    },
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "import": "./dist/tools/index.js"
+    },
+    "./repeat": {
+      "types": "./dist/repeat/index.d.ts",
+      "import": "./dist/repeat/index.js"
+    },
+    "./repeat/panel": {
+      "types": "./dist/repeat/panel.d.ts",
+      "import": "./dist/repeat/panel.js"
     }
   },
   "scripts": {
@@ -41,6 +69,7 @@
   },
   "dependencies": {
     "@staticflux/a11y": "workspace:*",
+    "@staticflux/blob": "workspace:*",
     "@staticflux/capabilities": "workspace:*",
     "@staticflux/config": "workspace:*",
     "@staticflux/core": "workspace:*",
@@ -55,14 +84,13 @@
     "@lit/context": "1.1.6",
     "lit": "3.3.3",
     "@staticflux/gate": "workspace:*",
-    "@staticflux/shell": "workspace:*",
-    "@staticflux/blob": "workspace:*"
+    "@staticflux/shell": "workspace:*"
   },
   "devDependencies": {
     "@staticflux/runtime": "workspace:*",
     "@staticflux/testkit": "workspace:*",
-    "vite": "8.3.5",
     "fast-check": "4.10.2",
-    "harfbuzzjs": "1.6.4"
+    "harfbuzzjs": "1.6.4",
+    "vite": "8.3.5"
   }
 }

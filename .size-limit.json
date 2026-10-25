@@ -1038,6 +1038,164 @@
     "limit": "6.25 KB"
   },
   {
+    "name": "@staticflux/surface/image (area scaling + deterministic PNG encoder; renditions and export workers)",
+    "path": "packages/surface/dist/image.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "1.6 KB"
+  },
+  {
+    "name": "@instaflow/app/library (library document, ingest, renditions, thumbnail back ends; excl. framework)",
+    "path": "apps/instaflow/dist/library/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/blob",
+      "@staticflux/document/v2",
+      "@staticflux/stage",
+      "@staticflux/surface/image",
+      "@staticflux/surface/raster",
+      "@staticflux/a11y",
+      "@staticflux/capabilities"
+    ],
+    "limit": "10 KB"
+  },
+  {
+    "name": "@instaflow/app/library/ui (Assets panel and its contribution; excl. lit, kit and framework)",
+    "path": "apps/instaflow/dist/library/ui.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/kit/button",
+      "@staticflux/kit/segmented",
+      "@staticflux/kit/text-field",
+      "@staticflux/kit/toolbar",
+      "@staticflux/kit/tree",
+      "@staticflux/a11y",
+      "@staticflux/capabilities",
+      "@staticflux/document/v2",
+      "@staticflux/stage"
+    ],
+    "limit": "6.25 KB"
+  },
+  {
+    "name": "@instaflow/app/lenses (Pages and Canvas lens features, controller, story edits; excl. framework)",
+    "path": "apps/instaflow/dist/lenses/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/a11y",
+      "@staticflux/capabilities",
+      "@staticflux/document/v2",
+      "@staticflux/stage"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "@instaflow/app/lenses/ui (Pages panel and its contribution; excl. lit, kit and framework)",
+    "path": "apps/instaflow/dist/lenses/ui.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/kit/button",
+      "@staticflux/kit/toolbar",
+      "@staticflux/kit/tree",
+      "@staticflux/a11y",
+      "@staticflux/capabilities",
+      "@staticflux/document/v2",
+      "@staticflux/stage"
+    ],
+    "limit": "3.5 KB"
+  },
+  {
+    "name": "@instaflow/app/tools (hit testing, selection, transforms, snapping and guides, view state, keyboard, contributions; incl. the B1 element modules it uses, shared with /elements in the app chunk; excl. framework and lit)",
+    "path": "apps/instaflow/dist/tools/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/ui/default-theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/document/v2",
+      "@staticflux/document/spatial-index",
+      "@staticflux/document/render-projection",
+      "@staticflux/stage",
+      "@staticflux/capabilities",
+      "@staticflux/shell/spec",
+      "@staticflux/gate"
+    ],
+    "limit": "24 KB"
+  },
+  {
+    "name": "@instaflow/app/repeat (repeat component, view, placements, actions, handles, contributions; incl. the B1 element code it uses; excl. framework)",
+    "path": "apps/instaflow/dist/repeat/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "lit/directives/live.js",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/document/v2",
+      "@staticflux/document/render-projection",
+      "@staticflux/stage",
+      "@staticflux/capabilities",
+      "@staticflux/shell/spec",
+      "@staticflux/gate"
+    ],
+    "limit": "17.5 KB"
+  },
+  {
+    "name": "@instaflow/app/repeat/panel (Repeat inspector; excl. lit, kit and framework)",
+    "path": "apps/instaflow/dist/repeat/panel.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "lit/directives/live.js",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/document/v2",
+      "@staticflux/document/render-projection",
+      "@staticflux/stage",
+      "@staticflux/capabilities",
+      "@staticflux/shell/spec",
+      "@staticflux/gate",
+      "@staticflux/kit/button",
+      "@staticflux/kit/inspector",
+      "@staticflux/kit/segmented",
+      "@staticflux/kit/slider",
+      "@staticflux/kit/text-field"
+    ],
+    "limit": "4.5 KB"
+  },
+  {
     "name": "@staticflux/surface/text-input (TextInput port: EditContext + hidden textarea, variant binding; main thread, with text editing)",
     "path": "packages/surface/dist/text-input.js",
     "ignore": [

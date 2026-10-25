@@ -72,7 +72,7 @@ describe('<if-studio> frame', () => {
     expect(header.querySelector('nav')?.getAttribute('aria-label')).toBe('Breadcrumb');
     expect(header.querySelector('nav')?.textContent).toContain('Night Market Flyer');
     const mode = header.querySelector('sf-segmented.modes') as SfSegmentedElement;
-    expect(mode.options.map((o) => o.label)).toEqual(['Canvas', 'Pixel', 'Timeline', 'Flow']);
+    expect(mode.options.map((o) => o.label)).toEqual(['Canvas', 'Pixel', 'Timeline', 'Flow', 'Pages']);
     expect(mode.value).toBe(StudioIds.lens.canvas);
     expect([...header.querySelectorAll('sf-button')].map((b) => b.textContent?.trim())).toEqual(['Milestone', 'Share']);
     expect(header.querySelector('sf-button[variant="primary"]')?.textContent?.trim()).toBe('Share');

@@ -19,3 +19,4 @@ export {
   RasterBackendError,
   RasterReadbackError,
 } from './raster-errors.js';
+export { ImageEncodeError } from './image-errors.js';

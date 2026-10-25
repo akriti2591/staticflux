@@ -1,5 +1,5 @@
 /**
- * `TextInput` port (SF-Δ27, R11.54–R11.57): text entry for editors that draw their own text (canvas, WebGPU),
+ * `TextInput` port (SF-Δ27, R11.56–R11.59): text entry for editors that draw their own text (canvas, WebGPU),
  * without a contenteditable. Two implementations behind one port:
  *
  * - **EditContext** (`createEditContextTextInput`, Chromium): the host element gets an `EditContext`; the IME

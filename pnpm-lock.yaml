@@ -99,9 +99,6 @@ importers:
       fast-check:
         specifier: 4.10.2
         version: 4.10.2
-      harfbuzzjs:
-        specifier: 1.6.4
-        version: 1.6.4
       vite:
         specifier: 8.3.5
         version: 8.3.5(@types/node@22.20.5)(yaml@2.9.1)
@@ -1128,9 +1125,6 @@ packages:
     resolution: {integrity: sha512-tFm+GaLBgo6o0awHnvHaNoraVo27qJ+2tZEtZ+cIa08hXbeitrxAJajLI05hsUy/2/YTKcUjQYzHe5mCcraLBw==}
     engines: {node: '>=20.0.0'}
 
-  harfbuzzjs@1.6.4:
-    resolution: {integrity: sha512-T/PyfhVt1gGR2Tkf5KJUj1DQFkVBXHw552lS1iLEEDhV1Lukb3eq1pk2ov85kgbT2YUiZtJBTak9w+M7YgzUEQ==}
-
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
@@ -1929,8 +1923,6 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
-
-  harfbuzzjs@1.6.4: {}
 
   has-flag@4.0.0: {}
 

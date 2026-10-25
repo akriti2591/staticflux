@@ -58,17 +58,17 @@ A separate entry keeps it out of every main-thread bundle.
   `timerScheduler`, `defaultSurfaceEnvironment`, `absoluteNow`.
 - `units.ts` — `SurfaceEnvironmentToken`, `SurfaceImagePolicyToken`, `SurfaceImageLoaderToken`,
   `HtmlInCanvasSupportToken` (+ units), `surfaceUnit({ id, provides, create })` (disposed with its scope).
-- `errors.ts` — `SF-SURF-001` … `SF-SURF-009`, `SF-SURF-016` (TextInput implementation unavailable).
+- `errors.ts` — `SF-SURF-001` … `SF-SURF-009`, `SF-SURF-017` (TextInput implementation unavailable).
 
 `@staticflux/surface/text-input` (entry `text-input.ts`; main thread, loaded with text editing; Instaflow M1b B2, SF-Δ27,
-R11.54–R11.57):
+R11.56–R11.59):
 - `text-input.ts` — the **`TextInput` port** (`focus`, `blur`, `composing`, `setState`, `setControlBounds`,
   `setSelectionBounds`, `setCharacterBounds`, `onIntent`, `onBoundsRequest`, `dispose`), `TextIntent` (insert, delete with
   direction + unit, compose-start/update/commit/cancel, selection, key, format), `TextInputState`, `ClientRect`;
   implementations `createEditContextTextInput({ host, EditContext? })` and `createHiddenTextareaTextInput({ host })`;
   `TextInputFactoryToken`, `textInputBindings({ editContext })` (variant binding on the platform fact),
   `editContextTextInputUnit`, `hiddenTextareaTextInputUnit`, factories; helpers `applyTextIntent` (plain-text reference
-  model), `codePointBoundary`, `keyIntent`; `TEXT_KEYS`, `DELETE_UNITS`, `UNDERLINE_STYLES`. Errors: `SF-SURF-016`.
+  model), `codePointBoundary`, `keyIntent`; `TEXT_KEYS`, `DELETE_UNITS`, `UNDERLINE_STYLES`. Errors: `SF-SURF-017`.
 
 `@staticflux/surface/raster` (entry `raster.ts`; render and export workers):
 - `raster-backend.ts` — the `RasterBackend<Delta>` port (`attach`, `warmUp`, `apply` → dirty `WorldRect`s, `bounds`,
@@ -102,11 +102,16 @@ R11.54–R11.57):
 - `raster-errors.ts` — `SF-SURF-010` GPU unavailable · `011` device lost for good · `012` recovery over budget ·
   `013` headless request invalid · `014` backend call failed · `015` readback failed.
 
+`@staticflux/surface/image` (entry `image.ts`; any worker or Node, no canvas; Instaflow M1b B4, R11.54–R11.55):
+- `image.ts` — `scaleImage(image, width, height)` (area average in premultiplied space), `fitWithin(w, h, max)`,
+  `encodePng(image, { signal })` (8-bit RGBA, no filters: the same pixels always give the same bytes), `crc32`, `PNG_MIME`.
+- `image-errors.ts` — `SF-SURF-016` bad size or pixel buffer, or the compression stream failed (also exported from `raster`).
+
 ## Lifecycles
 - `surface/lifecycle`: `created → attaching → attached ⇄ running`; `attaching → failed`; `attaching|attached|running
   → detached`; `detached|failed → attaching`; `* → disposed`.
 - `surface/frame-loop`: `idle → running ⇄ paused → stopped` (a resume is not counted as dropped frames).
-- `surface/gpu-device`, renderer phase, tile entries and lifted layers: docs/LIFECYCLES.md §18 (invariants G-1…G-7).
+- `surface/gpu-device`, renderer phase, tile entries and lifted layers: docs/LIFECYCLES.md §28 (invariants G-1…G-7).
 
 ## Rules
 - Engines never touch the DOM or globals: everything comes through `RenderContext` (the same engine must run on the
@@ -148,6 +153,7 @@ renderer and headless surface against `createMemoryRasterBackend` with exact pix
 | @staticflux/surface/input-ring | 1.75 KB | packages/surface/dist/input-ring.js |
 | @staticflux/surface/raster (render and export workers: tiled renderer, GPU device lifecycle, headless) | 9.5 KB | packages/surface/dist/raster.js |
 | @staticflux/surface/text-input (TextInput port: EditContext + hidden textarea, variant binding; main thread, with text editing) | 3.75 KB | packages/surface/dist/text-input.js |
+| @staticflux/surface/image (area scaling + deterministic PNG encoder; renditions and export workers) | 1.6 KB | packages/surface/dist/image.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

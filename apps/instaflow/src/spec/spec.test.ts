@@ -60,8 +60,8 @@ describe('contributions', () => {
     const test = createTestInjector({ units: composeUnits([...studioContributionUnits, toolContribution(extra), editorRegistriesUnit]) });
     const registries = await test.get(EditorRegistriesToken);
     expect(registries.tool('x/extra')?.label).toBe('Extra');
-    expect(registries.lenses.map((l) => l.label)).toEqual(['Canvas', 'Pixel', 'Timeline', 'Flow']);
-    expect((await test.get(LensContributionsToken)).length).toBe(4);
+    expect(registries.lenses.map((l) => l.label)).toEqual(['Canvas', 'Pixel', 'Timeline', 'Flow', 'Pages']);
+    expect((await test.get(LensContributionsToken)).length).toBe(5);
     expect((await test.get(ToolContributionsToken)).length).toBe(12);
     expect((await test.get(PanelContributionsToken)).length).toBe(7);
     expect((await test.get(HudActionContributionsToken)).length).toBe(5);

@@ -67,7 +67,7 @@ export const SurfaceNotAttachedError = defineError(
 );
 
 export const TextInputUnavailableError = defineError(
-  'SF-SURF-016',
+  'SF-SURF-017',
   'unavailable',
   'The requested TextInput implementation cannot run here (no EditContext, or no document for the hidden textarea).',
   'Bind `TextInputFactoryToken` with `textInputBindings({ editContext })` so the platform fact picks the implementation; create inputs on the main thread.',

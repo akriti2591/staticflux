@@ -1,5 +1,5 @@
 /**
- * `TextInput` contract suite (SF-Δ27, R16.31; port R11.54–R11.57; Instaflow IF-7.7). Runs the same user scripts — typing,
+ * `TextInput` contract suite (SF-Δ27, R16.31; port R11.56–R11.59; Instaflow IF-7.7). Runs the same user scripts — typing,
  * selection replace, Backspace/Delete (surrogate pairs), paste, Enter and Select All, a Japanese composition with
  * commit, a cancelled composition, an RTL insert — against any implementation through a **driver** that plays the
  * platform side (a fake EditContext, or events on the hidden textarea). An editor loop applies every intent with

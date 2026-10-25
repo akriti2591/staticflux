@@ -60,9 +60,9 @@ describe('implementations', () => {
   it('EditContext is unavailable without the API; the textarea needs a document', () => {
     const host = document.createElement('div');
     const r = createEditContextTextInput({ host });
-    expect(!r.ok && r.error.code).toBe('SF-SURF-016');
+    expect(!r.ok && r.error.code).toBe('SF-SURF-017');
     const noDoc = createHiddenTextareaTextInput({ host: { ownerDocument: null } as unknown as HTMLElement });
-    expect(!noDoc.ok && noDoc.error.code).toBe('SF-SURF-016');
+    expect(!noDoc.ok && noDoc.error.code).toBe('SF-SURF-017');
   });
 
   it('the hidden textarea follows the selection bounds and is removed on dispose', () => {
