@@ -61,8 +61,10 @@ Keep `yjs` and `loro-crdt` out of main-thread chunks; load the Loro Wasm in the 
 - `store.ts` — **`DocumentStore` port** (`readHead`, `writeHead(asset, head, expectedGeneration)` CAS, `putBlob`,
   `getBlob`, `appendLog`, `readLog`, `truncateLog`), `DocumentHead`, `BlobRef`, `createMemoryDocumentStore()`
   (`stats`, `failNext` fault injection). `@staticflux/blob` (A3) adapts its `BlobStore` to this port.
-- `commit-record.ts` — `CommitRecord { seq?, peer, meta, updates: { [part]: bytes }, inverse: { [part]: ops } }`,
-  `encodeCommitRecord`, `decodeCommitRecord`, `commitRecordSize`.
+- `commit-record.ts` — `CommitRecord { seq?, peer, meta, updates: { [part]: bytes }, inverse: { [part]: ops }, after?:
+  { [part]: frontier } }`, `encodeCommitRecord`, `decodeCommitRecord`, `commitRecordSize`. `after` (each touched part's
+  frontier right after the commit, also on `UndoEntry`) lets the undo service (`@staticflux/stage`, A8) detect a later
+  overwrite with `changedSince(after)` and a fork at `after`, even after compaction and reload.
 - `components.ts` — **`defineComponent(id, schema, { version, migrations, defaults })`** (v2; plain identifier ids),
   field types `f64 i32 u8 bool string json ticks color vec2 richtext` + `field.enum([...])`, `field.ref('node' | 'asset')`,
   `field.map(spec)`, `field.list(spec)`; `isFieldValueV2`, `fieldStorage`, `fieldJsonSchema`, `componentJsonSchema`,
@@ -100,7 +102,8 @@ Keep `yjs` and `loro-crdt` out of main-thread chunks; load the Loro Wasm in the 
 - **Write through the repo.** Edits to a repo part go through `doc.commit` / `doc.gesture`, never `part.transact`
   directly, or they are not persisted. A cross-page move is `doc.moveAcross` (one record, both parts).
 - Inverse ops are anchored (text cursors, `after` siblings) so concurrent edits survive an undo. Whether an undo over
-  another actor's later overwrite is applied, skipped or flagged is the undo service's policy (D14: flagged; SF-Δ9).
+  another actor's later overwrite is applied, skipped or flagged is the undo service's policy (D14: flagged; SF-Δ9,
+  implemented by `createUndoService` in `@staticflux/stage`).
 - Compaction `history: 'shallow'` makes older bases unavailable (`SF-DOC-010`); use it only when no peer may hold
   unsynced edits from before it (e.g. on close of the last tab).
 - The world (v1) and any v2 index are materialized views: only the engine writes them, always from CRDT state.

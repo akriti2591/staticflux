@@ -233,6 +233,21 @@ describe('DocumentRepo: compaction, undo horizon, eviction, close', () => {
     expect(reopened.undoHistory('h1')[0]?.seq).toBeGreaterThan(0);
   });
 
+  it('records each touched part’s after-frontier with the step, through compaction and reload', async () => {
+    const { store, doc } = await seeded();
+    const committed = unwrap(doc.commit(human, { 'page:p1': [{ op: 'set', node: 'card', path: 'spatial.x', value: 7 }] }));
+    const part = doc.loadedPart('page:p1');
+    expect(committed.record.after?.['page:p1']).toBe(part?.frontier());
+    unwrap(await committed.durable);
+    unwrap(await doc.compact(signal));
+    const reopened = unwrap(await repoOn(store).open('as_1', signal));
+    const step = reopened.undoHistory('h1')[0];
+    expect(step?.after?.['page:p1']).toBe(committed.record.after?.['page:p1']);
+    const p1 = unwrap(await reopened.part('page:p1', signal));
+    const since = unwrap(p1.changedSince(step?.after?.['page:p1'] as never));
+    expect(since.nodes.size).toBe(0);
+  });
+
   it('retries compaction after losing the head race and keeps both writers’ edits', async () => {
     const { store, doc: tabA } = await seeded();
     const tabB = unwrap(await repoOn(store).open('as_1', signal));

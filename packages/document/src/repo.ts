@@ -21,7 +21,7 @@
  */
 import { AbortedError, createMachine, createSingleFlight, defineMachine, err, ok, type Result, type SfError } from '@staticflux/core';
 import { type CommitRecord, commitRecordSize, decodeCommitRecord, encodeCommitRecord } from './commit-record.js';
-import { type CrdtEngine, type DocumentCRDTv2, type PartChange, type PartOp, type PeerId, randomPeerId, type TransactionMeta } from './crdt-v2.js';
+import { type CrdtEngine, type DocumentCRDTv2, type Frontier, type PartChange, type PartOp, type PeerId, randomPeerId, type TransactionMeta } from './crdt-v2.js';
 import { DocumentClosedError, HeadConflictError, InvalidUpdateError, PartBusyError, UnknownPartError } from './errors.js';
 import { createGesture, type Gesture } from './gesture.js';
 import type { JsonObject } from './json.js';
@@ -52,6 +52,8 @@ export interface UndoEntry {
   readonly peer: PeerId;
   readonly meta: TransactionMeta;
   readonly inverse: Readonly<Record<PartId, readonly PartOp[]>>;
+  /** Per-part frontier right after the step (absent for steps recorded before it existed). */
+  readonly after?: Readonly<Record<PartId, Frontier>>;
 }
 
 export interface Committed {
@@ -207,7 +209,13 @@ const nextTxn = (peer: PeerId): string => {
 };
 
 function toUndoEntry(record: CommitRecord): UndoEntry {
-  return { ...(record.seq === undefined ? {} : { seq: record.seq }), peer: record.peer, meta: record.meta, inverse: record.inverse };
+  return {
+    ...(record.seq === undefined ? {} : { seq: record.seq }),
+    peer: record.peer,
+    meta: record.meta,
+    inverse: record.inverse,
+    ...(record.after === undefined ? {} : { after: record.after }),
+  };
 }
 
 function trimUndo(entries: readonly UndoEntry[], horizon: number): UndoEntry[] {
@@ -375,6 +383,7 @@ class RepoDocument implements OpenDocument {
     const txMeta: TransactionMeta = parts.length > 1 && meta.txn === undefined ? { ...meta, txn: nextTxn(this.peer) } : meta;
     const updates: Record<PartId, Uint8Array> = {};
     const inverse: Record<PartId, readonly PartOp[]> = {};
+    const after: Record<PartId, Frontier> = {};
     const partChanges: Record<PartId, PartChange> = {};
     const applied: [DocumentCRDTv2, readonly PartOp[]][] = [];
     for (const [id, crdt] of parts) {
@@ -387,9 +396,10 @@ class RepoDocument implements OpenDocument {
       applied.push([crdt, info.value.inverse]);
       updates[id] = info.value.update;
       inverse[id] = info.value.inverse;
+      after[id] = info.value.after;
       partChanges[id] = info.value.change;
     }
-    const record: CommitRecord = { peer: this.peer, meta: txMeta, updates, inverse };
+    const record: CommitRecord = { peer: this.peer, meta: txMeta, updates, inverse, ...(ids.length > 0 ? { after } : {}) };
     for (const id of ids) this.slot(id).pending += 1;
     for (const listener of [...this.listeners]) listener(record);
     const durable = this.enqueue(record, ids);
