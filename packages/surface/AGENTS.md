@@ -49,7 +49,8 @@ A separate entry keeps it out of every main-thread bundle.
   `drawElement`, `texElementImage2D`, `drawElementImageToTexture` | `copyElementImageToTexture`),
   `createHtmlInCanvas({ canvas, document })` → adapter (`add`, `draw`, `drawToTexture`, `place`, `onPaint`,
   `requestPaint`); overlay fallback; main thread only.
-- `a11y-layer.ts` — `createAccessibleLayer({ host, document, onAction })` → `update(nodes)` (keyed by id), `focus(id)`.
+- `a11y-layer.ts` — `createAccessibleLayer({ host, document, onAction, label, activateKeys, focusRing, focusRingOffset })` →
+  `update(nodes)` (keyed by id; `roleDescription`, `level`, roving `tabIndex` 0 | -1, R11.60–R11.62), `focus(id)`.
 - `metrics.ts` — `SurfaceMetrics` (`surface/frame-time`, `surface/frame-time-max`, `surface/dropped-frames`,
   `surface/input-latency`), `createSurfaceMetrics({ budget, targetFrameMs, window })`.
 - `images.ts` — `SurfaceImagePolicy` port, `anonymousImagePolicy`, `imageCredentials`, `createSurfaceImageLoader`

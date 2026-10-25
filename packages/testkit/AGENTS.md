@@ -78,7 +78,8 @@ comparison, golden render snapshots, a real-GPU runner (Chromium on SwiftShader 
   variants; spacing on the 4 px grid in every density; control heights Focus ≥ Standard ≥ Pro ≥ 24 px; motion 120–200 ms, 0 reduced.
 - `a11y.ts` (subpath `@staticflux/testkit/a11y`) — `auditA11y(root, { rules })` / `expectNoA11yIssues(root)`: composed-tree
   (shadow roots + slots) checks `name`, `aria-ref` (ids never cross a shadow boundary), `required-attr`, `required-parent`,
-  `valid-role`, `positive-tabindex`, `hidden-focusable`, `nested-interactive`; helpers `accessibleName`, `roleOf`, `flatText`,
+  `valid-role`, `positive-tabindex`, `hidden-focusable`, `nested-interactive`, `allowed-attr`, `prohibited-name`, `duplicate-id`
+  (R15.6); helpers `accessibleName`, `roleOf`, `flatText`,
   `composedParent`, `allElements`, `deepFocused`, `press(target, key, { shift, ctrl, alt, meta, type })`.
 - `app.ts` — `bootTestApp({ units, overrides, subsystems, routes, router, initialUrl, session, time, telemetryLevel })` →
   `{ app, injector, router?, history?, session?, time?, get, shutdown, …TestTelemetry }` (boot failure throws SF-TEST-001);
@@ -214,7 +215,8 @@ Use `@staticflux/ui/testing` (`mountTestRoot`, `manualVisibility`, `settle`) for
 build the injector with `createTestInjector({ units: [...uiUnits, ...], overrides })`, pass `injector: t.injector` to
 `mountTestRoot`, drive frames with a `fakeFrameSchedulerUnit(time)` override + `await time.flush()`, and platform
 facts with `createFakePlatformEnv()` (`platformEnvUnit(env)` override). Browser-mode tests (R16.1) run the same code in a real browser.
-Accessibility (R15.4): end every component test with `expectNoA11yIssues(element)` from `@staticflux/testkit/a11y` and drive
+Accessibility (R15.4, R15.6): end every component test with `expectNoA11yIssues(element)` from `@staticflux/testkit/a11y`
+(rules include `allowed-attr`, `prohibited-name`, `duplicate-id`) and drive
 keyboard patterns with `press(…)` (layout-dependent checks — rendered contrast, target size — belong to the theme contract and e2e).
 
 ## Contract suites (R16.4)
