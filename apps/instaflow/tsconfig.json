@@ -55,6 +55,9 @@
     },
     {
       "path": "../../packages/shell"
+    },
+    {
+      "path": "../../packages/blob"
     }
   ]
 }

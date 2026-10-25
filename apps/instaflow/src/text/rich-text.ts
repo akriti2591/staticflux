@@ -278,6 +278,40 @@ export function duplicateTextOps(part: DocumentCRDTv2, node: NodeId, copy: NodeI
   return ok([{ op: 'create', node: copy, kind: TEXT_KIND, parent, props: { ...record.props, [MATCH_KEY_PATH]: record.props[MATCH_KEY_PATH] ?? node }, texts }]);
 }
 
+/**
+ * A local preview of `[from, to)` replaced by `text` (IME composition): the model with the text spliced in, styled
+ * like the character before `from` plus `extra` (e.g. `{ underline: true }`). Nothing is written to the document.
+ */
+export function previewReplace(block: TextBlockModel, from: number, to: number, text: string, extra: CharStyle = {}): TextBlockModel {
+  if (text.includes(BREAK)) text = text.replaceAll(BREAK, ' ');
+  const delta = text.length - (to - from);
+  const shift = (x: number): number => (x <= from ? x : x >= to ? x + delta : from);
+  const paragraphs = block.paragraphs.map((p): TextParagraph => {
+    if (p.end < from || p.start > to) {
+      const moved = p.start > to ? delta : 0;
+      return moved === 0 ? p : { ...p, start: p.start + moved, end: p.end + moved, runs: p.runs.map((r) => ({ ...r, start: r.start + moved, end: r.end + moved })) };
+    }
+    const end = shift(p.end);
+    const base = p.runs.find((r) => r.start < from && r.end >= from) ?? p.runs.find((r) => r.start <= from && r.end >= from) ?? p.runs[0];
+    const runs: TextRun[] = [];
+    for (const r of p.runs) {
+      const a = shift(r.start);
+      const b = r.end <= from ? r.end : shift(r.end);
+      if (r.end <= from && b > a) runs.push({ ...r, start: a, end: b });
+      else if (r.start >= to) runs.push({ ...r, start: r.start + delta, end: r.end + delta });
+      else {
+        if (r.start < from) runs.push({ ...r, start: r.start, end: from });
+        if (r.end > to) runs.push({ ...r, start: from + text.length, end: r.end + delta });
+      }
+    }
+    runs.push({ start: from, end: from + text.length, style: { ...(base?.style ?? {}), ...extra } });
+    runs.sort((x, y) => x.start - y.start);
+    const tiled = runs.filter((r) => r.end > r.start);
+    return { ...p, end, text: `${block.text.slice(p.start, from)}${text}${block.text.slice(to, p.end)}`, runs: tiled.length > 0 ? tiled : [{ start: p.start, end, style: base?.style ?? {} }] };
+  });
+  return { node: block.node, text: block.text.slice(0, from) + text + block.text.slice(to), paragraphs };
+}
+
 /** Stable anchors for a range (start sticks to the following char, end to the preceding one). */
 export interface AnchoredRange {
   readonly start: TextAnchor;

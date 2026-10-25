@@ -20,6 +20,10 @@
     "./versioning/ui": {
       "types": "./dist/versioning/ui.d.ts",
       "import": "./dist/versioning/ui.js"
+    },
+    "./text": {
+      "types": "./dist/text/index.d.ts",
+      "import": "./dist/text/index.js"
     }
   },
   "scripts": {
