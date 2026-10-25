@@ -140,8 +140,8 @@ describe('<sf-icon-button>', () => {
     press(element, 'Escape');
     await settle();
     expect(bubble.hasAttribute('data-open')).toBe(false);
-    element.dispatchEvent(new PointerEvent('pointerenter'));
-    await new Promise((r) => setTimeout(r, 450));
+    element.dispatchEvent(new PointerEvent('pointerenter')); // the first tooltip waits 500 ms (OVERLAYS-FEEDBACK §4)
+    await new Promise((r) => setTimeout(r, 550));
     await settle();
     expect(bubble.hasAttribute('data-open')).toBe(true);
     element.dispatchEvent(new PointerEvent('pointerleave'));

@@ -227,7 +227,7 @@ export class SfFontPickerElement extends SfElement<typeof fontPickerSpec> {
     emit(this, 'sf-restore', {});
   }
 
-  commit(family: string): void {
+  commitFont(family: string): void {
     clearTimeout(this.hoverTimer);
     this.value = family;
     this.opening = family;
@@ -267,7 +267,7 @@ export class SfFontPickerElement extends SfElement<typeof fontPickerSpec> {
       const row = this.rows[this.active];
       if (row?.kind === 'font') {
         event.preventDefault();
-        this.commit(row.font.family);
+        this.commitFont(row.font.family);
       }
     }
   }
@@ -303,7 +303,7 @@ export class SfFontPickerElement extends SfElement<typeof fontPickerSpec> {
         aria-posinset=${position}
         ?data-active=${index === this.active}
         @pointerenter=${() => this.hover(font.family)}
-        @click=${() => this.commit(font.family)}
+        @click=${() => this.commitFont(font.family)}
       >
         <span class="name" style=${`font-family:${fontFaceCss(font.family)}`} aria-hidden="true">${font.family}</span>
         ${font.token === undefined ? nothing : html`<span class="tag" aria-hidden="true">@${font.token}</span>`}

@@ -406,7 +406,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
     }
   }
 
-  private commit(hex: string, opacity = this.opacity): void {
+  private commitColor(hex: string, opacity = this.opacity): void {
     const upper = hex.toUpperCase();
     this.value = upper;
     this.mixed = false;
@@ -431,7 +431,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
       this.error = true;
       return;
     }
-    if (hex !== this.value.toUpperCase() || this.mixed) this.commit(hex);
+    if (hex !== this.value.toUpperCase() || this.mixed) this.commitColor(hex);
   }
 
   private async pick(): Promise<void> {
@@ -444,7 +444,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
     popover?.setAttribute('suspended', '');
     try {
       const result = await new View().open({ signal: picking.signal });
-      this.commit(result.sRGBHex);
+      this.commitColor(result.sRGBHex);
     } catch {
       // Escape or abort: nothing picked, nothing changes.
     } finally {
@@ -469,7 +469,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
         ?.readText()
         .then((text) => {
           const hex = completeHex(text);
-          if (hex !== undefined) this.commit(hex);
+          if (hex !== undefined) this.commitColor(hex);
         })
         .catch(() => undefined);
       return;
@@ -506,7 +506,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
       const v = 1 - Math.min(1, Math.max(0, (e.clientY - rect.top) / (rect.height || 1)));
       this.hsv = { h: this.hsv.h, s, v };
       const hex = hsvToHex(this.hsv);
-      if (done) this.commit(hex);
+      if (done) this.commitColor(hex);
       else this.preview(hex);
     };
     update(event, false);
@@ -531,7 +531,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
     event.preventDefault();
     const clamp = (n: number): number => Math.min(1, Math.max(0, n));
     this.hsv = { h: this.hsv.h, s: clamp(this.hsv.s + delta[0]), v: clamp(this.hsv.v + delta[1]) };
-    this.commit(hsvToHex(this.hsv));
+    this.commitColor(hsvToHex(this.hsv));
   }
 
   override render(): TemplateResult {
@@ -566,7 +566,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
               this.hsv = { ...this.hsv, h: Number((e.target as HTMLInputElement).value) };
               this.preview(hsvToHex(this.hsv));
             }}
-            @change=${() => this.commit(hsvToHex(this.hsv))}
+            @change=${() => this.commitColor(hsvToHex(this.hsv))}
           />`
       : nothing;
     return html`<div class="value">
@@ -594,7 +594,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
           @sf-change=${(e: CustomEvent<NumberChangeDetail>) => {
             const next = Math.min(1, Math.max(0, (e.detail.value ?? this.opacity * 100) / 100));
             this.opacity = next;
-            if (this.value !== '') this.commit(this.value, next);
+            if (this.value !== '') this.commitColor(this.value, next);
           }}
         ></sf-number-field>
         ${this.canPick
@@ -606,12 +606,12 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
         ? html`<button type="button" class="link" @click=${() => emit<ColorChangeDetail>(this, 'sf-change', { kind: 'detach', hex: current })}>${k(kitMessages.detachToken)}</button>`
         : nothing}
       ${this.unresolved && this.fallback !== undefined
-        ? html`<button type="button" class="link" @click=${() => this.commit(this.fallback ?? '')}>${kitText(i18n, kitMessages.replaceWith, { hex: this.fallback.toUpperCase() })}</button>`
+        ? html`<button type="button" class="link" @click=${() => this.commitColor(this.fallback ?? '')}>${kitText(i18n, kitMessages.replaceWith, { hex: this.fallback.toUpperCase() })}</button>`
         : nothing}
       ${this.grid(
         'docs',
         k(kitMessages.documentColors),
-        docs.map((c) => ({ hex: c.hex, name: `${c.hex.toUpperCase()} · ${c.uses} ${c.uses === 1 ? 'use' : 'uses'}`, pressed: c.hex.toUpperCase() === current && this.token === undefined, pick: () => this.commit(c.hex) })),
+        docs.map((c) => ({ hex: c.hex, name: `${c.hex.toUpperCase()} · ${c.uses} ${c.uses === 1 ? 'use' : 'uses'}`, pressed: c.hex.toUpperCase() === current && this.token === undefined, pick: () => this.commitColor(c.hex) })),
         this.captions,
       )}
       ${this.grid(
@@ -627,8 +627,8 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
           },
         })),
       )}
-      ${this.grid('palette', k(kitMessages.paletteColors), this.palette.map((hex) => ({ hex, name: hex.toUpperCase(), pressed: false, pick: () => this.commit(hex) })))}
-      ${this.grid('recent', k(kitMessages.recentColors), this.recent.slice(0, MAX_RECENT_COLORS).map((hex) => ({ hex, name: hex.toUpperCase(), pressed: false, pick: () => this.commit(hex) })))}
+      ${this.grid('palette', k(kitMessages.paletteColors), this.palette.map((hex) => ({ hex, name: hex.toUpperCase(), pressed: false, pick: () => this.commitColor(hex) })))}
+      ${this.grid('recent', k(kitMessages.recentColors), this.recent.slice(0, MAX_RECENT_COLORS).map((hex) => ({ hex, name: hex.toUpperCase(), pressed: false, pick: () => this.commitColor(hex) })))}
       <button type="button" class="toggle" aria-expanded=${this.customOpen ? 'true' : 'false'} @click=${() => (this.customOpen = !this.customOpen)}>
         ${k(kitMessages.customColor)}<sf-icon .icon=${this.customOpen ? chevronDownIcon : chevronRightIcon}></sf-icon>
       </button>

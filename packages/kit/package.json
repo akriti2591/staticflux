@@ -121,6 +121,42 @@
     "./position": {
       "types": "./dist/position.d.ts",
       "import": "./dist/position.js"
+    },
+    "./overlay": {
+      "types": "./dist/overlay.d.ts",
+      "import": "./dist/overlay.js"
+    },
+    "./confirm-row": {
+      "types": "./dist/confirm-row.d.ts",
+      "import": "./dist/confirm-row.js"
+    },
+    "./feedback": {
+      "types": "./dist/feedback.d.ts",
+      "import": "./dist/feedback.js"
+    },
+    "./copy-field": {
+      "types": "./dist/copy-field.d.ts",
+      "import": "./dist/copy-field.js"
+    },
+    "./hint": {
+      "types": "./dist/hint.d.ts",
+      "import": "./dist/hint.js"
+    },
+    "./disclosure": {
+      "types": "./dist/disclosure.d.ts",
+      "import": "./dist/disclosure.js"
+    },
+    "./color-popover": {
+      "types": "./dist/color-popover.d.ts",
+      "import": "./dist/color-popover.js"
+    },
+    "./font-picker": {
+      "types": "./dist/font-picker.d.ts",
+      "import": "./dist/font-picker.js"
+    },
+    "./align-popover": {
+      "types": "./dist/align-popover.d.ts",
+      "import": "./dist/align-popover.js"
     }
   },
   "files": [

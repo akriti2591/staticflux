@@ -33,7 +33,7 @@ export interface AlignDetail {
   readonly to: AlignTo;
 }
 
-type MessageKey = keyof typeof kitMessages;
+type MessageKey = 'alignLeft' | 'alignCenter' | 'alignRight' | 'alignTop' | 'alignMiddle' | 'alignBottom' | 'distributeHorizontal' | 'distributeVertical' | 'tidyUp';
 
 const ALIGN: readonly (readonly [AlignAction, IconDef, MessageKey])[] = [
   ['left', alignStartVerticalIcon, 'alignLeft'],
