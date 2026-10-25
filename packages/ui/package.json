@@ -1,7 +1,7 @@
 {
   "name": "@staticflux/ui",
   "version": "0.1.0",
-  "description": "Lit integration: components with declared deps, MobX controller, scope elements.",
+  "description": "Lit integration: components with declared deps, MobX controller, scope elements, typed theme contract.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

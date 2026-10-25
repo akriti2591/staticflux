@@ -41,7 +41,7 @@ tooling/  sf CLI (graph, budgets, manifests) · eslint-plugin · build plugin ·
 | `@staticflux/gate` | Facts, policy IR, compiler → decision tables, explainable decisions | `FactSource`, `Policy`, `Decision` |
 | `@staticflux/data` | Transports, resource kinds, cache/SWR, batching, retries, breakers, schema-first stores + patches | `Transport`, `Resource`, `defineStore` |
 | `@staticflux/worker` | Typed envelopes, supervised workers, store replication, SharedWorker coordinator, leader election | `WorkerSpec`, `Envelope`, `Replica` |
-| `@staticflux/document` | ECS document model, `DocumentCRDT` interface, Yjs adapter, projections | `DocumentEngine`, `Projection` |
+| `@staticflux/document` | ECS document model, `DocumentCRDT` interface, Yjs adapter, projections; v2 port, `DocumentRepo`, Loro engine, render projection, spatial index | `DocumentEngine`, `Projection`, `DocumentCRDTv2`, `DocumentRepo` |
 | `@staticflux/router` | Navigation pipeline, stages, typed routes, view-state sub-routes | `RouteDef`, `Stage`, `Navigation` |
 | `@staticflux/loader` | Logical chunk IDs, manifest runtime, warmup tiers, speculation engine, federation/import-map strategies | `ChunkId`, `LoadStrategy` |
 | `@staticflux/handoff` | Boundary-surviving state with lifetimes; shared snapshot format | `HandoffSlot` |
@@ -49,11 +49,24 @@ tooling/  sf CLI (graph, budgets, manifests) · eslint-plugin · build plugin ·
 | `@staticflux/a11y` | Focus manager, announcer, shortcut registry, preference facts | `Announcer`, `FocusScope` |
 | `@staticflux/perf` | Web Vitals, LoAF→chunk mapping, boot waterfall, budgets at runtime | `PerfMonitor` |
 | `@staticflux/ui` | Lit bindings: `MobxController`, `inject()` with render/lazy/functional, scope elements | `component()`, `deps` |
-| `@staticflux/shell` | Slots, theming tokens, workspaces, command palette, error boundaries | `Workspace`, `SlotContribution` |
+| `@staticflux/shell` | Slots, theming tokens, workspaces, command palette, error boundaries; layout spec runtime | `Workspace`, `SlotContribution`, `ShellSpec` |
 | `@staticflux/messaging` | Surface manager: dialogs, sheets, popovers, tooltips, toasts, banners, coach marks; scope-bound lifetimes; attention arbitration; routable dialogs | `SurfaceDef`, `Surfaces` |
 | `@staticflux/urlstate` | URL-state kinds (view/intent/sticky/dialog), declared bindings, URL ⇄ store sync | `urlBinding`, `intent` |
 | `@staticflux/testkit` | Test injector, fakes (clock, transport, session, platform, worker bridge), contract suites | — |
 | `@staticflux/devtools` | Telemetry-fabric consumer UI | — |
+| `@staticflux/storage` | One async key-value interface over any backend (memory, web storage, IndexedDB, OPFS, remote) with composable middleware | `AsyncStore`, middleware |
+| `@staticflux/blob` | Content-addressed blob store: chunked hashing, OPFS with atomic heads, journal and leader tab, folder mirror, zip bundles, GC | `BlobStore` |
+| `@staticflux/stage` | Composed stage over document parts (session and local layers, provenance, locks), actor attribution, per-actor undo | `Stage`, `UndoService` |
+| `@staticflux/capabilities` | Typed, schema-described actions for UI, palette and agents through one gated, metered pipeline | `defineCapability` |
+| `@staticflux/webmcp` | Publishes capabilities as WebMCP tools (gated as subject `agent`) | — |
+| `@staticflux/ai` | One model-provider port over built-in, on-device, decision and remote models | `ModelProvider` |
+| `@staticflux/advisors` | Decision points and pluggable advisors (performance only, never authorization) | `DecisionPoint`, `Advisor` |
+| `@staticflux/sandbox` | Untrusted plugins in sandboxed iframes / workers, limited to granted capabilities | — |
+| `@staticflux/wasm` | Wasm modules as worker-scoped units and chunks; feature facts; memory views | — |
+| `@staticflux/hydrate` | Islands over prerendered HTML with event replay; store-snapshot rehydration | — |
+| `@staticflux/pwa` | Service worker from the chunk manifest, update flow without reload, launch intents | — |
+| `@staticflux/surface` | DOM / Canvas2D / WebGL / WebGPU surfaces, render workers, input forwarding; GPU raster backend, text input, image | `RasterBackend`, `TextInput` |
+| `@staticflux/kit` | Themed Lit components (controls, overlays, shell parts, command palette) on `@staticflux/ui` | — |
 | `tooling/sf` | CLI: graph check, budgets, manifest/chunk extraction | — |
 | `tooling/eslint-plugin` | Custom rules (R20.5) | — |
 
