@@ -1440,3 +1440,62 @@ toasts, popovers, dialogs) wait for their deeper spec (B11a part 2). B11b compos
   twisties) draws its chevrons with the icon set instead of text glyphs.
 - **IF-35.13** Every B11a block passes the full accessibility audit under Clean Pop in each state a person meets (rest, mixed,
   invalid, editing, refused), and the colours they use keep AA contrast; `chrome.test.ts` pins the list of audited blocks.
+
+**B11a2: overlay, feedback and hint blocks** (`docs/instaflow/ux/OVERLAYS-FEEDBACK.md`, owner answers §6 all as recommended;
+DENSITY-DISCLOSURE §2, §6). Framework pieces R13.36–R13.45; IF-35.30–35.32 continue past the pre-assigned range (B11a2 ran out).
+
+- **IF-35.14** **Six layers, one order** (OVERLAYS-FEEDBACK §1.1): opening a dialog, sheet or takeover closes every menu, popover
+  and tooltip opened before it; toasts stay above an open modal and announced; tooltips are always newest; layers 1–2 are inert
+  under a modal. No feature sets a z-index.
+- **IF-35.15** The **nesting table** (§1.2) is enforced: a popover never opens inside a popover or a menu, a submenu never inside
+  a submenu (SF-KIT-003, the overlay is not opened); a second dialog is refused while one is open (SF-MSG-008), except the
+  blocking error, which replaces it.
+- **IF-35.16** **Focus** (§1.3): dialogs and takeovers trap focus and focus `[autofocus]`, the first field, or the primary (Cancel
+  in destructive dialogs); popovers move focus in only when they hold a control; on close focus returns to the trigger, or —
+  when it is gone — to the explicit fallback (the canvas for the HUD) or the trigger's nearest surviving landmark, never `body`.
+- **IF-35.17** **Escape closes exactly one thing, innermost first** (§1.4): tooltip (not consumed) → submenu → menu → popover →
+  dialog / takeover (a later wizard step goes back; held changes ask inline) → the newest toast. **Light dismiss**: menus and
+  chrome popovers consume the outside press (the canvas never sees it, nor its click); HUD and inspector popovers let it through;
+  wheel or scroll outside closes menus and HUD popovers; window blur and resize close layer 3.
+- **IF-35.18** **Positioning** (§1.5): gaps 6 (menus, tooltips) / 8 (popovers) / 12 (HUD); flip → shift → clamp 8 px → shrink
+  (lists scroll inside); context menus put their corner on the pointer and open left or up near the edges; submenus open beside
+  their row and flip.
+- **IF-35.19** **Narrow Home** (§1.6): below 720 px a menu that opts in (`sheet="narrow"`: card `⋯`, `Move to ▾`, formats) is a
+  bottom sheet (18 px top corners, handle, 44 px rows, swipe down closes) and dialogs are full-height sheets; Studio never is.
+- **IF-35.20** **Menus** (FOUNDATIONS §4.8): 16 px icons, check and radio marks drawn with the icon set (no text glyphs anywhere in
+  kit overlays), group headings, one submenu level (150 ms hover, → / ← / Enter, 300 ms grace), the searchable variant, the
+  context menu by right-click, `Shift+F10` and the Menu key (first row focused only from the keyboard).
+- **IF-35.21** **Tooltips** (§4): 500 ms, then a 300 ms warm period; name + `kbd`; the disabled reason after a `·`; an optional
+  second line; hidden on press, any key and scroll; one at a time; a 500 ms long-press on touch shows it without activating.
+- **IF-35.22** **Dialog types** (§2.1): confirm and destructive (420 px; destructive is an `alertdialog`, focus on Cancel, no
+  backdrop dismiss), form with held changes (Escape, backdrop, Back and × show `Discard changes? · Discard · Keep editing`
+  inline), the wizard step frame (back chevron, `2 of 3` from three steps, sliding body), the full-screen takeover frame; widths
+  420 / 520 / 640 / 840.
+- **IF-35.23** The **inline confirm row** replaces a second dialog everywhere (rows, footers): focus on the safe action, Escape
+  cancels inside the row.
+- **IF-35.24** The **copy field** (Share link row, Copy link): `Copied` inline for 1.5 s, no toast; a refused clipboard says what
+  to do inline and leaves the text selected (SF-KIT-004).
+- **IF-35.25** **Toasts** (§3.5): bottom-centre, ≤ 420 px, newest at the bottom, at most 3 with a queue, 5 / 8 / 10 s or sticky
+  (`×` only then), one action (`Undo` → `Restored`), a repeat count instead of a second toast, timers paused while hovered,
+  focused or hidden, one polite live region (urgent ones alert). Home's `Mod+Z` reaches the newest Undo (`undoNewest`); Studio's
+  never does.
+- **IF-35.26** **Persistent banner, blocking error, progress** (§3.1, §3.4): a 40 px banner with one sentence and one action (`×`
+  only when informational); the blocking error card with its fix, `Copy diagnostics` and `Reload`; a progress row naming the step,
+  determinate when countable, with `Cancel`.
+- **IF-35.27** **One `SfError` → feedback mapping** (§3.2): the message is the line, the fix is a button, link or advice, the
+  **code is never shown** (only `Copy diagnostics`); the level comes from the origin, refined by the code family.
+- **IF-35.28** **First-use hints** (§5): no tours; a hint shows once per device (`instaflow/ui/hints`), at most two per session
+  (the third is marked seen), never blocks or takes Escape, leaves after 6 s, on `×` or on the target's use; the Settings switch and
+  `Reset hints` drive it; suppressed in milestone preview and after a deep-linked arrival.
+- **IF-35.29** The **colour popover**, **font picker** and **alignment popover** (STUDIO-UX-SPEC §4.2.5–§4.2.7) are one block each
+  for the HUD, the inspector and dialogs: document colours (most used, uses in the name), brand tokens, the 24-colour palette,
+  recent, eyedropper where supported, `Custom ▸` inline; a virtualised in-face font list with hover preview; align / distribute
+  / `Align to` that stays open; Escape restores the opening value.
+- **IF-35.30** The **control model** (STUDIO-UX-SPEC §4.2.1) is declared once per selection kind (`src/spec/controls.ts`): the HUD
+  is the ranked projection (≤ 6), the inspector the sectioned one with `more` controls folded except in Pro; inconsistent sets
+  are refused (IF-POL-001).
+- **IF-35.31** **Density and disclosure** (DENSITY-DISCLOSURE §2, §6): Clean Pop's rows are 32 / 30 / 26 px and UI text 14 / 13.5 /
+  12 px in Focus / Standard / Pro, and every B11a2 block reads them as tokens; `<sf-disclosure>` gives sections a summary while
+  collapsed, `More ▾` rows a count, and Pro everything open (`pinned`).
+- **IF-35.32** Every B11a2 block passes the full audit under Clean Pop in the states people meet (open, submenu, filtered, held
+  changes, refused copy) and the colours they add keep AA contrast; `chrome.test.ts` pins the list.
