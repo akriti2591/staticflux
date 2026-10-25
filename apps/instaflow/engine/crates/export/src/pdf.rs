@@ -26,7 +26,7 @@ use crate::record::{Draw, Item, Layer, bounds, union};
 use crate::svg::PatchImage;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
-use pdf_writer::types::{BlendMode as PdfBlend, FunctionShadingType, LineCapStyle, LineJoinStyle, MaskType};
+use pdf_writer::types::{BlendMode as PdfBlend, ColorSpaceOperand, FunctionShadingType, LineCapStyle, LineJoinStyle, MaskType, PaintType as PatternPaint, TilingType};
 use pdf_writer::{Content, Filter, Finish, Name, Pdf, Rect as PdfRect, Ref, Str, TextStr};
 use render::glyphs::{font_glyph, units_per_em};
 use render::ir::{FontHash, GlyphRun, Scene};
@@ -117,6 +117,7 @@ struct Res {
     xo: Vec<Ref>,
     sh: Vec<Ref>,
     fonts: Vec<Ref>,
+    patterns: Vec<Ref>,
 }
 
 fn named(list: &mut Vec<Ref>, r: Ref, prefix: &str) -> String {
@@ -140,8 +141,11 @@ impl Res {
     fn font(&mut self, r: Ref) -> String {
         named(&mut self.fonts, r, "F")
     }
+    fn pattern(&mut self, r: Ref) -> String {
+        named(&mut self.patterns, r, "P")
+    }
     fn write(&self, mut resources: pdf_writer::writers::Resources) {
-        let lists: [(&Vec<Ref>, &str); 4] = [(&self.gs, "G"), (&self.xo, "X"), (&self.sh, "S"), (&self.fonts, "F")];
+        let lists: [(&Vec<Ref>, &str); 5] = [(&self.gs, "G"), (&self.xo, "X"), (&self.sh, "S"), (&self.fonts, "F"), (&self.patterns, "P")];
         for (kind, (list, prefix)) in lists.iter().enumerate() {
             if list.is_empty() {
                 continue;
@@ -150,7 +154,8 @@ impl Res {
                 0 => resources.ext_g_states(),
                 1 => resources.x_objects(),
                 2 => resources.shadings(),
-                _ => resources.fonts(),
+                3 => resources.fonts(),
+                _ => resources.patterns(),
             };
             for (i, r) in list.iter().enumerate() {
                 let name = format!("{prefix}{i}");
@@ -166,11 +171,14 @@ impl Res {
 struct Stream {
     c: Content,
     res: Res,
+    /// Output px → the stream's pattern space (patterns live in the page's default space, or the form's).
+    base: Affine,
 }
 
 impl Stream {
+    /// A form XObject's stream (forms are painted at the page's output-px space: their pattern space).
     fn new() -> Self {
-        Stream { c: Content::new(), res: Res::default() }
+        Stream { c: Content::new(), res: Res::default(), base: Affine::IDENTITY }
     }
 }
 
@@ -316,6 +324,7 @@ impl PdfWriter {
         let data = deflate(&rgb);
         let mut im = self.pdf.image_xobject(r, &data);
         im.filter(Filter::FlateDecode);
+        // The renderer samples images bilinearly (peniko's default quality): ask viewers to smooth too.
         im.width(w as i32).height(h as i32).bits_per_component(8).interpolate(true);
         im.color_space().device_rgb();
         if let Some(sm) = mask {
@@ -437,7 +446,9 @@ impl PdfWriter {
         }
         let mut page = Page { scene, patches, images: HashMap::new(), patch_refs: HashMap::new() };
         let mut s = Stream::new();
-        s.c.transform([PT_PER_PX as f32, 0.0, 0.0, -(PT_PER_PX as f32), 0.0, (height * PT_PER_PX) as f32]);
+        let base = Affine::new([PT_PER_PX, 0.0, 0.0, -PT_PER_PX, 0.0, height * PT_PER_PX]);
+        s.c.transform(m(&base));
+        s.base = base;
         if let Some(bg) = background {
             s.c.save_state();
             if bg[3] < 255 {
@@ -674,8 +685,33 @@ impl PdfWriter {
                 s.c.transform(m(&draw.transform));
                 clip(&mut s.c);
                 let repeat = brush.sampler.x_extend == vello_common::peniko::Extend::Repeat || brush.sampler.y_extend == vello_common::peniko::Extend::Repeat;
-                if repeat && !degenerate(&draw.paint_transform) {
-                    // Tiles covering the shape, in image space.
+                if repeat && !black {
+                    // A tiling pattern of the image (seamless, unlike placing tiles one by one).
+                    let mut tile = Content::new();
+                    tile.save_state();
+                    tile.transform([w as f32, 0.0, 0.0, -(h as f32), 0.0, h as f32]);
+                    tile.x_object(Name(b"X0"));
+                    tile.restore_state();
+                    let pr = self.alloc();
+                    let data = deflate(&tile.finish());
+                    let mut pat = self.pdf.tiling_pattern(pr, &data);
+                    pat.filter(Filter::FlateDecode);
+                    pat.tiling_type(TilingType::ConstantSpacing).paint_type(PatternPaint::Colored);
+                    pat.bbox(PdfRect::new(0.0, 0.0, w as f32, h as f32)).x_step(w as f32).y_step(h as f32);
+                    pat.matrix(m(&(s.base * draw.transform * draw.paint_transform)));
+                    pat.resources().x_objects().pair(Name(b"X0"), r);
+                    pat.finish();
+                    let n = s.res.pattern(pr);
+                    s.c.set_fill_color_space(ColorSpaceOperand::Pattern);
+                    s.c.set_fill_pattern(None::<f32>, Name(n.as_bytes()));
+                    path(&mut s.c, p);
+                    if even_odd {
+                        s.c.fill_even_odd();
+                    } else {
+                        s.c.fill_nonzero();
+                    }
+                } else if repeat && !degenerate(&draw.paint_transform) {
+                    // Inside an inverted mask: the tiles' alpha, one by one.
                     let cover = draw.paint_transform.inverse().transform_rect_bbox(p.bounding_box());
                     let (x0, x1) = ((cover.x0 / w as f64).floor() as i64, (cover.x1 / w as f64).ceil() as i64);
                     let (y0, y1) = ((cover.y0 / h as f64).floor() as i64, (cover.y1 / h as f64).ceil() as i64);

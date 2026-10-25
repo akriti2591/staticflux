@@ -7,7 +7,7 @@
 //! | Feature | SVG | PDF |
 //! |---|---|---|
 //! | drop shadow, inner shadow, layer blur | native filters | raster patch (PDF has no blur) |
-//! | background blur (frosted glass) | raster patch (no backdrop access in SVG) | raster patch |
+//! | background blur (frosted glass) | native (the traversal redraws the backdrop under a blur filter) | raster patch |
 //! | conic (sweep) gradient | pixel pattern (no conic gradient in SVG 1.1) | pixel pattern (PDF function shadings render unevenly) |
 //!
 //! Everything else — paths, rects, ellipses, every paint kind, stacked fills and strokes, dashes, clip, opacity,
@@ -61,7 +61,6 @@ pub const RASTERIZE: &[(Format, Feature, Fallback)] = &[
     (Format::Pdf, Feature::InnerShadow, Fallback::NodePatch),
     (Format::Pdf, Feature::LayerBlur, Fallback::NodePatch),
     (Format::Pdf, Feature::BackgroundBlur, Fallback::NodePatch),
-    (Format::Svg, Feature::BackgroundBlur, Fallback::NodePatch),
     (Format::Svg, Feature::SweepGradient, Fallback::PixelPattern),
     (Format::Pdf, Feature::SweepGradient, Fallback::PixelPattern),
 ];
@@ -100,9 +99,13 @@ fn visible_in(scene: &Scene, id: u32, region: Rect) -> Option<Rect> {
     (i.width() > 0.0 && i.height() > 0.0).then_some(b)
 }
 
-/// Patches `format` needs to draw `region` (world) of the scene; `only`: a selection export draws just these
-/// subtrees. Nested features are covered by their outermost patched ancestor.
-pub fn plan(scene: &Scene, format: Format, region: Rect, only: Option<&HashSet<u32>>) -> Vec<Patch> {
+/// Patches `format` needs to draw `region` (world) of the scene at `scale` patch px per world px; `only`: a
+/// selection export draws just these subtrees. Nested features are covered by their outermost patched ancestor.
+/// Each patch's world rect is snapped outwards to the patch pixel grid, so its image is exactly
+/// `world × scale` pixels and lands on whole output pixels.
+pub fn plan(scene: &Scene, format: Format, region: Rect, only: Option<&HashSet<u32>>, scale: f64) -> Vec<Patch> {
+    let scale = if scale.is_finite() && scale > 0.0 { scale } else { 1.0 };
+    let snap = |r: Rect| Rect::new((r.x0 * scale).floor() / scale, (r.y0 * scale).floor() / scale, (r.x1 * scale).ceil() / scale, (r.y1 * scale).ceil() / scale);
     let mut out = Vec::new();
     let mut walk = vec![(ROOT, only.is_none())];
     // Depth first, paint order (a patch's prefix scene depends on what was painted before it).
@@ -130,7 +133,7 @@ pub fn plan(scene: &Scene, format: Format, region: Rect, only: Option<&HashSet<u
         if wants.is_empty() {
             continue;
         }
-        let Some(world) = visible_in(scene, id, region) else { continue };
+        let Some(world) = visible_in(scene, id, region).map(snap) else { continue };
         covered.insert(id);
         let backdrop = wants.contains(&Feature::BackgroundBlur);
         let ir = if backdrop { prefix_ir(scene, id) } else { subtree_ir(scene, id) };
@@ -254,6 +257,11 @@ pub fn prefix_ir(scene: &Scene, id: u32) -> Vec<u8> {
     w.finish()
 }
 
+/// Pixel size of a patch at `scale` (its world rect is on the grid, so this is exact).
+pub fn patch_size(world: Rect, scale: f64) -> (u32, u32) {
+    (((world.width() * scale).round() as u32).max(1), ((world.height() * scale).round() as u32).max(1))
+}
+
 /// Encode a plan for the Wasm ABI: `count:u32 (node:u32 x0 y0 x1 y1:f64 len:u32 ir[len])*`.
 pub fn encode(patches: &[Patch]) -> Vec<u8> {
     let mut out = Vec::new();
@@ -372,7 +380,8 @@ mod tests {
         assert_eq!(fallback(Format::Svg, Feature::DropShadow), None);
         assert_eq!(fallback(Format::Svg, Feature::SweepGradient), Some(Fallback::PixelPattern));
         assert_eq!(fallback(Format::Pdf, Feature::SweepGradient), Some(Fallback::PixelPattern));
-        assert_eq!(fallback(Format::Svg, Feature::BackgroundBlur), Some(Fallback::NodePatch));
+        assert_eq!(fallback(Format::Svg, Feature::BackgroundBlur), None);
+        assert_eq!(fallback(Format::Pdf, Feature::BackgroundBlur), Some(Fallback::NodePatch));
         assert_eq!(Format::from_u8(1), Some(Format::Pdf));
         assert_eq!(Format::from_u8(7), None);
     }
@@ -390,7 +399,7 @@ mod tests {
         let later = rect(4, ROOT, 0.0);
         let s = scene(&[g, child, frosted, later]);
         let everywhere = Rect::new(-1e6, -1e6, 1e6, 1e6);
-        let pdf = plan(&s, Format::Pdf, everywhere, None);
+        let pdf = plan(&s, Format::Pdf, everywhere, None, 2.0);
         assert_eq!(pdf.iter().map(|p| p.node).collect::<Vec<_>>(), vec![1, 3], "the child is covered by its group");
         let mut sub = Scene::new();
         sub.apply(&pdf[0].ir).unwrap();
@@ -402,11 +411,15 @@ mod tests {
         prefix.apply(&pdf[1].ir).unwrap();
         assert!(prefix.node(1).unwrap().visible && !prefix.node(4).unwrap().visible);
         assert!(pdf[1].clip.is_some());
-        // SVG patches only the backdrop; a region away from a node skips it
-        assert_eq!(plan(&s, Format::Svg, everywhere, None).iter().map(|p| p.node).collect::<Vec<_>>(), vec![3]);
-        assert!(plan(&s, Format::Pdf, Rect::new(500.0, 500.0, 600.0, 600.0), None).is_empty());
+        // SVG draws every effect natively; a region away from a node skips it
+        assert!(plan(&s, Format::Svg, everywhere, None, 2.0).is_empty());
+        assert!(plan(&s, Format::Pdf, Rect::new(500.0, 500.0, 600.0, 600.0), None, 2.0).is_empty());
         let only: HashSet<u32> = [4].into();
-        assert!(plan(&s, Format::Pdf, everywhere, Some(&only)).is_empty());
+        assert!(plan(&s, Format::Pdf, everywhere, Some(&only), 2.0).is_empty());
+        for p in &pdf {
+            let (w, h) = patch_size(p.world, 2.0);
+            assert!(((p.world.width() * 2.0) - w as f64).abs() < 1e-9 && ((p.world.height() * 2.0) - h as f64).abs() < 1e-9, "snapped: {:?}", p.world);
+        }
         let bytes = encode(&pdf);
         assert_eq!(u32::from_le_bytes(bytes[0..4].try_into().unwrap()), 2);
     }

@@ -4,7 +4,7 @@
 //! apply(batch)                         the job's scene (scene IR v4; a full batch starting with CLEAR)
 //! isolate(nodes) -> batch              a selection as its own scene (apply it, or send it to the render module)
 //! bounds() -> [x0, y0, x1, y1]         world bounds of the scene (empty: nothing)
-//! plan(format, x0, y0, x1, y1) -> plan the raster patches `format` needs (`plan::encode`)
+//! plan(format, x0, y0, x1, y1, scale)  the raster patches `format` needs (`plan::encode`)
 //! patch(node, w, h, rgba)              the pixels of one planned patch (rendered by the render module)
 //! svg(x0, y0, x1, y1, w, h, bg, title) the region as an SVG document (bg: RGBA, empty = transparent)
 //! pdf_page(x0, y0, x1, y1, w, h, bg)   one PDF page from the region
@@ -76,8 +76,8 @@ impl Exporter {
         self.pdf.take().ok_or_else(|| "no PDF page was added".to_string())?.finish(title).map_err(|e| e.0)
     }
 
-    pub fn plan_for(&mut self, format: Format, region: Rect) -> &[Patch] {
-        self.planned = plan(&self.scene, format, region, None);
+    pub fn plan_for(&mut self, format: Format, region: Rect, scale: f64) -> &[Patch] {
+        self.planned = plan(&self.scene, format, region, None, scale);
         self.sites = sites(&self.planned);
         self.patches.clear();
         &self.planned
@@ -134,11 +134,13 @@ impl Exporter {
         b.map_or(Vec::new(), |r| vec![r.x0, r.y0, r.x1, r.y1])
     }
 
-    /// The raster patches `format` (0 SVG, 1 PDF) needs for the region (`plan::encode`).
-    pub fn plan(&mut self, format: u8, x0: f64, y0: f64, x1: f64, y1: f64) -> Result<Vec<u8>, JsValue> {
+    /// The raster patches `format` (0 SVG, 1 PDF) needs for the region at `scale` patch px per world px
+    /// (`plan::encode`; each patch's pixel size is its world rect × `scale`, exactly).
+    #[allow(clippy::too_many_arguments)]
+    pub fn plan(&mut self, format: u8, x0: f64, y0: f64, x1: f64, y1: f64, scale: f64) -> Result<Vec<u8>, JsValue> {
         let format = Format::from_u8(format).ok_or_else(|| JsValue::from_str(&format!("unknown export format {format}")))?;
         let region = rect(x0, y0, x1, y1)?;
-        Ok(crate::plan::encode(self.plan_for(format, region)))
+        Ok(crate::plan::encode(self.plan_for(format, region, scale)))
     }
 
     pub fn patch(&mut self, node: u32, width: u32, height: u32, rgba: Vec<u8>) -> Result<(), JsValue> {
