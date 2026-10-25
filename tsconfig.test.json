@@ -10,7 +10,7 @@
     ]
   },
   "include": [
-    "apps/instaflow/src",
+    "packages/*/src",
     "tooling/*/src",
     "apps/instaflow/src",
     "apps/instaflow/bench"

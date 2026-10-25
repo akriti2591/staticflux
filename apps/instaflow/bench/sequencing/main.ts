@@ -11,7 +11,7 @@
  * gfx=webgpu|none · gestures=2000 · elements=10000 · pace=4 (ms between events) · seed=1
  *
  * Owner run (real GPU, see apps/instaflow/src/sequencing/AGENTS.md):
- *   pnpm build && pnpm --filter @staticflux/instaflow bench:build
+ *   pnpm build && pnpm --filter @instaflow/app bench:build
  *   pnpm gpu:run apps/instaflow/bench/sequencing/dist index.html --query='topology=split&tick=main-raf' --real-gpu --headed
  */
 import { ok } from '@staticflux/core';

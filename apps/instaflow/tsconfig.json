@@ -2,31 +2,16 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "noEmit": true,
-    "composite": false,
-    "declaration": false,
-    "declarationMap": false,
-    "types": [
-      "node"
-    ],
     "outDir": "dist"
   },
-  "include": [
-    "src",
-    "bench"
-  ],
-  "exclude": [
-    "src/**/gpu-page/**"
-  ],
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/gpu-page/**"],
   "references": [
-    {
-      "path": "../../packages/core"
-    },
-    {
-      "path": "../../packages/platform"
-    },
-    {
-      "path": "../../packages/surface"
-    }
+    { "path": "../../packages/config" },
+    { "path": "../../packages/core" },
+    { "path": "../../packages/document" },
+    { "path": "../../packages/platform" },
+    { "path": "../../packages/surface" },
+    { "path": "../../packages/worker" }
   ]
 }

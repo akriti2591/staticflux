@@ -47,6 +47,9 @@ importers:
       '@staticflux/document':
         specifier: workspace:*
         version: link:../../packages/document
+      '@staticflux/platform':
+        specifier: workspace:*
+        version: link:../../packages/platform
       '@staticflux/surface':
         specifier: workspace:*
         version: link:../../packages/surface
@@ -54,6 +57,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/worker
     devDependencies:
+      '@staticflux/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       '@staticflux/testkit':
         specifier: workspace:*
         version: link:../../packages/testkit
@@ -474,9 +480,19 @@ importers:
       '@staticflux/core':
         specifier: workspace:*
         version: link:../core
+      '@staticflux/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@staticflux/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@staticflux/worker':
         specifier: workspace:*
         version: link:../worker
+    devDependencies:
+      '@staticflux/testkit':
+        specifier: workspace:*
+        version: link:../testkit
 
   packages/testkit:
     dependencies:

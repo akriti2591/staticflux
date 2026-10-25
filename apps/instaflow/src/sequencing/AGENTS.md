@@ -73,7 +73,7 @@ only up to the frame's `docVersion`, draw only at equality. The renderer itself 
 
 ## Bench (the main-rAF tick experiment, D15 decision input)
 ```sh
-pnpm build && pnpm --filter @staticflux/instaflow bench:build
+pnpm build && pnpm --filter @instaflow/app bench:build
 # owner machine, real GPU (Chrome headed, display at 60/100/120 Hz; budget = measured frame + 4 ms):
 pnpm gpu:run apps/instaflow/bench/sequencing/dist index.html --real-gpu --headed --query='topology=colocated'
 pnpm gpu:run apps/instaflow/bench/sequencing/dist index.html --real-gpu --headed --query='topology=split'

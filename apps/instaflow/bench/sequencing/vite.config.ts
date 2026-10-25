@@ -1,5 +1,5 @@
 /**
- * Build of the sequencing bench page (`pnpm --filter @staticflux/instaflow bench:build`). Workspace
+ * Build of the sequencing bench page (`pnpm --filter @instaflow/app bench:build`). Workspace
  * packages resolve from source, like the root Vitest config. Output: `bench/sequencing/dist`, served
  * cross-origin isolated by testkit's GPU runner (`sf-gpu-run … --real-gpu --headed`).
  */
