@@ -17,9 +17,10 @@ fully by hand (D17).
   left), `selectTool`,
   `togglePin`, `bindShortcuts(registry, targets, scope)`, `dispose`), `StudioShortcutScope`, `PERSON`.
 - `studio-element.ts` — `<if-studio .studio .canvas .shortcuts asset-title project-title home-href>` (`defineStudio()`):
-  top bar (home, breadcrumb, lens mode switcher with lens shapes, Saved, agent chip, density, Milestone, Share), side panel,
+  top bar (home, breadcrumb, lens mode switcher with lens shapes, Saved, agent chip, density, Milestone, Save as template (C0), Share), side panel,
   tabbed dock, canvas region (tools toolbar, HUD toolbar, canvas surface, zoom, command bar, proposal card), inspector, tray.
-  Events: `if-hud-action { action }`, `if-intent { intent: zoom-in | zoom-out | milestone | share }`, `if-command { text }`.
+  Events: `if-hud-action { action }`, `if-intent { intent: zoom-in | zoom-out | milestone | save-template | share }`, `if-command { text }`,
+  `if-navigate { href }` (C0: the Home link, cancelable — a host that cancels it saves, then navigates; modified clicks stay the browser's).
   B8: `.status` (the top bar's save state, B5's `<if-save-status>`), `zoom` (the readout), tone `more` HUD actions in one
   `<sf-menu>` "More actions", the HUD capped at two rows, the tools pill sized by its item count, the surface positioned for
   the canvas layers.

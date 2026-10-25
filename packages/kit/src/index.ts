@@ -4,6 +4,7 @@
  * root re-exports everything and `defineKit()` registers every element.
  */
 import { defineButton } from './button.js';
+import { defineCard } from './card.js';
 import { defineCapabilityPalette } from './command-palette.js';
 import { defineColorField } from './color-field.js';
 import { defineDock } from './dock.js';
@@ -32,6 +33,7 @@ export * from './text-field.js';
 export * from './slider.js';
 export * from './tag.js';
 export * from './status.js';
+export * from './card.js';
 export * from './color-field.js';
 export * from './popover.js';
 export * from './tooltip.js';
@@ -55,6 +57,7 @@ export function defineKit(registry: CustomElementRegistry = customElements): voi
     defineSlider,
     defineTag,
     defineStatus,
+    defineCard,
     defineColorField,
     definePopover,
     defineTooltip,

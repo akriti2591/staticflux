@@ -7,7 +7,7 @@ reshaped by M1c **B9** (editor in the worker; IF-33.x, LIFECYCLES §35): the fil
 **Depends on:** every M1b folder (`spec`, `studio`, `elements`, `repeat`, `text`, `tools`, `a11y`, `lenses`, `library`,
 `versioning`, `sequencing`, `render`, `theme`), `../workers`, and the framework packages they use; `lit` (`ref`, main side
 only), `@staticflux/gate`. Tests use B1's and B2's Node fixtures (real authoring Wasm, skipped when not built) and `happy-dom`.
-**Budget:** none yet (no export); the app build budget lands with C0/C4.
+**Budget:** none yet (no export); Home's budget landed with C0 (`@instaflow/app/home`), Studio's app build budget lands with C4.
 
 ## Purpose
 Wire, don't rebuild: the glue that turns M1b's headless services and contributions into the Studio a person can click
@@ -51,7 +51,8 @@ Main side:
 - `studio-app.ts` — **`createStudioApp`** (boots the workers, store side on main, mirrors and panel services in the UI
   injector, the capability registry with forwarding implementations, Studio controller, canvas, scope-follows-selection,
   lens controller over the mirrored structure, HUD dispatch, `createMilestone`, `place`, `inspect`, `element`, `metrics`,
-  `mount(container)`, `spoken`, `view`, `tab`).
+  `mount(container)`, `spoken`, `view`, `tab`; C0: `library`, `flush()` (Latest durable), `leave(href)` (the Home link: flush, then
+  `options.leave`), `saveAsTemplate(title?)` (`instaflow/save-as-template` on main over `options.templates`), `homeHref`).
 - `errors.ts` — `IF-INT-001` pipeline start · `002` scene record · `003` no open page · `004` canvas backend · `005` document.
 - `test-helpers.ts` (test-only) — `createStudioFixture`, `scriptedTextInput`, `lendDom`, `manualTimers`.
 

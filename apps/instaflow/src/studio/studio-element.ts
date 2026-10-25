@@ -40,6 +40,7 @@ export const studioMessages = Object.freeze({
   densities: { focus: 'Focus', standard: 'Standard', pro: 'Pro' } as Readonly<Record<Density, string>>,
   saved: 'Saved',
   milestone: 'Milestone',
+  saveTemplate: 'Save as template',
   share: 'Share',
   dock: 'Dock',
   tools: 'Tools',
@@ -447,7 +448,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     }));
     const densities: SegmentOption[] = DENSITIES.map((d) => ({ value: d, label: studioMessages.densities[d] }));
     return html`<header>
-      <a class="home" href=${this.homeHref} aria-label=${studioMessages.home}>${logo()}</a>
+      <a class="home" href=${this.homeHref} aria-label=${studioMessages.home} @click=${(e: MouseEvent) => this.onHome(e)}>${logo()}</a>
       <nav aria-label=${studioMessages.breadcrumb}><span>${this.projectTitle}</span><span aria-hidden="true">/</span><span class="title">${this.assetTitle}</span></nav>
       <sf-segmented
         class="modes"
@@ -462,6 +463,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       <sf-tag tone="agent">✦ Claude · ${AUTONOMY_LABEL[studio.proposals.autonomy]}</sf-tag>
       <sf-segmented label=${studioMessages.density} .options=${densities} value=${density} @sf-change=${(e: CustomEvent<{ value: Density }>) => void studio.setDensity(e.detail.value)}></sf-segmented>
       <sf-button @click=${() => this.emitIntent('milestone')}>${studioMessages.milestone}</sf-button>
+      <sf-button @click=${() => this.emitIntent('save-template')}>${studioMessages.saveTemplate}</sf-button>
       <sf-button variant="primary" @click=${() => this.emitIntent('share')}>${studioMessages.share}</sf-button>
     </header>`;
   }
@@ -576,7 +578,17 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     </section>`;
   }
 
-  private emitIntent(intent: 'zoom-in' | 'zoom-out' | 'milestone' | 'share'): void {
+  /**
+   * The Home link (C0): a plain click asks the host first (`if-navigate`, cancelable) so it can save before leaving;
+   * a host that cancels it navigates itself. Modified clicks (new tab) stay the browser's.
+   */
+  private onHome(e: MouseEvent): void {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const proceed = this.dispatchEvent(new CustomEvent('if-navigate', { detail: { href: this.homeHref }, bubbles: true, composed: true, cancelable: true }));
+    if (!proceed) e.preventDefault();
+  }
+
+  private emitIntent(intent: 'zoom-in' | 'zoom-out' | 'milestone' | 'save-template' | 'share'): void {
     this.dispatchEvent(new CustomEvent('if-intent', { detail: { intent }, bubbles: true, composed: true }));
   }
 

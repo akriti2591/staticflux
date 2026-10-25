@@ -74,7 +74,7 @@ describe('<if-studio> frame', () => {
     const mode = header.querySelector('sf-segmented.modes') as SfSegmentedElement;
     expect(mode.options.map((o) => o.label)).toEqual(['Canvas', 'Pixel', 'Timeline', 'Flow', 'Pages']);
     expect(mode.value).toBe(StudioIds.lens.canvas);
-    expect([...header.querySelectorAll('sf-button')].map((b) => b.textContent?.trim())).toEqual(['Milestone', 'Share']);
+    expect([...header.querySelectorAll('sf-button')].map((b) => b.textContent?.trim())).toEqual(['Milestone', 'Save as template', 'Share']);
     expect(header.querySelector('sf-button[variant="primary"]')?.textContent?.trim()).toBe('Share');
     expect(header.querySelector('[role="status"]')?.textContent).toBe('Saved');
 
@@ -288,6 +288,33 @@ describe('<if-studio> keyboard paths', () => {
     field.value = 'make it pop';
     field.dispatchEvent(new Event('change'));
     expect(seen).toEqual(['instaflow/animate', 'share', 'zoom-out', 'make it pop']);
+  });
+
+  it('C0: "Save as template" is an intent; the Home link asks the host first (cancelable) and keeps modified clicks', async () => {
+    const { element, root } = await mount();
+    const seen: string[] = [];
+    element.addEventListener('if-intent', (e) => seen.push((e as CustomEvent<{ intent: string }>).detail.intent));
+    const save = [...root.querySelectorAll('header sf-button')].find((b) => b.textContent?.trim() === 'Save as template') as HTMLElement;
+    save.click();
+    expect(seen).toEqual(['save-template']);
+    element.homeHref = '/';
+    await element.updateComplete;
+    const home = root.querySelector('header a.home') as HTMLAnchorElement;
+    expect(home.getAttribute('href')).toBe('/');
+    const hrefs: string[] = [];
+    const cancel = (e: Event): void => {
+      hrefs.push((e as CustomEvent<{ href: string }>).detail.href);
+      e.preventDefault();
+    };
+    element.addEventListener('if-navigate', cancel);
+    const plain = new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, button: 0 });
+    home.dispatchEvent(plain);
+    expect(hrefs).toEqual(['/']);
+    expect(plain.defaultPrevented).toBe(true); // the host navigates after saving
+    const newTab = new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, button: 0, metaKey: true });
+    newTab.preventDefault = () => undefined; // happy-dom would follow the link otherwise
+    home.dispatchEvent(newTab);
+    expect(hrefs).toEqual(['/']); // modified clicks are the browser's
   });
 });
 
