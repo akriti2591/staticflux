@@ -102,3 +102,24 @@
 - Export (C1): SVG/PDF parity rasterized by another engine → `RENDER_THRESHOLDS.crossRasterizer` (SSIM + blurred SSIM); PNG export
   goldens → `createGoldenStore`.
 - Media (M3, groundwork now): decoders hand out frames that must be closed → `createMediaFakes().expectAllClosed()`.
+
+### document v2 (Instaflow editor, M1 · A4)
+Second consumer: the Instaflow editor (`docs/instaflow/`), written against `@staticflux/document/v2` (R11.8a–R11.8j).
+- Editor worker: open a 200-page, 50k-node design in under a second by loading the document-level part and the visible
+  pages only (`repo.open`, `doc.part(id)`); pages scrolled away are evicted by the resource manager (`doc.evict`, `stats()`).
+- Canvas tools: a drag of 100–1,000 elements stages a frame per pointer move and commits once on release (`doc.gesture`);
+  moving an element to another page is one undo step (`doc.moveAcross`).
+- Two tabs on the same asset converge: each tab's commit records go to the store worker and arrive in the other tab
+  (`onCommit` → `applyRemote`); a tab crash loses no acknowledged edit (`durable` = log append acknowledged).
+- Undo service (A8): per-actor inverse steps with readable labels from commit `meta`, persisted up to 200 steps
+  (`undoHistory(actor)`, compaction's undo horizon); D14's "flag an undo over someone else's later overwrite" uses
+  `changedSince(commit.after)`.
+- Agents: stale-field detection for a view's `base` (`changedSince(base, { subtree, paths })`, IF-CS-010); proposals preview
+  on a fork (`fork(peer)`); every agent session commits as its own peer with its actor record.
+- Text (B2): rich text with marks; comments and selections anchored to text that survives concurrent edits (`anchor`/`resolve`).
+- Milestones (B5) and `.iflow` (C2): canonical, engine-independent part bytes and digests shared by unchanged parts
+  (`encodeCanonicalPart`, `canonicalPartDigest`); "new document from milestone" rebuilds fresh parts
+  (`buildPartFromCanonical`); old milestones open after component upgrades (`migrateCanonicalPart`).
+- Change-set validation (B1/agents): component registry validates paths, kinds and values and publishes JSON Schema for
+  agent tools (`registry.validateOps`, `registry.pathSchema`, `registry.jsonSchema`).
+- Workspace store (A3): `@staticflux/blob` implements the `DocumentStore` port (head CAS under Web Locks, blobs, log).

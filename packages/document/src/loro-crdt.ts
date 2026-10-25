@@ -213,6 +213,8 @@ class LoroPart implements DocumentCRDTv2 {
   private pendingChange: PartChange | undefined;
   private commitSeq = 0;
   private isDisposed = false;
+  /** Enabled on first write: querying or enabling it materializes the lazily imported tree (~8 ms per 1k-node part). */
+  private fractionalIndex = false;
 
   constructor(
     doc: LoroDoc,
@@ -227,7 +229,6 @@ class LoroPart implements DocumentCRDTv2 {
     doc.configDefaultTextStyle({ expand: 'after' });
     this.tree = doc.getTree(TREE);
     liveHandleCount += 1;
-    if (!this.tree.isFractionalIndexEnabled()) this.tree.enableFractionalIndex(0);
     this.ids = doc.getMap(IDS);
     liveHandleCount += 1;
     this.unsubscribe = doc.subscribe((batch) => this.onEvents(batch));
@@ -525,6 +526,10 @@ class LoroPart implements DocumentCRDTv2 {
   transact(meta: TransactionMeta, ops: readonly PartOp[]): Result<CommitInfo> {
     const checked = this.check(ops);
     if (!checked.ok) return checked;
+    if (!this.fractionalIndex) {
+      this.tree.enableFractionalIndex(0);
+      this.fractionalIndex = true;
+    }
     const before = this.doc.oplogFrontiers();
     const vvBefore = this.doc.oplogVersion();
     liveHandleCount += 1;
@@ -631,8 +636,10 @@ class LoroPart implements DocumentCRDTv2 {
             else self.moveBefore(other);
           });
         } else {
+          // No index = append (Loro picks the key after the last sibling; no sibling scan needed).
           const index = this.positionIndex(op.parent, position, op.node);
-          this.tree.move(tid, parentTid, index ?? this.children(op.parent).filter((s) => s !== op.node).length);
+          if (index === undefined) this.tree.move(tid, parentTid);
+          else this.tree.move(tid, parentTid, index);
         }
         return [{ op: 'move', node: op.node, parent: oldParent, position: { after: oldAfter } }];
       }

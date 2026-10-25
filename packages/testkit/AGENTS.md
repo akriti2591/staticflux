@@ -1,7 +1,7 @@
 # @staticflux/testkit — AGENTS.md
 
 **Layer:** tooling (test-only). Depends on `@staticflux/core`, `runtime`, `auth`, `data`, `platform`, `storage`,
-`worker`, `router`, `urlstate`; `vitest` is a **peer** and is never imported at runtime (contract suites take
+`worker`, `router`, `urlstate`, `document` (v2 entry); `fast-check` drives property suites; `vitest` is a **peer** and is never imported at runtime (contract suites take
 `describe`/`it` as parameters). Never import testkit from app or package source — only from `*.test.ts`.
 **Budget:** none (not shipped to browsers).
 
@@ -39,6 +39,15 @@ comparison, golden render snapshots, a real-GPU runner (Chromium on SwiftShader 
   `transportContractCases`, `createTransportFixture`, `ContractEndpoints`, `mockTransportFromFixture`.
 - `history-contract.ts` — `runHistoryContract(name, factory(initialUrl), runner, { level: 'port' | 'adapter', timeoutMs, skip })`,
   `historyContractCases` (urlstate `HistoryPort`), `historyAdapterContractCases` (router `HistoryAdapter` extras).
+- `document-store-contract.ts` — `runDocumentStoreContract(name, factory(), runner, { skip })`, `documentStoreContractCases`
+  (document `DocumentStore` port: head CAS on `generation`, content-addressed blobs, log seqs/truncation, abort).
+- `document-repo-contract.ts` — `runDocumentRepoContract(name, { store, repo(store, { undoHorizon }), liveHandles? }, runner, { skip })`,
+  `documentRepoContractCases` (lazy parts, replay, one record per cross-part commit, compaction + undo horizon, concurrent
+  compaction, two-tab convergence, eviction, close).
+- `document-crdt-contract.ts` — `runDocumentCrdtContract(name, engine, runner, { numRuns, seed, maxPeers, maxSteps, skip })`,
+  `documentCrdtContractCases`: deterministic cases plus the **N-peer convergence property** (fast-check: move, reorder,
+  text, marks, set, create, delete under random partitions and heals → identical canonical bytes, valid tree, handles released).
+  Reproduce a failure with the printed `seed`.
 - `app.ts` — `bootTestApp({ units, overrides, subsystems, routes, router, initialUrl, session, time, telemetryLevel })` →
   `{ app, injector, router?, history?, session?, time?, get, shutdown, …TestTelemetry }` (boot failure throws SF-TEST-001);
   `fakeFrameSchedulerUnit(time)`.
@@ -199,7 +208,8 @@ No size budget declared in `.size-limit.json` for this package.
 
 **Layer:** tooling
 
-- Internal: `@staticflux/auth`, `@staticflux/core`, `@staticflux/data`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/urlstate`, `@staticflux/worker`
+- Internal: `@staticflux/auth`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/urlstate`, `@staticflux/worker`
+- External: `fast-check` (4.10.2)
 
 Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.
 <!-- sf:generated:end -->

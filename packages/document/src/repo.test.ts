@@ -121,7 +121,7 @@ describe('DocumentRepo: commits', () => {
     expect(p2?.children('card')).toEqual(['title']);
     expect(p2?.text('title', 'text.content')?.text).toBe('Sale');
     // both parts' changes are summarised in the commit
-    expect(committed.changes['page:p2']?.created.sort()).toEqual(['card', 'title']);
+    expect([...(committed.changes['page:p2']?.created ?? [])].sort()).toEqual(['card', 'title']);
     const step = doc.undoHistory('a1')[0];
     expect(Object.keys(step?.inverse ?? {}).sort()).toEqual(['page:p1', 'page:p2']);
     unwrap(await doc.transact({ ...agent, label: 'Undo' }, step?.inverse as Record<string, readonly PartOp[]>, signal));

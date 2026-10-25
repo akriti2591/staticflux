@@ -466,3 +466,35 @@
 4. Worker↔worker direct channels vs via main thread (default: direct MessageChannel, brokered by main).
 5. MobX store patching: hand-rolled recorder vs mobx-keystone (spike).
 6. TypeScript 7 (tsgo) vs TS 5.x for custom tooling until 7.1 API lands.
+
+## 23. Document engine v2 (SF-Δ3–Δ6; Instaflow M1 · A4; extends R11.8)
+
+- **R11.8a** **`DocumentCRDTv2` port** (`@staticflux/document/v2`), one instance per CRDT document (part): movable tree with
+  stable node ids, cycle-safe moves and fractional sibling order; LWW properties per path; rich text with marks and stable
+  anchors; movable lists; per-commit `meta` (actor record, label, transaction id); opaque frontier and version vector;
+  `changedSince(base, scope)` by node and path without materializing the document; fork; full and shallow snapshots;
+  anchored inverse ops for undo. Reads are per node; there is no whole-document read.
+- **R11.8b** **Loro engine** (`@staticflux/document/loro-crdt`, the only `loro-crdt` importer) with its own Wasm budget category
+  (≤ 1.25 MB gzip, IF-15.1). Adapter rules (D14): per-node reads, id-span change detection, every handle freed with
+  dev-mode handle accounting and a Wasm-memory leak test, one commit per transaction, each session its own peer.
+- **R11.8c** **One commit per gesture**: gestures stage frame ops, coalesce them (last set per path, last move per node) and
+  commit once; previews read the staged ops, never the CRDT.
+- **R11.8d** **`DocumentRepo`**: many assets per repo, each split into parts (one per page plus a document-level part) loaded
+  lazily; a transaction touching several parts is validated together and persisted as one commit record; snapshot + log
+  persistence; head compare-and-swap on `generation`; compaction folds the log into snapshots and keeps an undo horizon
+  per actor (default 200); eviction of clean parts with hooks for a resource manager; each opened document is its own peer.
+- **R11.8e** **`DocumentStore` port** (heads with CAS, content-addressed blobs, append-only per-asset log with store-assigned
+  sequence numbers) with an in-memory reference implementation; workspace stores adapt to it.
+- **R11.8f** **Versioned components**: `defineComponent(id, schema, { version, migrations, defaults })` with field types
+  `ticks`, `ref`, `vec2`, `color`, `enum`, `map` (plus scalars, `json`, `richtext`, `list`); `role` and `name` are first-class
+  node fields; a registry validates property paths, values and kinds and generates JSON Schema (component and change-set
+  path schemas).
+- **R11.8g** **Canonical part encoding** (RFC 8785): deterministic bytes for the same content on every peer and engine
+  (nodes sorted by id, normalized sibling order, defaults omitted); parse → migrate → rebuild into a fresh CRDT with a new
+  peer and one commit of history.
+- **R11.8h** **Contract suites** in testkit for every port: `DocumentStore`, `DocumentRepo`, `DocumentCRDT` including an
+  N-peer convergence property test (random move, reorder, text, set under random partitions and heals).
+- **R11.8i** Performance targets from S4 are tracked in a bench file, not unit tests: 50k-node open ≤ 1 s, 1k-move drag commit
+  ≤ 20 KB, divergent merge ≤ 200 ms per page off the main thread.
+- **R11.8j** The v1 `DocumentCRDT` interface and ECS engine (`@staticflux/document`) stay available and unchanged for existing
+  consumers (Studio).

@@ -376,5 +376,32 @@
       "@staticflux/core"
     ],
     "limit": "3.75 KB"
+
+    "name": "@staticflux/document/v2 (DocumentRepo, components, canonical parts; no engine)",
+    "path": "packages/document/dist/v2.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker"
+    ],
+    "limit": "12 KB"
+  },
+  {
+    "name": "@staticflux/document/loro-crdt (adapter glue, excl. loro-crdt)",
+    "path": "packages/document/dist/loro-crdt.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker",
+      "loro-crdt"
+    ],
+    "limit": "9 KB"
+  },
+  {
+    "name": "loro-crdt Wasm [wasm budget category; worker only, IF-15.1 ≤ 1.25 MB gzip]",
+    "path": "packages/document/node_modules/loro-crdt/bundler/loro_wasm_bg.wasm",
+    "rolldown": false,
+    "gzip": true,
+    "limit": "1.21 MB"
   }
 ]

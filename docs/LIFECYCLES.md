@@ -238,3 +238,22 @@ Every `SfError` carries: `code` (stable), `message` (one line), `units` involved
 | `testkit/fake-canvas-texture` | acquired (`getCurrentTexture`) → presented/expired (`present`, `unconfigure`); using it after → validation error | `packages/testkit/src/gpu-fake.ts` |
 | `testkit/media-handle` | open → closed (terminal; `clone` adds a handle on the same resource; use after close → InvalidStateError) | `packages/testkit/src/media-fake.ts` |
 | `testkit/golden` | missing → written (update mode) · stored → match \| mismatch (SF-TEST-009) \| updated (update mode) | `packages/testkit/src/golden.ts` |
+
+
+## 15. Document engine v2 machines (SF-Δ3–Δ6, Instaflow M1 · A4)
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `document/repo-document` | open ⇄ compacting; open → closing → closed. Compaction inside `closing` keeps the state. Writes and part loads are valid in open and compacting; any use after `closed` → `SF-DOC-014` | `packages/document/src/repo.ts` (`RepoDocumentMachine`) |
+| `document/part` | unloaded → loading → loaded → unloaded (evicted); loading → failed → loading (retry on next `part()`). Eviction is refused while the part has non-durable commits (`SF-DOC-015`) | `packages/document/src/repo.ts` (`PartState`) |
+| `document/gesture` | open → committed \| aborted. A commit that fails validation leaves the gesture open (fix or abort); staging after the end → `SF-DOC-014` | `packages/document/src/gesture.ts` (`GestureMachine`) |
+| `document/commit-durability` | applied (in memory, broadcast) → durable (log seq assigned); applied → failed append → retried in order on the next commit or `flush()` (`onPersistError`) | `packages/document/src/repo.ts` |
+
+Invariants:
+- **I-D1** One logical transaction = one commit record, even when it touches several parts (cross-page move); parts are
+  validated together before any is applied.
+- **I-D2** Log appends are strictly in commit order; a failed append blocks later ones until it succeeds.
+- **I-D3** The head is replaced only by compare-and-swap on `generation` (`SF-DOC-011`); compaction never truncates log
+  entries it did not fold into the new snapshots.
+- **I-D4** Engine handles: after `dispose()` / eviction / close, the engine's live handle count returns to its baseline
+  (`SF-DOC-018` names a violation).

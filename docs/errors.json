@@ -747,6 +747,78 @@
       "fix": "Re-join the room; the engine resyncs with its state vector on reconnect."
     },
     {
+      "code": "SF-DOC-008",
+      "kind": "not-found",
+      "summary": "The node does not exist in this part (never created, deleted, or living in another part).",
+      "fix": "Check `crdt.has(node)` first; a concurrent peer may have deleted it, so treat this as a normal outcome and re-read."
+    },
+    {
+      "code": "SF-DOC-009",
+      "kind": "validation",
+      "summary": "The move would make a node its own ancestor.",
+      "fix": "Pick a parent outside the moved subtree. Concurrent cyclic moves are resolved by the movable tree; only local ones are rejected."
+    },
+    {
+      "code": "SF-DOC-010",
+      "kind": "not-found",
+      "summary": "The version (frontier) is not in this part’s retained history (trimmed by a shallow compaction, or from an unknown peer).",
+      "fix": "Re-read the current state and use its frontier as the new base; treat older bases as “everything may have changed”."
+    },
+    {
+      "code": "SF-DOC-011",
+      "kind": "conflict",
+      "summary": "The document head changed since it was read (compare-and-swap on `generation` failed).",
+      "fix": "Reload the head and retry; `compact()` retries automatically a few times before returning this error."
+    },
+    {
+      "code": "SF-DOC-012",
+      "kind": "not-found",
+      "summary": "A blob named by the head (part snapshot or undo history) is missing from the store.",
+      "fix": "Check the store backend; the head must never name a blob before `putBlob` resolved. Reopen from a backup or milestone."
+    },
+    {
+      "code": "SF-DOC-013",
+      "kind": "not-found",
+      "summary": "The part is not loaded (or not known to this document).",
+      "fix": "Await `doc.part(id, signal)` before writing to it, or create it with `doc.createPart(id)`."
+    },
+    {
+      "code": "SF-DOC-014",
+      "kind": "invariant",
+      "summary": "The document, part or gesture was used after it was closed, evicted or disposed.",
+      "fix": "Reopen it through the repo (`repo.open(asset, signal)` / `doc.part(id, signal)`); never keep references across close."
+    },
+    {
+      "code": "SF-DOC-015",
+      "kind": "conflict",
+      "summary": "The part cannot be evicted while it has commits that are not yet durable.",
+      "fix": "Await the pending commits (or `doc.flush(signal)`) and evict again; eviction never drops unacknowledged edits."
+    },
+    {
+      "code": "SF-DOC-016",
+      "kind": "validation",
+      "summary": "A component value could not be migrated to the current component version.",
+      "fix": "Declare a migration for every version step in `defineComponent(id, schema, { version, migrations })`; migrations must be pure."
+    },
+    {
+      "code": "SF-DOC-017",
+      "kind": "validation",
+      "summary": "The value cannot be canonically encoded (RFC 8785): non-finite number, lone surrogate or non-JSON data.",
+      "fix": "Store only finite numbers, well-formed strings and plain objects/arrays in document properties."
+    },
+    {
+      "code": "SF-DOC-018",
+      "kind": "invariant",
+      "summary": "CRDT engine handles are still alive after the document was disposed (dev-mode handle accounting).",
+      "fix": "Free every engine handle in a `finally` (the Loro adapter does this); run the leak test in the DocumentCRDT contract suite."
+    },
+    {
+      "code": "SF-DOC-019",
+      "kind": "conflict",
+      "summary": "A node with this id already exists in the part.",
+      "fix": "Generate a fresh id (`createIdGenerator`) or update the existing node; ids are asset-local and never reused."
+    },
+    {
       "code": "SF-FT-001",
       "kind": "invariant",
       "summary": "A feature UI was mounted while its logic was not activated (I-5).",
