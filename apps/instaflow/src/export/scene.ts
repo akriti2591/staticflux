@@ -1,0 +1,127 @@
+/**
+ * One page of an opened document as a complete scene IR (C1; IF-29.6, IF-7.10): exactly what Studio's canvas pipeline
+ * sends to the render module for a snapshot, without the pipes and without the overlay (selection, guides and the
+ * page edge never export).
+ *
+ * - **Elements** (B1 over B7's repeat view: repeat instances are drawn like any element): the render projection's
+ *   snapshot and resources, encoded by B1's scene encoder exactly as the render side does it (`element-port.ts`).
+ * - **Images** (B4): the image assets the page's paints name are decoded from the workspace blobs and uploaded
+ *   ahead of nothing else (the encoder resolves them by asset key), straight RGBA plus the luminance matte.
+ * - **Text** (B2): the text layer's full IR (fonts once per hash, glyph runs carrying their text: scene IR v4).
+ *
+ * Batches apply in order: elements (a full encode starts with CLEAR), images, text.
+ */
+import type { BlobStore } from '@staticflux/blob';
+import { err, ok, type Result, type Scope } from '@staticflux/core';
+import { createRenderProjector, createSceneStore } from '@staticflux/document/render-projection';
+import type { NodeId } from '@staticflux/document/v2';
+import type { StudioDocument } from '../app/document.js';
+import { createImageUploads } from '../app/images.js';
+import { createTextLayer, type StudioFonts } from '../app/text-layer.js';
+import { createElementRenderSource, ElementProjection } from '../elements/projection.js';
+import { createElementSceneEncoder, createSceneResources, sceneIdOf } from '../elements/scene.js';
+import { STRUCTURE_PATHS } from '../lenses/structure.js';
+import type { LibraryEntry } from '../library/library-doc.js';
+import type { ImageDecoder } from '../library/renditions.js';
+import { TEXT_KIND } from '../text/model.js';
+import { NothingToExportError } from './errors.js';
+
+export interface PageSceneOptions {
+  readonly document: StudioDocument;
+  readonly page: NodeId;
+  readonly fonts: StudioFonts;
+  /** Library entries of image assets by asset key (`as_…`, or `as_…@ms_…` pinned). */
+  readonly images: (asset: string) => LibraryEntry | undefined;
+  readonly blobs: Pick<BlobStore, 'get'>;
+  readonly decoder: ImageDecoder;
+  readonly signal: AbortSignal;
+  readonly scope: Scope;
+}
+
+export interface PageScene {
+  /** Scene IR batches in apply order (elements with CLEAR first, then images, then text). */
+  readonly batches: readonly Uint8Array[];
+  /** The page box (page units = design px). */
+  readonly size: { readonly width: number; readonly height: number };
+  /** Scene ids drawing these nodes: elements, and text groups (text inside a selected group or frame too). */
+  sceneIds(nodes: readonly NodeId[]): number[];
+  /** Image assets the page names that could not be resolved or decoded (they draw nothing). */
+  readonly missingImages: readonly string[];
+}
+
+const DEFAULT_PAGE = { width: 1080, height: 1350 } as const;
+
+/** The page's size from its part (`page.size`). */
+export function pageSize(document: StudioDocument, page: NodeId): { readonly width: number; readonly height: number } {
+  const size = document.part(page)?.prop(page, STRUCTURE_PATHS.pageSize) as { width?: unknown; height?: unknown } | undefined;
+  const width = typeof size?.width === 'number' && size.width > 0 ? size.width : DEFAULT_PAGE.width;
+  const height = typeof size?.height === 'number' && size.height > 0 ? size.height : DEFAULT_PAGE.height;
+  return { width, height };
+}
+
+/** Build the page's scene (see the module header). */
+export async function buildPageScene(options: PageSceneOptions): Promise<Result<PageScene>> {
+  const { document, page, scope } = options;
+  const part = document.part(page);
+  if (part === undefined) return err(NothingToExportError({ message: `The snapshot has no page "${page}".`, details: { page } }));
+  const source = createElementRenderSource({ stage: document.view, geometry: document.geometry, kit: document.kit, root: page, orderOf: (id) => part.node(id)?.order });
+  scope.defer(() => source.dispose());
+  const projector = createRenderProjector(ElementProjection, source);
+  source.changes();
+  const projection = projector.snapshot();
+  const resources = createSceneResources();
+  const live = source.resources.snapshot();
+  source.takeResources();
+  if (live !== undefined && !resources.apply(live)) return err(NothingToExportError({ message: 'The page’s render resources could not be read.', details: { page } }));
+  const store = createSceneStore(ElementProjection);
+  const applied = store.apply(projection);
+  if (!applied.ok) return applied;
+
+  // Pass 1 learns which image assets the paints name; they are uploaded, then pass 2 encodes with their ids.
+  const wanted = new Set<string>();
+  createElementSceneEncoder({
+    images: (asset) => {
+      wanted.add(asset);
+      return undefined;
+    },
+  }).encode(store, resources, { full: true });
+  const uploads = createImageUploads({ blobs: options.blobs, decoder: options.decoder });
+  const missingImages: string[] = [];
+  for (const asset of wanted) {
+    const entry = options.images(asset) ?? options.images(asset.split('@')[0] as string);
+    const uploaded = entry === undefined ? undefined : await uploads.upload({ ...entry, asset: asset as LibraryEntry['asset'] }, options.signal);
+    if (uploaded === undefined || !uploaded.ok) missingImages.push(asset);
+  }
+  const elements = createElementSceneEncoder({ images: (asset, variant) => uploads.images(asset, variant) }).encode(store, resources, { full: true });
+  const text = createTextLayer({ document, page, fonts: options.fonts, scope });
+  const textIr = text.changes(true)?.ir;
+  const assets = uploads.changes(true)?.assets;
+  const batches = [elements, assets, textIr].filter((b): b is Uint8Array => b !== undefined && b.length > 0);
+
+  const textOf = (node: NodeId): NodeId[] => {
+    const out: NodeId[] = [];
+    const walk = (n: NodeId): void => {
+      if (document.view.read(n)?.kind === TEXT_KIND) out.push(n);
+      for (const child of document.view.children(n)) walk(child);
+    };
+    walk(node);
+    return out;
+  };
+  return ok({
+    batches,
+    size: pageSize(document, page),
+    missingImages,
+    sceneIds(nodes) {
+      const ids = new Set<number>();
+      for (const node of nodes) {
+        const slot = projector.slotOf(node);
+        if (slot !== undefined) ids.add(sceneIdOf(slot));
+        for (const t of textOf(node)) {
+          const group = text.sceneGroup(t);
+          if (group !== undefined) ids.add(group);
+        }
+      }
+      return [...ids];
+    },
+  });
+}

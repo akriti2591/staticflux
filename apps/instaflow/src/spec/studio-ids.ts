@@ -32,6 +32,8 @@ export const StudioIds = Object.freeze({
     repeat: 'instaflow/repeat',
     // B10a: the numeric transform bar.
     transform: 'instaflow/transform',
+    // C1: PNG, PDF and SVG export.
+    export: 'instaflow/export',
   },
   hud: {
     rewrite: 'instaflow/rewrite',

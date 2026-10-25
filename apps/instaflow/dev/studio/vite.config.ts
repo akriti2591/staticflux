@@ -43,6 +43,6 @@ export default defineConfig({
       },
     },
   ],
-  optimizeDeps: { entries: ['dev/studio/index.html', 'dev/home/index.html', 'src/workers/studio.worker.ts'], exclude: ['loro-crdt'] },
+  optimizeDeps: { entries: ['dev/studio/index.html', 'dev/home/index.html', 'src/workers/studio.worker.ts', 'src/export/export.worker.ts'], exclude: ['loro-crdt'] },
   logLevel: 'info',
 });

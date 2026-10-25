@@ -89,6 +89,8 @@ export const STUDIO_PANELS: readonly PanelPlacement[] = Object.freeze([
   { panel: P.assets, dock: 'dock' },
   { panel: P.milestones, dock: 'dock' },
   { panel: P.brand, dock: 'dock' },
+  // C1: Export (the top bar's Share shows it).
+  { panel: P.export, dock: 'dock' },
 ]);
 
 /** Extra panels per lens. */

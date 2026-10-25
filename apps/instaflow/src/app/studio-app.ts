@@ -27,10 +27,14 @@ import { createGate, definePolicy, definePolicySet } from '@staticflux/gate';
 import type { Actor } from '@staticflux/stage';
 import type { TextInputFactory } from '@staticflux/surface/text-input';
 import { defineUiElements, gateResource, provideScope } from '@staticflux/ui';
-import { fromWireError } from '@staticflux/worker';
+import { fromWireError, type Spawner } from '@staticflux/worker';
 import { html, render } from 'lit';
 import { ref } from 'lit/directives/ref.js';
 import { APPEARANCE_PANEL_ID } from '../elements/contributions.js';
+import { ExportCapability, ExportShortcut, implementExport } from '../export/capability.js';
+import { DEFAULT_EXPORT_OPTIONS, type ExportFile, type ExportOptions } from '../export/formats.js';
+import { bindExportPanel, EXPORT_PANEL_ID, type IfExportPanelElement } from '../export/panel.js';
+import { browserDownload, createExportService, type ExportService } from '../export/service.js';
 import { bindPaintInspector, definePaintInspector, type IfPaintInspectorElement } from '../elements/panel.js';
 import { canvasLensFeature } from '../lenses/canvas-lens.js';
 import { createLensController, type LensController } from '../lenses/controller.js';
@@ -97,6 +101,11 @@ export interface StudioAppOptions {
   readonly homeHref?: string;
   /** Leave Studio for `href` once Latest is flushed (C0: the Home link). Default: `location.assign`. */
   readonly leave?: (href: string) => Promise<void> | void;
+  /**
+   * C1: the export worker (spawned per export) and where files go (default: the browser's download). Without it the
+   * Export panel says exports are unavailable here.
+   */
+  readonly exporter?: { readonly spawn: () => Spawner; readonly deliver?: (files: readonly ExportFile[], signal: AbortSignal) => Promise<Result<void>> };
   /** "Save as template" (C0): make a template from a milestone of the open design. Without it the action says so. */
   readonly templates?: { save(request: { readonly milestone: MilestoneId; readonly title: string }, signal: AbortSignal): Promise<Result<{ readonly asset: string }>> };
   readonly scope: Scope;
@@ -127,6 +136,10 @@ export interface StudioApp {
   flush(): Promise<Result<void>>;
   /** "Save as template" (C0): one capability run; the title defaults to the design's. */
   saveAsTemplate(title?: string): Promise<Result<unknown>>;
+  /** C1: the export service (undefined without an exporter). */
+  readonly exports: ExportService | undefined;
+  /** C1: export through the `instaflow/export` capability (what the Export panel's button does). */
+  exportDesign(options: ExportOptions): Promise<Result<unknown>>;
   /** The mirrors the panels read (tests, devtools). */
   readonly mirrors: MirrorHub;
   /** The editor's view projection (reactive; undefined until the editor posts). */
@@ -202,7 +215,17 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   const appearance = appearanceSource(hub.view(AppearanceMirror), problem);
   const repeat = repeatSource(hub.view(RepeatMirror), problem);
   const transformBar = transformSource(hub.view(TransformMirror), problem);
+  // C1: the export service exists once the library does (below); the panel reads it through this port.
+  let exportsService: ExportService | undefined;
+  let lastExport: ExportOptions | undefined;
+  const exportPort = {
+    status: () => exportsService?.status ?? { kind: 'failed' as const, options: { format: 'png' as const, scale: 2 as const, transparent: false, scope: 'page' as const }, message: 'Export is not available here.', code: 'IF-EXP-007' },
+    subscribe: (listener: () => void) => exportsService?.onChange(listener) ?? (() => undefined),
+    run: (o: ExportOptions) => void app.exportDesign(o),
+    cancel: () => exportsService?.cancel(),
+  };
   const BINDERS: Readonly<Record<string, (element: Element) => () => void>> = {
+    [EXPORT_PANEL_ID]: (element) => bindExportPanel(element as IfExportPanelElement, exportPort),
     [StudioIds.panel.transform]: (element) => bindTransformBar(element as IfTransformBarElement, transformBar),
     [APPEARANCE_PANEL_ID]: (element) => bindPaintInspector(element as IfPaintInspectorElement, appearance),
     [REPEAT_PANEL_ID]: (element) => bindRepeatInspector(element as IfRepeatInspectorElement, repeat),
@@ -242,13 +265,13 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   });
   scope.defer(() => lens.dispose());
   const story = storyFromMirror(storyView, problem);
-  let assets = 0;
+  let assetCount = 0;
   const library = createLibraryServices(
     {
       document: workspace.library,
       blobs: workspace.blobs,
       actor,
-      newAssetId: () => `as_${Date.now().toString(36)}${(assets += 1)}` as never,
+      newAssetId: () => `as_${Date.now().toString(36)}${(assetCount += 1)}` as never,
       host: { pickFiles: options.library?.pickFiles ?? ((s) => browserPickFiles(s)), place: (entry, s) => app.place(entry, s) },
       decoder: options.library?.decoder ?? browserImageDecoder(),
       renderer: options.library?.renderer ?? scaleThumbnailRenderer(),
@@ -257,6 +280,23 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     },
     scope,
   );
+  const assets = options.workers.assets;
+  if (options.exporter !== undefined && assets !== undefined) {
+    const exporter = options.exporter;
+    exportsService = createExportService({
+      spawn: exporter.spawn,
+      assets,
+      store: { store: workspace.store, blobs: workspace.blobs },
+      target: async (s) => {
+        const t = await editor.request('exportTarget', undefined, { signal: s });
+        return t.ok ? ok(t.value) : t;
+      },
+      title: () => options.document.title,
+      images: () => library.library.entries().filter((e) => e.kind === 'image' && e.content !== undefined && e.trashedAt === undefined),
+      deliver: exporter.deliver ?? ((files) => browserDownload(files)),
+    });
+    scope.defer(() => exportsService?.dispose());
+  }
   const milestonesPanel = milestonesFromMirror(hub.view(MilestonesMirror));
   const latest = latestFromMirror(hub.view(LatestMirror));
   const injector = createInjector({
@@ -305,7 +345,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     meter: unmeteredPort,
     activation: alwaysActivePort,
     declarations: [...declarations, ...(templates === undefined ? [] : [SaveAsTemplateCapability])],
-    implementations: [...declarations.filter((cap) => served.has(cap.id)).map(forward), ...saveTemplate],
+    implementations: [...declarations.filter((cap) => served.has(cap.id)).map(forward), ...saveTemplate, ...(exportsService === undefined ? [] : [implementExport(exportsService)])],
   });
   scope.defer(() => capabilities.dispose());
 
@@ -428,6 +468,16 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     else problem(result.error);
     return result;
   };
+  // C1: the Export panel's button, `Mod+Shift+E` and agents run the same capability.
+  const exportDesign = async (o: ExportOptions): Promise<Result<unknown>> => {
+    lastExport = o;
+    const result = await capabilities.invoke(ExportCapability, o, { subject: 'user', signal, origin: { channel: 'ui/panel' } });
+    if (result.ok) {
+      const files = (result.value as { files: readonly { name: string }[] }).files;
+      say(`Exported ${files.length === 1 ? files[0]?.name : `${files.length} files`}`);
+    } else if (result.error.kind !== 'aborted') problem(result.error);
+    return result;
+  };
   const leave = async (href: string): Promise<void> => {
     const flushed = await latest.flush(signal);
     if (!flushed.ok) problem(flushed.error);
@@ -454,6 +504,10 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     leave,
     flush: () => latest.flush(signal),
     saveAsTemplate,
+    get exports() {
+      return exportsService;
+    },
+    exportDesign,
     mirrors: hub,
     get view() {
       return view();
@@ -517,7 +571,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
               'save-template': () => void saveAsTemplate(),
               'zoom-in': () => void editor.request('zoom', { step: 1 }).then((r) => (r.ok ? undefined : problem(r.error))),
               'zoom-out': () => void editor.request('zoom', { step: -1 }).then((r) => (r.ok ? undefined : problem(r.error))),
-              share: () => say('Sharing arrives with export (C1).'),
+              share: () => void element.showPanel(EXPORT_PANEL_ID).then((shown) => (shown ? undefined : say('Export is not in this editor.'))),
             };
             intents[e.detail.intent]?.();
           }}
@@ -525,6 +579,18 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
         container,
       );
       const element = container.querySelector('if-studio') as IfStudioElement;
+      if (exportsService !== undefined) {
+        const registered = shortcuts.register(
+          ExportShortcut,
+          () => {
+            void element.showPanel(EXPORT_PANEL_ID);
+            void exportDesign(lastExport ?? DEFAULT_EXPORT_OPTIONS);
+            return true;
+          },
+          { scope },
+        );
+        if (!registered.ok) problem(registered.error);
+      }
       watch(
         () => view()?.camera.zoom,
         (zoom) => {

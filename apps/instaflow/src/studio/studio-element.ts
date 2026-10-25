@@ -363,6 +363,20 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     this.query<HTMLElement>('.surface')?.focus();
   }
 
+  /**
+   * Show a dock panel by contribution id (C1: "Share" shows Export): its tab selected, the dock expanded, focus on
+   * its tab. False when the spec does not place it in the dock.
+   */
+  async showPanel(id: string): Promise<boolean> {
+    const entry = this.studio?.port.entries('panel@dock').find((e) => e.slot.id === id && !isExiting(e));
+    if (entry === undefined) return false;
+    this.dockTab = entry.slot.key;
+    this.setExpanded('dock', false);
+    await this.updateComplete;
+    this.query<HTMLElement>(`sf-tab[value="${entry.slot.key}"]`)?.focus();
+    return true;
+  }
+
   /** The current canvas session (after the canvas port started). */
   get canvasActive(): CanvasSession | undefined {
     return this.canvasSession;
