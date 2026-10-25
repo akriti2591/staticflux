@@ -231,6 +231,19 @@ function strokeReach(el: ResolvedElement): number {
   return reach;
 }
 
+/**
+ * The box a precise hit can land in: the ink, grown to every point within half the stroke reach of the geometry.
+ * `hitElement` counts a point that close as a stroke hit (a round-join model), while the ink follows the real miter or
+ * bevel outline, which stops short at sharp corners; spatial indexes store this box so the broad phase never drops
+ * an element the narrow phase would hit.
+ */
+export function hitBox(ctx: ElementContext, bounds: ElementBounds): Box {
+  const el = resolveElement(ctx.stage, bounds.node, ctx.kit);
+  const reach = el === undefined ? 0 : (strokeReach(el) / 2) * Math.sqrt(Math.abs(bounds.transform[0] * bounds.transform[3] - bounds.transform[1] * bounds.transform[2]));
+  const g = bounds.geometry;
+  return unionBox(bounds.ink, { minX: g.minX - reach, minY: g.minY - reach, maxX: g.maxX + reach, maxY: g.maxY + reach });
+}
+
 /** Precise hit (fill or stroke) at a page point, honouring the element's mask. Groups hit through their children. */
 export function hitElement(ctx: ElementContext, node: NodeId, x: number, y: number, tolerance = 0): Result<HitKind> {
   const el = resolveElement(ctx.stage, node, ctx.kit);

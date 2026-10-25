@@ -213,6 +213,12 @@ describe.skipIf(!authoringBuilt)('hit-testing parity: broad + narrow phase ≡ b
     }
   });
 
+  it('a thick stroke on a sharp corner is indexed as far as the stroke hit reaches (miter outline stops short)', async () => {
+    const star = { kind: 'shape', parent: 0, x: 0, y: 1, w: 4, h: 10, rotation: 0, form: 'star', fill: false, stroke: 8, locked: false } as const;
+    const f = await createToolFixture(sceneOps([star]));
+    expect(unwrap(hitTest(f.ctx, f.index, 0, 0))).toEqual(unwrap(hitTestBrute(f.ctx, 'p1', 0, 0)));
+  });
+
   it('marquee results agree with brute force (touch and contain)', async () => {
     await fc.assert(
       fc.asyncProperty(
