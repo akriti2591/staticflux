@@ -232,11 +232,17 @@ const topFirst = (stage: Pick<Stage, 'read' | 'children'>, nodes: readonly NodeI
     .sort((a, b) => comparePaintOrder(b.order, a.order))
     .map((e) => e.node);
 
+/** A few f32 ulps at the point's magnitude: covers rounding of the point and of the geometry in the narrow phase. */
+const f32Slack = (x: number, y: number): number => 2 ** -20 * Math.max(1, Math.abs(x), Math.abs(y));
+
 /** The topmost hit at a page point (broad phase: the index; narrow phase: exact geometry). */
 export function hitTest(ctx: ToolContext, index: ElementIndex, x: number, y: number, options: HitOptions = {}): Result<Hit | undefined> {
   index.refresh();
   const t = Math.max(0, options.tolerance ?? 0);
-  const candidates = index.index.search({ minX: x - t, minY: y - t, maxX: x + t, maxY: y + t }).filter((n) => isHittableLeaf(ctx, n) && chainFrom(ctx.stage, index.root, n).length > 0);
+  // The narrow phase runs in f32, which can round a point just outside an edge onto it: pad the broad phase so its
+  // candidates stay a superset (the narrow phase still decides).
+  const pad = t + f32Slack(x, y);
+  const candidates = index.index.search({ minX: x - pad, minY: y - pad, maxX: x + pad, maxY: y + pad }).filter((n) => isHittableLeaf(ctx, n) && chainFrom(ctx.stage, index.root, n).length > 0);
   return firstHit(ctx, index.root, topFirst(ctx.stage, candidates), x, y, options);
 }
 
