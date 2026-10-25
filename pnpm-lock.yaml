@@ -394,6 +394,9 @@ importers:
       '@staticflux/data':
         specifier: workspace:*
         version: link:../data
+      '@staticflux/document':
+        specifier: workspace:*
+        version: link:../document
       '@staticflux/platform':
         specifier: workspace:*
         version: link:../platform

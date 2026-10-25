@@ -20,3 +20,7 @@ export * from './compare.js';
 export * from './gpu-readback.js';
 export * from './gpu-fake.js';
 export * from './media-fake.js';
+
+export * from './document-store-contract.js';
+export * from './document-repo-contract.js';
+export * from './document-crdt-contract.js';
