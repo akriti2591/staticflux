@@ -311,6 +311,7 @@
 - **R13.21** The contract carries **control shape and edges** apart from containers and dividers: `radius.control` (every pressable control — button, icon button, segmented track and segments, tag; a theme makes them pills without rounding cards) and `color.controlEdge` (secondary buttons, fields; ≥ 3:1 on canvas, surface and field backgrounds), distinct from the hairline `color.border`; switcher tracks are a borderless tint (`neutral3`) with a raised selected segment. Per-size control **font size and inline padding** are tokens (`type.controlSm | control | controlLg`, `size.controlPadSm | controlPad | controlPadLg`), so themes set button typography without app CSS. *(Instaflow DS1)*
 - **R13.22** **Agent actions** have their own tokens and button variants: `color.agent` / `agentHover` / `onAgent` (solid: hands work to an agent) and `color.agentSoft` / `agentInk` (soft: an agent action inside a toolbar, agent tags), `<sf-button variant="agent | agent-soft">`; every theme defines them at AA (text 4.5:1, fill 3:1 on surfaces). A **display** type family and weight (`font.familyDisplay`, `font.weightDisplay`) serve headings. *(Instaflow DS1)*
 - **R13.23** Kit **tag** (`<sf-tag>`): a non-interactive label pill (no role, not focusable) with tones neutral and agent and a caller-supplied custom colour pair; the **slider** draws a thin track, a filled part, a ringed thumb and a value slot over native range semantics and keyboard (native look in forced colors). *(Instaflow DS1)*
+- **R13.24** Kit **status** (`<sf-status>`): a non-interactive status indicator — a tone dot (neutral, success, warning, danger; `busy` pulses, and stays static under reduced motion) and a muted label — whose host is a polite live region (`role="status"` unless the caller sets another role), so a changed label is announced without moving focus; the label always states the status in words, so colour is never the only signal. *(Instaflow B5: the top bar's save state)*
 
 ## 14. Localization (base requirement)
 
@@ -616,6 +617,10 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
   data plan; module code never branches on it. The render module applies deltas only up to the frame's `docVersion`,
   draws only at equality (otherwise keeps the last good frame), draws on arrival with a small coalescing delay, and is
   paced by the worker rAF or by a main-thread rAF tick cell (switchable).
+- **R11.53** **Projection sources** (`RenderProjectionSource`): a render projector reads any per-node source with
+  `node(id)` and `forEachNode(visit)` — a part, or a composed view such as Instaflow's stage-backed element source (B1),
+  which flattens composed, token-resolved values into numeric render paths and synthesizes `PartChange`s from stage
+  invalidations. Type widening only; the wire format and the part-based behaviour are unchanged.
 - **R16.30** **Sequencing oracle contract suite** (testkit `runSequencingOracleContract`): scripted gestures G-1…G-6 (pan,
   zoom, drag one, drag 100, marquee, nudge) plus remote moves and deletes (some mid-drag) and Esc cancels are replayed on a
   single-threaded reference; every frame a pipeline presents must equal the reference at the input it consumed (no
@@ -649,3 +654,21 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
   demotion: the ledger reacts to the pressure fact synchronously and the resource manager relieves it first.
 - **R5.12** Caches never evict what the current frame pins (visible tiles); everything else goes least recently used
   first. Bytes, evictions and over-budget states are telemetry (`runtime/memory-bytes`, `runtime/memory-evicted-bytes`).
+
+## 13.1 Layout spec runtime (`@staticflux/shell/spec`; Instaflow M1b B0, D16; extends §13)
+
+- **R13.25** A **declarative layout spec** (`ShellSpec`: id, context, ordered slots, pins) selects contributions from a **closed vocabulary** of registered sections (`defineSpecSection`: cardinality `one | many`, pinnable, placements) and contributions (`defineSpecContribution`: gate resource, `when` context applicability, placements). Apps compile their own schema to it; nothing is invented at runtime.
+- **R13.26** Specs are **validated and gated** before anything mounts (`validateSpec`): unknown sections or ids, duplicate slots, placements a section or contribution does not offer, the wrong count for a one-slot section, out-of-context slots and gate denials are all reported at once as typed issues (SF-SHELL-009 with `details.issues`: SF-SHELL-010…013), each with a fix. Gating goes through the ui `DecidePort` (bound to `@staticflux/gate`). Client gating is UX, not security (R6.16).
+- **R13.27** The runtime **diffs** the next spec against the mounted layout into minimal changes (`diffSpecs`): no slot present before and after is remounted; within a (section, placement) group only slots outside a longest kept run move; placement changes are moves; every move and mount carries an insertion anchor so a port needs no index bookkeeping.
+- **R13.28** Changes are applied through a **mount port** in a fixed order (unmounts in reverse display order, moves, context, mounts in display order) started in one task, each with a **120–200 ms motion step** that is 0 ms under reduced motion (`createSpecRuntime`, `specMotionStep`). `createSpecLayoutPort` is a reactive layout model with entering / moving / exiting phases a view renders from.
+- **R13.29** **Pinning**: people pin slots of pinnable sections; a new spec never removes a pinned slot (it is retained after its old predecessor). Gating wins over pinning: a pinned slot that is now denied is dropped and reported. `revalidate()` re-applies the current spec after gate decisions change.
+- **R13.30** Shared contract suites in testkit: `runSpecRuntimeContract` (validation, gating, port order, motion bounds, disposal, and fast-check properties for diff minimality and pin preservation) and `runSpecMountPortContract` (any port — a layout model or an app's DOM — shows exactly the runtime layout after every apply).
+
+## 11.5 Image utilities (`@staticflux/surface/image`; Instaflow M1b B4)
+- **R11.54** **Area-average image scaling** (`scaleImage(image, width, height)`, `fitWithin(w, h, max)`): resample straight
+  RGBA by exact area coverage in premultiplied space (transparent pixels never darken edges), in any worker or Node, with
+  no canvas. Bad sizes or pixel buffers are `SF-SURF-016`.
+- **R11.55** **Deterministic PNG encoding** (`encodePng(image, { signal })`, `crc32`): 8-bit RGBA, no filters, no
+  interlace, no ancillary chunks, compressed through the platform's `CompressionStream('deflate')`, so the same pixels
+  always give the same bytes (renditions dedupe by digest; goldens and C1 PNG export can reuse it). Cancellable while
+  compressing; failures are `SF-SURF-016`.

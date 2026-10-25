@@ -1,6 +1,6 @@
 [package]
 name = "authoring"
-description = "Instaflow authoring engine (Parley text layout). Stub until B2."
+description = "Instaflow authoring engine: element geometry (kurbo paths, linesweeper booleans, bounds, hit tests; B1) and text layout (B2)."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,3 +11,5 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = { workspace = true }
+kurbo = { workspace = true }
+linesweeper = { workspace = true }

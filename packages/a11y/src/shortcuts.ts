@@ -377,7 +377,8 @@ export function createShortcutRegistry(options: ShortcutRegistryOptions): Shortc
       if (event.defaultPrevented) return false;
       const combo = eventComboId(event);
       if (combo === undefined) return false;
-      const editable = isEditable(event.target);
+      // The composed origin: a keydown from a field inside a shadow root is retargeted to its host.
+      const editable = isEditable(event.composedPath?.()[0] ?? event.target);
       for (const scope of priority()) {
         for (const reg of registrations.values()) {
           if (reg.def.scope.id !== scope.id || !reg.combos.includes(combo)) continue;

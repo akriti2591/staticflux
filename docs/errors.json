@@ -1761,6 +1761,48 @@
       "fix": "Ids are app-unique (`<package>/<name>`); rename one of them."
     },
     {
+      "code": "SF-SHELL-009",
+      "kind": "validation",
+      "summary": "The spec was rejected: one or more slots are unknown, out of context, gated out or misplaced.",
+      "fix": "Read `details.issues` (each has its own code and fix). Fix the spec, or register the missing contribution; nothing was mounted."
+    },
+    {
+      "code": "SF-SHELL-010",
+      "kind": "not-found",
+      "summary": "The spec names a section or contribution that is not registered (the vocabulary is closed).",
+      "fix": "Name only registered contributions (`createSpecVocabulary({ sections, contributions })`), or register the contribution from the feature that owns it."
+    },
+    {
+      "code": "SF-SHELL-011",
+      "kind": "validation",
+      "summary": "A slot does not apply under the spec context (its `when` excludes the spec’s lens, scope or another context value).",
+      "fix": "Drop the slot from this spec, change the context (for example the scope), or widen the contribution’s `when` if it really applies."
+    },
+    {
+      "code": "SF-SHELL-012",
+      "kind": "forbidden",
+      "summary": "A slot is gated out for this user (or agent); specs never bypass gating.",
+      "fix": "Expected for premium or role-gated contributions: drop the slot or offer the upsell. Client gating is UX, not security; the server re-checks."
+    },
+    {
+      "code": "SF-SHELL-013",
+      "kind": "validation",
+      "summary": "A slot is malformed: duplicated, in a placement its section or contribution does not offer, the wrong count for a one-slot section, or a pin of an unpinnable or absent slot.",
+      "fix": "Name each slot once, use a placement from the section’s `placements`, give one-slot sections (the lens) exactly one slot, and pin only mounted slots of pinnable sections."
+    },
+    {
+      "code": "SF-SHELL-014",
+      "kind": "unknown",
+      "summary": "The mount port failed to mount, move or unmount a slot; the rest of the diff was applied.",
+      "fix": "Mount ports return a `Result`; check `details.slot` and the cause. The runtime’s layout reflects what is really mounted, so re-applying the spec retries only the failed slot."
+    },
+    {
+      "code": "SF-SHELL-015",
+      "kind": "invariant",
+      "summary": "The spec runtime was disposed.",
+      "fix": "Create a new runtime (`createSpecRuntime`) for a new editor surface; do not keep references past its scope."
+    },
+    {
       "code": "SF-STAGE-001",
       "kind": "forbidden",
       "summary": "The edit targets a locked node or path (position, content or all).",
@@ -1933,6 +1975,12 @@
       "kind": "unavailable",
       "summary": "Reading pixels back from the GPU failed (map failed, device lost during readback, or a validation error).",
       "fix": "Retry after the device is `running` again; readback buffers need COPY_DST | MAP_READ and 256-byte aligned rows."
+    },
+    {
+      "code": "SF-SURF-016",
+      "kind": "validation",
+      "summary": "An image could not be scaled or encoded (zero or non-integer size, pixel data of the wrong length, or the compression stream failed).",
+      "fix": "Pass a `RasterImage` whose `data` holds exactly `width × height × 4` RGBA bytes and a positive integer target size; inspect `cause` when `CompressionStream` is missing or failed."
     },
     {
       "code": "SF-TEST-001",

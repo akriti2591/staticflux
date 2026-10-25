@@ -238,3 +238,65 @@ that themes the kit (R13.21–R13.23).
   `<sf-tag tone .color .ink mono>`; the lens colours stay in the app's typed lens palette (`lensTag(lens)`).
 - Dials (Warmth, Exposure): `<sf-slider>` with a thin track, filled part, ringed thumb and the value in a pill.
 
+### versioning: Latest, milestones, new document, templates, export snapshot (Instaflow M1 B5)
+Consumer: Instaflow (`apps/instaflow/src/versioning`; D2, D9, D10; IF-5, IF-22). Built on `DocumentRepo` + the
+`DocumentStore` port and canonical parts (A4), the stage undo service (A8), the kit and Clean Pop (A10, DS1).
+- "There is no save button, but I want to know my work is safe" → a save state from commit acknowledgements
+  (`createLatestService`), shown by `<if-save-status>` over the kit's new **`<sf-status>`** (dot + words in a polite live
+  region, R13.24). "The folder copy is behind" is its own state, not an error.
+- "Keep the version I sent the client, then keep working" → `milestones.create({ name, note, actor })` writes only the
+  changed parts (frontier cache + digest dedupe in `createPartCapture`), costs the same in a document with 60 milestones
+  as in one with 3, and is reachable from the Milestones panel, `Mod+Alt+S` and agents (one capability).
+- "Show me what they saw next to what I have now" → `openComparison(…, milestone, 'latest')`: two read-only documents
+  (canonical parts, no CRDT), the Latest side frozen through an export snapshot; no structural diff in V1.
+- "Start a variant from what they saw next week" → `createDocumentFromMilestone`: a new asset with a detached baseline;
+  the source can be edited or deleted without affecting it.
+- "Use this flyer as a template" → `markSlot` (text, image, colour; undoable) and `createDocumentFromTemplate({ fills })`.
+- "Export while I keep editing" (C1) → `snapshots.freeze()` at export start, `snapshots.open(frozen)` to render; nothing
+  is recorded. Publishing later goes through `ReleasePort`.
+- The editor (B0) mounts everything through contributions (`PanelContribution`, `TopBarContribution`,
+  `CommandContribution`) and the `VersioningHost` port (show read-only, show comparison, open document).
+
+
+### shell/spec: declarative editor specs over a closed vocabulary (Instaflow M1b B0, D16)
+Consumer: Instaflow's editors — Studio (the maximal spec), mini editors in Chat (M2), presets and agent-proposed specs
+(`apps/instaflow/src/spec`, `src/studio`) — and any app that composes screens from registered contributions (R13.25–R13.30).
+- "An editor is a lens, a scope and a set of registered tools, panels and actions": `createSpecVocabulary({ sections, contributions })`
+  with `defineSpecSection` / `defineSpecContribution`; the app compiles its schema to `ShellSpec` (`toShellSpec`).
+- "Agents may only name what exists, and never bypass gating": `validateSpec(spec, vocabulary, { decide })` returns every issue with a
+  code and a fix (SF-SHELL-009…013); agents are decided as agents through the gate adapter.
+- "A new turn changes only what differs, with 120–200 ms motion, never reshuffles": `diffSpecs` (LIS-minimal moves, insertion
+  anchors), `createSpecRuntime({ vocabulary, port, decide, motion, reducedMotion })` → `apply`, `preview`, `revalidate`.
+- "What I pinned stays": `runtime.pin(key)` / `unpin`; pins in a spec are added, never removed by another spec.
+- "Render the layout with enter/exit motion without a DOM in the runtime": `createSpecLayoutPort()` (`entries(group)` with phases,
+  `groups()`, `mountedContext`).
+- **Tests**: `runSpecRuntimeContract`, `runSpecMountPortContract` (Studio's `<if-studio>` DOM runs the port suite).
+
+### elements, styles and geometry (Instaflow M1b · B1)
+Consumer: `apps/instaflow/src/elements` (editor and render workers; inspector panel on main).
+- Render what the inspector shows (classes, tokens, variants resolved), not the raw part → the render projector reads a
+  **projection source** (`RenderProjectionSource`, R11.53) that the app builds over `@staticflux/stage`.
+- Brand rules enforced for people and agents on every write → the undo service's `WriteGuard` (stage), composed with
+  `stageWriteGuard` (`composeGuards`).
+- Element actions reachable from the HUD, the keyboard and agents with one pipeline → one capability per action
+  (`@staticflux/capabilities`) plus B0's `HudActionContribution`; the panel is a `PanelContribution` built from kit
+  components (inspector group/row, colour field, text field, segmented, slider, icon button, menu).
+
+### library and lenses: workspace assets, renditions, Pages and Canvas lenses (Instaflow M1b B4)
+Consumer: Instaflow (`apps/instaflow/src/library`, `src/lenses`; D4, D19; IF-3.5–3.10, IF-23). Built on `@staticflux/blob`
+(content hashing), `@staticflux/document/v2` (the library document, the composition's root part), `@staticflux/stage`
+(actors), `@staticflux/surface` (`raster` headless render, `image` scaling and PNG, R11.54–R11.55) and the B0 spec runtime.
+- "Drop my photos in and use them right away" → `ingest.ingest(file, { signal })`: a provisional id with progress at once,
+  SHA-256 in the blob store, dedupe by digest, an immutable asset record, one library commit.
+- "Find, rename, tag, favourite, trash and restore my assets" → `createLibrary({ source, actor })` (reactive `entries()`,
+  validated single commits) and `queryLibrary(entries, { filter, text, tag, folder })`.
+- "Show me thumbnails, even after a crash" → `createRenditionQueue({ decoder, renderer, encoder })`: background jobs,
+  `resume()` on session start, `sceneThumbnailRenderer({ backend })` through A6 or `scaleThumbnailRenderer()` without a GPU,
+  `pngImageEncoder()` (deterministic → idempotent).
+- "Browse the library by keyboard" → `<if-library-panel>` over `createLibraryPanelModel({ library, ingest, blobs, host })`,
+  contributed as B0's `instaflow/assets` panel.
+- "The same document as a story or as a canvas, without a mode switch in feature code" → `LensFeature` (`arrange`, `focus`,
+  `overview`) with `pagesLensFeature` and `canvasLensFeature` in `createLensFeatureRegistry`; `createLensController`
+  (reactive arrangement, next / previous page, camera requests through `CameraPort`) and `bindLensShortcuts`.
+- "Reorder the story" → `createStoryWriter({ doc, structure, actor }).movePage(page, to)` (one undoable commit) from the
+  `<if-pages-panel>` (B0's `instaflow/pages` panel) with Alt+↑/↓.

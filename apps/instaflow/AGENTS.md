@@ -9,8 +9,14 @@ authoritative; M1-PLAN lists the work packages; `design/` is the approved Clean 
 |---|---|---|
 | `engine/` | Rust workspace (render, authoring crates) built to Wasm by `pnpm build` (A2, A6) | `engine/AGENTS.md` |
 | `src/render/` | Vello `RasterBackend`, render Wasm loader, scene IR encoder (A6); export `@instaflow/app/render` | `src/render/AGENTS.md` |
+| `src/elements/` | Element components, brand kits and classes, geometry service, actions, render projection → scene IR, Fill/Stroke/Effects panel (B1); exports `@instaflow/app/elements`, `/elements/panel` | `src/elements/AGENTS.md` |
 | `src/sequencing/` | Editor and render **modules** with fixed ports, the topology boot setting, the S2 protocol rules, the oracle subject (A7, D15) | `src/sequencing/AGENTS.md` |
 | `src/theme/` | Clean Pop theme (`cleanPopTheme`, DS1) and the typed lens palette | `src/theme/AGENTS.md` |
+| `src/versioning/` | Latest save state, milestones, compare, New document from milestone, templates with slots, frozen export snapshot, the Milestones panel / save status / "Milestone" command contributions (B5); exports `@instaflow/app/versioning` and `/versioning/ui` | `src/versioning/AGENTS.md` |
+| `src/library/` | Workspace library (B4): library document, ingest and content hashing over `@staticflux/blob`, immutable asset records, rendition jobs (A6 scene renderer or CPU fallback), the Assets panel contribution; exports `@instaflow/app/library` and `/library/ui` | `src/library/AGENTS.md` |
+| `src/lenses/` | Pages and Canvas lenses as per-mode features (B4): structure reader, `LensFeature` registry, lens controller and shortcuts, story edits, the Pages panel contribution; exports `@instaflow/app/lenses` and `/lenses/ui` | `src/lenses/AGENTS.md` |
+| `src/spec/` | Editor specs (B0, D16): contribution tokens, `EditorSpec` schema, registries, gate adapter, Studio spec, example mini editor, proposals | `src/spec/AGENTS.md` |
+| `src/studio/` | The Studio shell (B0): controller, `<if-studio>` frame laid out from the spec, the canvas port over A7 | `src/studio/AGENTS.md` |
 | `bench/sequencing/` | Bench page for the owner's real-GPU run (`pnpm --filter @instaflow/app bench:build`, then `pnpm gpu:run … --real-gpu --headed`) | `src/sequencing/AGENTS.md` |
 | `test/threads/` | Node `worker_threads` fixtures (TypeScript loaded through the worker package's module hooks) | — |
 | `models/` | Model-weights license registry (A2) | `models/AGENTS.md` |

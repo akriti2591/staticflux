@@ -168,6 +168,12 @@ export interface PresetUse { preset: AssetRef; duration: Ticks; params?: Record<
 Which components each kind carries is fixed by a per-kind table generated from the component registry (for
 example `video` = `spatial + temporal + source + audioMix + style + matte? + motion? + animation?`).
 
+**As built (M1b B1, IF-20):** `style` is version 2 with appearance **stacks** (`fills`, `strokes`, `effects`: ordered,
+toggleable lists; paints add conic gradients), per-corner `radiusTL/TR/BR/BL`, `radiusInner` and `smoothing`; element kinds
+add `frame`; masks are a `mask` component (`mode: clip | alpha | luminance`, `invert`, optional matte `asset`) on the mask
+element; a boolean is `geometry.boolean` on a group whose children are the operands; the match key is `lineage.key`;
+layout grids are `layout.grids`. `apps/instaflow/src/elements/components.ts` is normative for field names.
+
 ### 3.3 Composition rules (SF-Δ7 `@staticflux/stage`)
 
 - **Layer stack**, strongest first: `session` (ephemeral previews, solo/mute, active variant selection; never
@@ -314,6 +320,8 @@ export interface Milestone {                             // records/ms/…, immu
 - **Open:** read-only, from parts. No CRDT is involved.
 - **Delete:** allowed for unpinned milestones that no export record names. Pinning is a head field, so pinning
   does not rewrite the immutable record.
+- **Rename** (M1 B5): also a head field (`names: { [MilestoneId]: string }`, next to `milestones` and `pinned`); the record
+  keeps the name it was created with, so its id never changes.
 - **New document from milestone:** create a new `AssetRecord` (`createdFrom` label only) and new Latest CRDT
   parts built from the canonical parts with a fresh history and fresh peer ids. Node ids are kept (they are
   asset-local). No structural link to the source exists afterwards: deleting the source never affects the copy.

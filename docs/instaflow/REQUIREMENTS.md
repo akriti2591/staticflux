@@ -494,3 +494,256 @@
   change sets that address a comment (the change set links the comment id, and accepting it offers "resolve").
 - **IF-18.4** Threads, mentions and notifications come with accounts. V1-era comments are single-level notes
   with author, time and open/resolved status.
+
+## 22. Versioning in M1 (work package B5; D2, D9, D10)
+
+Refines §5 for the M1 build (`apps/instaflow/src/versioning`). Errors are `IF-VER-001…010`; lifecycles in
+`docs/LIFECYCLES.md` §23.
+
+- **IF-22.1** The Latest service turns commit acknowledgements into a save state `saving | saved |
+  offline-mirror-behind` for the top bar. `saving` turns `stalled` ("Not saved yet: <cause>") after 2 s without an
+  acknowledgement or on an append failure, and a failed flush is retried until it succeeds (IF-5.2).
+- **IF-22.2** `offline-mirror-behind` is shown only when every commit is durable in the browser store and the folder
+  mirror is paused (permission lapsed) or failing; a mirror that is merely batching shows `saved`.
+- **IF-22.3** Creating a milestone flushes Latest, captures canonical parts, writes the record (its digest is the
+  milestone id), prepends it to `head.app.versioning.milestones` by compare-and-swap with retry, then flushes the folder
+  mirror. A failed mirror flush is reported (`mirrored: false`) but never undoes the milestone. Creations queue (one at
+  a time per document).
+- **IF-22.4** A milestone writes **only changed parts**: a part whose CRDT frontier did not move since the last capture is
+  not re-encoded, and a canonical digest already known (the newest milestone's parts) is not written again.
+- **IF-22.5** Pin and rename are head fields (`pinned`, `names`); they never rewrite an immutable record. Names are 1–120
+  characters after trimming (IF-VER-001); notes at most 2,000.
+- **IF-22.6** Opening a milestone is read-only and reads only its record and the parts actually viewed (lazy, cached
+  per part, `parse → migrate` on read). No CRDT is created.
+- **IF-22.7** Compare opens two read-only documents side by side: two milestones, or a milestone and Latest frozen at that
+  moment (a snapshot, not a milestone). It offers no structural diff.
+- **IF-22.8** **Cost is independent of age:** creating a milestone reads the head and the newest record only (never the
+  list); opening and New document read the record and each part once. A deterministic test holds store operations and
+  bytes equal at ages 3, 20 and 60; a bench file reports the wall-clock numbers.
+- **IF-22.9** New document from milestone writes a new head (generation 1) whose parts are rebuilt from canonical parts
+  with one fresh peer and one commit of history, keeps node ids, and refuses an asset id in use (IF-VER-008). The new
+  asset record carries `createdFrom { asset, milestone, title }` as a label only; nothing in the new head names a source
+  object, so the copy opens and edits with every source object deleted, and edits on either side never reach the other.
+- **IF-22.10** Templates mark slots on existing elements — text, image or colour — as the `slot` component (`name`,
+  `accepts`, `target` path, `required`, `maxChars`). Marking and unmarking are ordinary commits through the stage undo
+  service (one undo step per actor). Slots sharing a name must accept the same kind.
+- **IF-22.11** Using a template is New document from milestone plus slot filling: one fill fills every slot of its name;
+  text keeps the first span's marks; image fills take an asset id, colour fills a hex colour; markers are dropped unless
+  `keepSlots`. Unknown slot names, wrong value types, over-long text (IF-VER-006) and empty required slots (IF-VER-007)
+  fail before anything is written.
+- **IF-22.12** The frozen export snapshot is a content-addressed manifest (`sn_…`) over canonical parts of what is
+  applied in memory when the export starts. It writes blobs only: no record, no head change, no list entry (D10). Its
+  parts dedupe with milestones by digest.
+- **IF-22.13** A `ReleasePort` hook exists for publishing (rendered outputs + frozen snapshot + "published from" label);
+  M1 binds `unavailableReleasePort` (IF-VER-009).
+- **IF-22.14** The Milestones panel (`<if-milestones-panel>`) offers create (name, note), the list (name, date, pinned),
+  open read-only, compare (one with Latest, or two side by side), pin, rename and New document from milestone, built only
+  from kit components under Clean Pop with the design's button variants, fully usable by keyboard, results announced
+  in a polite live region.
+- **IF-22.15** The top bar's save status (`<if-save-status>`) shows the save state in words in a polite live region
+  (kit `<sf-status>`).
+- **IF-22.16** "Milestone" is one capability (`instaflow/create-milestone`, `Mod+Alt+S`) for the top bar, the palette and
+  agents: with a name it creates the milestone as the invoking actor; without one it opens the panel's name field.
+
+## 19. Editor specs and the Studio shell (M1b B0; D16–D19)
+
+- **IF-19.1** **The editor is a composition** (D16): an `EditorSpec` names a lens, a scope (`asset | page | selection |
+  time-range | layer`), tools in toolbar order, panels with where they dock (`side | dock | inspector | tray`), HUD actions,
+  capabilities, a density (`focus | standard | pro`) and the person's pins. Specs are data (`defineEditorSpec`).
+- **IF-19.2** Specs draw only on the **closed vocabulary** of registered contributions: `LensContribution`,
+  `ToolContribution`, `PanelContribution`, `HudActionContribution` (multi tokens `*ContributionsToken`, unit helpers
+  `*Contribution(item)`) and declared capabilities, compiled by `createEditorRegistries` into the framework vocabulary
+  (R13.25). Duplicate ids or unknown lenses are `IF-SPEC-002`.
+- **IF-19.3** Applicability is data: a contribution's `lenses` and `scopes` become `when` conditions; a lens's `scopes`
+  limits what it can open. A spec naming a tool outside its lens or a lens outside its scope is rejected (SF-SHELL-011).
+- **IF-19.4** Untrusted specs (agents, saved specs) are parsed with `parseEditorSpec` against `EditorSpecSchema` (strict,
+  per-scope required fields); malformed input is `IF-SPEC-001` with JSON paths. Agents get the JSON Schema from
+  `proposeSpecCapability`.
+- **IF-19.5** Specs are **gated** through `@staticflux/gate` (`gateSpecDecide(gate, subject)`): a spec proposed by an agent
+  is decided as the agent (principal ∧ agent policies, R6.17); capabilities are gated at the `capability` level. Specs never
+  bypass locks, brand rules or gating (D13).
+- **IF-19.6** Spec changes are **minimal animated diffs** (R13.27–R13.28) with 120–200 ms motion, 0 under reduced motion;
+  pinned slots stay (R13.29).
+- **IF-19.7** **Spec lifecycle in a turn**: `proposed → validated → (previewing) → mounted`, or `rejected | declined |
+  superseded | failed` (LIFECYCLES §20). Routing is a table over source × autonomy (D13): people and presets mount; agents
+  preview in Plan and Ask and mount in Accept edits and Autopilot. Acting on a settled proposal is `IF-SPEC-003`.
+- **IF-19.8** The agent seam (M2): `SpecProposer` (`SpecProposerToken`, `pull(proposer)`; a failed turn is `IF-SPEC-004`,
+  nothing changes) and `proposeSpecCapability` through the capability pipeline. Tested with a scripted proposer.
+- **IF-19.9** **Studio is a spec** (D19, canvas-first): `studioSpec` — the Canvas lens over the asset, the full toolbar,
+  chat as a contextual side panel, the tabbed dock (Layers, Pages, Assets, Brand), Properties in the inspector, the HUD and
+  the editor capabilities, at Pro density. Modes are well-known specs: `studioSpecFor(lens)` (variant tables per lens).
+- **IF-19.10** Mini editors are narrow specs over the same engine; the example is `pixelTouchUpSpec(nodes)` (Pixel lens on a
+  selection, three tools, the Adjust panel, one ✦ action, Focus).
+- **IF-19.11** **The Studio shell** (`<if-studio>`, `createStudio`) is laid out from the mounted spec only, with kit
+  components under the active theme (Clean Pop), matching `design/StudioCP.dc.html` structurally: top bar (home, breadcrumb,
+  lens mode switcher with lens shapes, save state, agent chip, density, Milestone, Share), side panel, tabbed left dock,
+  canvas region (tools, HUD slot, canvas surface, command bar, zoom, proposal card) and inspector.
+- **IF-19.12** **Density** (UX §3): Focus collapses the side panel and dock to rails, Standard opens them, Pro opens
+  Properties (`PanelContribution.minDensity`); a density change is a spec change; the person can open a collapsed dock.
+- **IF-19.13** **Studio is fully usable by hand** (D17): every spec change has a non-agent path (mode switcher, density
+  switch, pin buttons, keyboard). Keyboard: `1`–`4` lenses, tool letters (not while typing), `Alt+Enter` HUD, `Mod+K`
+  command bar, `Escape` back to the canvas; toolbar, HUD, mode switcher and dock tabs follow their APG patterns.
+- **IF-19.14** The canvas region mounts the A7 editor and render modules behind their ports (`CanvasPort`,
+  `sequencingCanvas`); a canvas that cannot start is an inline alert (`IF-SPEC-005`) and the rest of Studio stays usable.
+- **IF-19.15** The shell passes the testkit a11y audit (names, ARIA references, roles, nested controls) and its DOM satisfies
+  `runSpecMountPortContract`.
+
+## 20. Elements, styles and geometry (M1b B1)
+
+Code: `apps/instaflow/src/elements` (TypeScript), `apps/instaflow/engine/crates/authoring/src/geometry` (Rust), scene IR v2
+in `crates/render` + `src/render/scene-ir.ts`. Error codes `IF-EL-001…007`.
+
+- **IF-20.1** **Element kinds** are typed `@staticflux/document/v2` components: `frame` (sized container that clips),
+  `group` (free container; with `geometry.boolean` a live boolean), `shape` (`geometry.shape`: rect, ellipse, polygon, star,
+  line), `vector` (`geometry.path`, SVG path data in the local box) and `image` (`source.asset` = a blob asset, `image.fit`).
+  Text is B2's and plugs into the same components (`ELEMENT_COMMON_COMPONENTS`).
+- **IF-20.2** **Transforms**: `spatial` (x, y, w, h, rotation clockwise in degrees, scale, anchor, flips, opacity, blend mode).
+  x, y is the unrotated box's top-left; rotation, scale and flips act about the anchor.
+- **IF-20.3** **Appearance stacks** (`style.fills`, `style.strokes`, `style.effects`): ordered, reorderable, toggleable
+  (`visible`) lists with stable item `id`s. Fills: solid, linear, radial, conic gradients and images (cover, contain,
+  stretch, tile), each with its own opacity and blend. Strokes: colour or gradient, uniform or per-side width (rects,
+  frames, images), inside / centre / outside, dash pattern and offset, caps, joins, miter limit, own opacity and blend.
+  Effects: drop and inner shadows (x, y, blur, spread, colour; several), outer and inner glows, layer blur and background
+  blur. Values are plain data so they can be animated later.
+- **IF-20.4** **Corner radius** on every element with corners: `style.radius` (linked) and per-corner
+  `radiusTL/TR/BR/BL` (unlinked) on rects, frames and images; polygon vertices and star tips (`radius`) and a star's inner
+  vertices (`radiusInner`); per-vertex radii on vector paths (`geometry.vertexRadii`). `style.smoothing` 0…1 gives smooth
+  (squircle-like) corners. Radii scale down together when adjacent corners do not fit and never exceed half the shortest
+  side. Masks, clips, strokes and shadows follow the rounded outline.
+- **IF-20.5** **Versioned components with migrations**: `style` is version 2 (v1 = DOCUMENT-FORMAT §3.2's draft single
+  `fill` / `stroke`); canonical parts written with v1 upgrade on read (`migrateComponentValues`).
+- **IF-20.6** **Brand kits**: a `brand-kit` asset whose root (`kit`) holds `brand.tokens.<name>` (colours, numbers, fonts,
+  effect presets, aliases to other tokens) and `brand.rules`; its `class` children are named style classes. Any colour,
+  size or effect value may be `@name`. The stage's token rule resolves top-level tokens with provenance; tokens inside
+  stacks resolve against the same kit; unresolved tokens are reported (`issues`) and draw nothing.
+- **IF-20.7** **Style classes**: `style.inherit = { kit, class }` composes the class as the stage's `inherit` arc; a local
+  value is an override visible in provenance (`overridesOf`), and resetting it (`null`) brings the class back. Class
+  `policy.final` paths cannot be overridden (SF-STAGE-003 ↔ IF-CS-013).
+- **IF-20.8** **Brand rules** (`{ when: { role, kind }, path, allow, severity }`, e.g. "CTAs use @primary") are enforced on
+  every write through the undo service's write guard (`brandRuleGuard`, `IF-EL-003`) for people and agents; `warn` rules
+  and existing content show as lints (`lintBrandRules`). Client gating is UX, not security.
+- **IF-20.9** **Locks** (`lock.scope`, `lock.policy`) are enforced by the stage on every element action and panel edit
+  (SF-STAGE-001/002); position-locked elements stay put in align/distribute and still count as anchors.
+- **IF-20.10** **Geometry in the authoring Wasm** (kurbo 0.13.1, linesweeper 0.5.0): shape outlines, rounded and smooth
+  corners, SVG path parsing, transforms, booleans, stroke outlines (with dashes), exact bounds, ink bounds, hit tests and
+  marquee tests behind `GEOMETRY_VERSION` 1; TypeScript wraps them as `GeometryService` (`IF-EL-005`, loader `IF-EL-006`).
+  Budget: authoring Wasm ≤ 350 KB brotli (measured 119.1 KB brotli with geometry only; render Wasm 191.1 KB with IR v2).
+- **IF-20.11** **Booleans** (IF-7.9): union, subtract, intersect, exclude as **live** boolean groups whose operands stay
+  editable children; the result is derived (never stored), robust on self-intersecting input (property tests on random
+  polygons, Rust and TypeScript). Release puts the operands back; **Flatten** bakes a vector path; **Outline stroke** turns
+  each stroke into a filled vector.
+- **IF-20.12** **Masks** are first-class and non-destructive: any element or group with `mask.mode` (clip = its geometry,
+  alpha, luminance; `mask.invert`) masks the siblings after it in its parent; text and images can be masks; releasing
+  (`mask.mode = null`) restores everything. `mask.asset` names a matte image (S9) used as the mask's alpha.
+- **IF-20.13** **Bounds for tools and the spatial index**: page-space geometry bounds, ink bounds (strokes, shadows, glows,
+  blur; clipped by a non-inverted mask), centres, container (frame/page) bounds and centres, sibling bounds (smart guides,
+  B3), and precise hits honouring fill, stroke and masks.
+- **IF-20.14** **Layout grids** (`layout.grids` on frames and pages): columns and rows (count, gutter, margin, alignment,
+  size) and a square baseline grid, several per container with a visibility toggle; `gridLines` gives exact lines and
+  tracks for snapping (B3); they draw as a non-printing overlay (`gridOverlayBatch`) and never export.
+- **IF-20.15** **Align** left / centre / right / top / middle / bottom to the selection, the container, the page or a key
+  object, and **centre in container** as one action, on exact page-space geometry (rotation and curves included).
+- **IF-20.16** **Distribute** horizontally or vertically by equal gaps (first and last stay) or by centres; **tidy up**
+  snaps a rough grid into even rows and columns.
+- **IF-20.17** **Every action is one change set and one undo step** (`commitEdit`): element values validated
+  (`IF-EL-001`), locks and finals checked, brand rules guarded; inapplicable selections are `IF-EL-004`.
+- **IF-20.18** **Match keys** (`lineage.key`) give every element a stable lineage for Smart Move (M4): duplicates of an
+  element or a page keep it (fresh node ids); it is persisted in canonical parts and `.iflow`; repeat generators (B7) give
+  instances the source's key plus an instance suffix.
+- **IF-20.19** **Render projection**: the composed stage → `ElementProjection` (A7 `defineRenderProjection`: affine, size,
+  opacity, blend, flags, mask, look and path ids) plus interned **resources** (looks, paths, stroke rings) sent before the
+  delta that uses them → the render module's scene store → scene IR (`createElementSceneEncoder`, only changed nodes).
+- **IF-20.20** **Scene IR v2** (A6 renders it on Vello GPU and vello_cpu): fill and stroke stacks with opacity and blend,
+  conic gradients, dashes, ring strokes, per-corner rects, image fit, even-odd, drop / inner shadows (spread), layer and
+  background blur, and masks (clip, alpha, luminance; invert). Ink bounds include effects so tiles never clip shadows.
+- **IF-20.21** **Golden tests**: the TypeScript writer is byte-identical with Rust on the `elements` and `appearance`
+  fixtures; the element pipeline's scene is a committed projection snapshot, a vello_cpu reference (cargo test) and a GPU
+  golden plus GPU-vs-CPU parity on SwiftShader (`pnpm test:gpu`).
+- **IF-20.22** **Contributions** (B0): each action is a capability (`instaflow/align-left`, …, `instaflow/flatten`,
+  `instaflow/mask-luminance`, `instaflow/apply-token`; exposed to agents, gated per subject) with a HUD action running it;
+  shortcuts give the keyboard path.
+- **IF-20.23** **The Fill / Stroke / Effects panel** (`instaflow/appearance`, inspector placement) is built only from kit
+  components under Clean Pop: per-item show/hide, reorder, remove and add; colour, opacity, blend, width, dash, position;
+  effect parameters; corner radius with a link toggle and a smoothing slider; layer opacity and blend; brand-token pickers.
+- **IF-20.24** The panel is a view over a headless model (`appearanceModel`) and emits `AppearanceEdit`s
+  (`appearanceEditOps`); it passes the testkit a11y audit and every control is keyboard reachable.
+
+| Code | Meaning |
+|---|---|
+| `IF-EL-001` | Element value has the wrong shape (paint, stack item, effect, radius, grid, mask, geometry) |
+| `IF-EL-002` | Unknown brand token, or a token of the wrong type for the field |
+| `IF-EL-003` | Write breaks a blocking brand rule |
+| `IF-EL-004` | Action does not apply to the selection |
+| `IF-EL-005` | Geometry engine rejected the input |
+| `IF-EL-006` | Authoring Wasm missing or wrong geometry version |
+| `IF-EL-007` | Style class or brand kit unavailable |
+
+## 23. Library and lenses in M1 (work package B4; D4, D19; IF-1.3, IF-3.5–3.10)
+
+- **IF-23.1** The workspace **library document** is the `library` asset of the workspace's `DocumentRepo`
+  (`heads/library.json`, one part `root`), created on first open (`openLibraryDocument`). Each listed asset is one
+  top-level `asset` node (id = the asset id) with the `library` component (`libraryRegistry`, version 1); reads are per
+  node and every write is a validated op batch committed through the open document (one commit per action).
+- **IF-23.2** Library metadata is mutable and lives only in the library document: title (1–200 characters), tags
+  (1–40 characters, lower case, no commas, a CRDT list deduplicated on read), folder (`/`-separated names of 1–60
+  characters), favourite, trash state and time. Invalid metadata is `IF-LIB-007`; an unknown asset `IF-LIB-003`; listing
+  an id twice `IF-LIB-008`.
+- **IF-23.3** **Trash is a state**, not a delete: `trash` stamps `trashedAt`, `restore` clears it. `gcRoots()` returns live
+  entries plus trashed ones younger than 30 days (`TRASH_RETENTION_MS`, IF-3.10 grace period).
+- **IF-23.4** Ingest classifies a file by its media type, its aliases or its extension (`MEDIA_TYPES`,
+  `EXTENSION_TYPES`; data) into a blob asset kind before reading a byte; anything else is `IF-LIB-001`.
+- **IF-23.5** An import is listed at once under a **provisional id** (`pv_…`) with its progress (`pending()`), and
+  `resolve(pv)` names the asset once listed (IF-3.5: usable before hashing finishes).
+- **IF-23.6** Content is hashed and stored by `@staticflux/blob` (`BlobStore.put`: SHA-256, chunk manifests above 8 MiB,
+  progress, cancellation). The same bytes already live in the library return that entry (`deduplicated`); no second
+  asset is listed. A store failure is `IF-LIB-002`; cancellation is `SF-CORE-002` and lists nothing.
+- **IF-23.7** The kind's **media probe** (a data table; images: decode once) records media facts (width, height,
+  alpha); a decode failure is `IF-LIB-005` and lists nothing.
+- **IF-23.8** Every import writes one immutable **`instaflow.asset/1` record** (canonical JSON, RFC 8785, stored as a
+  `application/vnd.instaflow.asset+json` blob) with `content`, `media` and C2PA-aligned provenance (`imported`, actor,
+  no ingredients; IF-3.8), then lists the entry pointing at the record and the content.
+- **IF-23.9** **Renditions** are derived, regenerable blobs recorded in the library document
+  (`library.renditions.<role>`), never in the immutable record. `RENDITION_PRODUCERS` (data) says which roles each kind
+  gets; in M1 images get a `thumbnail` fitted in 256 × 256 px, never upscaled.
+- **IF-23.10** Rendition jobs are background work: a queue (concurrency 1 by default) with one machine per job
+  (`instaflow/rendition-job`); a job writes nothing before its blob is stored, so a cancelled or failed job leaves no
+  trace (`IF-LIB-006` with the cause). `resume()` re-queues every live entry still missing a rendition (resumable across
+  sessions); regenerating with the same params gives the same blob (deterministic PNG).
+- **IF-23.11** Thumbnails render **through the A6 render path** where a raster backend exists
+  (`sceneThumbnailRenderer`: the pixels become one scene IR image node rendered headlessly by the backend at the target
+  size, then the scene is cleared; jobs serialized per backend). The **documented fallback** is
+  `scaleThumbnailRenderer` (CPU area averaging) for contexts without WebGPU. The choice is a DI binding, never a branch.
+- **IF-23.12** The **Assets panel** (`<if-library-panel>`, the `instaflow/assets` panel contribution) is built only from
+  kit components under Clean Pop: Import (the one primary action), search, a filter switcher (`LIBRARY_FILTERS`: all,
+  images, video, audio, designs, favorites, trash; predicates in a table), the asset list, a preview of the selected
+  thumbnail (12 px corners), an actions toolbar (Place, Favorite, Rename, Trash/Restore) and an inline rename form. Each
+  row carries the lens mark of its kind (`ASSET_KIND_LENS`, the typed lens palette).
+- **IF-23.13** Every Assets panel action has a keyboard path: Tab order Import → search → filter → list → toolbar; in the
+  list Enter places, Delete trashes (restores in Trash), F2 renames; Enter / Escape in the rename field; dropping files has
+  the Import button as its keyboard path. Results are announced in a polite live region; the panel passes the testkit a11y
+  audit.
+- **IF-23.14** Placing an asset and picking files are host ports (`LibraryHost.place`, `pickFiles`; element creation is
+  B1/B3's). `browserPickFiles` uses a transient file input (never laid out) and reports a cancelled pick as `SF-CORE-002`.
+  Thumbnail object URLs load lazily and are revoked with the panel.
+- **IF-23.15** **One authoring core, lenses as features** (IF-1.3, D4, D19): a lens's arrangement, focus and overview are a
+  `LensFeature` looked up by lens id in the feature registry (`LensFeaturesToken`). Pixel, Timeline and Flow fall back to
+  the Canvas feature. No code outside a feature asks which lens is mounted; lens chrome comes from the spec's variant
+  tables (`STUDIO_LENS_TOOLS`, `STUDIO_LENS_HUD`, `STUDIO_LENS_PANELS`).
+- **IF-23.16** The lenses read the composition from its root part only (`readCompositionStructure`: the `composition`
+  node, page stubs in story `order` with `page.size` and `page.canvas` as `vec2`, loose elements with a `spatial` box);
+  a page without a valid size takes `composition.format`, else 1080 × 1350. A part without a composition is `IF-LIB-010`.
+- **IF-23.17** **Pages lens** (`instaflow/lens-pages`, Layout palette, shortcut `5`): pages at their own sizes stacked
+  down a centred column in story order, no loose elements; navigation follows the story; focusing a page fits it.
+- **IF-23.18** **Canvas lens** feature (`instaflow/lens-canvas`): pages at `page.canvas` plus loose elements; unplaced
+  pages go to the right of everything placed, in story order; navigation is reading order (rows top to bottom, left to
+  right); focusing keeps the zoom when the page fits at it, else fits it.
+- **IF-23.19** The **lens controller** follows the mounted lens and the root part reactively: a lens switch re-arranges and
+  keeps the focused page in view (or shows the overview), remote edits re-arrange, a deleted current page is forgotten.
+  The camera is the canvas's; the controller only asks the `CameraPort` to show one. Unknown pages are `IF-LIB-011`.
+- **IF-23.20** Page navigation has keyboard paths from anywhere in Studio (`bindLensShortcuts`): PageDown / PageUp next and
+  previous, Mod+Home / Mod+End first and last, Alt+0 fit everything; never while typing.
+- **IF-23.21** **Story edits**: moving a page in the story is one `move` of its stub in the root part, one commit,
+  attributed and undoable per actor (`createStoryWriter`); an index out of range is `IF-LIB-013`.
+- **IF-23.22** The **Pages panel** (`<if-pages-panel>`, the `instaflow/pages` panel contribution) lists the story in order
+  from kit components only; selecting a page shows it through the controller, Alt+↑/↓ moves it in the story, the toolbar
+  has Previous, Next and Fit all; announcements go to a polite live region; it passes the testkit a11y audit.

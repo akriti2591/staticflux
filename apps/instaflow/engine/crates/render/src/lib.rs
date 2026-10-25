@@ -23,7 +23,8 @@ pub mod cpu;
 pub mod fixtures;
 
 /// ABI version of the render module's exports. Bump on any breaking export change.
-/// 2: scene IR v1, engine + GPU attach, tiles, layers, compositor, readback (A6).
+/// 2: engine + GPU attach, tiles, layers, compositor, readback (A6). The scene IR wire version is separate
+/// (`ir_version()`: 2 since B1 added effects, masks, per-corner rects and image fit).
 #[wasm_bindgen]
 pub fn abi_version() -> u32 {
     2
@@ -40,6 +41,6 @@ mod tests {
     #[test]
     fn abi_version_is_two() {
         assert_eq!(super::abi_version(), 2);
-        assert_eq!(super::ir_version(), 1);
+        assert_eq!(super::ir_version(), 2);
     }
 }

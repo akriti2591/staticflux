@@ -61,9 +61,12 @@ describe.skipIf(mode === undefined)(`render module on WebGPU (${mode ?? 'off'})`
     expect(data.contract).toHaveLength(10);
 
     // GPU vs CPU parity on every fixture (IF-7.4: vello_cpu is the CI reference).
-    for (const name of ['shapes', 'paints', 'layers', 'tiles']) {
+    for (const name of ['shapes', 'paints', 'layers', 'elements', 'appearance', 'tiles']) {
       expectClose(report.images[`gpu-${name}`], cpu(name), RENDER_THRESHOLDS.gpuVsCpu, `gpu vs cpu: ${name}`);
     }
+    const elementCpu = decodePng(readFileSync(new URL('../elements/__fixtures__/elements-scene.cpu.png', import.meta.url)));
+    if (!elementCpu.ok) throw elementCpu.error;
+    expectClose(report.images['gpu-element-scene'], elementCpu.value, RENDER_THRESHOLDS.gpuVsCpu, 'gpu vs cpu: element scene (B1)');
     // Tiles are seamless and a lifted layer over tiles equals the direct render.
     expectClose(report.images['tiled-z1'], report.images['gpu-tiles'], RENDER_THRESHOLDS.sameBackend, 'tiled vs region, zoom 1');
     expectClose(report.images['tiled-z2'], report.images['region-z2'], RENDER_THRESHOLDS.sameBackend, 'tiled vs region, zoom 2');
@@ -84,5 +87,9 @@ describe.skipIf(mode === undefined)(`render module on WebGPU (${mode ?? 'off'})`
     const thresholds = mode === 'real-gpu' ? RENDER_THRESHOLDS.gpuVsCpu : RENDER_THRESHOLDS.sameBackend;
     goldens.assert('render-gpu-shapes', report.images['gpu-shapes']!, thresholds);
     goldens.assert('render-gpu-layers', report.images['gpu-layers']!, thresholds);
+    // IR v2 (B1): effects, masks, per-corner rects, image fit, even-odd.
+    goldens.assert('render-gpu-elements', report.images['gpu-elements']!, thresholds);
+    goldens.assert('render-gpu-appearance', report.images['gpu-appearance']!, thresholds);
+    goldens.assert('render-gpu-element-scene', report.images['gpu-element-scene']!, thresholds);
   });
 });

@@ -348,7 +348,7 @@ One worker (`colocated`, default) or two (`split`) is a boot setting; both run t
 | Q-1 | Deltas are published before the view frame that references them; a resnapshot is answered at a step boundary with a fresh frame | `editor-module.test.ts` |
 | Q-2 | The render port is called at most once per new (viewSeq, docVersion) and only with a consistent pair | IF-SEQ-003 on draw failure (last good frame kept) |
 
-## 18. Render: GPU devices, tiles, layers, cache budgets (SF-Δ23, Δ24, Δ29; Instaflow M1 A6)
+## 28. Render: GPU devices, tiles, layers, cache budgets (SF-Δ23, Δ24, Δ29; Instaflow M1 A6)
 
 | Machine | States / transitions | Source |
 |---|---|---|
@@ -367,3 +367,92 @@ One worker (`colocated`, default) or two (`split`) is a boot setting; both run t
 | G-5 | A dropped layer is drawn until the tiles under it are fresh (overlay off and committed on in one frame, E-2) | — |
 | G-6 | Frames never rasterize before warm-up (cold pipelines); the snapshot is drawn instead | — |
 | G-7 | Caches are evicted before features are demoted; pinned (visible) tiles are never evicted | SF-MEM-001 |
+
+## 23. Versioning: Latest save state, milestone creation (Instaflow M1 B5; D2, D10)
+
+Latest is saved continuously (no save button); milestones are explicit, immutable full snapshots of canonical parts.
+Both machines live in `apps/instaflow/src/versioning`. The frozen export snapshot and New document from milestone are
+single calls, not machines.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/latest-save` | saved → saving (commit) → saved (acked: the newest commit is durable); saving → stalled (2 s without an ack, or an append failed) → saving (retry after `retryMs`) \| saved (acked); stalled → stalled (commit, stall); any → disposed | `apps/instaflow/src/versioning/latest.ts` |
+| `instaflow/milestone-create` (one per call, queued per document) | queued → flushing (Latest flushed) → capturing (canonical parts; only changed parts encoded and written) → recording (record blob; id = digest) → swapping (head CAS + retry, then mirror flush) → created; any non-terminal → failed | `apps/instaflow/src/versioning/milestones.ts` |
+
+Top-bar status derived from `instaflow/latest-save` and the folder mirror (`blob/folder-mirror`): saving/stalled →
+`saving` (stalled = "Not saved yet: <cause>"); saved + mirror paused, read-only or failing with pending changes →
+`offline-mirror-behind`; otherwise `saved`.
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| V-1 | An acknowledgement only clears `saving` when no newer commit is unacknowledged | `latest.test.ts` |
+| V-2 | A milestone writes only parts whose canonical digest is new; unchanged parts share digests with earlier milestones | `milestones.test.ts` |
+| V-3 | Milestone records are immutable: pin and rename change head fields only | `milestones.test.ts` |
+| V-4 | Creating, opening and branching from a milestone never read older milestones (cost independent of age) | `costs.test.ts`, `versioning.bench.ts` |
+| V-5 | Versioning head updates are CAS with retry and survive the repo's compaction (which adopts the newer head) | IF-VER-004 |
+| V-6 | A new document from a milestone names no source object (fresh peer and history; `createdFrom` is a label) | IF-VER-008; `new-document.test.ts` |
+| V-7 | A frozen snapshot writes no record and no head; later edits never change what it reads | `snapshot.test.ts` |
+| V-8 | A template use with an invalid fill or an empty required slot writes nothing | IF-VER-006, IF-VER-007 |
+
+## 20. Editor spec runtime (`@staticflux/shell/spec` + `apps/instaflow/src/spec`; Instaflow M1b B0, D16)
+
+An editor is a spec over a closed vocabulary of registered contributions. The runtime validates and gates a spec, diffs
+it against what is mounted and drives a mount port with the minimal changes; proposals carry a spec from a person, a
+preset or an agent through validation and (for agents in Plan/Ask) a preview.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `shell/spec-runtime` (one editor surface) | empty → applying (a valid spec) → mounted (`settle`) \| empty (`clear`: the spec mounted nothing); mounted → applying (next spec, `revalidate`); any → disposed (every slot unmounted, 0 ms). An invalid or gated spec never leaves `empty`/`mounted` (nothing is touched); applies are serialized | `packages/shell/src/spec-runtime.ts` |
+| layout entry (`createSpecLayoutPort`, one slot) | absent → entering (mount, motion > 0) → present (after the step); absent → present (0 ms); present → moving (move) → present; present → exiting (unmount) → absent (after the step); 0 ms or an aborted step settles at once | `packages/shell/src/spec-layout-port.ts` |
+| `instaflow/spec-proposal` | proposed → validated → previewing (agent in Plan/Ask) → mounting (`open`) → mounted; validated → mounting (person, preset, agent in Accept edits/Autopilot); proposed \| validated \| mounting → rejected (schema IF-SPEC-001, vocabulary or gating SF-SHELL-009 — also when a preview is no longer allowed on `open`); previewing → declined \| superseded (a newer preview); mounting → failed (the port failed every slot it touched); mounted → superseded (a later spec mounted). Terminal: rejected, declined, superseded, failed | `apps/instaflow/src/spec/proposals.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| SP-1 | Closed vocabulary: a spec names only registered sections and contributions; every problem is reported at once with its own code and fix, and nothing mounts | SF-SHELL-009 (`details.issues`: 010 unknown, 011 context, 012 gated, 013 slot) |
+| SP-2 | Specs never bypass gating: every slot with a gate resource is decided through the `DecidePort` (`@staticflux/gate`, agents as agents); gating wins over pinning | SF-SHELL-012; `runSpecRuntimeContract` |
+| SP-3 | Minimal diff: a slot present before and after is never unmounted; mounts and unmounts are exactly the set differences; moves are placement changes plus, per group, size − longest kept run | `runSpecRuntimeContract` (property) |
+| SP-4 | Pinned slots are never removed by a new spec (only `unpin` by the person, or a gate denial) | `runSpecRuntimeContract` (property) |
+| SP-5 | Port order per apply: unmounts (reverse display order), moves, context, mounts (display order), all started in one task; each step 120–200 ms, 0 under reduced motion | `runSpecRuntimeContract`, `runSpecMountPortContract` |
+| SP-6 | A port's view equals the runtime layout after every apply (insert after `diff.after` anchors) | `runSpecMountPortContract` (layout model, `<if-studio>` DOM) |
+| SP-7 | Proposal routing is data (`PROPOSAL_ROUTES[source][autonomy]`); an agent's spec mounts only in Accept edits or Autopilot, or when the person opens its preview | `proposals.test.ts` |
+
+## 21. Elements, masks, booleans and render resources (Instaflow M1b B1)
+
+Element state is document data (no runtime machines): booleans and masks are **derived** from components, so every
+"transition" is one change set, undoable as one step, and never destroys the operands or the masked content.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| boolean group (data) | plain group ⇄ live boolean (`geometry.boolean` set / `null`); live → released (`releaseBoolean`: operands back in the parent at the same page position, group deleted); live → flattened (`flatten`: one vector with the derived outline, same style and match key; operands deleted) | `apps/instaflow/src/elements/actions.ts` |
+| mask (data) | none → masking (`mask.mode` set; the element stops drawing and masks the later siblings) ⇄ mode / invert changes; masking → none (`releaseMask`: nothing else changes) | `actions.ts`, `scene.ts`, `crates/render/src/draw.rs` |
+| render resource (look, path, ring) | absent → defined (first `intern`, sent in the next resource batch) → defined (more users) → dropped (last `release`, sent as a drop); defined-and-released before a batch is never sent | `apps/instaflow/src/elements/projection.ts` |
+| projected element (render source) | absent → projected (created, or no longer a boolean operand) → projected (moved / updated: only changed render paths) → absent (deleted, or became an operand) | `projection.ts` (`createElementRenderSource`) |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| EL-1 | Every element action and panel edit is one change set = one undo step, checked for value shapes, locks, finals and brand rules before it commits | IF-EL-001, SF-STAGE-001…003, IF-EL-003; `actions.test.ts`, `brand-kit.test.ts` |
+| EL-2 | Boolean results and masks are derived: operands and masked content stay in the document unchanged; release restores the exact previous drawing | `actions.test.ts` (release, operand edit re-derives) |
+| EL-3 | A resource batch reaches the render side before the projection delta that references it (same ordered channel); a look or path that arrives late re-encodes the slot | `projection.test.ts`, `scene.test.ts` |
+| EL-4 | Ink bounds include strokes and effects (shadows, glows, blur), so tiles never clip them; a non-inverted mask clips them | `layout.test.ts`, Rust `ink_bounds` tests |
+| EL-5 | Match keys survive duplication (elements and pages) while node ids stay unique | `actions.test.ts` (duplicate) |
+| EL-6 | Scene IR v2 bytes are identical from TypeScript and Rust; GPU output matches vello_cpu within `gpuVsCpu` | `scene-ir.test.ts`, `render.gpu.test.ts` |
+
+## 24. Library: ingest and rendition jobs (Instaflow M1b B4; IF-3.5–3.9, IF-23)
+
+Both machines live in `apps/instaflow/src/library`. Library metadata changes (rename, tags, folder, favourite, trash,
+restore) are single commits on the library document, not machines; trash is a state (`trashedAt`), never a delete.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/library-ingest` (one per file) | provisional (listed under `pv_…`) → hashing (blob store put, progress) → probing (kind's media probe) → recording (asset record blob) → listed (one library commit); hashing → listed (same content already live: deduplicated); any non-terminal → failed (error, or cancelled through the signal: `SF-CORE-002`) | `apps/instaflow/src/library/ingest.ts` |
+| `instaflow/rendition-job` (one per asset × role) | queued → decoding → rendering → storing → done (rendition recorded in the library document); queued \| decoding \| rendering \| storing → failed (`IF-LIB-006`) \| cancelled (`cancel(asset)`, queue disposed) | `apps/instaflow/src/library/renditions.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| L-1 | Nothing is listed before the content and the immutable record are stored; a failed or cancelled import lists nothing | IF-LIB-001/002/005, SF-CORE-002; `ingest.test.ts` |
+| L-2 | The same bytes never become two live assets (dedupe by content digest); a trashed copy does not count | `ingest.test.ts` |
+| L-3 | Asset records are immutable; all mutable metadata and late renditions live in the library document | `records.test.ts`, `library.test.ts` |
+| L-4 | A rendition job writes nothing before its blob is stored; regenerating with the same params gives the same blob | IF-LIB-006; `renditions.test.ts` |
+| L-5 | `resume()` re-queues exactly the live entries still missing a rendition their kind gets (`RENDITION_PRODUCERS`) | `renditions.test.ts`, `units.test.ts` |
+| L-6 | Trashed entries stay GC roots for 30 days (`TRASH_RETENTION_MS`) | `library.test.ts` |
+| L-7 | Lens code never branches on the lens: the arrangement, focus and overview come from the feature registry (Canvas is the fallback) | IF-LIB-012; `features.test.ts`, `controller.test.ts` |
