@@ -37,6 +37,7 @@ import { createLensController, type LensController } from '../lenses/controller.
 import { createLensFeatureRegistry } from '../lenses/lens-features.js';
 import { pagesLensFeature } from '../lenses/pages-lens.js';
 import { LensControllerToken, StoryWriterToken } from '../lenses/tokens.js';
+import type { Library } from '../library/library.js';
 import type { LibraryEntry } from '../library/library-doc.js';
 import { browserObjectUrls, browserPickFiles, type LibraryHost } from '../library/panel-model.js';
 import type { ImageDecoder, ImageEncoder, ThumbnailRenderer } from '../library/renditions.js';
@@ -60,6 +61,9 @@ import { type TypographyService, TypographyServiceToken } from '../text/typograp
 import { defineTypographyPanel } from '../text/typography-panel.js';
 import type { Camera } from '../tools/view-state.js';
 import { CreateMilestoneCapability } from '../versioning/command.js';
+import type { MilestoneId } from '../versioning/records.js';
+import { SaveAsTemplateCapability } from '../workspace/templates.js';
+import { TemplateSourceError } from '../home/errors.js';
 import { defineSaveStatus } from '../versioning/save-status.js';
 import { LatestServiceToken, MilestonesPanelModelToken } from '../versioning/tokens.js';
 import { type BootStudioWorkersOptions, bootStudioWorkers, type StudioWorkers } from '../workers/boot.js';
@@ -89,6 +93,12 @@ export interface StudioAppOptions {
   readonly handoff?: CanvasHandoffFactory;
   readonly timers?: Timers;
   readonly isMac?: boolean;
+  /** Where the top bar's Home link goes (C0; default `/`). */
+  readonly homeHref?: string;
+  /** Leave Studio for `href` once Latest is flushed (C0: the Home link). Default: `location.assign`. */
+  readonly leave?: (href: string) => Promise<void> | void;
+  /** "Save as template" (C0): make a template from a milestone of the open design. Without it the action says so. */
+  readonly templates?: { save(request: { readonly milestone: MilestoneId; readonly title: string }, signal: AbortSignal): Promise<Result<{ readonly asset: string }>> };
   readonly scope: Scope;
 }
 
@@ -109,6 +119,14 @@ export interface StudioApp {
   readonly lens: LensController;
   readonly typography: TypographyService;
   readonly workers: StudioWorkers;
+  /** The workspace library (store side; C0 lists designs and templates in it). */
+  readonly library: Library;
+  /** Save Latest, then leave for `href` (what the Home link does). */
+  leave(href: string): Promise<void>;
+  /** Wait until every edit so far is durable in the workspace store (Latest flushed). */
+  flush(): Promise<Result<void>>;
+  /** "Save as template" (C0): one capability run; the title defaults to the design's. */
+  saveAsTemplate(title?: string): Promise<Result<unknown>>;
   /** The mirrors the panels read (tests, devtools). */
   readonly mirrors: MirrorHub;
   /** The editor's view projection (reactive; undefined until the editor posts). */
@@ -265,13 +283,29 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       const out = await editor.request('invoke', { capability: cap.id, input, subject: run.subject, ...(run.origin === undefined ? {} : { origin: run.origin }), invocationId: `${run.invocationId}:${(invocations += 1)}` }, { signal: run.signal });
       return out.ok ? ok(fromWire(out.value)) : out;
     });
+  // C0: "Save as template" runs on main (it needs the store side): a milestone through the editor, then the template.
+  const templates = options.templates;
+  const saveTemplate =
+    templates === undefined
+      ? []
+      : [
+          implementCapability(SaveAsTemplateCapability, async (input, run) => {
+            const title = input.title?.trim() || options.document.title;
+            const made = await capabilities.invoke(CreateMilestoneCapability, { name: `Template · ${title}` }, { subject: run.subject, signal: run.signal, ...(run.origin === undefined ? {} : { origin: run.origin }) });
+            if (!made.ok) return made;
+            const milestone = (made.value as { id?: string }).id as MilestoneId | undefined;
+            if (milestone === undefined) return err(TemplateSourceError({ details: { template: null, milestone: null } }));
+            const saved = await templates.save({ milestone, title }, run.signal);
+            return saved.ok ? ok({ template: saved.value.asset, milestone, title }) : saved;
+          }),
+        ];
   const capabilities = createCapabilityRegistry({
     decide: allowAllDecidePort,
     confirm: failClosedConfirmPort,
     meter: unmeteredPort,
     activation: alwaysActivePort,
-    declarations,
-    implementations: declarations.filter((cap) => served.has(cap.id)).map(forward),
+    declarations: [...declarations, ...(templates === undefined ? [] : [SaveAsTemplateCapability])],
+    implementations: [...declarations.filter((cap) => served.has(cap.id)).map(forward), ...saveTemplate],
   });
   scope.defer(() => capabilities.dispose());
 
@@ -384,6 +418,22 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     return result;
   };
 
+  const saveAsTemplate = async (title?: string): Promise<Result<unknown>> => {
+    if (templates === undefined) {
+      say('Templates are not available here.');
+      return ok(undefined);
+    }
+    const result = await capabilities.invoke(SaveAsTemplateCapability, title === undefined ? {} : { title }, { subject: 'user', signal, origin: { channel: 'ui/top-bar' } });
+    if (result.ok) say(`Template saved: ${(result.value as { title: string }).title}`);
+    else problem(result.error);
+    return result;
+  };
+  const leave = async (href: string): Promise<void> => {
+    const flushed = await latest.flush(signal);
+    if (!flushed.ok) problem(flushed.error);
+    await (options.leave ?? ((h: string) => globalThis.location.assign(h)))(href);
+  };
+
   const tabView = (): StudioTabView | undefined => {
     const v = view();
     if (v?.page === undefined || canvas.page === undefined) return undefined;
@@ -400,6 +450,10 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     lens,
     typography,
     workers,
+    library: library.library,
+    leave,
+    flush: () => latest.flush(signal),
+    saveAsTemplate,
     mirrors: hub,
     get view() {
       return view();
@@ -450,11 +504,17 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
           .shortcuts=${shortcuts}
           .status=${html`<if-save-status></if-save-status>`}
           asset-title=${options.document.title}
+          home-href=${options.homeHref ?? '/'}
           project-title="Instaflow"
           @if-hud-action=${(e: CustomEvent<{ action: ActionId }>) => void runHudAction(e.detail.action)}
+          @if-navigate=${(e: CustomEvent<{ href: string }>) => {
+            e.preventDefault();
+            void leave(e.detail.href);
+          }}
           @if-intent=${(e: CustomEvent<{ intent: string }>) => {
             const intents: Readonly<Record<string, () => void>> = {
               milestone: () => void createMilestone(),
+              'save-template': () => void saveAsTemplate(),
               'zoom-in': () => void editor.request('zoom', { step: 1 }).then((r) => (r.ok ? undefined : problem(r.error))),
               'zoom-out': () => void editor.request('zoom', { step: -1 }).then((r) => (r.ok ? undefined : problem(r.error))),
               share: () => say('Sharing arrives with export (C1).'),

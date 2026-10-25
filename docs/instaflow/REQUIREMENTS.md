@@ -1120,6 +1120,82 @@ the smoke scenario `apps/instaflow/test/smoke`. Error codes `IF-INT-001…005`. 
 | `IF-INT-004` | The canvas renderer could not start (Wasm, WebGPU, canvas) |
 | `IF-INT-005` | The Studio document could not be created or opened |
 
+## 28. Home route (M1c C0; D17, D18)
+
+Code: `apps/instaflow/src/home` (export `@instaflow/app/home`: Home's model, element, boot, capabilities, routes, formats,
+the Home index format), `apps/instaflow/src/workspace` (the persistent workspace and Studio's store side for Home), the
+dev entries `apps/instaflow/dev/home` and `dev/studio`, the smoke scenario `apps/instaflow/test/smoke/home.smoke.mjs`.
+Error codes `IF-HOME-001…007`. Lifecycle: LIFECYCLES §30. Framework: R13.31 (`<sf-card>`).
+
+- **IF-28.1** The local workspace is **persistent**: documents (heads, part snapshots, commit logs) in IndexedDB, blobs in
+  OPFS (memory where OPFS is missing); a reload, or a trip to Home and back, keeps every design.
+- **IF-28.2** The persistent `DocumentStore` passes testkit's DocumentStore contract on any `AsyncStore`; head swaps and log
+  appends of one asset run one at a time in a tab and inside a Web Lock across tabs; log keys sort in seq order.
+- **IF-28.3** Studio's dev demo document and every design opened by URL load from the workspace (created on first use).
+- **IF-28.4** The **Home index** is a Loro-free projection of the library kept in the library head (`app.home`,
+  `instaflow.home-index/1`); reads are tolerant (malformed entries dropped, never thrown).
+- **IF-28.5** The projection lists live entries only (trash hidden) with the kind's lens, the design's format and
+  `editedAt` = the newest of this session's edit, the stored index and the creation; it never moves backwards.
+- **IF-28.6** The store side keeps the index in step: a library change or a write of a design's document (log append,
+  head swap) schedules one coalesced write; leaving Studio flushes it.
+- **IF-28.7** Index writes are compare-and-swap on the library head with retries (IF-HOME-005); an unchanged index writes
+  nothing; the repo adopts the newer head (with `app`) on its next compaction.
+- **IF-28.8** **Design formats** are data (post, story, carousel, slides, poster: page size and page count); New design
+  takes a format id, never a size.
+- **IF-28.9** **New design** is a capability (`instaflow/new-design`, optional `format`) that resolves Studio's `/new`
+  href and navigates.
+- **IF-28.10** **Open design** is a capability (`instaflow/open-design`, `asset`); an asset that is not a live design in
+  the index is IF-HOME-002 and goes nowhere.
+- **IF-28.11** **Use template** is a capability (`instaflow/use-template`, `template`; IF-HOME-003 for a non-template);
+  Home's **quick actions** are data rows over capabilities (M1: one per format), so later quick actions are rows.
+- **IF-28.12** Home's model reads the index once at boot and derives **recents** (designs, newest edit first, at most 8),
+  **files** (every listed asset) and **templates**.
+- **IF-28.13** Home's model is a machine (`instaflow/home`: loading → ready | failed; refresh → loading; dispose); the
+  newest read wins when reads overlap.
+- **IF-28.14** Every Home action runs through the capability pipeline (subject `user`, channel `ui/home`); failures are
+  spoken in a polite live region.
+- **IF-28.15** Agents call the same declarations (described with typed input and output, `exposeToAgents`) and get the
+  same result: the Studio href.
+- **IF-28.16** The index is read again when the page returns from the back/forward cache or the tab becomes visible.
+- **IF-28.17** `<if-home>` follows `design/HomeCP.dc.html` under Clean Pop with kit components only: top bar (logo, the
+  one primary "New design"), hero, Quick actions, Jump back in, Templates, Files; lens colour and shape mark each kind.
+  The agent composer arrives with Chat (M2).
+- **IF-28.18** Cards and file rows are **real links** to their Studio href; a plain click or Enter runs the capability; a
+  modified click (new tab) is the browser's.
+- **IF-28.19** Keyboard: every action is one native focusable control in reading order (no positive tabindex); "Try
+  again" is the way out of a failed read.
+- **IF-28.20** Accessibility: sections are named regions, previews are decorative, the testkit audit passes in every
+  state (unit tests) and on the live page (smoke).
+- **IF-28.21** Loading (busy main, status), empty (how to start) and failed (alert with the cause and "Try again")
+  states are shown.
+- **IF-28.22** Whole-card links use the kit's `<sf-card href>` (R13.31); thumbnails are format-shaped placeholders until
+  page thumbnails land (B4 follow-up).
+- **IF-28.23** The surfaces' routes are typed values (`@staticflux/router`): Home `/`, Studio `/s/:asset`, New design
+  `/new?format=…|template=…`; a new design's URL becomes `/s/:asset` (other query keys kept).
+- **IF-28.24** **Home boots with no engine and no GPU** (D17): the import graph of Home's entries reaches no editor,
+  render, Loro / CRDT, worker, Wasm or GPU module (`home-imports.test.ts`); the smoke sees no worker, no Wasm and no
+  GPU adapter request.
+- **IF-28.25** Size budgets for Home's whole boot and Home's own code (`.size-limit.json`); the surfaces' boot plans as
+  loader data (Home: `surface:home` and the kit only; Studio: the engine eager with reasons).
+- **IF-28.26** **Save as template** (Studio top bar, a capability agents can call): a milestone of the design, then a
+  detached template asset with its own first milestone (B5), listed in the library as `template`.
+- **IF-28.27** Use template makes a new composition from the template's newest milestone (B5 `createDocumentFromTemplate`,
+  no fills in M1) and opens it; a template with no milestone is IF-HOME-006.
+- **IF-28.28** Studio plans its document from the URL (open, new from a format or a template, demo), lists it in the
+  library only after the editor opened it, and its Home link saves (Latest and the index) before leaving.
+- **IF-28.29** A Playwright smoke scenario (Home, keyboard New design, Studio on an empty document, draw a shape, Home
+  link, the design in recents, reopen it with the shape) runs in Chromium with WebGPU on SwiftShader.
+
+| Code | Meaning |
+|---|---|
+| `IF-HOME-001` | Home could not read the workspace index |
+| `IF-HOME-002` | No such design in the workspace (or it is in the trash) |
+| `IF-HOME-003` | No such template in the workspace |
+| `IF-HOME-004` | A Home or Studio href could not be built |
+| `IF-HOME-005` | The Home index write lost every compare-and-swap retry |
+| `IF-HOME-006` | The template has no milestone to start from |
+| `IF-HOME-007` | Studio could not create or list the design it was asked to open |
+
 ## 33. Editor in the worker (M1c B9; D15)
 
 Code: `apps/instaflow/src/workers` (the worker host, the editor module, protocols and ports; the browser entry

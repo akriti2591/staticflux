@@ -1,6 +1,6 @@
 /**
- * Dev server for Studio (B8): `pnpm --filter @instaflow/app dev` (after `pnpm build`, which builds the Wasm), then
- * open http://localhost:5174/dev/studio/ in Chrome. Workspace packages resolve from source like the root Vitest
+ * Dev server for Home and Studio (B8, C0): `pnpm --filter @instaflow/app dev` (after `pnpm build`, which builds the
+ * Wasm), then open http://localhost:5174/ (Home) or http://localhost:5174/dev/studio/ (Studio on the demo) in Chrome. Workspace packages resolve from source like the root Vitest
  * config; the root is `apps/instaflow`, so the engine's `dist` and the test fonts are served as they are.
  */
 import { fileURLToPath } from 'node:url';
@@ -29,6 +29,20 @@ export default defineConfig({
   },
   // The editor and render workers are module workers (B9).
   worker: { format: 'es' },
-  optimizeDeps: { entries: ['dev/studio/index.html', 'src/workers/studio.worker.ts'], exclude: ['loro-crdt'] },
+  // C0: the surfaces' routes (src/home/routes.ts) served by the two pages — Home at `/`, Studio at `/s/:asset` and `/new`.
+  plugins: [
+    {
+      name: 'instaflow-surface-routes',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          const [path = '/', search = ''] = (req.url ?? '/').split('?');
+          const page = path === '/' || path === '/index.html' ? '/dev/home/index.html' : /^\/(s\/[^/]+|new)\/?$/.test(path) ? '/dev/studio/index.html' : undefined;
+          if (page !== undefined) req.url = search.length > 0 ? `${page}?${search}` : page;
+          next();
+        });
+      },
+    },
+  ],
+  optimizeDeps: { entries: ['dev/studio/index.html', 'dev/home/index.html', 'src/workers/studio.worker.ts'], exclude: ['loro-crdt'] },
   logLevel: 'info',
 });

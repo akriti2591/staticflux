@@ -38,6 +38,10 @@
       "types": "./dist/status.d.ts",
       "import": "./dist/status.js"
     },
+    "./card": {
+      "types": "./dist/card.d.ts",
+      "import": "./dist/card.js"
+    },
     "./color-field": {
       "types": "./dist/color-field.d.ts",
       "import": "./dist/color-field.js"

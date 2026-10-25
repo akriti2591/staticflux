@@ -1,0 +1,105 @@
+/**
+ * Studio over the persistent workspace (C0; IF-28.28–28.29): what the Studio page boots between the URL and the
+ * mounted editor. Store side on main.
+ *
+ * 1. The workspace (`openStudioWorkspace`) over the persistent store, wrapped by `observeStoreWrites` so every write
+ *    of a design's document marks it edited in the Home index.
+ * 2. `planStudioDocument` for the URL's intent (open, new from a format or a template, the dev demo).
+ * 3. `createStudioApp` (workers, editor, chrome) with the Home link (`homeHref`, flush then leave) and "Save as
+ *    template" (`saveAsTemplate` + a library entry).
+ * 4. The design is listed in the library once the editor has it (`listDesign`), the Home index writer starts, and a
+ *    new design's URL becomes `/s/:asset`.
+ */
+import type { BlobStore } from '@staticflux/blob';
+import { ok, type Result, type Scope } from '@staticflux/core';
+import type { DocumentStore } from '@staticflux/document/v2';
+import { openStudioWorkspace, type StudioWorkspace } from '../app/document.js';
+import { createStudioApp, type StudioApp, type StudioAppOptions } from '../app/studio-app.js';
+import { homeHref, type StudioIntent, studioHref } from '../home/routes.js';
+import type { AssetId } from '../library/records.js';
+import { createHomeIndexWriter, type HomeIndexWriter, type HomeIndexWriterOptions, observeStoreWrites } from './home-index-writer.js';
+import { listDesign, type PlannedDocument, planStudioDocument } from './studio-document.js';
+import { saveAsTemplate } from './templates.js';
+
+export interface StudioSessionOptions extends Omit<StudioAppOptions, 'workspace' | 'document' | 'templates' | 'leave' | 'homeHref' | 'scope'> {
+  /** What the URL asks for (`readStudioIntent`). */
+  readonly intent: StudioIntent;
+  /** The workspace's persistent document store. */
+  readonly documents: DocumentStore;
+  readonly blobs?: BlobStore;
+  /** Leave for Home (default `location.assign`), after Latest and the Home index are flushed. */
+  readonly navigate?: (href: string) => void;
+  /** Replace the page URL (a new design becomes `/s/:asset`; default `history.replaceState`). */
+  readonly replaceUrl?: (href: string) => void;
+  readonly newAssetId?: () => AssetId;
+  readonly now?: () => number;
+  /** Home index writer timing (tests). */
+  readonly index?: Pick<HomeIndexWriterOptions, 'debounceMs' | 'timers'>;
+  readonly scope: Scope;
+}
+
+export interface StudioSession {
+  readonly app: StudioApp;
+  readonly plan: PlannedDocument;
+  readonly index: HomeIndexWriter;
+  readonly workspace: StudioWorkspace;
+}
+
+let ids = 0;
+/** A fresh asset id (time + counter + random: unique across tabs and reloads). */
+export const freshAssetId = (): AssetId => `as_${Date.now().toString(36)}${(ids += 1).toString(36)}${Math.random().toString(36).slice(2, 7)}` as AssetId;
+
+/** Boot Studio for `intent` over the persistent workspace (see the module header). */
+export async function openStudioSession(options: StudioSessionOptions): Promise<Result<StudioSession>> {
+  const { scope, intent, documents, person } = options;
+  const signal = scope.signal;
+  const now = options.now ?? (() => Date.now());
+  const newAssetId = options.newAssetId ?? freshAssetId;
+  let edited: (asset: string) => void = () => undefined;
+  const store = observeStoreWrites(documents, (asset) => edited(asset));
+  const workspace = await openStudioWorkspace({ signal, store, ...(options.blobs === undefined ? {} : { blobs: options.blobs }) });
+  if (!workspace.ok) return workspace;
+  const plan = await planStudioDocument(intent, { store, engine: workspace.value.engine, library: workspace.value.library.part, actor: person, newAssetId, now }, signal);
+  if (!plan.ok) return plan;
+
+  let index: HomeIndexWriter | undefined;
+  let app: StudioApp | undefined;
+  const home = homeHref();
+  const { intent: _intent, documents: _documents, blobs: _blobs, navigate, replaceUrl, newAssetId: _newAssetId, now: _now, index: indexTiming, ...appOptions } = options;
+  const created = await createStudioApp({
+    ...appOptions,
+    workspace: workspace.value,
+    document: plan.value.ref,
+    homeHref: home.ok ? home.value : '/',
+    leave: async (href) => {
+      await index?.flush();
+      (navigate ?? ((h: string) => globalThis.location.assign(h)))(href);
+    },
+    templates: {
+      async save({ milestone, title }, s) {
+        const asset = newAssetId();
+        const saved = await saveAsTemplate({ store, engine: workspace.value.engine, repo: workspace.value.repo, actor: person }, { source: { asset: plan.value.ref.asset, milestone }, asset, title }, s);
+        if (!saved.ok) return saved;
+        const listed = (app as StudioApp).library.add({ asset, kind: 'template', title, createdAt: new Date(now()).toISOString() });
+        if (!listed.ok) return listed;
+        if (plan.value.format !== undefined) index?.describe(asset, { format: plan.value.format });
+        await index?.flush();
+        return ok({ asset });
+      },
+    },
+    scope,
+  });
+  if (!created.ok) return created;
+  app = created.value;
+  const listed = listDesign(app.library, plan.value);
+  if (!listed.ok) return listed;
+  index = createHomeIndexWriter({ store: documents, library: app.library, scope, now, ...(indexTiming ?? {}), onProblem: (error) => console.warn(`[home index] ${error.code} ${error.message}`) });
+  if (plan.value.format !== undefined) index.describe(plan.value.ref.asset, { format: plan.value.format });
+  const writer = index;
+  edited = (asset) => writer.touch(asset);
+  if (plan.value.created) {
+    const href = studioHref(plan.value.ref.asset);
+    if (href.ok) (replaceUrl ?? ((h: string) => globalThis.history.replaceState(null, '', h)))(href.value);
+  }
+  return ok({ app, plan: plan.value, index, workspace: workspace.value });
+}

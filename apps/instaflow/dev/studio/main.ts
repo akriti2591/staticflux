@@ -1,11 +1,15 @@
 /**
- * Studio's dev entry (B8; B9: the editor and render modules in workers). Main opens the store side (an in-memory
- * workspace: store, blobs, library document) and boots the workers in the D15 topology — one worker by default,
- * two with `?topology=split` (the `instaflow/sequencing-topology` boot setting; `?render-tick=main-raf` picks the
- * main-rAF tick experiment). The editor worker creates a new two-page document, loads the authoring Wasm and the
- * bundled OFL fonts; the render worker loads the render Wasm and draws with Vello on the transferred canvas. Nothing
- * is saved across reloads yet (OPFS storage lands with C0). `window.__studio` exposes the app for the smoke check and
- * devtools.
+ * Studio's dev entry (B8; B9: the editor and render modules in workers; C0: the persistent workspace and Home). Main
+ * opens the store side over the local workspace — documents in IndexedDB, blobs in OPFS — and boots the workers in
+ * the D15 topology: one worker by default, two with `?topology=split` (the `instaflow/sequencing-topology` boot
+ * setting; `?render-tick=main-raf` picks the main-rAF tick experiment). The editor worker opens the document, loads the
+ * authoring Wasm and the bundled OFL fonts; the render worker loads the render Wasm and draws with Vello on the
+ * transferred canvas.
+ *
+ * Which document: the URL (`src/home/routes.ts`) — `/s/:asset` opens a design, `/new?format=…` or `/new?template=…`
+ * makes one (the URL then becomes `/s/:asset`), and `/dev/studio/` opens the demo document (created on first use).
+ * The logo goes back to Home (`/`) after saving. `window.__studio` exposes the app (and `window.__session` the
+ * session) for the smoke checks and devtools.
  */
 import type { FlagDefinition } from '@staticflux/config';
 import { createInjector, createScope, ok, type Result } from '@staticflux/core';
@@ -13,15 +17,20 @@ import { browserEnv, readWebApis } from '@staticflux/platform';
 import { TextInputFactoryToken, textInputBindings } from '@staticflux/surface/text-input';
 import { compileTheme } from '@staticflux/ui/theme';
 import { fromWorker } from '@staticflux/worker';
-import { openStudioWorkspace } from '../../src/app/document.js';
-import { createStudioApp, type StudioApp } from '../../src/app/studio-app.js';
+import type { StudioApp } from '../../src/app/studio-app.js';
+import { readStudioIntent } from '../../src/home/routes.js';
 import { resolveSequencingSettings } from '../../src/sequencing/sequencing.bindings.js';
 import { cleanPopTheme } from '../../src/theme/clean-pop.js';
+import { openWorkspaceBlobs } from '../../src/workspace/blobs.js';
+import { openWorkspaceDocuments } from '../../src/workspace/browser.js';
+import { openStudioSession, type StudioSession } from '../../src/workspace/studio-session.js';
 
 const MANIFEST = '/engine/dist/sf-wasm-manifest.json';
 const FONTS = ['NotoSans-Latin.wght.ttf', 'NotoSansArabic.wght.ttf', 'NotoSansDevanagari.wght.ttf', 'NotoSansThai.wght.ttf'].map((f) => `/test/fonts/${f}`);
 const status = document.getElementById('boot') as HTMLElement;
 const query = new URLSearchParams(location.search);
+/** Query keys that say which document to make; every other key (boot settings) survives the URL replace. */
+const DOCUMENT_KEYS = ['format', 'template'];
 
 const must = <T>(r: Result<T>, what: string): T => {
   if (!r.ok) throw new Error(`${what}: ${r.error.code} ${r.error.message}${r.error.cause instanceof Error ? ` (${r.error.cause.message})` : ''}`);
@@ -37,21 +46,30 @@ function readFlag<T>(flag: FlagDefinition<T>): T {
   return parsed.ok ? parsed.value : flag.defaultValue;
 }
 
-async function main(): Promise<StudioApp> {
+/** The query without the document keys (`?topology=split` stays when `/new?format=post` becomes `/s/as_…`). */
+function keptQuery(): string {
+  const kept = new URLSearchParams(query);
+  for (const key of DOCUMENT_KEYS) kept.delete(key);
+  const text = kept.toString();
+  return text.length === 0 ? '' : `?${text}`;
+}
+
+async function main(): Promise<StudioSession> {
   const style = document.createElement('style');
   style.textContent = compileTheme(cleanPopTheme);
   document.head.append(style);
   const scope = createScope('instaflow/studio-dev');
-  const signal = scope.signal;
-  const workspace = must(await openStudioWorkspace({ signal }), 'workspace');
+  const documents = must(openWorkspaceDocuments(), 'workspace store');
+  const { blobs } = await openWorkspaceBlobs();
   // TextInput: EditContext where the platform has it, else the hidden textarea (a variant binding, not a branch).
   const input = createInjector({ units: textInputBindings({ editContext: () => readWebApis(browserEnv()).editContext }) });
   const textInput = must(await input.get(TextInputFactoryToken), 'text input');
   const settings = resolveSequencingSettings(readFlag);
-  const app = must(
-    await createStudioApp({
-      workspace,
-      document: { asset: 'as_demo', title: 'Night Market Flyer', create: { pages: 2 } },
+  const session = must(
+    await openStudioSession({
+      intent: readStudioIntent(`${location.pathname}${location.search}`),
+      documents: documents.store,
+      blobs,
       person: { kind: 'human', id: 'guest-local', displayName: 'You', via: 'direct' },
       workers: {
         settings,
@@ -64,18 +82,20 @@ async function main(): Promise<StudioApp> {
       },
       textInput,
       isMac: /Mac/.test(navigator.platform),
+      replaceUrl: (href) => history.replaceState(null, '', `${href}${keptQuery()}`),
       scope,
     }),
     'studio',
   );
-  app.mount(document.getElementById('studio') as HTMLElement);
+  session.app.mount(document.getElementById('studio') as HTMLElement);
   status.remove();
-  return app;
+  return session;
 }
 
 main().then(
-  (app) => {
-    (window as unknown as { __studio: StudioApp }).__studio = app;
+  (session) => {
+    (window as unknown as { __studio: StudioApp; __session: StudioSession }).__studio = session.app;
+    (window as unknown as { __session: StudioSession }).__session = session;
   },
   (error: unknown) => {
     status.textContent = `Studio could not start: ${error instanceof Error ? error.message : String(error)}`;

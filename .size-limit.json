@@ -829,7 +829,7 @@
     "limit": "1.5 KB"
   },
   {
-    "name": "@staticflux/kit (full, excl. lit + framework)",
+    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component)",
     "path": "packages/kit/dist/index.js",
     "ignore": [
       "mobx",
@@ -843,7 +843,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "22.5 KB"
+    "limit": "22.6 KB"
   },
   {
     "name": "@staticflux/stage (stage, attribution, undo service; excl. framework)",
@@ -1282,5 +1282,52 @@
       "@staticflux/document/render-projection"
     ],
     "limit": "17.5 KB"
+  },
+  {
+    "name": "@staticflux/kit/card",
+    "path": "packages/kit/dist/card.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "1.1 KB"
+  },
+  {
+    "name": "@instaflow/app/home (Home's whole light boot incl. lit, mobx, kit and framework: D17, no engine, no GPU; C0)",
+    "path": "apps/instaflow/dist/home/index.js",
+    "import": "{ bootHome }",
+    "limit": "52.5 KB"
+  },
+  {
+    "name": "@instaflow/app/home (Home's own code: model, element, index read, routes, theme; excl. lit, kit and framework; C0)",
+    "path": "apps/instaflow/dist/home/index.js",
+    "import": "{ bootHome }",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/kit/button",
+      "@staticflux/kit/card",
+      "@staticflux/kit/tag",
+      "@staticflux/capabilities",
+      "@staticflux/document/v2",
+      "@staticflux/storage",
+      "@staticflux/router",
+      "@staticflux/a11y",
+      "@staticflux/messaging"
+    ],
+    "limit": "10.75 KB"
   }
 ]
