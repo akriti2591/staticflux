@@ -1,0 +1,12 @@
+{
+  "name": "instaflow-ime-check",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node serve.mjs",
+    "auto": "node auto-check.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.56.1"
+  }
+}

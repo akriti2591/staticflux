@@ -68,6 +68,7 @@ Sizes are relative (S ≈ days, M ≈ 1–2 weeks, L ≈ 2–3 weeks for one own
 | **B5** Versioning | Continuous save indicator; milestones (create, name, pin, open read-only); side-by-side compare; **New document from milestone** with detached baseline; templates with slots | IF-5.1–5.9, 5.11 | A3, A4, A8 | M |
 | **B6** Accessibility layer | Virtualized DOM projection of the visible region, selection and focus path; chrome to WCAG 2.2 AA from the start | IF-7.12 | B3 | M |
 | **B7** Repeat | Live, non-destructive **repeat generators** (Illustrator-style): **radial** (count, radius, start angle, rotate copies), **grid** (rows, columns, spacing, row/column offset, brick/hex), **mirror** (axis, live symmetry). Editing the source updates every copy; copies keep match keys; expand-to-elements action; HUD and inspector contributions | new | B1, B0 | M |
+| **B8** Studio integration (the M1b demo) | Wire M1b into the live Studio: canvas port over A7 with the repeat-aware render source and resource batches; per-tab tool session (B3) and accessibility layer (B6) on the canvas; every M1b panel and HUD action in the Studio spec; integration fixes from the M1b handoffs; a runnable dev entry and one Playwright smoke scenario. Details: [M1C-NOTES.md](M1C-NOTES.md) | IF-27 | B0–B7 | M |
 
 **M1b demo:** build a five-page flyer set from a template, with brand tokens, rich text in two scripts, booleans
 and snapping; take a milestone, branch a new document from it; co-edit it in two tabs with separate undo.
@@ -132,7 +133,7 @@ flowchart LR
 | — | **M1a demo and review** | wave 2 merged |
 | 3 | B0, B1, B2, B4, B5 | M1a review |
 | 4 | B3, B7, then B6 | B1 merged |
-| — | **M1b demo and review** (incl. IME check) | wave 4 merged |
+| — | **B8 Studio integration**, then the **M1b demo and review** (incl. IME check) | wave 4 merged |
 | 5 | C0, C1, C3, then C2 | M1b review |
 | 6 | C4 | all merged |
 

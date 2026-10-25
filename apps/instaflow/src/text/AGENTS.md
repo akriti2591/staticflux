@@ -86,7 +86,9 @@ createTextSession({ input, target: { read, commit }, engine, blockId, layout: re
 - UI only from kit components under Clean Pop; no one-off styles.
 
 ## Human IME check (owner, desktop Chrome, ~5 minutes) — LIFECYCLES TXT-10 is **INCONCLUSIVE** until done
-Run `pnpm ime-check` at the repo root (builds, then serves) and open the printed URL
+**As a zip for the owner's machine** (automated CDP check + a prompt for an agent with computer use):
+`pnpm build && bash apps/instaflow/src/text/ime-check/pack/pack.sh <out-dir>`; instructions inside (`pack/HOW-TO-RUN.txt`).
+In the repo: run `pnpm ime-check` at the repo root (builds, then serves) and open the printed URL
 (`http://localhost:4174/apps/instaflow/src/text/ime-check/index.html`) in Chrome. The status line says `Ready (edit-context)`.
 The four steps are on the page: Japanese `nihongo`, Chinese `zhongwen`, Korean `gksrmf`, then a wrapped line, an Arabic
 word and page zoom, then `?input=textarea` (the hidden-textarea adapter; the M1 question "hidden textarea on Chrome too?").
