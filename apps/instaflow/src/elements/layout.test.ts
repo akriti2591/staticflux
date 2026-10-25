@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { P } from './components.js';
-import { boxCenter, containerBounds, containerGrids, containerOf, elementBounds, gridLines, hitElement, intersectBox, isElement, maskOf, pageTransform, siblingBounds, unionBox } from './layout.js';
+import { boxCenter, containerBounds, containerGrids, containerOf, elementBounds, gridLines, hitElement, intersectBox, isElement, localOutline, maskOf, pageTransform, siblingBounds, unionBox } from './layout.js';
+import { resolveElement } from './resolve.js';
 import { authoringBuilt, createFixture, loadGeometry, shape, unwrap } from './testing/fixtures.js';
 
 describe('box helpers and layout grids (no Wasm)', () => {
@@ -95,5 +96,22 @@ describe.skipIf(!authoringBuilt)('page-space geometry queries', () => {
     expect(unwrap(hitElement(ctx, 's', 350, 50))).toBe('none'); // no fill
     expect(unwrap(hitElement(ctx, 's', 301, 50))).toBe('stroke');
     expect(unwrap(hitElement(ctx, 'p1', 1, 1))).toBe('none');
+  });
+
+  it('a plain group outlines as the union of its children (groups as boolean operands, B7)', async () => {
+    const g = await loadGeometry();
+    const f = await createFixture([
+      shape('u', { [P.boolean]: 'union', [P.fills]: [{ paint: '#f00' }] }, 'p1', 'group'),
+      shape('inner', { [P.x]: 10 }, 'u', 'group'),
+      shape('l', { [P.w]: 20, [P.h]: 20 }, 'inner'),
+      shape('r', { [P.x]: 30, [P.w]: 20, [P.h]: 20 }, 'inner'),
+      shape('empty', {}, 'p1', 'group'),
+    ]);
+    const ctx = f.ctx(g);
+    expect(unwrap(elementBounds(ctx, 'u')).geometry).toEqual({ minX: 10, minY: 0, maxX: 60, maxY: 20 });
+    expect(unwrap(hitElement(ctx, 'u', 15, 5))).toBe('fill');
+    expect(unwrap(hitElement(ctx, 'u', 35, 5))).toBe('none'); // between the two operands of the inner group
+    const empty = resolveElement(f.stage, 'empty');
+    expect(unwrap(localOutline(ctx, empty!)).verbs).toHaveLength(0);
   });
 });

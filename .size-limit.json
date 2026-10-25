@@ -1036,5 +1036,54 @@
       "@staticflux/kit/text-field"
     ],
     "limit": "6.25 KB"
+  },
+  {
+    "name": "@instaflow/app/repeat (repeat component, view, placements, actions, handles, contributions; incl. the B1 element code it uses; excl. framework)",
+    "path": "apps/instaflow/dist/repeat/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "lit/directives/live.js",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/document/v2",
+      "@staticflux/document/render-projection",
+      "@staticflux/stage",
+      "@staticflux/capabilities",
+      "@staticflux/shell/spec",
+      "@staticflux/gate"
+    ],
+    "limit": "17.5 KB"
+  },
+  {
+    "name": "@instaflow/app/repeat/panel (Repeat inspector; excl. lit, kit and framework)",
+    "path": "apps/instaflow/dist/repeat/panel.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "lit/directives/live.js",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/document/v2",
+      "@staticflux/document/render-projection",
+      "@staticflux/stage",
+      "@staticflux/capabilities",
+      "@staticflux/shell/spec",
+      "@staticflux/gate",
+      "@staticflux/kit/button",
+      "@staticflux/kit/inspector",
+      "@staticflux/kit/segmented",
+      "@staticflux/kit/slider",
+      "@staticflux/kit/text-field"
+    ],
+    "limit": "4.5 KB"
   }
 ]

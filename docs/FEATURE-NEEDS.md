@@ -281,3 +281,15 @@ Consumer: `apps/instaflow/src/elements` (editor and render workers; inspector pa
 - Element actions reachable from the HUD, the keyboard and agents with one pipeline → one capability per action
   (`@staticflux/capabilities`) plus B0's `HudActionContribution`; the panel is a `PanelContribution` built from kit
   components (inspector group/row, colour field, text field, segmented, slider, icon button, menu).
+
+### repeat (Instaflow M1b · B7)
+Consumer: `apps/instaflow/src/repeat` (editor worker; Repeat panel on main).
+- Live repeats that render, hit-test, mask and combine like elements without being stored → a read-only **view over the
+  composed stage** (`Pick<Stage, read | children | value | explain | lockOf | checkWrite | onInvalidate>`) that B1's render
+  projection (`RenderProjectionSource`, R11.53) and geometry queries read instead of the stage; no framework change needed.
+- Instances that never accept writes → the view's `checkWrite` in the `commitEdit` target (stage write checks, SF-STAGE-*).
+- Live handle previews that never commit → the stage's **session layer** (`SessionLayer.set` / `clear`), then one
+  undo-service commit.
+- Repeat operations reachable from the HUD, the panel, the keyboard and agents with one pipeline → one capability per
+  operation plus B0's `HudActionContribution`; the panel is a `PanelContribution` built from kit components (inspector
+  group/row, text field, segmented, slider, button).

@@ -28,6 +28,14 @@
     "./elements/panel": {
       "types": "./dist/elements/panel.d.ts",
       "import": "./dist/elements/panel.js"
+    },
+    "./repeat": {
+      "types": "./dist/repeat/index.d.ts",
+      "import": "./dist/repeat/index.js"
+    },
+    "./repeat/panel": {
+      "types": "./dist/repeat/panel.d.ts",
+      "import": "./dist/repeat/panel.js"
     }
   },
   "scripts": {
@@ -55,6 +63,7 @@
   "devDependencies": {
     "@staticflux/runtime": "workspace:*",
     "@staticflux/testkit": "workspace:*",
-    "vite": "8.3.5"
+    "vite": "8.3.5",
+    "fast-check": "4.10.2"
   }
 }
