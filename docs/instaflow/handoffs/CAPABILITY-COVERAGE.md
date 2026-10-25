@@ -5,6 +5,11 @@ spec section that works it through end to end, or mark it missing. This list is 
 exists: `docs/instaflow/REQUIREMENTS.md` sections and `apps/instaflow/src/*` modules. A brief's own topic list is
 never the inventory. (Text and Export were missed because briefs listed topics instead of inventorying capabilities.)
 
+**Method for each facet (owner, 2026-10-25):** a feature checklist of every control the best tools offer for that facet
+(e.g. text: Google Docs, Notion, Figma, Canva, InDesign, Pages), each row marked include (where, per density) / defer
+(milestone) / reject (why), kept as an appendix of the facet's spec. Basics are never left implicit (the owner found
+text missing headings, list presets, sub/superscript, bold/italic/underline).
+
 Status was measured against the UX docs on `claude/wip-ux-research` (#28): "headings" = a dedicated section.
 
 | Capability (REQUIREMENTS § / module) | Milestone | Dedicated UX section | Status |
