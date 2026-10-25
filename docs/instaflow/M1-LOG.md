@@ -28,6 +28,7 @@ entries at the top of **Journal**.
 | B7 Repeat | Merged | `main` | #14 |
 | B2 Text | Merged; owner IME check pending | `main` | #16 |
 | B6 Accessibility layer | Merged; not yet wired to Studio's live canvas | `main` | #17 |
+| B8 Studio integration | In progress (fresh agent, from `main` after #18) | `claude/wip-b8-studio` | — |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
@@ -56,6 +57,7 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, becomes D20
   approximate where translucent mask shapes overlap (B1); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** #18 (M1c prep) merged. B8 started: one fresh agent, briefed by `M1-BRIEF.md` + `M1C-NOTES.md`.
 - **2026-10-25** M1c prep: B8 added to the plan; `M1C-NOTES.md` (IDs, order, scope); `M1-BRIEF.md` rewritten for the
   current rules (scoped checks, WIP branches, handoffs, D1–D19); merge helpers moved to `tooling/coordinator/`; IME
   check zip sources and `pack.sh` committed; LIFECYCLES and Instaflow REQUIREMENTS sections sorted.
