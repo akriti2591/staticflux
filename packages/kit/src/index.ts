@@ -9,6 +9,10 @@ import { defineCapabilityPalette } from './command-palette.js';
 import { defineColorField } from './color-field.js';
 import { defineDock } from './dock.js';
 import { defineIconButton } from './icon-button.js';
+import { defineIconElement } from './icon.js';
+import { defineInlineEdit } from './inline-edit.js';
+import { defineNumberField } from './number-field.js';
+import { defineSwatch } from './swatch.js';
 import { defineInspector } from './inspector.js';
 import { defineMenu } from './menu.js';
 import { definePopover } from './popover.js';
@@ -24,6 +28,11 @@ import { defineTooltip } from './tooltip.js';
 import { defineTree } from './tree.js';
 
 export * from './messages.js';
+export * from './errors.js';
+export * from './icon.js';
+export * from './number-field.js';
+export * from './inline-edit.js';
+export * from './swatch.js';
 export * from './roving.js';
 export * from './position.js';
 export * from './button.js';
@@ -50,8 +59,12 @@ export { resizeMachine, sizeFromDrag, sizeFromKey, clampSize } from './internal/
 /** Register every kit element (idempotent). Prefer the per-component `define*` in boot paths. */
 export function defineKit(registry: CustomElementRegistry = customElements): void {
   for (const define of [
+    defineIconElement,
     defineButton,
     defineIconButton,
+    defineNumberField,
+    defineInlineEdit,
+    defineSwatch,
     defineSegmented,
     defineTextField,
     defineSlider,

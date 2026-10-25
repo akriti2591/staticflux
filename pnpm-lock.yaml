@@ -404,6 +404,9 @@ importers:
       lit:
         specifier: 3.3.3
         version: 3.3.3
+      lucide:
+        specifier: 1.54.0
+        version: 1.54.0
 
   packages/loader:
     dependencies:
@@ -1294,6 +1297,9 @@ packages:
   loro-crdt@1.17.1:
     resolution: {integrity: sha512-83hWRYG6eMMpPezm+yXWlOqCuUsC0BYY1MVCPW9x2zlikgkHhL7GC7Q6JFH+Hjvauyn287Q1MiwTuRW0lUOUag==}
 
+  lucide@1.54.0:
+    resolution: {integrity: sha512-2N2brA+7NYLDlxG2QNcmGej5Qhw3pYMPN9MLktTNkQfs7Sk/2g2e8s0CUWibLz5lPVKMYesxm+k/ndDB7E1JjQ==}
+
   magic-string@1.4.3:
     resolution: {integrity: sha512-z12OxmaPGE0F4xlpGdjuAUckipLpQlTAuAmyGhNoD7ODpYUzvDfvtxUbjM/jwznyP178oju/KDdyi220wNJ0RQ==}
 
@@ -2058,6 +2064,8 @@ snapshots:
       lit-html: 3.3.3
 
   loro-crdt@1.17.1: {}
+
+  lucide@1.54.0: {}
 
   magic-string@1.4.3:
     dependencies:
