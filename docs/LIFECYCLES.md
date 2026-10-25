@@ -500,6 +500,26 @@ release commits it as one change set.
 | TL-5 | Snapping moves a box by at most the threshold, and a snapped box snaps to itself | `snapping.test.ts` (fast-check) |
 | TL-6 | View state is per tab and never written to the CRDT or the store | `view-state.test.ts` |
 
+## 26. Accessibility layer (Instaflow M1b B6)
+
+The canvas projection of one tab and its selection announcer are two small machines; the focus path is data derived from
+the tab's view state.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/a11y-projection` (one per tab) | dirty (initial) → clean (`flush`: a snapshot is projected and applied); clean → dirty (`invalidate`: a stage invalidation or a camera, viewport, selection or entered-container change; one flush is scheduled per burst); clean \| dirty → disposed (`dispose`, with the tab scope). Terminal: disposed | `apps/instaflow/src/a11y/projection.ts` |
+| `instaflow/a11y-announce` (one per tab) | idle → pending (`change` of selection or entered container); pending → pending (`change`: the quiet period restarts); pending → idle (`speak`: one polite announcement); pending → holding (`hold`: a pointer gesture started); holding → holding (`change`); holding → pending (`release`: the gesture ended); any → disposed. Terminal: disposed | `apps/instaflow/src/a11y/announce.ts` |
+| focus path (data) | focus node = last selected element (a derived instance → its source), else the entered container, else none (the canvas surface); DOM focus moves to it only while the canvas has focus | `apps/instaflow/src/a11y/projection.ts`, `dom.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| A11Y-1 | Projected ids are exactly the in-view elements with their own bounds, their ancestors, the selection and the entered container, in document order (equal to a brute-force reference under random edits and camera moves) | `projection.test.ts` (fast-check) |
+| A11Y-2 | Derived repeat instances never get nodes; a selected instance focuses its source, described "instance k of n" | `projection.test.ts` |
+| A11Y-3 | Exactly one projected node is in the tab order (the focus node), or none when nothing is selected | `projection.test.ts`, `dom.test.ts`, `studio-chrome.test.ts` |
+| A11Y-4 | DOM focus follows B3's selection under B3's keys (Tab, Enter, Shift+Enter, Escape, arrows) and never leaves the canvas for `<body>`; focus moved by the layer is not reported back as a selection | `canvas-a11y.test.ts`, `dom.test.ts` |
+| A11Y-5 | No announcement while a gesture runs; one polite announcement per settled change | `announce.test.ts` |
+| A11Y-6 | A disposed projector or mount refuses work; a missing root page is a value, not a throw | IF-A11Y-002, IF-A11Y-001; `projection.test.ts`, `dom.test.ts` |
+
 ## 27. Repeat (Instaflow M1b B7)
 
 A repeat is document data (`repeat.*` on a group); its instances are derived by the repeat view and never stored. Every

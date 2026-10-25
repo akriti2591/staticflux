@@ -399,7 +399,7 @@
     "limit": "9 KB"
   },
   {
-    "name": "loro-crdt Wasm [wasm budget category; worker only, IF-15.1 ≤ 1.25 MB gzip]",
+    "name": "loro-crdt Wasm [wasm budget category; worker only, IF-15.1 \u2264 1.25 MB gzip]",
     "path": "packages/document/node_modules/loro-crdt/bundler/loro_wasm_bg.wasm",
     "rolldown": false,
     "gzip": true,
@@ -855,7 +855,7 @@
     "limit": "9.5 KB"
   },
   {
-    "name": "@staticflux/document/render-projection (binary render projection, SF-Δ25)",
+    "name": "@staticflux/document/render-projection (binary render projection, SF-\u039425)",
     "path": "packages/document/dist/render-projection.js",
     "ignore": [
       "mobx",
@@ -865,7 +865,7 @@
     "limit": "4.25 KB"
   },
   {
-    "name": "@staticflux/document/spatial-index (spatial index system incl. rbush, SF-Δ25)",
+    "name": "@staticflux/document/spatial-index (spatial index system incl. rbush, SF-\u039425)",
     "path": "packages/document/dist/spatial-index.js",
     "ignore": [
       "mobx",
@@ -1194,6 +1194,31 @@
       "@staticflux/kit/text-field"
     ],
     "limit": "4.5 KB"
+  },
+  {
+    "name": "@instaflow/app/a11y (canvas projection, focus mount, selection announcer, describe-canvas contribution; incl. the B1/B3/B7 modules it reads and B2's rich-text reader; excl. framework and lit)",
+    "path": "apps/instaflow/dist/a11y/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "lit/directives/live.js",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/ui/default-theme",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/surface",
+      "@staticflux/document/v2",
+      "@staticflux/document/spatial-index",
+      "@staticflux/document/render-projection",
+      "@staticflux/stage",
+      "@staticflux/capabilities",
+      "@staticflux/shell/spec",
+      "@staticflux/gate"
+    ],
+    "limit": "16 KB"
   },
   {
     "name": "@staticflux/surface/text-input (TextInput port: EditContext + hidden textarea, variant binding; main thread, with text editing)",
