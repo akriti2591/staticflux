@@ -37,12 +37,13 @@ Read with [M1-BRIEF.md](M1-BRIEF.md). These rules keep parallel M1b work package
 | B4 Library and lenses | IF-23.1–23.29 | §24 | IF-LIB-001… |
 | B3 Tools | IF-24.1–24.29 | §25 | IF-TOOL-001… |
 | B6 Accessibility layer | IF-25.1–25.29 | §26 | IF-A11Y-001… |
+| B7 Repeat | IF-26.1–26.29 | §27 | IF-REP-001… |
 
 Instaflow requirements go in `docs/instaflow/REQUIREMENTS.md`. Framework additions still use `R*` IDs in
 `docs/REQUIREMENTS.md`: append after the highest existing number in your area and say which in your final message.
 
 ## Sequencing
 - **Wave 3a (parallel):** B0, B1, B2, B5 (services and panels).
-- **Wave 3b, after B0 merges:** B4, B3, then B6.
+- **Wave 3b, after B0 merges:** B4, B3 (incl. smart guides: centre lines, equal spacing, edges, snapping to B1 layout grids), B7 (repeat), then B6.
 - **Human checks:** B2's Japanese/Chinese/Korean IME candidate placement needs the owner. Provide a ready-to-open page
   and short steps.
