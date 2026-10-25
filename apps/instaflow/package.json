@@ -44,6 +44,10 @@
     "./lenses/ui": {
       "types": "./dist/lenses/ui.d.ts",
       "import": "./dist/lenses/ui.js"
+    },
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "import": "./dist/tools/index.js"
     }
   },
   "scripts": {
@@ -72,6 +76,7 @@
   "devDependencies": {
     "@staticflux/runtime": "workspace:*",
     "@staticflux/testkit": "workspace:*",
+    "fast-check": "4.10.2",
     "vite": "8.3.5"
   }
 }

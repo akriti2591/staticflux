@@ -50,6 +50,12 @@ Instaflow requirements go in `docs/instaflow/REQUIREMENTS.md`. Framework additio
 - State lives in these docs (plan, decisions, this file), not in agent history. Start a fresh agent with a short brief
   rather than resuming a long one.
 - One PR per work package.
+- **End every session with a handoff:** write `docs/instaflow/handoffs/<WP>.md` (template in `handoffs/README.md`)
+  and commit it with your work, even when you stop early. Commit work in progress as you go, not only at the end.
+- **Each work package has its own branch** `claude/wip-<wp>-<name>` (for example `claude/wip-b2-text`). Commit and
+  push work in progress to it often; it does not need to pass checks. The coordinator merges it into the working
+  branch when the package is done.
+- The coordinator's record of what has landed and what is in flight is `docs/instaflow/M1-LOG.md`.
 
 ## Sequencing
 - **Wave 3a (parallel):** B0, B1, B2, B5 (services and panels).
