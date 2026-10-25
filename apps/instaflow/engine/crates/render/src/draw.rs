@@ -33,6 +33,17 @@ pub trait Painter {
     fn push_filter_layer(&mut self, filter: Effects);
     fn pop_layer(&mut self);
     fn set_even_odd(&mut self, even_odd: bool);
+    /// A glyph run's outline in local space (None: draw nothing). Default: the scene's glyph cache (`outlines`
+    /// feature); the export crate brings its own (its PDF library already links a font scaler).
+    fn glyph_outline(&mut self, scene: &Scene, run: &GlyphRun) -> Option<BezPath> {
+        #[cfg(feature = "outlines")]
+        return scene.glyph_path(run);
+        #[cfg(not(feature = "outlines"))]
+        {
+            let _ = (scene, run);
+            None
+        }
+    }
     /// Fill a glyph run whose outline is `outline` (local space) with the current paint. Raster backends fill the
     /// outline (the default); vector exports (C1: PDF) write the run as real text instead.
     fn fill_glyphs(&mut self, _run: &GlyphRun, outline: &BezPath) {
@@ -285,7 +296,7 @@ fn draw_leaf<P: Painter>(p: &mut P, scene: &Scene, node: &Node, transform: Affin
         Geometry::Glyphs(run) => {
             // B2: the run becomes one path (`glyphs.rs` outlines) filled with the node's fill stack; synthetic bold
             // adds a 1/24 em round-joined stroke in the same paint. Unknown font ids draw nothing.
-            if let Some(glyphs) = scene.glyph_path(run).filter(|g| !g.elements().is_empty()) {
+            if let Some(glyphs) = p.glyph_outline(scene, run).filter(|g| !g.elements().is_empty()) {
                 let fills: Vec<(Paint, f32, u8)> =
                     if mode == Mode::Clip { vec![(Paint::Solid([0, 0, 0, 255]), 1.0, 0)] } else { node.fills.iter().map(|f| (f.paint.clone(), f.opacity, f.blend)).collect() };
                 for (paint, opacity, blend) in fills {

@@ -12,6 +12,7 @@
 use wasm_bindgen::prelude::*;
 
 pub mod draw;
+#[cfg(feature = "outlines")]
 pub mod glyphs;
 pub mod ir;
 pub mod tiles;

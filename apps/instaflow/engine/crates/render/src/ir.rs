@@ -677,6 +677,7 @@ pub struct Scene {
     images: HashMap<u32, Arc<Pixmap>>,
     fonts: HashMap<u32, FontHash>,
     font_data: HashMap<FontHash, FontData>,
+    #[cfg(feature = "outlines")]
     glyphs: std::cell::RefCell<crate::glyphs::GlyphCache>,
 }
 
@@ -744,6 +745,7 @@ impl Scene {
     }
 
     /// A glyph run as one local-space path (None when its font id is unknown or the face is unreadable).
+    #[cfg(feature = "outlines")]
     pub fn glyph_path(&self, run: &GlyphRun) -> Option<BezPath> {
         let font = self.font(run.font)?;
         self.glyphs.borrow_mut().run_path(font, run)
@@ -854,9 +856,12 @@ impl Scene {
         let live: std::collections::HashSet<FontHash> = self.fonts.values().copied().collect();
         let before = self.font_data.len();
         self.font_data.retain(|h, _| live.contains(h));
+        #[cfg(feature = "outlines")]
         if self.font_data.len() != before {
             self.glyphs.borrow_mut().clear();
         }
+        #[cfg(not(feature = "outlines"))]
+        let _ = before;
         self.recompute();
         for id in touched {
             if let Some(b) = self.bounds.get(&id) {

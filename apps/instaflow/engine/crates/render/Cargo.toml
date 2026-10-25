@@ -11,14 +11,17 @@ crate-type = ["cdylib", "rlib"]
 
 # `gpu` (default): the render Wasm's exports (Vello GPU engine, compositor, readback). The export crate (C1) depends
 # on this crate without it, for the scene IR and the one draw traversal only (no GPU code, no render exports).
+# `outlines` (default): glyph outlines through skrifa (`glyphs.rs`); the export crate draws outlines with the skrifa
+# its PDF library brings instead, so the export Wasm holds one font scaler, not two.
 [features]
-default = ["gpu"]
-gpu = ["dep:vello_gpu", "dep:wgpu", "dep:wasm-bindgen-futures", "dep:js-sys", "dep:web-sys"]
+default = ["gpu", "outlines"]
+gpu = ["outlines", "dep:vello_gpu", "dep:wgpu", "dep:wasm-bindgen-futures", "dep:js-sys", "dep:web-sys"]
+outlines = ["dep:skrifa"]
 
 [dependencies]
 wasm-bindgen = { workspace = true }
 vello_common = { workspace = true }
-skrifa = { workspace = true }
+skrifa = { workspace = true, optional = true }
 
 # The GPU path exists only in the Wasm build (WebGPU in the render worker).
 [target.'cfg(target_arch = "wasm32")'.dependencies]
