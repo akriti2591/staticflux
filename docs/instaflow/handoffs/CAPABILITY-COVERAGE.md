@@ -29,8 +29,8 @@ Status was measured against the UX docs on `claude/wip-ux-research` (#28): "head
 | Accessibility (§25, `src/a11y`) | M1 | one | partial |
 | Brand kit (§10?) | M1/M2 | none (colour popover row) | missing (backlog B-4) |
 | Resize design | M2 | none | missing (backlog B-5) |
-| Timeline, video, audio (§8) | M2 | none | missing (backlog B-1) |
-| Motion: animation and transitions (§9) | M2 | two | partial |
+| Timeline, video, audio (§8) | M2 | none | missing (backlog B-1); owner asks for timeline-based **video editing flows** |
+| Motion: animation and transitions (§9) | M2 | two | partial; owner asks for **presets**: animate effects (in/out/emphasis), page transitions, and the Auto Animate equivalent (REQUIREMENTS: M4, match keys) |
 | Generative features (§10) | M2 | none | **missing** |
 | Flows (§11) | M2 | yes | partial (backlog B-3) |
 | Agent views and change sets (§6, §12) | M2 | two | partial |
@@ -38,3 +38,16 @@ Status was measured against the UX docs on `claude/wip-ux-research` (#28): "head
 | Comments and annotations (§18) | later | none | missing (backlog B-8) |
 | Extensibility and plugins (§17) | later | none | missing |
 | Pixel lens (image editing) | M2 | none | missing (backlog B-2) |
+
+## Colour picker (owner asked, 2026-10-25)
+Specified as one shared colour popover (STUDIO §4.2.5): hex + opacity + eyedropper, document colours, brand tokens,
+palette, recent, inline custom square + hue. B11a2 builds it (today's kit `sf-color-field` uses the native
+`input[type=color]`). The appearance pass must checklist it against Figma/Canva/Adobe: colour models (HEX/RGB/HSB/
+HSL/OKLCH), alpha slider, gradient mode in the same popover, contrast check, colour names, saved palettes.
+
+## Queued UX passes (one Fable at a time)
+1. Text and fonts (running, `claude/wip-ux-text`).
+2. Appearance (fills, gradients and the gradient editor, strokes, effects, colour picker depth), transforms, groups
+   and components, booleans/masks, repeat, snapping, a11y; before B11b.
+3. Motion and video: animate effect presets, transitions, Auto Animate, the timeline lens and video editing flows
+   (backlog B-1); before the M2 timeline work.
