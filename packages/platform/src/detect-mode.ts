@@ -24,6 +24,8 @@ export interface HostModeRegistry {
   'embed-agent-host': true;
   'webview-ios': true;
   'webview-android': true;
+  /** Required platform baseline failed (opt-in, see `unsupportedHostMode`). */
+  unsupported: true;
 }
 
 export type HostModeId = keyof HostModeRegistry & string;

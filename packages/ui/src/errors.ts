@@ -47,6 +47,27 @@ export const RenderFailedError = defineError(
   'render() must be pure: read state, return a template. Move fallible work to hooks or store actions returning Result.',
 );
 
+export const ThemeInvalidError = defineError(
+  'SF-UI-008',
+  'validation',
+  'A theme is incomplete or malformed: a token has no value, an unknown token was set, or a value is empty.',
+  'Give every token of the token set a value in `values` (the types list them); variants (`dark`, `density`, `contrast`, `reducedMotion`) may only override declared tokens. See `details.issues`.',
+);
+
+export const NoThemeError = defineError(
+  'SF-UI-009',
+  'not-found',
+  'The appearance controller has no theme: nothing was contributed to `ThemesToken`, or the requested theme id is not contributed.',
+  'Register a theme contribution, e.g. `defaultThemeContribution` from `@staticflux/ui/default-theme`, or `themeContribution(myTheme)`; check the id passed to `useTheme` / `appearanceUnitWith({ theme })`.',
+);
+
+export const InvalidColorError = defineError(
+  'SF-UI-010',
+  'validation',
+  'A color value could not be parsed.',
+  'Use `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` or `rgb()/rgba()`; contrast checks need concrete sRGB values, not color names or `var()` references.',
+);
+
 export const UnknownDepKeyError = defineError(
   'SF-UI-007',
   'invariant',

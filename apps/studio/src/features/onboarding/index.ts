@@ -8,8 +8,10 @@ import { ok, token, unit, watch } from '@staticflux/core';
 import { type SliceHandle, UserDataToken } from '@staticflux/data';
 import { ownerOf, SurfaceManagerToken } from '@staticflux/messaging';
 import { isMatchOf, RouterToken } from '@staticflux/router';
+import { defineButton } from '@staticflux/kit/button';
 import { defineFeatureModule } from '@staticflux/runtime';
 import { component, type ComponentHooksOf, defineComponent, SfElement } from '@staticflux/ui';
+import { themeTokens as t } from '@staticflux/ui/theme';
 import { css, html, type TemplateResult } from 'lit';
 import { ReadinessToken } from '../../adapters/perf-runtime.js';
 import { Features, OnboardingCopyToken, OnboardingProgressSlice } from '../../app/contracts.js';
@@ -45,7 +47,13 @@ const wizardSpec = component({
 
 class OnboardingWizard extends SfElement<typeof wizardSpec> {
   static override readonly spec = wizardSpec;
-  static override styles = css`:host { display: grid; gap: 12px; } ol { display: flex; gap: 8px; padding: 0; list-style: none; } [aria-current='step'] { font-weight: bold; }`;
+  static override styles = css`
+    :host { display: grid; gap: ${t.space.md.css}; }
+    ol { display: flex; gap: ${t.space.sm.css}; padding: 0; list-style: none; color: ${t.color.textMuted.css}; }
+    [aria-current='step'] { font-weight: ${t.font.weightSemibold.css}; color: ${t.color.text.css}; }
+    .nav { display: flex; gap: ${t.space.sm.css}; }
+    small { color: ${t.color.textMuted.css}; }
+  `;
 
   protected override wireDeps(on: ComponentHooksOf<typeof wizardSpec>): void {
     on.onReady('readiness', (readiness) => readiness.rendered(Features.onboarding.id, this));
@@ -60,9 +68,11 @@ class OnboardingWizard extends SfElement<typeof wizardSpec> {
       <h1 data-variant=${copy.variant}>${copy.headline}</h1>
       <ol aria-label="Steps">${STEPS.map((label, i) => html`<li aria-current=${i + 1 === step ? 'step' : 'false'}>${i + 1}. ${label}</li>`)}</ol>
       <p>${STEPS[step - 1]}</p>
-      <div>
-        <button ?disabled=${step <= 1} @click=${() => to(step - 1)}>Back</button>
-        ${step < STEPS.length ? html`<button class="primary" @click=${() => to(step + 1)}>Next</button>` : html`<button class="primary" @click=${() => void router.navigate({ href: '/' })}>Finish</button>`}
+      <div class="nav">
+        <sf-button ?disabled=${step <= 1} @click=${() => to(step - 1)}>Back</sf-button>
+        ${step < STEPS.length
+          ? html`<sf-button variant="primary" @click=${() => to(step + 1)}>Next</sf-button>`
+          : html`<sf-button variant="primary" @click=${() => void router.navigate({ href: '/' })}>Finish</sf-button>`}
       </div>
       <small>${progress.value.done ? 'Completed' : `Saved at step ${progress.value.step}`}</small>
     `;
@@ -94,6 +104,7 @@ export default defineFeatureModule({
     return ok();
   },
   async mount(context) {
+    defineButton();
     if (customElements.get(wizardSpec.tag) === undefined) defineComponent(OnboardingWizard);
     await mountFeatureRoot(context, () => html`<onboarding-wizard></onboarding-wizard>`);
     return ok();

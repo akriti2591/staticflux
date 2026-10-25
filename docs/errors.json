@@ -249,6 +249,90 @@
       "fix": "Await the pending login (or `session.whenSettled()`) instead of starting another."
     },
     {
+      "code": "SF-BLOB-001",
+      "kind": "quota",
+      "summary": "The storage quota was exceeded; the write was rejected and nothing was published.",
+      "fix": "Free space (empty the trash, then run GC), call `requestPersistence()` so the browser does not evict, or move the workspace to a folder. Check `estimateStorage()` before large imports."
+    },
+    {
+      "code": "SF-BLOB-002",
+      "kind": "validation",
+      "summary": "An object does not match its digest; it was moved to quarantine and is no longer served.",
+      "fix": "The bytes were changed outside the store (a folder edited by another program, disk corruption). Re-import the original, or restore the object from another copy; `details.quarantined` names the quarantine path."
+    },
+    {
+      "code": "SF-BLOB-003",
+      "kind": "conflict",
+      "summary": "Head compare-and-swap conflict: the head generation changed since it was read.",
+      "fix": "Re-read the head, re-apply your change to it and retry (`heads.update()` does this). `details.current` holds the generation found."
+    },
+    {
+      "code": "SF-BLOB-004",
+      "kind": "forbidden",
+      "summary": "Write permission for the folder was lost; the store is read-only until permission is granted again.",
+      "fix": "Call `mirror.regrant()` from a user gesture (a button click) to ask for permission again; reads keep working from the OPFS copy meanwhile."
+    },
+    {
+      "code": "SF-BLOB-005",
+      "kind": "not-found",
+      "summary": "No object with this digest (or no file with this name) exists in the store.",
+      "fix": "Show a placeholder and offer to relink the original. A blob referenced by live content should never be missing: check that GC roots include every live head."
+    },
+    {
+      "code": "SF-BLOB-006",
+      "kind": "aborted",
+      "summary": "The blob store operation was aborted; nothing was published.",
+      "fix": "Usually expected (scope disposal, user cancel). Do not retry aborted work."
+    },
+    {
+      "code": "SF-BLOB-007",
+      "kind": "unavailable",
+      "summary": "The file system rejected a read or write.",
+      "fix": "Inspect `cause` and `details.op`/`details.path`. Transient errors (a file busy in another context) can be retried; a persistent failure means the backend is unusable, so degrade to read-only."
+    },
+    {
+      "code": "SF-BLOB-008",
+      "kind": "validation",
+      "summary": "Invalid input: a malformed digest, an out-of-bounds range, an empty name or an oversized record.",
+      "fix": "Digests are `sha256:` plus 64 lowercase hex characters; ranges are `{ start, end }` with 0 <= start <= end <= size; names have no `/`."
+    },
+    {
+      "code": "SF-BLOB-009",
+      "kind": "unavailable",
+      "summary": "A required browser API is missing (OPFS, sync access handles, Web Locks, `FileSystemFileHandle.move`).",
+      "fix": "Feature-detect with `detectOpfs()` before creating an OPFS store. Sync access handles exist only in dedicated workers; use `writeMode: \"writable\"` elsewhere. Chrome desktop supports everything this package needs."
+    },
+    {
+      "code": "SF-BLOB-010",
+      "kind": "validation",
+      "summary": "A head file could not be decoded (bad JSON or checksum); it was not written by an atomic swap.",
+      "fix": "Heads are only replaced by temp file + `move()`, so a torn head means something wrote it in place. Restore it from the folder mirror or a backup; do not CAS over it blindly."
+    },
+    {
+      "code": "SF-BLOB-011",
+      "kind": "validation",
+      "summary": "The input is not a valid zip bundle (missing end of central directory, bad signature, CRC mismatch, or a wrong first `mimetype` entry).",
+      "fix": "Check the file is the bundle you expect; a truncated download also fails this way. `details.reason` says which check failed."
+    },
+    {
+      "code": "SF-BLOB-012",
+      "kind": "invariant",
+      "summary": "The zip uses a feature this reader/writer does not support (zip64, encryption, multi-disk, or a method other than STORED/DEFLATE).",
+      "fix": "Bundles are limited to 65,535 entries and 4 GiB per entry and in total. Split very large exports, or keep large media out of the bundle."
+    },
+    {
+      "code": "SF-BLOB-013",
+      "kind": "invariant",
+      "summary": "The store, journal, leader or mirror was used after `dispose()`.",
+      "fix": "Create these in the owning scope and stop using them once the scope is disposed."
+    },
+    {
+      "code": "SF-BLOB-014",
+      "kind": "invariant",
+      "summary": "A write that only the leader may perform was attempted by a follower (journal append, compaction, head swap of Latest).",
+      "fix": "Send the write through `leader.commit()`; the leader applies it and acknowledges it. Only the leader session opens the journal."
+    },
+    {
       "code": "SF-CAP-001",
       "kind": "not-found",
       "summary": "No capability with this id is declared.",
@@ -745,6 +829,78 @@
       "kind": "aborted",
       "summary": "The collaboration session is closed.",
       "fix": "Re-join the room; the engine resyncs with its state vector on reconnect."
+    },
+    {
+      "code": "SF-DOC-008",
+      "kind": "not-found",
+      "summary": "The node does not exist in this part (never created, deleted, or living in another part).",
+      "fix": "Check `crdt.has(node)` first; a concurrent peer may have deleted it, so treat this as a normal outcome and re-read."
+    },
+    {
+      "code": "SF-DOC-009",
+      "kind": "validation",
+      "summary": "The move would make a node its own ancestor.",
+      "fix": "Pick a parent outside the moved subtree. Concurrent cyclic moves are resolved by the movable tree; only local ones are rejected."
+    },
+    {
+      "code": "SF-DOC-010",
+      "kind": "not-found",
+      "summary": "The version (frontier) is not in this part’s retained history (trimmed by a shallow compaction, or from an unknown peer).",
+      "fix": "Re-read the current state and use its frontier as the new base; treat older bases as “everything may have changed”."
+    },
+    {
+      "code": "SF-DOC-011",
+      "kind": "conflict",
+      "summary": "The document head changed since it was read (compare-and-swap on `generation` failed).",
+      "fix": "Reload the head and retry; `compact()` retries automatically a few times before returning this error."
+    },
+    {
+      "code": "SF-DOC-012",
+      "kind": "not-found",
+      "summary": "A blob named by the head (part snapshot or undo history) is missing from the store.",
+      "fix": "Check the store backend; the head must never name a blob before `putBlob` resolved. Reopen from a backup or milestone."
+    },
+    {
+      "code": "SF-DOC-013",
+      "kind": "not-found",
+      "summary": "The part is not loaded (or not known to this document).",
+      "fix": "Await `doc.part(id, signal)` before writing to it, or create it with `doc.createPart(id)`."
+    },
+    {
+      "code": "SF-DOC-014",
+      "kind": "invariant",
+      "summary": "The document, part or gesture was used after it was closed, evicted or disposed.",
+      "fix": "Reopen it through the repo (`repo.open(asset, signal)` / `doc.part(id, signal)`); never keep references across close."
+    },
+    {
+      "code": "SF-DOC-015",
+      "kind": "conflict",
+      "summary": "The part cannot be evicted while it has commits that are not yet durable.",
+      "fix": "Await the pending commits (or `doc.flush(signal)`) and evict again; eviction never drops unacknowledged edits."
+    },
+    {
+      "code": "SF-DOC-016",
+      "kind": "validation",
+      "summary": "A component value could not be migrated to the current component version.",
+      "fix": "Declare a migration for every version step in `defineComponent(id, schema, { version, migrations })`; migrations must be pure."
+    },
+    {
+      "code": "SF-DOC-017",
+      "kind": "validation",
+      "summary": "The value cannot be canonically encoded (RFC 8785): non-finite number, lone surrogate or non-JSON data.",
+      "fix": "Store only finite numbers, well-formed strings and plain objects/arrays in document properties."
+    },
+    {
+      "code": "SF-DOC-018",
+      "kind": "invariant",
+      "summary": "CRDT engine handles are still alive after the document was disposed (dev-mode handle accounting).",
+      "fix": "Free every engine handle in a `finally` (the Loro adapter does this); run the leak test in the DocumentCRDT contract suite."
+    },
+    {
+      "code": "SF-DOC-019",
+      "kind": "conflict",
+      "summary": "A node with this id already exists in the part.",
+      "fix": "Generate a fresh id (`createIdGenerator`) or update the existing node; ids are asset-local and never reused."
     },
     {
       "code": "SF-FT-001",
@@ -1347,6 +1503,18 @@
       "fix": "Popups that need `window.opener` (OAuth, payments) must use `postMessage` via a same-origin relay or `BroadcastChannel`; or serve the popup flow with `Cross-Origin-Opener-Policy: same-origin-allow-popups` (not isolated)."
     },
     {
+      "code": "SF-PLAT-009",
+      "kind": "unavailable",
+      "summary": "An async platform fact probe threw, timed out or was aborted.",
+      "fix": "Treat the fact as unavailable (`lane.read(fact).state === \"failed\"`); call `lane.probe(fact, { refresh: true })` to retry. Probes must catch their own API errors and return a value describing absence."
+    },
+    {
+      "code": "SF-PLAT-010",
+      "kind": "unavailable",
+      "summary": "A required platform baseline capability is missing.",
+      "fix": "Boot the unsupported plan (`unsupportedHostMode(verdict)` + `unsupportedBootPlan(...)`) and show `verdict.missing` with each app code and fix; never load the regular app on top of a failed baseline."
+    },
+    {
       "code": "SF-PWA-001",
       "kind": "unavailable",
       "summary": "Service workers are not available here (unsupported browser, insecure context, or an embedded host mode).",
@@ -1533,6 +1701,12 @@
       "fix": "Expected during shutdown. Do not schedule work on a disposed scheduler."
     },
     {
+      "code": "SF-SCHED-002",
+      "kind": "aborted",
+      "summary": "The worker scheduler was disposed; the task was dropped.",
+      "fix": "Expected when the worker shuts down (dispose it in onShutdown). Do not post tasks after dispose; long jobs check the abort signal they are given."
+    },
+    {
       "code": "SF-SHELL-001",
       "kind": "not-found",
       "summary": "No workspace with this id is registered.",
@@ -1701,6 +1875,72 @@
       "fix": "Compare against `formatSpanTree()` output; check the `parent` option where the child span is started."
     },
     {
+      "code": "SF-TEST-006",
+      "kind": "validation",
+      "summary": "An RGBA image is malformed, two images differ in size, or an image is smaller than the SSIM window.",
+      "fix": "Pass `{ width, height, data }` with `data.length === width * height * 4`, compare images of equal size, and use images at least as large as `window.size` (default 11)."
+    },
+    {
+      "code": "SF-TEST-007",
+      "kind": "validation",
+      "summary": "A PNG could not be decoded (corrupt, or a variant the testkit codec does not read).",
+      "fix": "Store goldens as 8-bit, non-interlaced PNGs (what `encodePng` writes); re-create the file with `pnpm goldens:update`."
+    },
+    {
+      "code": "SF-TEST-008",
+      "kind": "not-found",
+      "summary": "A golden image does not exist yet.",
+      "fix": "Run `pnpm goldens:update <test filter>` to write it, review the PNG, and commit it with the test."
+    },
+    {
+      "code": "SF-TEST-009",
+      "kind": "invariant",
+      "summary": "A rendered image does not match its golden within the thresholds.",
+      "fix": "Open the `actual` and `diff` PNGs listed in `details`. If the change is intended, run `pnpm goldens:update <test filter>`; never loosen thresholds to make a test pass."
+    },
+    {
+      "code": "SF-TEST-010",
+      "kind": "validation",
+      "summary": "A golden was rejected: its name is not a lowercase slug, or it exceeds the size limits.",
+      "fix": "Name goldens `[a-z0-9-]+`; render a smaller crop (goldens are small and few: default ≤ 65,536 pixels and ≤ 32 KiB as PNG)."
+    },
+    {
+      "code": "SF-TEST-011",
+      "kind": "unavailable",
+      "summary": "The real-GPU test runner could not start Chromium (Playwright missing or the browser failed to launch).",
+      "fix": "Install Playwright with Chromium (`npx playwright install chromium`) or set `NODE_PATH` to a directory that has it; see `cause`."
+    },
+    {
+      "code": "SF-TEST-012",
+      "kind": "invariant",
+      "summary": "A page under the GPU runner reported a failure or published a malformed result.",
+      "fix": "Read `details.message`, `details.console` and `details.pageErrors`; in SwiftShader runs check that the ANGLE flags are present (presenting to a canvas loses the device without them)."
+    },
+    {
+      "code": "SF-TEST-013",
+      "kind": "timeout",
+      "summary": "A page under the GPU runner did not publish its result before the timeout.",
+      "fix": "Make sure the page always sets `globalThis.__sfGpuResult` (also on failure, via try/catch); read `details.pageErrors` for uncaught errors."
+    },
+    {
+      "code": "SF-TEST-014",
+      "kind": "validation",
+      "summary": "A GPU texture could not be read back (unsupported format, missing usage flag, or the map failed).",
+      "fix": "Read back 8-bit RGBA/BGRA textures created with `COPY_SRC` usage; for canvas textures configure the context with `usage: RENDER_ATTACHMENT | COPY_SRC`."
+    },
+    {
+      "code": "SF-TEST-015",
+      "kind": "invariant",
+      "summary": "VideoFrame or AudioData handles were left open.",
+      "fix": "Close every frame and clone you create or receive (`frame.close()`), typically in a `finally` or a scope `defer`; `details.open` lists the leaked handles."
+    },
+    {
+      "code": "SF-TEST-016",
+      "kind": "validation",
+      "summary": "`sf-gpu-run` was called with invalid arguments.",
+      "fix": "Run `sf-gpu-run <dir> [page.html] [--query=…] [--real-gpu] [--headed] [--timeout=<s>] [--out=<dir>]` or `sf-gpu-run --url=<url> …`."
+    },
+    {
       "code": "SF-TOOL-001",
       "kind": "not-found",
       "summary": "A module given to `sf` could not be imported.",
@@ -1743,6 +1983,30 @@
       "fix": "Export `routes` (defineRoute results), `features` (defineFeature manifests) and `profiles` (\"web:expanded\" strings or AppProfile-like objects) — or `hostModes` + `formFactors` arrays."
     },
     {
+      "code": "SF-TOOL-008",
+      "kind": "unavailable",
+      "summary": "The Rust toolchain (cargo, rustc or the wasm32-unknown-unknown target) is missing, and this run requires it.",
+      "fix": "Install Rust with rustup (https://rustup.rs), then run `rustup toolchain install` in the engine directory (it reads rust-toolchain.toml and adds wasm32-unknown-unknown). Locally, unset SF_REQUIRE_RUST to skip the Wasm build with a warning."
+    },
+    {
+      "code": "SF-TOOL-009",
+      "kind": "unknown",
+      "summary": "An external build or metadata step run by `sf` (cargo, wasm-bindgen, wasm-opt, pnpm) exited with an error.",
+      "fix": "Read the step output printed above; rerun the shown command by hand in the shown directory to reproduce. Missing `wasm-opt` means `pnpm install` has not run (binaryen is a root devDependency)."
+    },
+    {
+      "code": "SF-TOOL-010",
+      "kind": "not-found",
+      "summary": "A Wasm budget check matched no built artifact, and this run requires every artifact to be measured.",
+      "fix": "Run `pnpm build` with the Rust toolchain installed (SF_REQUIRE_RUST=1 makes a missing toolchain an error), and check that the budget `path` glob matches the content-hashed file name in the engine `dist/`."
+    },
+    {
+      "code": "SF-TOOL-011",
+      "kind": "aborted",
+      "summary": "The `sf` command was cancelled before it finished.",
+      "fix": "Nothing to fix; rerun the command. Partial outputs are not recorded in the manifest, so the next run rebuilds."
+    },
+    {
       "code": "SF-UI-001",
       "kind": "invariant",
       "summary": "A render dependency was read before it was ready (I-11).",
@@ -1783,6 +2047,24 @@
       "kind": "invariant",
       "summary": "A hook or intent referenced a dependency key the component did not declare.",
       "fix": "Use one of the keys declared in `component({ deps })`; the types list them."
+    },
+    {
+      "code": "SF-UI-008",
+      "kind": "validation",
+      "summary": "A theme is incomplete or malformed: a token has no value, an unknown token was set, or a value is empty.",
+      "fix": "Give every token of the token set a value in `values` (the types list them); variants (`dark`, `density`, `contrast`, `reducedMotion`) may only override declared tokens. See `details.issues`."
+    },
+    {
+      "code": "SF-UI-009",
+      "kind": "not-found",
+      "summary": "The appearance controller has no theme: nothing was contributed to `ThemesToken`, or the requested theme id is not contributed.",
+      "fix": "Register a theme contribution, e.g. `defaultThemeContribution` from `@staticflux/ui/default-theme`, or `themeContribution(myTheme)`; check the id passed to `useTheme` / `appearanceUnitWith({ theme })`."
+    },
+    {
+      "code": "SF-UI-010",
+      "kind": "validation",
+      "summary": "A color value could not be parsed.",
+      "fix": "Use `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` or `rgb()/rgba()`; contrast checks need concrete sRGB values, not color names or `var()` references."
     },
     {
       "code": "SF-URL-001",
@@ -2089,6 +2371,72 @@
       "kind": "invariant",
       "summary": "Two core-context entries for the context hub use the same key.",
       "fix": "Contribute each context key once to `CoreContextsToken` (and not again in `contextHubUnit({ entries })`); the `details` name the key."
+    },
+    {
+      "code": "SF-WK-032",
+      "kind": "invariant",
+      "summary": "A pipe endpoint does not match the definition it is attached with (id, format version, schema version or size).",
+      "fix": "Attach with the same `define…()` value the writer used and deploy both bundles together; bump `version` on breaking layout changes."
+    },
+    {
+      "code": "SF-WK-033",
+      "kind": "aborted",
+      "summary": "The pipe (cell, ring, delta stream or side channel) was closed.",
+      "fix": "Expected during shutdown or respawn. Create a new pipe and re-send its endpoint when the peer reconnects (`peer.onConnect`)."
+    },
+    {
+      "code": "SF-WK-034",
+      "kind": "invariant",
+      "summary": "A delta record was appended with a version that does not increase.",
+      "fix": "Append deltas in increasing `version` order (one per applied transaction); start a new epoch with `snapshot()` after a reset."
+    },
+    {
+      "code": "SF-WK-035",
+      "kind": "validation",
+      "summary": "A record is larger than the pipe can hold.",
+      "fix": "Raise `capacityBytes` (records may use at most half of it), or move large payloads to the blob side channel and reference them by digest."
+    },
+    {
+      "code": "SF-WK-036",
+      "kind": "quota",
+      "summary": "The writer queue overflowed because the reader stopped consuming; queued records were dropped.",
+      "fix": "Lossless pipes queue under back-pressure up to `maxPendingBytes`/`maxPending`. Delta streams recover with a resnapshot; check that the reader is alive and drains every frame."
+    },
+    {
+      "code": "SF-WK-037",
+      "kind": "invariant",
+      "summary": "A transferable handle was used after it was sent, released or closed.",
+      "fix": "After `send()` the handle belongs to the receiver. Keep using only handles you still own (`owned.closed === false`)."
+    },
+    {
+      "code": "SF-WK-038",
+      "kind": "invariant",
+      "summary": "A closeable handle (VideoFrame, AudioData, ImageBitmap) was dropped or its owner disposed without closing it.",
+      "fix": "Call `owned.close()` when done, or dispose the ledger scope that owns it. Leaked GPU/decoder memory stalls decoders."
+    },
+    {
+      "code": "SF-WK-039",
+      "kind": "validation",
+      "summary": "The value is not a handle kind this channel accepts.",
+      "fix": "Send only the kinds declared in `defineHandleChannel({ kinds })` (video-frame, audio-data, image-bitmap, offscreen-canvas, file-system-handle); ArrayBuffers go through a data channel."
+    },
+    {
+      "code": "SF-WK-040",
+      "kind": "unavailable",
+      "summary": "The peer channel is not connected (the other worker is starting or respawning).",
+      "fix": "Wait with `peer.whenConnected(signal)` or pass `{ waitForConnection: true }`; re-send state in `peer.onConnect` after a re-wire."
+    },
+    {
+      "code": "SF-WK-041",
+      "kind": "not-found",
+      "summary": "A content-addressed blob referenced by a record is no longer available on either side.",
+      "fix": "The reader resnapshots automatically. Raise the sender `retainBytes` / receiver `budgetBytes` if this happens during normal editing."
+    },
+    {
+      "code": "SF-WK-042",
+      "kind": "invariant",
+      "summary": "A pipe endpoint was requested or attached twice (each reader index or message endpoint has exactly one reader).",
+      "fix": "Create one endpoint per reader (`ring.endpoint(i)` with distinct `i`); a respawned reader needs a fresh endpoint or a new pipe."
     }
   ]
 }

@@ -229,3 +229,83 @@ Every `SfError` carries: `code` (stable), `message` (one line), `units` involved
 | `sandbox/plugin` | loading → handshaking → running ⇄ restarting → failed \| killed \| stopped | `packages/sandbox/AGENTS.md` |
 | `pwa/sw-lifecycle` | installing → installed → activating → activated → redundant | `packages/pwa/AGENTS.md` |
 | `pwa/update` | idle → checking → available → activating → activated \| failed; reload fallback on framework-major change | `packages/pwa/AGENTS.md` |
+| `platform/async-fact` | idle → probing → settled \| failed (`SF-PLAT-009`: throw, timeout); probing → idle when every caller aborted; settled \| failed → probing on `refresh`; any → disposed (scope) | `packages/platform/src/async-facts.ts` |
+| `platform/baseline` (verdict, not a machine) | pending → supported \| unsupported; a synchronous miss is `unsupported` at once and probes nothing; `unsupported` boots only the unsupported plan (`SF-PLAT-010`) | `packages/platform/src/baseline.ts` |
+
+| `testkit/fake-gpu-device` | live → lost (`destroyed` via `destroy()`, `unknown` via `loseDevice`); terminal: `lost` resolves once, pending maps reject (AbortError), submit no-ops, no errors reported | `packages/testkit/src/gpu-fake.ts` |
+| `testkit/fake-gpu-adapter` | valid → consumed (first `requestDevice`); `requestDevice` on consumed rejects (OperationError) | `packages/testkit/src/gpu-fake.ts` |
+| `testkit/fake-gpu-buffer` | unmapped → pending → mapped → unmapped; pending → unmapped (unmap/destroy/device loss rejects the map) | `packages/testkit/src/gpu-fake.ts` |
+| `testkit/fake-canvas-texture` | acquired (`getCurrentTexture`) → presented/expired (`present`, `unconfigure`); using it after → validation error | `packages/testkit/src/gpu-fake.ts` |
+| `testkit/media-handle` | open → closed (terminal; `clone` adds a handle on the same resource; use after close → InvalidStateError) | `packages/testkit/src/media-fake.ts` |
+| `testkit/golden` | missing → written (update mode) · stored → match \| mismatch (SF-TEST-009) \| updated (update mode) | `packages/testkit/src/golden.ts` |
+
+
+## 15. Document engine v2 machines (SF-Δ3–Δ6, Instaflow M1 · A4)
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `document/repo-document` | open ⇄ compacting; open → closing → closed. Compaction inside `closing` keeps the state. Writes and part loads are valid in open and compacting; any use after `closed` → `SF-DOC-014` | `packages/document/src/repo.ts` (`RepoDocumentMachine`) |
+| `document/part` | unloaded → loading → loaded → unloaded (evicted); loading → failed → loading (retry on next `part()`). Eviction is refused while the part has non-durable commits (`SF-DOC-015`) | `packages/document/src/repo.ts` (`PartState`) |
+| `document/gesture` | open → committed \| aborted. A commit that fails validation leaves the gesture open (fix or abort); staging after the end → `SF-DOC-014` | `packages/document/src/gesture.ts` (`GestureMachine`) |
+| `document/commit-durability` | applied (in memory, broadcast) → durable (log seq assigned); applied → failed append → retried in order on the next commit or `flush()` (`onPersistError`) | `packages/document/src/repo.ts` |
+
+Invariants:
+- **I-D1** One logical transaction = one commit record, even when it touches several parts (cross-page move); parts are
+  validated together before any is applied.
+- **I-D2** Log appends are strictly in commit order; a failed append blocks later ones until it succeeds.
+- **I-D3** The head is replaced only by compare-and-swap on `generation` (`SF-DOC-011`); compaction never truncates log
+  entries it did not fold into the new snapshots.
+- **I-D4** Engine handles: after `dispose()` / eviction / close, the engine's live handle count returns to its baseline
+  (`SF-DOC-018` names a violation).
+
+
+## 16. Blob store (`@staticflux/blob`, Instaflow M1 A3)
+
+```
+blob/store-leader:   waiting → recovering → leading
+                     recovering → waiting            (lead() failed: lock released, retried after retryMs)
+                     any → disposed
+blob/folder-mirror:  idle → scheduled → flushing → idle | scheduled (more changes arrived)
+                     idle | scheduled | flushing → paused     (folder permission lapsed: read-only)
+                     paused → flushing                        (regrant(): full sync, then idle)
+                     any → disposed
+```
+
+| Invariant | Error |
+|---|---|
+| A commit is acknowledged only after its journal record is flushed (sync handle) or published (temp + `move()`) | — |
+| A head is replaced only by temp file + `move()` under `<prefix>:head:<name>`, and only if its `generation` is unchanged | SF-BLOB-003 |
+| A head that fails its checksum is reported, never overwritten by CAS | SF-BLOB-010 |
+| Only the leader opens journals and swaps Latest heads | SF-BLOB-014 |
+| `logFrom` advances only when no dirty part has an uncovered record in an older segment | — |
+| A folder head is swapped only after every object it names is in the folder; while paused nothing is written | SF-BLOB-004 |
+| GC never sweeps with an incomplete mark set and never deletes an object inside the grace period | SF-BLOB-006 / SF-BLOB-007 (run aborted) |
+| An object that fails `verify` is quarantined and no longer served | SF-BLOB-002 |
+
+
+## 17. Worker pipeline (SF-Δ17–Δ19, Δ22, Δ28; Instaflow M1 A5)
+
+Topology-neutral pipes between the editor and render modules (D15). Every machine below behaves the same on the
+`local`, `shared` and `message` media; the contract suites in `packages/testkit` run each case on all three.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `worker/delta-reader` | awaiting-snapshot → live; live → resyncing (gap, epoch change without snapshot, gone blob) → live (snapshot of a newer epoch); resyncing → resyncing (another gap); any → closed | `packages/worker/src/delta-stream.ts` |
+| `worker/peer-channel` | waiting → connected; connected → connected (re-wire: new generation) \| disconnected → connected; any → closed | `packages/worker/src/peer-channel.ts` |
+| `worker/handle` (ownership of one `Owned`) | live → closed \| sent \| released \| leaked (wrapper collected unclosed, or live at ledger dispose; the handle is closed and reported) | `packages/worker/src/handle-channel.ts` |
+| `worker/seqlock-cell` (one write) | even (stable) → odd (writing) → even; readers retry while odd or changed, return the last good copy marked `stale` after `maxRetries` | `packages/worker/src/seqlock-cell.ts` |
+| `runtime/worker-scheduler` | running ⇄ paused → disposed (queued tasks fail with SF-SCHED-002) | `packages/runtime/src/worker-scheduler.ts` |
+
+| ID | Invariant | Error |
+|---|---|---|
+| P-1 | Ordered apply: deltas apply in `base → version` order; a gap or an epoch change resyncs from a newer-epoch snapshot while the last good state stays (E-1) | SF-WK-034 (writer) |
+| P-2 | No torn reads: a cell read returns the value of exactly one completed write (seqlock; checksum detector in tests) | — |
+| P-3 | Lossless rings: every record pushed after a reader's endpoint is delivered to it once, in order, or the push fails | SF-WK-036 |
+| P-4 | A delta never applies before the blobs it references; a gone blob forces a resnapshot | SF-WK-041 |
+| P-5 | One owner per handle: after send/release the sender cannot use it; a closeable handle is closed once (by its owner, or as a reported leak) | SF-WK-037, SF-WK-038 |
+| P-6 | Peer generations only increase; a re-wire cleans up the previous connection before `onConnect` runs again | SF-WK-040 |
+| P-7 | Supersede-on-ack: an overlay disappears in the step that applies its acked version; a late ack of an older intent never removes a newer overlay (E-2) | — |
+| P-8 | Worker scheduler: nothing runs while paused (I-1); interaction before critical before visible before idle | SF-SCHED-002 |
+
+| `kit/resize` | idle → resizing (pointer drag, `move` repeats) → idle (`end` commits one `sf-resize`, `cancel` restores the size); keyboard steps commit directly | `packages/kit/src/internal/resize.ts` |
+| `kit/tree-drag` | idle → dragging (`over` repeats, drop target filtered by `canDrop`, never into the own subtree) → idle (`drop` fires cancelable `sf-reorder`, `cancel` on dragend) | `packages/kit/src/tree.ts` |

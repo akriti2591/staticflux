@@ -1,7 +1,7 @@
 {
   "name": "@staticflux/testkit",
   "version": "0.1.0",
-  "description": "Testing toolkit: test injector, deterministic clocks/schedulers, fake session, re-exported package fakes, shared contract suites.",
+  "description": "Testing toolkit: test injector, deterministic clocks/schedulers, fake session, re-exported package fakes, shared contract suites, GPU and media fakes, SSIM image comparison, golden render snapshots and a real-GPU (Chromium) runner.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -9,7 +9,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    },
+    "./a11y": {
+      "types": "./dist/a11y.d.ts",
+      "import": "./dist/a11y.js"
     }
+  },
+  "bin": {
+    "sf-gpu-run": "./dist/gpu-cli.js"
   },
   "files": [
     "dist",
@@ -32,7 +43,14 @@
     "@staticflux/storage": "workspace:*",
     "@staticflux/worker": "workspace:*",
     "@staticflux/router": "workspace:*",
-    "@staticflux/urlstate": "workspace:*"
+    "@staticflux/urlstate": "workspace:*",
+    "@staticflux/document": "workspace:*",
+    "fast-check": "4.10.2",
+    "@staticflux/blob": "workspace:*",
+    "@staticflux/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@staticflux/browser-test": "workspace:*"
   },
   "peerDependencies": {
     "vitest": ">=5"

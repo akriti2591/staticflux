@@ -58,6 +58,10 @@ export interface NavigatorLike {
   readonly credentials?: unknown;
   readonly clipboard?: unknown;
   readonly gpu?: unknown;
+  /** Storage manager (`getDirectory()` = OPFS). */
+  readonly storage?: unknown;
+  /** Web Locks. */
+  readonly locks?: unknown;
 }
 
 export interface WindowLike extends ListenableLike {

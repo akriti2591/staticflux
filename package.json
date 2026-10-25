@@ -7,23 +7,30 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc -b tsconfig.build.json",
+    "build": "tsc -b tsconfig.build.json && pnpm build:wasm",
+    "build:wasm": "node tooling/sf/dist/cli.js wasm build apps/instaflow/engine",
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint:boundaries": "depcruise packages tooling apps --config .dependency-cruiser.cjs",
-    "size": "size-limit",
-    "check": "pnpm build && pnpm typecheck && pnpm test && pnpm lint:boundaries && pnpm lint:sf && pnpm errors:check && pnpm size",
+    "size": "size-limit && pnpm size:wasm",
+    "size:wasm": "node tooling/sf/dist/cli.js wasm size",
+    "licenses:check": "node tooling/sf/dist/cli.js licenses",
+    "check": "pnpm build && pnpm typecheck && pnpm test && pnpm lint:boundaries && pnpm lint:sf && pnpm errors:check && pnpm size && pnpm licenses:check",
     "sf": "node tooling/sf/dist/cli.js",
     "lint:sf": "node tooling/sf/dist/cli.js lint",
-    "errors": "node tooling/sf/dist/cli.js errors packages/*/dist/index.js packages/worker/dist/channels.js packages/worker/dist/coordinator-entry.js tooling/vite-plugin/dist/index.js tooling/rspack-plugin/dist/index.js",
-    "errors:check": "node tooling/sf/dist/cli.js errors --check packages/*/dist/index.js packages/worker/dist/channels.js packages/worker/dist/coordinator-entry.js tooling/vite-plugin/dist/index.js tooling/rspack-plugin/dist/index.js",
+    "errors": "node tooling/sf/dist/cli.js errors packages/*/dist/index.js packages/worker/dist/channels.js packages/worker/dist/coordinator-entry.js packages/worker/dist/pipeline.js tooling/vite-plugin/dist/index.js tooling/rspack-plugin/dist/index.js",
+    "errors:check": "node tooling/sf/dist/cli.js errors --check packages/*/dist/index.js packages/worker/dist/channels.js packages/worker/dist/coordinator-entry.js packages/worker/dist/pipeline.js tooling/vite-plugin/dist/index.js tooling/rspack-plugin/dist/index.js",
     "agents": "node tooling/sf/dist/cli.js agents",
     "agents:check": "node tooling/sf/dist/cli.js agents --check",
-    "budgets": "size-limit --json > .size-results.json; node tooling/sf/dist/cli.js budgets --results .size-results.json",
+    "budgets": "size-limit --json > .size-results.json; node tooling/sf/dist/cli.js budgets --results .size-results.json; node tooling/sf/dist/cli.js wasm size",
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm install --lockfile-only",
-    "release": "pnpm build && node tooling/sf/dist/cli.js publish"
+    "release": "pnpm build && node tooling/sf/dist/cli.js publish",
+    "goldens:update": "SF_UPDATE_GOLDENS=1 vitest run",
+    "test:gpu": "SF_GPU=${SF_GPU:-1} vitest run .gpu.test",
+    "gpu:run": "node packages/testkit/dist/gpu-cli.js",
+    "test:browser": "node tooling/browser-test/src/run.ts"
   },
   "devDependencies": {
     "typescript": "5.9.3",
@@ -33,7 +40,8 @@
     "size-limit": "14.3.0",
     "@size-limit/preset-small-lib": "14.3.0",
     "@types/node": "^22.0.0",
-    "@changesets/cli": "3.0.3"
+    "@changesets/cli": "3.0.3",
+    "binaryen": "132.0.0"
   },
   "license": "MIT"
 }

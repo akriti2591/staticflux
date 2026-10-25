@@ -49,6 +49,20 @@ export const CoepViolationError = defineError(
   'Load it through the IsolationPolicy (adds `crossorigin` / `mode: "cors"`) and make the server send CORS headers, or serve it with `Cross-Origin-Resource-Policy: cross-origin`; for third-party iframes use the `credentialless` attribute (`policy.iframeAttrs(url)`).',
 );
 
+export const AsyncFactProbeFailedError = defineError(
+  'SF-PLAT-009',
+  'unavailable',
+  'An async platform fact probe threw, timed out or was aborted.',
+  'Treat the fact as unavailable (`lane.read(fact).state === "failed"`); call `lane.probe(fact, { refresh: true })` to retry. Probes must catch their own API errors and return a value describing absence.',
+);
+
+export const BaselineUnmetError = defineError(
+  'SF-PLAT-010',
+  'unavailable',
+  'A required platform baseline capability is missing.',
+  'Boot the unsupported plan (`unsupportedHostMode(verdict)` + `unsupportedBootPlan(...)`) and show `verdict.missing` with each app code and fix; never load the regular app on top of a failed baseline.',
+);
+
 export const CoopViolationError = defineError(
   'SF-PLAT-008',
   'forbidden',

@@ -1,0 +1,13 @@
+[package]
+name = "authoring"
+description = "Instaflow authoring engine (Parley text layout). Stub until B2."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = { workspace = true }

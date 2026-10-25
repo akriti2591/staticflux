@@ -297,6 +297,18 @@
 - **R13.9** Surfaces are gated (a denied premium dialog resolves to its upsell surface).
 - **R13.10** Every surface emits shown/dismissed/dismiss-reason/dwell metrics through the declarative metrics model.
 
+### 13.2 Theme contract & UI kit (Instaflow M1 A10)
+- **R13.11** **Theme contract** (`@staticflux/ui/theme`): one typed token set (`defineTokens` → `ThemeToken` values that know their CSS custom property; no string token names in component code) covering color (neutral ramp, surface levels, text levels, borders, one accent, semantic success/warning/danger/info, focus ring), font + type scale, spacing on a 4 px grid, control sizes, radius, elevation, motion (durations, easings) and z layers. Themes compile to CSS custom properties; pre-contract `--sf-*` names are emitted as aliases.
+- **R13.12** Light and dark, honoring `prefers-color-scheme` (and `prefers-contrast`, `forced-colors`) **before any script runs** and an explicit override afterwards; a `contrast: more` variant. Themes are **DI contributions** (last contributed wins; `order`), so apps and brand themes override without forking (`extendTheme`).
+- **R13.13** **Density** `focus | standard | pro` changes control heights and spacing (always on the 4 px grid, targets ≥ 24 px); **reduced motion** (platform or explicit) sets motion durations to 0; full motion stays within 120–200 ms. The appearance (scheme, contrast, density, motion) persists per device through an async port.
+- **R13.14** A brand-neutral **default theme** meets WCAG 2.2 AA: every declared text/surface pair ≥ 4.5:1, focus ring, control borders, accent and placeholders ≥ 3:1, in light, dark and both high-contrast variants. A shared **theme contract suite** in testkit checks it, and every theme (brand, app) runs the same suite.
+- **R13.15** **UI kit** (`@staticflux/kit`, ui layer): Lit components on `SfElement` — button, icon button, segmented control, text field, slider, color field, menu, popover, tooltip, tabs, dialog/toast visual layer; toolbar, dock + panels (resizable, collapsible), inspector rows/groups, virtualized tree view, command palette. Per-component entry points with their own size budgets; no dependencies beyond Lit and framework packages.
+- **R13.16** **Platform first, not Chrome-only:** modals are native `<dialog>` (`showModal`), floating UI uses the Popover API (top layer) and CSS anchor positioning, each with a fallback (focus trap + inert, `z` layers, JS positioning). Container queries for responsive parts; logical properties and RTL-aware keyboard handling throughout.
+- **R13.17** **Messaging stays the one owner of user-messaging surfaces:** the kit renders what the surface manager shows (`<sf-surface-layer>`, a drop-in alternative to `<sf-surface-host>`), including routable `/d/<key>` dialogs, arbitration and scope-bound lifetimes. Element-local overlays (menu, popover, tooltip) live and die with their element and keep one tooltip open per document.
+- **R13.18** **Accessibility per WAI-ARIA APG** (button, radio group, tabs, menu button, toolbar, tooltip, dialog, tree view, combobox, window splitter, disclosure): roving tabindex, focus management (into overlays, back to triggers), ARIA id references never cross a shadow boundary, every drag has a keyboard equivalent. Component tests use `@staticflux/testkit/a11y` (composed-tree audit + keyboard helpers).
+- **R13.19** The **command palette** lists runnable capabilities from `@staticflux/capabilities` (implemented, no required input), searches them, shows their shortcuts (contributions), and runs them through the capability pipeline (subject `user`). Client gating is UX, not security (R6.16).
+- **R13.20** Kit strings are a typed i18n catalog (`kit` namespace) with source-text fallback when no `I18n` is bound; component props override catalog text.
+
 ## 14. Localization (base requirement)
 
 - **R14.1** Typed message catalogs per package (keys are typed values, not strings); ICU MessageFormat semantics (plurals, select, gender).
@@ -322,6 +334,25 @@
 - **R16.4** Contract tests: every implementation of a contract runs the same shared suite.
 - **R16.5** Example app has end-to-end tests (Playwright) over mock backends.
 - **R16.6** CI runs: typecheck, lint, boundary checks, graph checks, size budgets, unit, a11y, e2e.
+
+### 16.1 Render, GPU and media testing (Instaflow M1, WP A9 — SF-Δ31 M1 part)
+
+- **R16.20** A **WebGPU fake** (adapter → device → queue, encoders, passes, buffers, textures, canvas context) records every call and
+  models what recovery and readback code depends on: adapter `info`/`features`/`limits`, device features/limits only as requested,
+  consumed adapters, copies/clears/maps, validation errors through error scopes, and injectable **device loss** (`device.lost`).
+- **R16.21** A **perceptual image comparison** usable in Node on RGBA buffers: SSIM (Wang et al. 2004; 11×11 Gaussian σ 1.5,
+  K1 0.01, K2 0.03) plus max channel delta, differing-pixel fraction and optional blurred SSIM, with threshold presets derived from
+  measurements (same backend, GPU vs CPU reference, cross-rasterizer). SSIM values are pinned against an independent implementation.
+- **R16.22** **Golden render snapshots**: small PNGs next to the test, compared with R16.21 thresholds; written or rewritten only by an
+  explicit command (`pnpm goldens:update`); a missing golden fails; size limits keep goldens small and few; mismatches leave the
+  actual image and a diff image for review.
+- **R16.23** A **real-GPU test runner**: serve a page cross-origin isolated, run it in Chromium with WebGPU on SwiftShader + ANGLE
+  (default, CI) or on a real GPU (`--real-gpu`), read pixels back and return a structured result (adapter, data, images, console,
+  page errors). GPU browser tests are opt-in (`SF_GPU`) so the default test run never launches a browser.
+- **R16.24** **Media fakes** (`VideoFrame`, `AudioData`) with **close accounting**: every handle (including clones) is tracked and a test
+  can assert that none leaked. M3 extends this with decoder/encoder fakes, `AudioContext` and a deterministic media clock.
+- **R16.25** Test pages publish results through one protocol (`globalThis.__sfGpuResult = { ok, data, images }`); readback helpers
+  (texture → RGBA with row-alignment and BGRA handling) are shared, not re-written per package.
 
 ## 17. Observability & devtools
 
@@ -377,6 +408,13 @@
 ### 18.2 Experience types (validation targets)
 - **R18.12** The primitives must support, without special cases: **chat** (headless agent + chat UI + streamed resources), **wizard** (steps as sub-routes, exit-guard validation, persisted progress), **complex editor** (document worker, projection UI, lazy panels, archive), **co-editing** (CRDT + collaboration transport + presence). A needed special case indicates a missing primitive.
 
+### 18.3 Platform baseline, web API facts and async facts (SF-Δ26)
+- **R18.13** **Web API facts** (`facts.apis`): synchronous presence of WebGPU, OffscreenCanvas transfer, WebCodecs, OPFS and OPFS sync access handles, File System Access (`showDirectoryPicker`, `FileSystemFileHandle.move`), EditContext, Local Font Access, Compression Streams (incl. `deflate-raw`), cross-origin isolation, SharedArrayBuffer, Wasm SIMD, AudioWorklet, Web Locks, BroadcastChannel. Probes never throw (at import or at read); a throwing API is "absent".
+- **R18.14** **Async fact lane:** facts that need a round trip (WebGPU adapter with info, features and limits; WebCodecs codec matrix; OPFS sync handles asked from a worker) are typed definitions probed on idle, off the boot path, single-flight, cached, under a timeout and an `AbortSignal`; a failed probe is a `failed` fact (`SF-PLAT-009`), never an exception.
+- **R18.15** **Required baseline:** an app declares the capabilities it cannot run without (sync API facts and async facts), each with the app's own stable code and fix. A synchronous miss is decided inline before boot and probes nothing else.
+- **R18.16** **Unsupported boot:** a failed baseline selects the `unsupported` host mode (a plugin, R18.3a) and the unsupported boot plan, which loads one small screen naming each missing capability with its code and fix and nothing else. No feature code branches on support.
+- **R18.17** Enhancements (EditContext, Local Font Access, folders) are facts that select variant bindings (R18.5), never baseline failures.
+
 ## 19. Handoff
 
 - **R19.1** State that survives boundaries: reload, deep link, login redirect, tab/window, host↔embed; cross-device as a client contract only.
@@ -413,6 +451,20 @@
 - **R20.5** Custom lint rules: no direct flag reads outside bindings, no bare `addEventListener` without signal/scope, inheritance depth ≤ 1, no string tokens.
 - **R20.6** `sf` CLI: graph check, budget report, manifest generation.
 
+### 20.1 Rust/Wasm build and license allowlist (Instaflow SF-Δ32, M1 A2)
+
+- **R20.7** `sf wasm build <engine-dir>` builds a Rust workspace to Wasm inside `pnpm build`: wasm32 release with
+  SIMD (`+simd128`), wasm-bindgen at the version locked in `Cargo.lock`, wasm-opt from binaryen, content-hashed
+  artifacts and a deterministic `sf-wasm-manifest.json`; skipped when an inputs hash is unchanged. A missing Rust
+  toolchain skips with a warning locally and fails when `SF_REQUIRE_RUST=1` (CI), so TypeScript-only work needs no Rust.
+- **R20.8** Wasm budget categories: `sf wasm size` measures `.wasm` files by brotli (q11) from a size-limit-shaped
+  config (`.size-limit.wasm.json`: `category`, glob `path`, `compression`, `ratchet`) and reports and ratchets them
+  like R20.4 / R12.8. `ratchet: false` marks a requirement ceiling for code not written yet.
+- **R20.9** `sf licenses` fails CI on GPL-family (GPL, LGPL, AGPL), SSPL, non-commercial, watermark, source-available
+  and unknown licenses across npm (pnpm) and cargo (`cargo metadata`) dependencies; exceptions need a written reason
+  in the policy file. A model-weights registry records each model's source, license text and commercial-use flag;
+  a denied or unknown model fails only when code references it.
+
 ## 21. Example app
 
 - **R21.1** A small app in the monorepo exercising every vertical, against mock services.
@@ -426,3 +478,95 @@
 4. Worker↔worker direct channels vs via main thread (default: direct MessageChannel, brokered by main).
 5. MobX store patching: hand-rolled recorder vs mobx-keystone (spike).
 6. TypeScript 7 (tsgo) vs TS 5.x for custom tooling until 7.1 API lands.
+
+## 23. Document engine v2 (SF-Δ3–Δ6; Instaflow M1 · A4; extends R11.8)
+
+- **R11.8a** **`DocumentCRDTv2` port** (`@staticflux/document/v2`), one instance per CRDT document (part): movable tree with
+  stable node ids, cycle-safe moves and fractional sibling order; LWW properties per path; rich text with marks and stable
+  anchors; movable lists; per-commit `meta` (actor record, label, transaction id); opaque frontier and version vector;
+  `changedSince(base, scope)` by node and path without materializing the document; fork; full and shallow snapshots;
+  anchored inverse ops for undo. Reads are per node; there is no whole-document read.
+- **R11.8b** **Loro engine** (`@staticflux/document/loro-crdt`, the only `loro-crdt` importer) with its own Wasm budget category
+  (≤ 1.25 MB gzip, IF-15.1). Adapter rules (D14): per-node reads, id-span change detection, every handle freed with
+  dev-mode handle accounting and a Wasm-memory leak test, one commit per transaction, each session its own peer.
+- **R11.8c** **One commit per gesture**: gestures stage frame ops, coalesce them (last set per path, last move per node) and
+  commit once; previews read the staged ops, never the CRDT.
+- **R11.8d** **`DocumentRepo`**: many assets per repo, each split into parts (one per page plus a document-level part) loaded
+  lazily; a transaction touching several parts is validated together and persisted as one commit record; snapshot + log
+  persistence; head compare-and-swap on `generation`; compaction folds the log into snapshots and keeps an undo horizon
+  per actor (default 200); eviction of clean parts with hooks for a resource manager; each opened document is its own peer.
+- **R11.8e** **`DocumentStore` port** (heads with CAS, content-addressed blobs, append-only per-asset log with store-assigned
+  sequence numbers) with an in-memory reference implementation; workspace stores adapt to it.
+- **R11.8f** **Versioned components**: `defineComponent(id, schema, { version, migrations, defaults })` with field types
+  `ticks`, `ref`, `vec2`, `color`, `enum`, `map` (plus scalars, `json`, `richtext`, `list`); `role` and `name` are first-class
+  node fields; a registry validates property paths, values and kinds and generates JSON Schema (component and change-set
+  path schemas).
+- **R11.8g** **Canonical part encoding** (RFC 8785): deterministic bytes for the same content on every peer and engine
+  (nodes sorted by id, normalized sibling order, defaults omitted); parse → migrate → rebuild into a fresh CRDT with a new
+  peer and one commit of history.
+- **R11.8h** **Contract suites** in testkit for every port: `DocumentStore`, `DocumentRepo`, `DocumentCRDT` including an
+  N-peer convergence property test (random move, reorder, text, set under random partitions and heals).
+- **R11.8i** Performance targets from S4 are tracked in a bench file, not unit tests: 50k-node open ≤ 1 s, 1k-move drag commit
+  ≤ 20 KB, divergent merge ≤ 200 ms per page off the main thread.
+- **R11.8j** The v1 `DocumentCRDT` interface and ECS engine (`@staticflux/document`) stay available and unchanged for existing
+  consumers (Studio); `adaptToV1(part)` implements the v1 interface over any v2 part, so a v1 engine can move to Loro by
+  configuration.
+
+## 9.3 Content-addressed blob store (`@staticflux/blob`; Instaflow SF-Δ1, SF-Δ2)
+
+- **R9.3a** A `BlobStore` port: `put(stream | bytes, { signal, mime, encoding, onProgress }) → Result<BlobRef>`, `get(digest | ref, { range })`, `stream(ref)`, `has`, `stat`, `verify`, `putEncoded`, `delete` (GC only), `list` (catalog rebuild only). Digests are `sha256:` of the decoded content; writes dedupe by digest.
+- **R9.3b** Chunked hashing: blobs up to 8 MiB are one object; larger blobs are 4 MiB chunk objects plus a canonical chunk manifest whose digest is the blob digest. Boundaries do not depend on how the input stream is split. Hashing is cancellable and reports progress.
+- **R9.3c** Backends implement one small `ObjectStore` port; hashing, chunking, encoding (`deflate-raw`), ranges, streaming and verification are implemented once on top, so every backend passes the same contract suite (memory, OPFS directory, folder).
+- **R9.3d** OPFS backend: objects published by temp file + `FileSystemFileHandle.move()`; `createWritable` for small immutable objects, sync access handles (dedicated worker) for the journal and objects ≥ 1 MiB.
+- **R9.3e** Heads: canonical JSON with a checksum, replaced only by temp + `move()` under a Web Lock with a `generation` compare-and-swap; torn heads are detected; recovery removes temp files under the head's lock.
+- **R9.3f** Journal: append-only framed records (length, CRC-32) in numbered segments; an append resolves only once durable; torn tails are dropped on replay; a reopened journal starts a new segment.
+- **R9.3g** Latest store: part snapshots + journal + head for one asset, engine-agnostic (opaque parts and records); records deduped by id; incremental compaction (at most N parts per head swap); per-part `cover` positions so recovery marks only uncovered parts dirty; a CAS conflict with another head writer is merged.
+- **R9.3h** Leader: one context per workspace holds a Web Lock and owns the writers; other contexts relay commits over BroadcastChannel and resend until acknowledged; the leader acknowledges only durable commits and recovers before accepting new ones.
+- **R9.3i** Folder mirror: in folder mode acknowledgements come from the OPFS journal; a flusher copies new immutable objects and changed log segments, applies deletions and then swaps folder heads, on idle, at most about once per second and always on milestone/close.
+- **R9.3j** Folder permission: a lapse pauses the mirror and makes the store read-only (`SF-BLOB-004`) while reads continue from OPFS; a re-grant from a user gesture runs a full sync; external head changes are detectable on focus.
+- **R9.3k** Garbage collection: mark from registered roots (a failing root aborts the run), sweep from a derived catalog inventory (never a directory listing), with a grace period (default 30 days) refreshed by every write or dedupe hit. The catalog is rebuildable from a listing.
+- **R9.3l** Zip bundles: streaming writer and in-place reader (end record + central directory, `Blob.slice`); STORED and DEFLATE entries; deflate-raw blobs copied without recompression and adopted on import after hashing; OCF-style `mimetype` first entry; no zip64 (explicit error).
+- **R9.3m** Quota and persistence helpers: `requestPersistence()`, `estimateStorage()` (usage, quota, available, persisted), `checkQuota()` pre-flight; quota errors surface as `SF-BLOB-001`.
+
+## 11.3 Editor ↔ render pipeline plumbing (Instaflow M1 A5: SF-Δ17–Δ19, Δ22, Δ28)
+
+Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipeline`, `@staticflux/surface` (+ `/input-ring`),
+`@staticflux/runtime/worker`. Lifecycles and invariants P-1…P-8: `LIFECYCLES.md` §15.
+
+- **R11.30** **Topology-neutral pipes** (D15): every pipe runs with both ends in one thread (`local` medium) or across
+  threads (`shared`: SharedArrayBuffer + Atomics; `message`: mirrored memory over postMessage) with the same API and
+  memory format; `selectMedium({ topology, isolation })` picks the medium at boot. Endpoints are structured-cloneable
+  descriptions sent over any link. Each pipe kind has a shared contract suite run on every medium.
+- **R11.31** **Seqlock cells** (latest wins, e.g. the view-state frame): readers get a private stable copy and a
+  generation, never a half-written value; an optional checksum detects torn reads (validation mode without the seqlock);
+  a writer stuck mid-write yields the last good copy marked stale.
+- **R11.32** **Clock cell**: f64 position, state (stopped/playing/paused/seeking), rate, absolute anchor time and epoch in a
+  seqlock cell; readers extrapolate locally (M3 media clock; layout shared with Wasm/AudioWorklet readers).
+- **R11.33** **Record rings**: lossless single-producer / multi-consumer rings of `defineLayout` records with a cursor per
+  reader, a bounded pending queue under back-pressure (SF-WK-036 beyond it), and release of dead readers on respawn.
+- **R11.34** **Sequenced binary delta streams**: versioned records (`epoch`, `version`, `base`, flags, blob refs, payload);
+  ordered apply, apply up to a given version, gap or epoch change → resnapshot (E-1), lossless back-pressure with
+  overflow → snapshot, a reader joining a running stream requests a snapshot.
+- **R11.35** **Content-addressed side channel** for large payloads: blobs travel once per receiver lifetime by digest;
+  receiver LRU budget with eviction notices; missing blobs are re-requested and re-sent, or reported gone (resnapshot);
+  a record never applies before its blobs.
+- **R11.36** **Handle channel**: `VideoFrame`, `AudioData`, `ImageBitmap`, `OffscreenCanvas`, `FileSystemHandle` move
+  with explicit ownership (released on the sender, dev guard SF-WK-037), close accounting per kind in a ledger, leak
+  counters (collected unclosed or live at dispose → closed and reported, SF-WK-038) and live-handle limits.
+- **R11.37** **Brokered peer channels** between workers (open question 4): the main-thread broker wires a channel when
+  both workers announce themselves and re-wires it on every respawn; the worker-side channel object survives re-wires
+  (generations, surviving listeners/handlers, `onConnect` re-runs with cleanup); colocated mode uses a peer pair with
+  the same API.
+- **R11.38** **Optimistic intents with supersede-on-ack**: overlays (ephemeral edits) show immediately, stay until the
+  owner's acked version is applied locally and disappear in that step (E-2); newer intents on a key supersede older ones.
+- **R11.39** **Query / windowed replicas**: replicas holding only the entities inside a window (viewport, subtree, time
+  range); per-peer membership, diffs on window moves and changes, reset on gap or new owner epoch; `WindowedSource` port.
+- **R11.40** **Input forwarding fidelity** (surface): every `getCoalescedEvents` sample, pen pressure/tilt/twist/contact
+  size, flagged predicted samples, several sinks with coalescing and prediction chosen per sink, a batch `inputSeq`, and a
+  lossless binary input ring (`defineLayout` records, append-only key tables) whose readers coalesce on their own.
+- **R11.41** **Worker-side scheduler** (`@staticflux/runtime/worker`): priorities interaction → critical → visible → idle in
+  slices, `scheduler.yield` with a `MessageChannel` fallback, `shouldYield`, pause/resume (I-1); **long-task detector** for
+  workers (timed tasks, explicit measurements, event-loop lag probe; metric and event).
+- **R11.42** Cross-thread behaviour is tested with real concurrency (Node `worker_threads` or Chromium): torn-read detection,
+  gap → resnapshot, lossless rings under back-pressure, re-wire after a real worker respawn. No wall-clock assertions in
+  unit tests.

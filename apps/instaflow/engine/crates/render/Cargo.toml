@@ -1,0 +1,13 @@
+[package]
+name = "render"
+description = "Instaflow render engine (Vello GPU). Stub until A6."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = { workspace = true }

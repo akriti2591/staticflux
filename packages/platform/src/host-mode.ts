@@ -47,6 +47,8 @@ export interface ShellPresetRegistry {
   standalone: true;
   embedded: true;
   chromeless: true;
+  /** One screen naming what is missing (`unsupportedHostMode`). */
+  unsupported: true;
 }
 export type ShellPresetId = keyof ShellPresetRegistry & string;
 

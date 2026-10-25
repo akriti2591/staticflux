@@ -1,7 +1,7 @@
 {
   "name": "@staticflux/document",
   "version": "0.1.0",
-  "description": "ECS document model, DocumentCRDT interface, projections.",
+  "description": "ECS document model (v1, Yjs) and DocumentCRDT v2, DocumentRepo, versioned components (v2, Loro adapter).",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -9,12 +9,21 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./v2": {
+      "types": "./dist/v2.d.ts",
+      "import": "./dist/v2.js"
+    },
+    "./loro-crdt": {
+      "types": "./dist/loro-crdt.d.ts",
+      "import": "./dist/loro-crdt.js"
     }
   },
   "files": [
     "dist",
     "src",
     "!src/**/*.test.ts",
+    "!src/**/*.bench.ts",
     "!src/**/test-helpers.ts",
     "AGENTS.md",
     "README.md",
@@ -26,6 +35,7 @@
   "dependencies": {
     "@staticflux/core": "workspace:*",
     "@staticflux/worker": "workspace:*",
+    "loro-crdt": "1.17.1",
     "yjs": "13.6.33"
   },
   "repository": {

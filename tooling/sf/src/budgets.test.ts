@@ -68,6 +68,26 @@ describe('analyzeBudgets', () => {
     expect(noHeadroom.proposals[0]?.proposedLimit).toBe('7 KB');
   });
 
+  it('copies categories to rows and never ratchets a `ratchet: false` check', () => {
+    const ceilings: SizeLimitCheck[] = [
+      { name: 'render', category: 'render-wasm', path: 'r.wasm', limit: '300 KB', ratchet: false },
+      { name: 'other', path: 'o.js', limit: '300 KB' },
+    ];
+    const report = analyzeBudgets(ceilings, [
+      { name: 'render', size: 500 },
+      { name: 'other', size: 500 },
+    ]);
+    expect(report.rows.map((r) => [r.category, r.status])).toEqual([
+      ['render-wasm', 'ok'],
+      [undefined, 'ratchet'],
+    ]);
+    expect(report.rows[1]).not.toHaveProperty('category');
+    const table = formatBudgetTable(report);
+    expect(table.split('\n')[0]).toMatch(/^category\s+check\s+limit/);
+    expect(table).toMatch(/render-wasm\s+render\s+300 KB/);
+    expect(table).toMatch(/—\s+other/);
+  });
+
   it('never proposes a limit that is not lower', () => {
     // 7200 × 1.05 = 7560 > 7500: the proposal would loosen, so the row stays ok.
     const report = analyzeBudgets(config, results, { threshold: 0.03, headroom: 0.05 });

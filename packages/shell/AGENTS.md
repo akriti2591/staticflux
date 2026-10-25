@@ -20,7 +20,9 @@ Implements R13.1–R13.3, R12.19 (view transitions, placeholders), R15.2/R15.3 (
 - `presets.ts` — `defineShellPreset` (optional `skipTargets`), `shellPresets` (expanded, medium, compact, embedded), `ShellPresetToken`, `shellPresetUnit`.
 - `theme.ts` — `DesignTokens`, `tokenVar`, `cssVar`, `defineTheme`, `lightTheme`/`darkTheme`/`highContrastTheme`,
   `themeToCss`, `createThemeController({ media, store })` (`preference`, `theme`, `forcedColors`, `set`, `restore`,
-  `apply(element, scope)`), `browserMedia`, `ThemeControllerToken`, `ThemePreferenceStoreToken`.
+  `apply(element, scope)`), `browserMedia` (tokens in `tokens.ts`). The pre-contract token set: new apps theme with
+  `@staticflux/ui/theme` (typed tokens, density, reduced motion, themes as contributions) and leave `ThemeControllerToken`
+  unbound; the ui default theme emits the same `--sf-*` names as aliases, so shell elements follow either.
 - `commands.ts` — `defineCommand` (`shortcut?: KeyCombo`, `shortcutScope?: ShortcutScopeDef` from a11y), `CommandsToken` (multi), `commandContribution`, `createCommandRegistry`
   (`search`, `run`, `available`, `register(cmd, scope)`, `refreshDecisions`), `fuzzyMatch`, `CommandRegistryToken`.
 - `shortcuts.ts` — thin glue over `@staticflux/a11y` shortcuts (registry, `KeyCombo`, scopes, conflicts, labels and
@@ -38,8 +40,9 @@ Implements R13.1–R13.3, R12.19 (view transitions, placeholders), R15.2/R15.3 (
   gated contributions hidden until allowed, theme applied, `switchWorkspace(id)` in a View Transition; skip links first,
   landmarks (header→banner, sidebar→`nav`, `main`, panel→`aside` complementary, other slots→named region); lazy deps
   a11y `FocusManagerToken`, `ShellMessagesToken`, `CommandShortcutBindingsToken` (idle).
-- `tokens.ts` — `CommandsToken` (multi), `CommandRegistryToken`, `CommandShortcutBindingsToken` (token-only: `<sf-shell>` names
-  the bindings at boot while apps may defer their implementation).
+- `tokens.ts` — `CommandsToken` (multi), `CommandRegistryToken`, `CommandShortcutBindingsToken`, `ThemeControllerToken`,
+  `ThemePreferenceStoreToken` (token-only: `<sf-shell>` names them at boot while apps may defer or replace their implementation,
+  e.g. Studio binds `CommandShortcutBindingsToken` to the kit capability palette).
 - `units.ts` — `shellUnits`, `workspaceManagerUnit`, `themeControllerUnit`, `defaultShellPresetUnit`.
 - `keyboard-units.ts` — `commandRegistryUnit`, `commandShortcutsUnit` / `shellKeyboardUnits` (binds palette + command shortcuts
   into a11y `ShortcutRegistryToken`; needs a11y units + `SurfaceManagerToken`; conflicts land in `bindings.errors` as

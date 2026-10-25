@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./input-ring": {
+      "types": "./dist/input-ring.d.ts",
+      "import": "./dist/input-ring.js"
     }
   },
   "files": [

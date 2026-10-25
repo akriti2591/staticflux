@@ -8,7 +8,7 @@ import { contribution, err, ok, type Result, toSfError, unit, watch } from '@sta
 import { SessionToken } from '@staticflux/auth';
 import { SurfaceManagerToken } from '@staticflux/messaging';
 import { AppInjectorToken, defineSubsystem, FeatureHostToken, FrameSchedulerToken, SubsystemsToken, SupervisorToken } from '@staticflux/runtime';
-import { ThemeControllerToken } from '@staticflux/shell';
+import { AppearanceToken } from '@staticflux/ui/theme';
 import { Features, type LateServices, LateServicesToken } from './contracts.js';
 
 
@@ -49,14 +49,14 @@ export const postBootSubsystemUnit = contribution({
   id: 'studio/post-boot-subsystem-unit',
   provides: SubsystemsToken,
   scope: 'app',
-  deps: { required: { session: SessionToken, host: FeatureHostToken }, lazy: { late: LateServicesToken, theme: ThemeControllerToken } },
-  create: ({ session, host, late, theme }) =>
+  deps: { required: { session: SessionToken, host: FeatureHostToken }, lazy: { late: LateServicesToken, appearance: AppearanceToken } },
+  create: ({ session, host, late, appearance }) =>
     defineSubsystem({
       id: 'studio/post-boot',
       dependsOn: ['router/navigation'],
       start: (ctx) => {
         late.trigger();
-        void theme.whenReady(ctx.signal).then((controller) => (controller.ok ? controller.value.restore(ctx.signal) : undefined));
+        void appearance.whenReady(ctx.signal).then((controller) => (controller.ok ? controller.value.restore(ctx.signal) : undefined));
         watch(
           () => session.isAuthenticated,
           (authenticated) => {

@@ -1,0 +1,8 @@
+{
+  "format": "sf-license-policy/1",
+  "npm": true,
+  "cargoWorkspaces": ["apps/instaflow/engine"],
+  "modelRegistry": "apps/instaflow/models/registry.json",
+  "modelReferenceRoots": ["packages/*/src", "apps/*/src", "apps/*/public", "apps/*/engine/crates"],
+  "exceptions": []
+}

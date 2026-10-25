@@ -60,6 +60,7 @@ Sizes are relative (S ≈ days, M ≈ 1–2 weeks, L ≈ 2–3 weeks for one own
 
 | WP | Scope | SF-Δ / IF | Depends on | Size |
 |---|---|---|---|---|
+| **B0** Editor spec runtime (D16) | Spec schema; registry of lenses, tools, panels and HUD actions as contributions; validation and gating with typed errors; spec diff and animated mount/unmount; pinning; Studio defined as the first (maximal) spec, usable fully by hand | new; D16, D19 | A7, A8, A10 | M |
 | **B1** Elements and styles | Frame, group, rect/ellipse/polygon, image, vector paths, booleans (linesweeper, non-destructive), effects; brand-kit tokens and classes; locks | IF-4.6–4.7, 7.9 | A4, A6, A8 | L |
 | **B2** Text | Parley in the authoring Wasm; `TextInput` port (EditContext, hidden-textarea for Firefox); rich-text marks with stable anchors; Local Font Access plus uploads; `complex-scripts` loaded lazily; **human IME check (JA/ZH/KO)** before sign-off | Δ27, IF-7.6–7.7 | A2, A4, A7 | L |
 | **B3** Tools | Hit testing (rbush → kurbo), select, marquee, transform handles, snapping and guides, nudge; per-tab view state | IF-7.2, 7.8 | A7, B1 | M |
@@ -76,6 +77,7 @@ and snapping; take a milestone, branch a new document from it; co-edit it in two
 |---|---|---|---|---|
 | **C1** Export | Frozen snapshot at export start (IF-5.10, D10: no record); PNG via headless Vello; PDF via krilla (lazy chunk, real text); SVG writer; **decide the SVG parity rule** (tolerant metric or per-feature rasterize list) | Δ24, IF-5.10, 7.10 | A6, B1, B2 | M |
 | **C2** Import | `.iflow` export/import (stored parts copied without recompression), file handler via launch queue; SVG import through usvg | Δ33, IF-13.3–13.4 | A3, C1 | M |
+| **C0** Home route (D17) | Light boot with no engine or GPU: recents, files, templates, quick-action entry points, "New design" straight into Studio | D17, D18, Δ26 boot plans | A1, A3, A10 | S |
 | **C3** Modes and identity | Read-only mode (same renderer, editing capabilities not declared); guest identity; gating for modes, locks and brand rules | IF-13.1, IF-14.1–14.4, D3 | A8, B5 | S |
 | **C4** Hardening | All M1 scenarios in Playwright; perf-lab job with budgets; size budgets ratcheted; spike folders removed | IF-15, IF-16 | all | M |
 
@@ -127,10 +129,10 @@ flowchart LR
 | 1 | A1, A2, A3, A4, A5, A9, A10 | this plan is approved |
 | 2 | A6, A7, A8 | A2 + A5 (A6, A7), A4 (A8) are merged |
 | — | **M1a demo and review** | wave 2 merged |
-| 3 | B1, B2, B4, B5 | M1a review |
+| 3 | B0, B1, B2, B4, B5 | M1a review |
 | 4 | B3, then B6 | B1 merged |
 | — | **M1b demo and review** (incl. IME check) | wave 4 merged |
-| 5 | C1, C3, then C2 | M1b review |
+| 5 | C0, C1, C3, then C2 | M1b review |
 | 6 | C4 | all merged |
 
 ## Design track (parallel to M1a)

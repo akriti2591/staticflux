@@ -2,7 +2,10 @@
  * `<studio-mobile-editor>` — compact editor UI over the same document store as the
  * desktop variant (per-mode variant, R18.5): one column, no minimap, presence lazy.
  */
+import { defineButton } from '@staticflux/kit/button';
+import { defineTextField } from '@staticflux/kit/text-field';
 import { component, type ComponentHooksOf, defineComponent, SfElement } from '@staticflux/ui';
+import { themeTokens as t } from '@staticflux/ui/theme';
 import { css, html, type TemplateResult } from 'lit';
 import { ReadinessToken } from '../../adapters/perf-runtime.js';
 import { CapabilityInvokerToken, DocumentStoreToken, Features, InsertTextCapability, PresenceToken } from '../../app/contracts.js';
@@ -21,8 +24,9 @@ const mobileSpec = component({
 export class StudioMobileEditor extends SfElement<typeof mobileSpec> {
   static override readonly spec = mobileSpec;
   static override styles = css`
-    :host { display: grid; gap: var(--sf-space-2, 8px); }
-    input { font-size: 1.2em; width: 100%; box-sizing: border-box; }
+    :host { display: grid; gap: ${t.space.sm.css}; }
+    sf-text-field { font-size: ${t.type.sizeLg.css}; }
+    small { color: ${t.color.textMuted.css}; }
   `;
 
   protected override wireDeps(on: ComponentHooksOf<typeof mobileSpec>): void {
@@ -33,15 +37,17 @@ export class StudioMobileEditor extends SfElement<typeof mobileSpec> {
     const { doc, presence } = this.deps;
     const others = presence.value === undefined ? 0 : Object.values(presence.value.view.participants).filter((p) => !p.local).length;
     return html`
-      <input aria-label="Title" .value=${doc.title} ?readonly=${doc.readOnly} @change=${(e: Event) => doc.rename((e.target as HTMLInputElement).value)} />
+      <sf-text-field label="Title" label-hidden .value=${doc.title} ?readonly=${doc.readOnly} @change=${(e: Event) => doc.rename((e.target as HTMLInputElement).value)}></sf-text-field>
       <small role="status">${doc.pendingSave ? 'Saving…' : 'Saved'}${others > 0 ? ` · ${others} co-editing` : ''}</small>
       <studio-block-list></studio-block-list>
-      <button @click=${() => void this.deps.invoker.invoke(InsertTextCapability, { text: 'New paragraph' })}>Add paragraph</button>
+      <sf-button size="lg" @click=${() => void this.deps.invoker.invoke(InsertTextCapability, { text: 'New paragraph' })}>Add paragraph</sf-button>
     `;
   }
 }
 
 export function defineMobileEditor(): void {
+  defineButton();
+  defineTextField();
   defineBlockList();
   const defined = defineComponent(StudioMobileEditor);
   if (!defined.ok) throw defined.error;

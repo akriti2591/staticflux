@@ -13,6 +13,14 @@
     "./detect-mode": {
       "types": "./dist/detect-mode.d.ts",
       "import": "./dist/detect-mode.js"
+    },
+    "./baseline": {
+      "types": "./dist/baseline.d.ts",
+      "import": "./dist/baseline.js"
+    },
+    "./unsupported-screen": {
+      "types": "./dist/unsupported-screen.d.ts",
+      "import": "./dist/unsupported-screen.js"
     }
   },
   "files": [
@@ -29,6 +37,9 @@
   },
   "dependencies": {
     "@staticflux/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@staticflux/loader": "workspace:*"
   },
   "repository": {
     "type": "git",

@@ -338,7 +338,7 @@
       "mobx",
       "@staticflux/core"
     ],
-    "limit": "14 KB"
+    "limit": "15 KB"
   },
   {
     "name": "@staticflux/devtools (collector; dev only)",
@@ -355,5 +355,492 @@
       "@staticflux/devtools/panel"
     ],
     "limit": "17.5 KB"
+  },
+  {
+    "name": "@staticflux/platform baseline (inline pre-boot check: web API facts + verdict)",
+    "path": "packages/platform/dist/baseline.js",
+    "import": "{ checkBaseline, checkBaselineSync, defineBaseline, requireApi, requireFact }",
+    "limit": "1.3 KB"
+  },
+  {
+    "name": "@staticflux/platform unsupported screen (the unsupported boot plan's only chunk)",
+    "path": "packages/platform/dist/unsupported-screen.js",
+    "limit": "750 B"
+  },
+  {
+    "name": "@staticflux/platform async fact lane + built-in probes",
+    "path": "packages/platform/dist/index.js",
+    "import": "{ createAsyncFactLane, webGpuAdapterFact, codecSupportFact, opfsSyncAccessFact }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "3.75 KB"
+  },
+  {
+    "name": "@staticflux/document/v2 (DocumentRepo, components, canonical parts; no engine)",
+    "path": "packages/document/dist/v2.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker"
+    ],
+    "limit": "12 KB"
+  },
+  {
+    "name": "@staticflux/document/loro-crdt (adapter glue, excl. loro-crdt)",
+    "path": "packages/document/dist/loro-crdt.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker",
+      "loro-crdt"
+    ],
+    "limit": "9 KB"
+  },
+  {
+    "name": "loro-crdt Wasm [wasm budget category; worker only, IF-15.1 ≤ 1.25 MB gzip]",
+    "path": "packages/document/node_modules/loro-crdt/bundler/loro_wasm_bg.wasm",
+    "rolldown": false,
+    "gzip": true,
+    "limit": "1.21 MB"
+  },
+  {
+    "name": "@staticflux/blob (store worker: workspace store + Latest + leader)",
+    "path": "packages/blob/dist/index.js",
+    "import": "{ openOpfsDirectory, createWorkspaceStore, createLatestStore, createStoreLeader }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "12 KB"
+  },
+  {
+    "name": "@staticflux/blob (folder mirror)",
+    "path": "packages/blob/dist/index.js",
+    "import": "{ createFolderMirror }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "6.5 KB"
+  },
+  {
+    "name": "@staticflux/blob (zip bundle)",
+    "path": "packages/blob/dist/index.js",
+    "import": "{ createZipWriter, openZip, addBlobToZip, importZipBlob }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "@staticflux/blob (full)",
+    "path": "packages/blob/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "21 KB"
+  },
+  {
+    "name": "@staticflux/worker/pipeline",
+    "path": "packages/worker/dist/pipeline.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "23 KB"
+  },
+  {
+    "name": "@staticflux/runtime/worker (worker scheduler + long-task detector)",
+    "path": "packages/runtime/dist/worker.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "3.5 KB"
+  },
+  {
+    "name": "@staticflux/surface/input-ring",
+    "path": "packages/surface/dist/input-ring.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker",
+      "@staticflux/worker/channels",
+      "@staticflux/worker/pipeline"
+    ],
+    "limit": "1.75 KB"
+  },
+  {
+    "name": "@staticflux/ui/theme (contract, appearance, units)",
+    "path": "packages/ui/dist/theme.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/runtime"
+    ],
+    "limit": "6 KB"
+  },
+  {
+    "name": "@staticflux/ui/default-theme",
+    "path": "packages/ui/dist/default-theme.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/runtime"
+    ],
+    "limit": "2.5 KB"
+  },
+  {
+    "name": "@staticflux/kit/button",
+    "path": "packages/kit/dist/button.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "1.75 KB"
+  },
+  {
+    "name": "@staticflux/kit/icon-button",
+    "path": "packages/kit/dist/icon-button.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "4.5 KB"
+  },
+  {
+    "name": "@staticflux/kit/segmented",
+    "path": "packages/kit/dist/segmented.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "2.75 KB"
+  },
+  {
+    "name": "@staticflux/kit/text-field",
+    "path": "packages/kit/dist/text-field.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "2 KB"
+  },
+  {
+    "name": "@staticflux/kit/slider",
+    "path": "packages/kit/dist/slider.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "1.6 KB"
+  },
+  {
+    "name": "@staticflux/kit/color-field",
+    "path": "packages/kit/dist/color-field.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "2.25 KB"
+  },
+  {
+    "name": "@staticflux/kit/menu",
+    "path": "packages/kit/dist/menu.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "5.5 KB"
+  },
+  {
+    "name": "@staticflux/kit/popover",
+    "path": "packages/kit/dist/popover.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "3.5 KB"
+  },
+  {
+    "name": "@staticflux/kit/tooltip",
+    "path": "packages/kit/dist/tooltip.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "3.6 KB"
+  },
+  {
+    "name": "@staticflux/kit/tabs",
+    "path": "packages/kit/dist/tabs.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "3 KB"
+  },
+  {
+    "name": "@staticflux/kit/surfaces",
+    "path": "packages/kit/dist/surfaces.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "8.25 KB"
+  },
+  {
+    "name": "@staticflux/kit/surface-defs",
+    "path": "packages/kit/dist/surface-defs.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "0.5 KB"
+  },
+  {
+    "name": "@staticflux/kit/toolbar",
+    "path": "packages/kit/dist/toolbar.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "2.5 KB"
+  },
+  {
+    "name": "@staticflux/kit/dock",
+    "path": "packages/kit/dist/dock.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "7 KB"
+  },
+  {
+    "name": "@staticflux/kit/inspector",
+    "path": "packages/kit/dist/inspector.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "1.85 KB"
+  },
+  {
+    "name": "@staticflux/kit/tree",
+    "path": "packages/kit/dist/tree.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "4.4 KB"
+  },
+  {
+    "name": "@staticflux/kit/command-palette",
+    "path": "packages/kit/dist/command-palette.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "3.6 KB"
+  },
+  {
+    "name": "@staticflux/kit/roving",
+    "path": "packages/kit/dist/roving.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "1.25 KB"
+  },
+  {
+    "name": "@staticflux/kit/position",
+    "path": "packages/kit/dist/position.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "1.5 KB"
+  },
+  {
+    "name": "@staticflux/kit (full, excl. lit + framework)",
+    "path": "packages/kit/dist/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "22.5 KB"
   }
 ]

@@ -9,6 +9,7 @@ import { MeterRegistryToken } from '@staticflux/gate';
 import { coachTarget } from '@staticflux/messaging';
 import { isMatchOf, RouterToken } from '@staticflux/router';
 import { component, defineComponent, SfElement } from '@staticflux/ui';
+import { themeTokens as t } from '@staticflux/ui/theme';
 import { css, html, type TemplateResult } from 'lit';
 import { GuestDraftToken } from '../adapters/handoff-auth.js';
 import { AiButtonTarget, CreditsMeter, OutletsToken, PanelControllerToken } from '../app/contracts.js';
@@ -16,10 +17,16 @@ import { HomeDocsToken } from '../app/home.js';
 import { appMessages } from '../app/messages.js';
 import { DocRoute, HomeRoute, LoginRoute, NotFoundRoute, OnboardingRoute, SettingsRoute } from '../app/routes.js';
 
+/**
+ * Controls are kit components (`sf-button`, `sf-text-field`, loaded right after boot by
+ * `defineAppViews`); views only lay out and color links. Until the kit chunk defines them,
+ * controls keep their size and look (no layout shift).
+ */
 const linkStyles = css`
-  a { color: inherit; }
-  button { font: inherit; cursor: pointer; border-radius: var(--sf-radius-small, 4px); border: 1px solid var(--sf-color-border, #ccc); background: var(--sf-color-surface, #fff); color: inherit; padding: 4px 10px; }
-  button.primary { background: var(--sf-color-accent, #4f46e5); color: var(--sf-color-accent-fg, #fff); border-color: transparent; }
+  a { color: ${t.color.accentText.css}; text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid ${t.color.focusRing.css}; outline-offset: 2px; border-radius: ${t.radius.sm.css}; }
+  sf-button:not(:defined) { display: inline-flex; align-items: center; box-sizing: border-box; min-block-size: ${t.size.control.css}; padding-inline: ${t.space.md.css}; border: 1px solid ${t.color.border.css}; border-radius: ${t.radius.md.css}; font-weight: ${t.font.weightMedium.css}; }
+  sf-text-field:not(:defined) { display: inline-block; min-block-size: calc(${t.size.control.css} + 20px); }
 `;
 
 /** Navigate through the router (typed targets or hrefs); never a full page load. */
@@ -43,7 +50,14 @@ const headerSpec = component({
 
 export class StudioHeader extends SfElement<typeof headerSpec> {
   static override readonly spec = headerSpec;
-  static override styles = [linkStyles, css`:host { display: flex; gap: 12px; align-items: center; padding: 8px 16px; } nav { display: flex; gap: 12px; flex: 1; } .credits { opacity: 0.8; }`];
+  static override styles = [
+    linkStyles,
+    css`
+      :host { display: flex; gap: ${t.space.md.css}; align-items: center; min-block-size: ${t.size.toolbar.css}; padding-inline: ${t.space.lg.css}; background: ${t.color.surface1.css}; border-block-end: 1px solid ${t.color.border.css}; }
+      nav { display: flex; gap: ${t.space.md.css}; flex: 1; }
+      .credits { color: ${t.color.textMuted.css}; font-size: ${t.type.sizeSm.css}; }
+    `,
+  ];
 
   override render(): TemplateResult {
     const { session, i18n, panel, meters } = this.deps;
@@ -57,11 +71,11 @@ export class StudioHeader extends SfElement<typeof headerSpec> {
         <a href="/settings" @click=${go(this, '/settings')}>${i18n.t(appMessages.settings)}</a>
       </nav>
       ${available === undefined ? '' : html`<span class="credits" data-testid="credits">${i18n.t(appMessages.credits, { count: available })}</span>`}
-      <button ${coachTarget(AiButtonTarget)} data-testid="open-chat" aria-pressed=${panel.open === 'agent/chat' ? 'true' : 'false'} @click=${() => void (panel.open === undefined ? panel.show('agent/chat') : panel.hide())}>
+      <sf-button ${coachTarget(AiButtonTarget)} data-testid="open-chat" .pressed=${panel.open === 'agent/chat'} @click=${() => void (panel.open === undefined ? panel.show('agent/chat') : panel.hide())}>
         ${i18n.t(appMessages.openChat)}
-      </button>
+      </sf-button>
       ${session.isAuthenticated
-        ? html`<span>${session.principal?.displayName ?? session.principal?.id}</span><button @click=${() => void session.logout()}>${i18n.t(appMessages.signOut)}</button>`
+        ? html`<span>${session.principal?.displayName ?? session.principal?.id}</span><sf-button variant="ghost" @click=${() => void session.logout()}>${i18n.t(appMessages.signOut)}</sf-button>`
         : html`<a href="/login" @click=${go(this, '/login')}>${i18n.t(appMessages.signIn)}</a>`}
     `;
   }
@@ -78,7 +92,17 @@ const mainSpec = component({
 
 export class StudioMain extends SfElement<typeof mainSpec> {
   static override readonly spec = mainSpec;
-  static override styles = [linkStyles, css`:host { display: block; padding: 16px; } ul { padding-inline-start: 18px; } .login { display: flex; gap: 8px; }`];
+  static override styles = [
+    linkStyles,
+    css`
+      :host { display: block; padding: ${t.space.lg.css}; }
+      ul { padding-inline-start: ${t.space.lg.css}; }
+      .login { display: flex; gap: ${t.space.sm.css}; }
+      sf-text-field { min-inline-size: 24ch; }
+      /* The feature outlet takes route-change focus (tabindex -1, a11y router adapter): no ring on a whole region. */
+      .outlet:focus { outline: none; }
+    `,
+  ];
 
   override render(): TemplateResult {
     const { router, outlets } = this.deps;
@@ -93,7 +117,7 @@ export class StudioMain extends SfElement<typeof mainSpec> {
       if (!session.isAuthenticated) {
         return html`<h1>${i18n.t(appMessages.welcome)}</h1>
           <p>${i18n.t(appMessages.guestIntro)}</p>
-          <label>Draft title <input .value=${draft.get()} @input=${(e: Event) => draft.set((e.target as HTMLInputElement).value)} /></label>
+          <sf-text-field label="Draft title" .value=${draft.get()} @input=${(e: Event) => draft.set((e.target as HTMLInputElement).value)}></sf-text-field>
           <p><a href="/onboarding/step/1" @click=${go(this, '/onboarding/step/1')}>${i18n.t(appMessages.startTour)}</a></p>`;
       }
       const list = home.list;
@@ -101,16 +125,16 @@ export class StudioMain extends SfElement<typeof mainSpec> {
         <ul data-testid="doc-list">
           ${(list?.items ?? []).map((doc) => html`<li><a href=${`/studio/doc/${doc.id}`} @click=${go(this, `/studio/doc/${doc.id}`)}>${doc.title}</a></li>`)}
         </ul>
-        ${list?.hasMore === true ? html`<button @click=${() => void list.fetchNext()}>${i18n.t(appMessages.loadMore)}</button>` : ''}`;
+        ${list?.hasMore === true ? html`<sf-button @click=${() => void list.fetchNext()}>${i18n.t(appMessages.loadMore)}</sf-button>` : ''}`;
     }
     if (route === LoginRoute && isMatchOf(match, LoginRoute)) {
       const returnTo = match.search.returnTo;
       return html`<h1>${i18n.t(appMessages.signIn)}</h1>
         <div class="login">
           ${(['ada', 'grace'] as const).map(
-            (id) => html`<button class="primary" data-testid=${`login-${id}`} @click=${() => void session.login({ returnTo, loginHint: id })}>
+            (id) => html`<sf-button variant="primary" data-testid=${`login-${id}`} @click=${() => void session.login({ returnTo, loginHint: id })}>
               ${i18n.t(appMessages.signInAs, { name: id === 'ada' ? 'Ada (free)' : 'Grace (pro)' })}
-            </button>`,
+            </sf-button>`,
           )}
         </div>`;
     }
@@ -145,6 +169,8 @@ export class StudioInspector extends SfElement<typeof inspectorSpec> {
 }
 
 export function defineAppViews(): void {
+  // Kit controls load right after boot (their own chunk, shared with features) and upgrade in place.
+  void import('./controls.js').then((controls) => controls.defineAppControls());
   for (const element of [StudioHeader, StudioMain, StudioPanel, StudioInspector]) {
     const defined = defineComponent(element);
     if (!defined.ok) throw defined.error;

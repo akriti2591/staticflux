@@ -21,7 +21,8 @@ Try it: `/` (guest welcome) → `/studio/doc/1?panel=chat&prompt=Add%20an%20imag
 `/login`; pick *Ada (free)* or *Grace (pro)*; the mock BFF "redirects" back with a real page
 load and the chat prompt is prefilled) · `/onboarding/step/1` · `/settings` (theme, language
 incl. Arabic/RTL, expert workspace) · `?sf-mode=web:compact` (mobile editor variant) ·
-`?sf-flag=studio/ai-suggestions:false` · `?sf-debug` (console telemetry sink).
+`?sf-flag=studio/ai-suggestions:false` · `?sf-debug` (console telemetry sink) · `Ctrl/⌘+K` (capability palette) ·
+`/settings` density Focus / Standard / Pro (kit + theme contract, see `@staticflux/kit`).
 Devtools: `globalThis.__STUDIO__` (injector, supervisor, telemetry records, violations, journeys).
 
 ## Architecture map
@@ -38,13 +39,15 @@ src/app/
   document.ts    lazy document runtime units          late.ts       post-boot units chunk (AI, WebMCP, warmup/advisors)
   deferred.ts   deferred unit groups (core `deferredUnits`): surfaces, keyboard, capabilities, resources,
                 user-data, handoff, resource-cache — placeholders at boot, chunks in deferred/*.ts
-  shell.ts       slots, workspaces, outlets, panel controller, UI root   home.ts  observed docs.list (session-scoped cache)
+  shell.ts       slots, workspaces, outlets, panel controller, UI root (applies the theme appearance to <html>)
+  home.ts        observed docs.list (session-scoped cache)
   telemetry.ts   telemetry + memory/console sinks + journey tracker + violation collector (attached before boot)
   environment.ts / headless.ts   browser vs headless StudioEnvironment
 src/adapters/    one file per package pair (see below)
 src/features/    studio-desktop · studio-mobile · agent-chat · onboarding · settings · billing (one chunk each)
 src/lib/         studio-logic.ts — logic shared by the two editor variants (not a feature)
-src/ui/          app views (header, main, panel, inspector), block list, feature mount helper
+src/ui/          app views (header, main, panel, inspector), block list, feature mount helper, controls.ts (kit
+                 controls the app views lazy-load after boot)
 src/worker/      document worker: protocol, worker-side host (engine + presence + mock co-editor), spawners
                  (spawn-browser.ts is a lazy shim; the real spawner is the spawn-worker.ts chunk)
 src/mocks/       mock server (BFF session, docs, credits, flags), data routes, BFF endpoints, shared memory storage
@@ -67,7 +70,7 @@ the static closure of `boot-browser.ts` (`bootEntries`), as computed by the buil
 
 | | before | after |
 |---|---:|---:|
-| boot JS, gzip (build report) | 197.8 KB | **145.8 KB** |
+| boot JS, gzip (build report) | 197.8 KB | 145.8 KB → **149.1 KB** with the theme contract (A10) |
 | boot JS, brotli | 173.6 KB | 123.4 KB |
 | boot files | 17 | 3 (`index` 2.3 · `boot-browser` 0.4 · `boot` 143.0) |
 | rendered (pre-minify) module code | 1002 KB | 797 KB |
@@ -125,7 +128,11 @@ What changed (deferring, not deleting — every vertical is still composed):
    per binding, what boot uses and puts it in one `codeSplitting` group (≈ −6 KB, 17 → 3 files).
 5. **Lazy worker spawner.** `spawn-browser.ts` imports the real spawner on the first spawn.
 
-Remaining 145.8 KB is what the first interactive frame runs: the framework runtime (core, runtime, DI,
+Theme contract (Instaflow M1 A10): `@staticflux/ui/theme` (contract, appearance) + the default theme cost ≈ 3.3 KB net — the
+shell theme controller they replace left boot, kit controls on the app views load right after boot (`ui/controls.ts`),
+and the kit surface layer stays in the deferred surfaces chunk.
+
+Remaining 149.1 KB is what the first interactive frame runs: the framework runtime (core, runtime, DI,
 router, auth, gate, config, data client, platform, urlstate, i18n, storage ≈ 120 KB attributed), Lit + MobX
 (≈ 28 KB), shell/ui elements and the app composition + mock backend. Next candidates if the budget tightens:
 gate meters (needs a lazy meter source in `@staticflux/gate`), perf conformance detectors (need a replay
@@ -171,7 +178,8 @@ The build fails in CI on a regression (`budgets.onViolation: 'error'` when `CI` 
 | runtime-messaging | runtime → messaging | "Reconnecting…" while paused (functional surface manager) |
 | runtime-router | runtime → router | feature driver mounting into the main outlet |
 | runtime-urlstate | runtime → urlstate | URL sync in the frame scheduler |
-| storage-shell | storage → shell/messaging | theme/workspace/seen preference stores |
+| storage-shell | storage → shell/messaging | workspace/seen preference stores |
+| storage-ui | storage → ui | appearance preference store (device: scheme, contrast, density, motion) |
 | urlstate-router | urlstate ⇄ router | one shared history; intent capture/authorize plugins; flush hook |
 | urlstate-runtime | urlstate → runtime | authorized intent activates its owner (chat opens the panel) |
 | worker-core | auth/config/gate/platform → worker | core-context hub (lazy chunk) |

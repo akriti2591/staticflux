@@ -1,0 +1,142 @@
+{
+  "name": "@staticflux/kit",
+  "version": "0.1.0",
+  "description": "UI kit: themed Lit components (controls, overlays, shell parts, command palette) on @staticflux/ui, wired to messaging and capabilities.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./button": {
+      "types": "./dist/button.d.ts",
+      "import": "./dist/button.js"
+    },
+    "./icon-button": {
+      "types": "./dist/icon-button.d.ts",
+      "import": "./dist/icon-button.js"
+    },
+    "./segmented": {
+      "types": "./dist/segmented.d.ts",
+      "import": "./dist/segmented.js"
+    },
+    "./text-field": {
+      "types": "./dist/text-field.d.ts",
+      "import": "./dist/text-field.js"
+    },
+    "./slider": {
+      "types": "./dist/slider.d.ts",
+      "import": "./dist/slider.js"
+    },
+    "./color-field": {
+      "types": "./dist/color-field.d.ts",
+      "import": "./dist/color-field.js"
+    },
+    "./menu": {
+      "types": "./dist/menu.d.ts",
+      "import": "./dist/menu.js"
+    },
+    "./popover": {
+      "types": "./dist/popover.d.ts",
+      "import": "./dist/popover.js"
+    },
+    "./tooltip": {
+      "types": "./dist/tooltip.d.ts",
+      "import": "./dist/tooltip.js"
+    },
+    "./tabs": {
+      "types": "./dist/tabs.d.ts",
+      "import": "./dist/tabs.js"
+    },
+    "./surfaces": {
+      "types": "./dist/surfaces.d.ts",
+      "import": "./dist/surfaces.js"
+    },
+    "./surface-defs": {
+      "types": "./dist/surface-defs.d.ts",
+      "import": "./dist/surface-defs.js"
+    },
+    "./toolbar": {
+      "types": "./dist/toolbar.d.ts",
+      "import": "./dist/toolbar.js"
+    },
+    "./dock": {
+      "types": "./dist/dock.d.ts",
+      "import": "./dist/dock.js"
+    },
+    "./inspector": {
+      "types": "./dist/inspector.d.ts",
+      "import": "./dist/inspector.js"
+    },
+    "./tree": {
+      "types": "./dist/tree.d.ts",
+      "import": "./dist/tree.js"
+    },
+    "./command-palette": {
+      "types": "./dist/command-palette.d.ts",
+      "import": "./dist/command-palette.js"
+    },
+    "./roving": {
+      "types": "./dist/roving.d.ts",
+      "import": "./dist/roving.js"
+    },
+    "./position": {
+      "types": "./dist/position.d.ts",
+      "import": "./dist/position.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/test-helpers.ts",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "staticflux": {
+    "layer": "ui"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*",
+    "@staticflux/ui": "workspace:*",
+    "@staticflux/messaging": "workspace:*",
+    "@staticflux/a11y": "workspace:*",
+    "@staticflux/i18n": "workspace:*",
+    "@staticflux/capabilities": "workspace:*"
+  },
+  "peerDependencies": {
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "lit": "3.3.3",
+    "@lit/context": "1.1.6",
+    "@staticflux/testkit": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akriti2591/staticflux.git",
+    "directory": "packages/kit"
+  },
+  "homepage": "https://akriti2591.github.io/staticflux/",
+  "bugs": {
+    "url": "https://github.com/akriti2591/staticflux/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [
+    "staticflux",
+    "typescript",
+    "framework",
+    "client-side",
+    "web-components",
+    "design-system"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}

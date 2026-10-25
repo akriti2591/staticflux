@@ -17,7 +17,12 @@ import { DocsListEndpoint } from './app/endpoints.js';
 import { HomeDocsToken } from './app/home.js';
 import { ExpertWorkspace } from './app/shell.js';
 import { DocRoute, LoginRoute, UpgradeDialog } from './app/routes.js';
+import { CapabilityRegistryToken } from '@staticflux/capabilities';
+import { paletteEntries } from '@staticflux/kit/command-palette';
+import { CommandShortcutBindingsToken } from '@staticflux/shell';
+import { AppearanceToken } from '@staticflux/ui/theme';
 import { ChatControllerToken } from './features/agent-chat/logic.js';
+import { appearanceForMode } from './features/settings/index.js';
 import { signedInServer, spans } from './test/fixtures.js';
 import { bootHeadless, completeLoginRedirect, type Harness, settle, waitFor } from './test/harness.js';
 
@@ -250,6 +255,56 @@ describe('ui', () => {
     await waitFor(hasInspector, { message: 'inspector slot after switching to expert' });
     expect((await workspaces.switchTo(defaultWorkspace.id)).ok).toBe(true);
     await waitFor(() => !hasInspector(), { message: 'inspector gone after switching back' });
+  });
+});
+
+describe('ui kit + theme (second consumer of @staticflux/kit)', () => {
+  it('applies the default theme and appearance to <html> and upgrades kit controls in the header', async () => {
+    harness = await bootHeadless({ url: '/', server: signedInServer('ada'), render: true });
+    await waitFor(() => harness!.session.isAuthenticated, { message: 'signed in' });
+    const html = document.documentElement;
+    expect(html.getAttribute('data-sf-theme')).toBe('sf/default');
+    expect(['light', 'dark']).toContain(html.getAttribute('data-sf-scheme'));
+    expect(html.getAttribute('data-sf-density')).toBe('standard');
+    expect(document.head.querySelector('style[data-sf-theme-style]')?.textContent).toContain('--sf-color-surface-1');
+    const shell = harness.root?.querySelector('sf-shell');
+    const header = (): Element | null | undefined => shell?.shadowRoot?.querySelector('studio-header');
+    await waitFor(() => header()?.shadowRoot?.querySelector('sf-button[data-testid="open-chat"]')?.getAttribute('role') === 'button', { message: 'kit button upgraded' });
+    const chatButton = header()?.shadowRoot?.querySelector('sf-button[data-testid="open-chat"]') as HTMLElement;
+    // `.pressed` was set before the upgrade; the element keeps it (Lit restores pre-upgrade properties).
+    await waitFor(() => chatButton.getAttribute('aria-pressed') === 'false', { message: 'toggle button state after upgrade' });
+    chatButton.click();
+    const panel = await harness.get(PanelControllerToken);
+    await waitFor(() => panel.open === 'agent/chat', { message: 'chat opened from the kit button' });
+    await waitFor(() => chatButton.getAttribute('aria-pressed') === 'true', { message: 'toggle state' });
+
+    // Density is an appearance preference, remembered per device.
+    const appearance = await harness.get(AppearanceToken);
+    expect((await appearance.set({ density: 'pro' })).ok).toBe(true);
+    expect(html.getAttribute('data-sf-density')).toBe('pro');
+  });
+
+  it('lists the runnable capabilities in the kit command palette (Mod+K)', async () => {
+    harness = await bootHeadless({ url: '/', server: signedInServer('grace'), render: true });
+    await waitFor(() => harness!.session.isAuthenticated, { message: 'signed in' });
+    await openDoc(harness);
+    const registry = await harness.get(CapabilityRegistryToken);
+    const entries = paletteEntries(registry.list(), (id) => registry.isImplemented(id), '');
+    // Parameterised capabilities (insert text / image) belong to the HUD or chat, not the palette.
+    expect(entries.map((e) => e.capability.id)).toEqual(expect.arrayContaining([SummarizeCapability.id]));
+    expect(entries.some((e) => e.capability.id === 'studio/insert-text')).toBe(false);
+    const bindings = await harness.get(CommandShortcutBindingsToken);
+    expect(bindings.errors).toEqual([]);
+    expect(bindings.bound).toEqual(expect.arrayContaining(['kit/capability-palette', SummarizeCapability.id]));
+    const surfaces = await harness.get(SurfaceManagerToken);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true }));
+    await waitFor(() => surfaces.topModal?.def.id === 'kit/capability-palette', { message: 'palette open' });
+    surfaces.topModal?.dismiss('escape');
+  });
+
+  it('maps the theme setting onto the appearance', () => {
+    expect(appearanceForMode('dark')).toEqual({ scheme: 'dark', contrast: 'system' });
+    expect(appearanceForMode('high-contrast')).toEqual({ scheme: 'system', contrast: 'more' });
   });
 });
 

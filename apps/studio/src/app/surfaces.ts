@@ -1,11 +1,16 @@
 /**
  * Messaging surfaces (R13.4–R13.10). Features *request* surfaces; the surface
- * manager arbitrates and `<sf-surface-host>` renders them. Routable dialogs open
- * from the URL (`/d/upgrade`, `/studio/doc/:id/d/share`) through the router.
+ * manager arbitrates and the kit's `<sf-surface-layer>` renders them (native <dialog>,
+ * Popover API). Dialogs use the kit dialog frame (`defineDialogSurface`: the title is the
+ * heading and the accessible name), toasts the kit toast (`defineToastSurface`), and
+ * actions are kit buttons. Routable dialogs open from the URL (`/d/upgrade`,
+ * `/studio/doc/:id/d/share`) through the router.
  * Data only (definitions): the units registering the routable dialogs are in the deferred
- * surfaces chunk (`deferred/surfaces.ts`).
+ * surfaces chunk (`deferred/surfaces.ts`), which also defines the kit elements. Not a boot
+ * module: the one surface boot needs (Reconnecting) lives with its adapter (runtime-messaging).
  */
 import { ok, type Result } from '@staticflux/core';
+import { defineDialogSurface, defineToastSurface } from '@staticflux/kit/surface-defs';
 import { defineSurface, type SurfaceDef } from '@staticflux/messaging';
 import { html } from 'lit';
 import { AiButtonTarget } from './contracts.js';
@@ -15,28 +20,24 @@ export interface ConfirmProps {
   readonly message: string;
 }
 
-export const ConfirmDialog = defineSurface<ConfirmProps, boolean>({
+export const ConfirmDialog = defineDialogSurface<ConfirmProps, boolean>({
   id: 'studio/confirm',
-  kind: 'dialog',
   scope: 'app',
   priority: 'high',
-  label: (props) => props.title,
-  render: ({ props, dismiss, titleId }) => html`
-    <h2 id=${titleId}>${props.title}</h2>
-    <p>${props.message}</p>
-    <div class="actions">
-      <button @click=${() => dismiss('action', false)}>Cancel</button>
-      <button class="primary" @click=${() => dismiss('action', true)}>Confirm</button>
-    </div>
+  title: (props) => props.title,
+  body: ({ props }) => html`<p>${props.message}</p>`,
+  actions: ({ dismiss }) => html`
+    <sf-button @click=${() => dismiss('action', false)}>Cancel</sf-button>
+    <sf-button variant="primary" @click=${() => dismiss('action', true)}>Confirm</sf-button>
   `,
 });
 
-export const SavedToast = defineSurface<{ readonly message: string }>({
+export const SavedToast = defineToastSurface<{ readonly message: string }>({
   id: 'studio/saved-toast',
-  kind: 'toast',
   scope: 'app',
   durationMs: 2500,
-  render: ({ props }) => html`${props.message}`,
+  tone: 'success',
+  message: (props) => props.message,
 });
 
 export const CreditBanner = defineSurface<{ readonly credits: number }>({
@@ -47,17 +48,7 @@ export const CreditBanner = defineSurface<{ readonly credits: number }>({
   dedupe: true,
   render: ({ props, dismiss }) =>
     html`<span>Only ${props.credits} credits left.</span> <a href="/d/upgrade">Upgrade</a>
-      <button aria-label="Dismiss" @click=${() => dismiss('user')}>×</button>`,
-});
-
-export const ReconnectingDialog = defineSurface({
-  id: 'studio/reconnecting',
-  kind: 'dialog',
-  scope: 'app',
-  priority: 'urgent',
-  dismissible: false,
-  label: 'Reconnecting',
-  render: () => html`<p role="status">Reconnecting… your changes are kept.</p>`,
+      <sf-icon-button label="Dismiss" size="sm" @click=${() => dismiss('user')}><span aria-hidden="true">✕</span></sf-icon-button>`,
 });
 
 export const AiButtonCoachMark = defineSurface({
@@ -67,32 +58,26 @@ export const AiButtonCoachMark = defineSurface({
   target: AiButtonTarget,
   once: true,
   label: 'Meet the assistant',
-  render: ({ dismiss }) => html`<p>Ask the assistant to write or illustrate.</p><button @click=${() => dismiss('completed')}>Got it</button>`,
+  render: ({ dismiss }) => html`<p>Ask the assistant to write or illustrate.</p><sf-button variant="primary" size="sm" @click=${() => dismiss('completed')}>Got it</sf-button>`,
 });
 
 /** Routable upsell dialog `/d/upgrade`; its content lives in the billing chunk. */
 export function upgradeDialog(load: (signal: AbortSignal) => Promise<Result<void>>): SurfaceDef<undefined, unknown> {
-  return defineSurface<undefined, unknown>({
+  return defineDialogSurface<undefined, unknown>({
     id: 'billing/upgrade-dialog',
-    kind: 'dialog',
     scope: 'route',
     priority: 'high',
-    label: 'Upgrade to Pro',
+    title: () => 'Upgrade to Pro',
     routable: { key: 'upgrade', params: () => ok(undefined), load },
-    render: ({ dismiss, titleId }) =>
-      html`<billing-upgrade-dialog .titleId=${titleId} .dismiss=${(completed: boolean) => dismiss(completed ? 'completed' : 'user')}></billing-upgrade-dialog>`,
+    body: ({ dismiss }) => html`<billing-upgrade-dialog .dismiss=${(completed: boolean) => dismiss(completed ? 'completed' : 'user')}></billing-upgrade-dialog>`,
   });
 }
 
-export const ShareDialog = defineSurface<{ readonly docId: string }>({
+export const ShareDialog = defineDialogSurface<{ readonly docId: string }>({
   id: 'studio/share-dialog',
-  kind: 'dialog',
   scope: 'route',
-  label: 'Share document',
+  title: (props) => `Share document ${props.docId}`,
   routable: { key: 'share', params: (raw) => ok({ docId: raw['id'] ?? '' }) },
-  render: ({ props, dismiss, titleId }) => html`
-    <h2 id=${titleId}>Share document ${props.docId}</h2>
-    <label>Invite <input type="email" placeholder="name@example.com" /></label>
-    <div class="actions"><button @click=${() => dismiss('completed')}>Done</button></div>
-  `,
+  body: () => html`<sf-text-field label="Invite" type="email" placeholder="name@example.com" autocomplete="email"></sf-text-field>`,
+  actions: ({ dismiss }) => html`<sf-button variant="primary" @click=${() => dismiss('completed')}>Done</sf-button>`,
 });
