@@ -65,6 +65,8 @@ export const kitMessages = /* @__PURE__ */ defineMessages('kit', {
   distributeHorizontal: 'Distribute horizontally',
   distributeVertical: 'Distribute vertically',
   tidyUp: 'Tidy up',
+  distribute: 'Distribute',
+  align: 'Align',
   alignTo: 'Align to',
   alignToSelection: 'Selection',
   alignToPage: 'Page',
