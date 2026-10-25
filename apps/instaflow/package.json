@@ -94,7 +94,10 @@
     "@lit/context": "1.1.6",
     "lit": "3.3.3",
     "@staticflux/gate": "workspace:*",
-    "@staticflux/shell": "workspace:*"
+    "@staticflux/shell": "workspace:*",
+    "@staticflux/loader": "workspace:*",
+    "@staticflux/router": "workspace:*",
+    "@staticflux/storage": "workspace:*"
   },
   "devDependencies": {
     "@staticflux/runtime": "workspace:*",

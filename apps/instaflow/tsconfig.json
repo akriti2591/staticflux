@@ -60,6 +60,15 @@
       "path": "../../packages/shell"
     },
     {
+      "path": "../../packages/loader"
+    },
+    {
+      "path": "../../packages/router"
+    },
+    {
+      "path": "../../packages/storage"
+    },
+    {
       "path": "../../packages/blob"
     }
   ]

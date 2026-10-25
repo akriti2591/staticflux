@@ -68,15 +68,24 @@ importers:
       '@staticflux/kit':
         specifier: workspace:*
         version: link:../../packages/kit
+      '@staticflux/loader':
+        specifier: workspace:*
+        version: link:../../packages/loader
       '@staticflux/platform':
         specifier: workspace:*
         version: link:../../packages/platform
+      '@staticflux/router':
+        specifier: workspace:*
+        version: link:../../packages/router
       '@staticflux/shell':
         specifier: workspace:*
         version: link:../../packages/shell
       '@staticflux/stage':
         specifier: workspace:*
         version: link:../../packages/stage
+      '@staticflux/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@staticflux/surface':
         specifier: workspace:*
         version: link:../../packages/surface
