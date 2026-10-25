@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { unwrap } from '@staticflux/core';
 import { auditA11y } from '@staticflux/testkit/a11y';
 import { describe, expect, it } from 'vitest';
 import { CANVAS_FOCUS_RING, mountCanvasA11y } from './dom.js';
@@ -36,7 +37,7 @@ describe('DOM mount of the canvas projection', () => {
   it('moves DOM focus along the focus path only while the canvas has focus', () => {
     const { host, outside } = setup();
     const reported: string[] = [];
-    const mount = mountCanvasA11y({ host, document, onFocusNode: (id) => reported.push(id) }).value as NonNullable<ReturnType<typeof mountCanvasA11y>['value']>;
+    const mount = unwrap(mountCanvasA11y({ host, document, onFocusNode: (id) => reported.push(id) }));
     expect(mount.apply(snapshot(undefined)).ok).toBe(true);
     expect(mount.layer.root.getAttribute('aria-label')).toBe('Canvas: Poster');
     expect(mount.layer.root.getAttribute('aria-description')).toBe(a11yMessages.instructions);
@@ -70,7 +71,7 @@ describe('DOM mount of the canvas projection', () => {
 
   it('leaves Enter, Space and arrows to the tool shortcuts and shows the theme focus ring', () => {
     const { host } = setup();
-    const mount = mountCanvasA11y({ host, document }).value as NonNullable<ReturnType<typeof mountCanvasA11y>['value']>;
+    const mount = unwrap(mountCanvasA11y({ host, document }));
     host.focus();
     mount.apply(snapshot('a'));
     for (const key of ['Enter', ' ', 'ArrowRight', 'Tab', 'Escape']) {
@@ -85,7 +86,7 @@ describe('DOM mount of the canvas projection', () => {
 
   it('passes the accessibility audit (names, roles, no nested interactive, roving tabindex)', () => {
     const { host } = setup();
-    const mount = mountCanvasA11y({ host, document }).value as NonNullable<ReturnType<typeof mountCanvasA11y>['value']>;
+    const mount = unwrap(mountCanvasA11y({ host, document }));
     mount.apply(snapshot('a'));
     expect(auditA11y(document.body).map((i) => i.message)).toEqual([]);
     expect([...host.querySelectorAll('[tabindex="0"]')].map((el) => el.getAttribute('data-sf-a11y-id'))).toEqual(['a']);

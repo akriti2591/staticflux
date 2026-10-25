@@ -5,6 +5,7 @@
  * keyboard entry to the canvas (the layer adds one tab stop at most: the focused element).
  */
 import { createShortcutRegistry } from '@staticflux/a11y';
+import { unwrap } from '@staticflux/core';
 import { expectNoA11yIssues } from '@staticflux/testkit/a11y';
 import { compileTheme } from '@staticflux/ui/theme';
 import { mountTestRoot, settle } from '@staticflux/ui/testing';
@@ -77,7 +78,7 @@ describe('Studio frame with the canvas accessibility layer (Clean Pop)', () => {
     const element = testRoot.container.querySelector('if-studio') as IfStudioElement;
     const surface = element.shadowRoot?.querySelector('.surface') as HTMLElement;
     expect(surface.getAttribute('role')).toBe('application');
-    const mount = mountCanvasA11y({ host: surface, document }).value as NonNullable<ReturnType<typeof mountCanvasA11y>['value']>;
+    const mount = unwrap(mountCanvasA11y({ host: surface, document }));
     expect(mount.apply(snapshot).ok).toBe(true);
     expectNoA11yIssues(element);
     expect([...surface.querySelectorAll('[tabindex="0"]')].map((el) => el.getAttribute('data-sf-a11y-id'))).toEqual(['a']);
