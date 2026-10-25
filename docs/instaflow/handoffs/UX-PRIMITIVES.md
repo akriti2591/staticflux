@@ -71,3 +71,22 @@ messaging manager refuses a second modal or queues it (the spec says refuse).
 - STUDIO §4.2 renumbered into §4.2.1–4.2.7; anything linking "§4.2 table" means §4.2.4 now.
 - `OVERLAYS-FEEDBACK.md` §2.3 Share is **not rendered in M1** (D3); do not build its UI before accounts, only its blocks.
 - F-17 step 4 (Compare) is now a takeover with `?compare=`; keep F-17's wording compatible when writing tests.
+
+## Addendum 2026-10-25 — Export tab worked end to end (owner: "download needs a share-like design")
+- **Added:** `OVERLAYS-FEEDBACK.md` §2.3 "Export (the Export dialog's Export tab)": entry points, scope with a
+  thumbnail page-range picker, presets, format and per-format options, file names, several formats (zipped), output
+  size, main step (four decisions) vs `advanced`, memory per design, loose-elements line and disabled reasons,
+  progress/background/toasts, errors, deep links, keyboard and a11y, and the **Export engine follow-ups** table.
+  `NAVIGATION-DEEPLINKS.md`: new view keys `scope`, `pages`, `format` for dialog `export` (§2.2, §4, §5, §7).
+  `FLOWS.md`: F-53 (12 steps + the quick-export variant), F-18 aligned to C1's file names, coverage matrix rows.
+  OVERLAYS §6 items 7–9 (shortcut opens the dialog; zip by default; non-applicable presets not rendered).
+- **Letters:** every option is (a) engine today, (b) UI/plumbing in B11b, or (c) engine work. (c) is **never rendered
+  in M1**: no JPG chip, no `Print` PDF kind, no bleed/crop marks, no SVG `Text`/embed fonts, no arbitrary scale, no
+  Social presets on pages of another size, no `missingFonts` warning. Target M2 for all six.
+- **B11b builds:** the dialog over `ExportPanelPort` (no logic in the dialog); plumbing in `service.ts`/`job.ts` for a
+  page subset (`pages`), a `fileName`, the ` - selection` suffix and a zip step on main (`@staticflux/blob`
+  `createZipWriter`); sequential multi-format runs in the dialog; the background toast from the reactive `status`;
+  memory under `instaflow/ui/export/<asset>`; `ExportShortcut` opens the dialog instead of exporting (pending §6 item 7).
+- **Trap:** `ExportCapability.input` stays as C1 declared it; new fields (`pages`, `fileName`, later `quality`, `bleed`,
+  `svgText`) are optional additions when their letter becomes (a), never renames. F-18 step 2's old file name
+  `<title>-page-1@2x.png` is gone: names are `<Title>.png` / `<Title> - 01.png` (`exportFileName`).
