@@ -348,7 +348,7 @@ One worker (`colocated`, default) or two (`split`) is a boot setting; both run t
 | Q-1 | Deltas are published before the view frame that references them; a resnapshot is answered at a step boundary with a fresh frame | `editor-module.test.ts` |
 | Q-2 | The render port is called at most once per new (viewSeq, docVersion) and only with a consistent pair | IF-SEQ-003 on draw failure (last good frame kept) |
 
-## 18. Render: GPU devices, tiles, layers, cache budgets (SF-Δ23, Δ24, Δ29; Instaflow M1 A6)
+## 28. Render: GPU devices, tiles, layers, cache budgets (SF-Δ23, Δ24, Δ29; Instaflow M1 A6)
 
 | Machine | States / transitions | Source |
 |---|---|---|
@@ -436,3 +436,23 @@ Element state is document data (no runtime machines): booleans and masks are **d
 | EL-4 | Ink bounds include strokes and effects (shadows, glows, blur), so tiles never clip them; a non-inverted mask clips them | `layout.test.ts`, Rust `ink_bounds` tests |
 | EL-5 | Match keys survive duplication (elements and pages) while node ids stay unique | `actions.test.ts` (duplicate) |
 | EL-6 | Scene IR v2 bytes are identical from TypeScript and Rust; GPU output matches vello_cpu within `gpuVsCpu` | `scene-ir.test.ts`, `render.gpu.test.ts` |
+
+## 24. Library: ingest and rendition jobs (Instaflow M1b B4; IF-3.5–3.9, IF-23)
+
+Both machines live in `apps/instaflow/src/library`. Library metadata changes (rename, tags, folder, favourite, trash,
+restore) are single commits on the library document, not machines; trash is a state (`trashedAt`), never a delete.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/library-ingest` (one per file) | provisional (listed under `pv_…`) → hashing (blob store put, progress) → probing (kind's media probe) → recording (asset record blob) → listed (one library commit); hashing → listed (same content already live: deduplicated); any non-terminal → failed (error, or cancelled through the signal: `SF-CORE-002`) | `apps/instaflow/src/library/ingest.ts` |
+| `instaflow/rendition-job` (one per asset × role) | queued → decoding → rendering → storing → done (rendition recorded in the library document); queued \| decoding \| rendering \| storing → failed (`IF-LIB-006`) \| cancelled (`cancel(asset)`, queue disposed) | `apps/instaflow/src/library/renditions.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| L-1 | Nothing is listed before the content and the immutable record are stored; a failed or cancelled import lists nothing | IF-LIB-001/002/005, SF-CORE-002; `ingest.test.ts` |
+| L-2 | The same bytes never become two live assets (dedupe by content digest); a trashed copy does not count | `ingest.test.ts` |
+| L-3 | Asset records are immutable; all mutable metadata and late renditions live in the library document | `records.test.ts`, `library.test.ts` |
+| L-4 | A rendition job writes nothing before its blob is stored; regenerating with the same params gives the same blob | IF-LIB-006; `renditions.test.ts` |
+| L-5 | `resume()` re-queues exactly the live entries still missing a rendition their kind gets (`RENDITION_PRODUCERS`) | `renditions.test.ts`, `units.test.ts` |
+| L-6 | Trashed entries stay GC roots for 30 days (`TRASH_RETENTION_MS`) | `library.test.ts` |
+| L-7 | Lens code never branches on the lens: the arrangement, focus and overview come from the feature registry (Canvas is the fallback) | IF-LIB-012; `features.test.ts`, `controller.test.ts` |

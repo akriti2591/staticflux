@@ -103,7 +103,7 @@ describe('createStudio', () => {
     await studio.dispose();
   });
 
-  it('keyboard: 1–4 switch lenses, tool letters pick tools, Alt+Enter / Mod+K / Escape move focus', async () => {
+  it('keyboard: 1–5 switch lenses, tool letters pick tools, Alt+Enter / Mod+K / Escape move focus', async () => {
     const studio = make();
     await studio.open();
     const registry = createShortcutRegistry({ isMac: false });
@@ -124,7 +124,9 @@ describe('createStudio', () => {
     expect(focus).toEqual(['hud', 'bar', 'canvas']);
     press(document.body, '1');
     await until(() => studio.lens?.label === 'Canvas');
-    expect(registry.list().filter((s) => s.scope === StudioShortcutScope.id).length).toBe(4 + 11 + 3);
+    press(document.body, '5');
+    await until(() => studio.lens?.label === 'Pages');
+    expect(registry.list().filter((s) => s.scope === StudioShortcutScope.id).length).toBe(5 + 11 + 3);
     await scope.dispose();
     expect(studio.bindShortcuts(registry, { focusHud: () => undefined, focusCommandBar: () => undefined, focusCanvas: () => undefined }, createScope('again')).ok).toBe(true);
     const conflicting = studio.bindShortcuts(registry, { focusHud: () => undefined, focusCommandBar: () => undefined, focusCanvas: () => undefined }, createScope('twice'));

@@ -663,3 +663,12 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
 - **R13.28** Changes are applied through a **mount port** in a fixed order (unmounts in reverse display order, moves, context, mounts in display order) started in one task, each with a **120–200 ms motion step** that is 0 ms under reduced motion (`createSpecRuntime`, `specMotionStep`). `createSpecLayoutPort` is a reactive layout model with entering / moving / exiting phases a view renders from.
 - **R13.29** **Pinning**: people pin slots of pinnable sections; a new spec never removes a pinned slot (it is retained after its old predecessor). Gating wins over pinning: a pinned slot that is now denied is dropped and reported. `revalidate()` re-applies the current spec after gate decisions change.
 - **R13.30** Shared contract suites in testkit: `runSpecRuntimeContract` (validation, gating, port order, motion bounds, disposal, and fast-check properties for diff minimality and pin preservation) and `runSpecMountPortContract` (any port — a layout model or an app's DOM — shows exactly the runtime layout after every apply).
+
+## 11.5 Image utilities (`@staticflux/surface/image`; Instaflow M1b B4)
+- **R11.54** **Area-average image scaling** (`scaleImage(image, width, height)`, `fitWithin(w, h, max)`): resample straight
+  RGBA by exact area coverage in premultiplied space (transparent pixels never darken edges), in any worker or Node, with
+  no canvas. Bad sizes or pixel buffers are `SF-SURF-016`.
+- **R11.55** **Deterministic PNG encoding** (`encodePng(image, { signal })`, `crc32`): 8-bit RGBA, no filters, no
+  interlace, no ancillary chunks, compressed through the platform's `CompressionStream('deflate')`, so the same pixels
+  always give the same bytes (renditions dedupe by digest; goldens and C1 PNG export can reuse it). Cancellable while
+  compressing; failures are `SF-SURF-016`.

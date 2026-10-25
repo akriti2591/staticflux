@@ -17,6 +17,10 @@
     "./raster": {
       "types": "./dist/raster.d.ts",
       "import": "./dist/raster.js"
+    },
+    "./image": {
+      "types": "./dist/image.d.ts",
+      "import": "./dist/image.js"
     }
   },
   "files": [

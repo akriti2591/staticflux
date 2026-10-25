@@ -677,3 +677,73 @@ in `crates/render` + `src/render/scene-ir.ts`. Error codes `IF-EL-001…007`.
 | `IF-EL-005` | Geometry engine rejected the input |
 | `IF-EL-006` | Authoring Wasm missing or wrong geometry version |
 | `IF-EL-007` | Style class or brand kit unavailable |
+
+## 23. Library and lenses in M1 (work package B4; D4, D19; IF-1.3, IF-3.5–3.10)
+
+- **IF-23.1** The workspace **library document** is the `library` asset of the workspace's `DocumentRepo`
+  (`heads/library.json`, one part `root`), created on first open (`openLibraryDocument`). Each listed asset is one
+  top-level `asset` node (id = the asset id) with the `library` component (`libraryRegistry`, version 1); reads are per
+  node and every write is a validated op batch committed through the open document (one commit per action).
+- **IF-23.2** Library metadata is mutable and lives only in the library document: title (1–200 characters), tags
+  (1–40 characters, lower case, no commas, a CRDT list deduplicated on read), folder (`/`-separated names of 1–60
+  characters), favourite, trash state and time. Invalid metadata is `IF-LIB-007`; an unknown asset `IF-LIB-003`; listing
+  an id twice `IF-LIB-008`.
+- **IF-23.3** **Trash is a state**, not a delete: `trash` stamps `trashedAt`, `restore` clears it. `gcRoots()` returns live
+  entries plus trashed ones younger than 30 days (`TRASH_RETENTION_MS`, IF-3.10 grace period).
+- **IF-23.4** Ingest classifies a file by its media type, its aliases or its extension (`MEDIA_TYPES`,
+  `EXTENSION_TYPES`; data) into a blob asset kind before reading a byte; anything else is `IF-LIB-001`.
+- **IF-23.5** An import is listed at once under a **provisional id** (`pv_…`) with its progress (`pending()`), and
+  `resolve(pv)` names the asset once listed (IF-3.5: usable before hashing finishes).
+- **IF-23.6** Content is hashed and stored by `@staticflux/blob` (`BlobStore.put`: SHA-256, chunk manifests above 8 MiB,
+  progress, cancellation). The same bytes already live in the library return that entry (`deduplicated`); no second
+  asset is listed. A store failure is `IF-LIB-002`; cancellation is `SF-CORE-002` and lists nothing.
+- **IF-23.7** The kind's **media probe** (a data table; images: decode once) records media facts (width, height,
+  alpha); a decode failure is `IF-LIB-005` and lists nothing.
+- **IF-23.8** Every import writes one immutable **`instaflow.asset/1` record** (canonical JSON, RFC 8785, stored as a
+  `application/vnd.instaflow.asset+json` blob) with `content`, `media` and C2PA-aligned provenance (`imported`, actor,
+  no ingredients; IF-3.8), then lists the entry pointing at the record and the content.
+- **IF-23.9** **Renditions** are derived, regenerable blobs recorded in the library document
+  (`library.renditions.<role>`), never in the immutable record. `RENDITION_PRODUCERS` (data) says which roles each kind
+  gets; in M1 images get a `thumbnail` fitted in 256 × 256 px, never upscaled.
+- **IF-23.10** Rendition jobs are background work: a queue (concurrency 1 by default) with one machine per job
+  (`instaflow/rendition-job`); a job writes nothing before its blob is stored, so a cancelled or failed job leaves no
+  trace (`IF-LIB-006` with the cause). `resume()` re-queues every live entry still missing a rendition (resumable across
+  sessions); regenerating with the same params gives the same blob (deterministic PNG).
+- **IF-23.11** Thumbnails render **through the A6 render path** where a raster backend exists
+  (`sceneThumbnailRenderer`: the pixels become one scene IR image node rendered headlessly by the backend at the target
+  size, then the scene is cleared; jobs serialized per backend). The **documented fallback** is
+  `scaleThumbnailRenderer` (CPU area averaging) for contexts without WebGPU. The choice is a DI binding, never a branch.
+- **IF-23.12** The **Assets panel** (`<if-library-panel>`, the `instaflow/assets` panel contribution) is built only from
+  kit components under Clean Pop: Import (the one primary action), search, a filter switcher (`LIBRARY_FILTERS`: all,
+  images, video, audio, designs, favorites, trash; predicates in a table), the asset list, a preview of the selected
+  thumbnail (12 px corners), an actions toolbar (Place, Favorite, Rename, Trash/Restore) and an inline rename form. Each
+  row carries the lens mark of its kind (`ASSET_KIND_LENS`, the typed lens palette).
+- **IF-23.13** Every Assets panel action has a keyboard path: Tab order Import → search → filter → list → toolbar; in the
+  list Enter places, Delete trashes (restores in Trash), F2 renames; Enter / Escape in the rename field; dropping files has
+  the Import button as its keyboard path. Results are announced in a polite live region; the panel passes the testkit a11y
+  audit.
+- **IF-23.14** Placing an asset and picking files are host ports (`LibraryHost.place`, `pickFiles`; element creation is
+  B1/B3's). `browserPickFiles` uses a transient file input (never laid out) and reports a cancelled pick as `SF-CORE-002`.
+  Thumbnail object URLs load lazily and are revoked with the panel.
+- **IF-23.15** **One authoring core, lenses as features** (IF-1.3, D4, D19): a lens's arrangement, focus and overview are a
+  `LensFeature` looked up by lens id in the feature registry (`LensFeaturesToken`). Pixel, Timeline and Flow fall back to
+  the Canvas feature. No code outside a feature asks which lens is mounted; lens chrome comes from the spec's variant
+  tables (`STUDIO_LENS_TOOLS`, `STUDIO_LENS_HUD`, `STUDIO_LENS_PANELS`).
+- **IF-23.16** The lenses read the composition from its root part only (`readCompositionStructure`: the `composition`
+  node, page stubs in story `order` with `page.size` and `page.canvas` as `vec2`, loose elements with a `spatial` box);
+  a page without a valid size takes `composition.format`, else 1080 × 1350. A part without a composition is `IF-LIB-010`.
+- **IF-23.17** **Pages lens** (`instaflow/lens-pages`, Layout palette, shortcut `5`): pages at their own sizes stacked
+  down a centred column in story order, no loose elements; navigation follows the story; focusing a page fits it.
+- **IF-23.18** **Canvas lens** feature (`instaflow/lens-canvas`): pages at `page.canvas` plus loose elements; unplaced
+  pages go to the right of everything placed, in story order; navigation is reading order (rows top to bottom, left to
+  right); focusing keeps the zoom when the page fits at it, else fits it.
+- **IF-23.19** The **lens controller** follows the mounted lens and the root part reactively: a lens switch re-arranges and
+  keeps the focused page in view (or shows the overview), remote edits re-arrange, a deleted current page is forgotten.
+  The camera is the canvas's; the controller only asks the `CameraPort` to show one. Unknown pages are `IF-LIB-011`.
+- **IF-23.20** Page navigation has keyboard paths from anywhere in Studio (`bindLensShortcuts`): PageDown / PageUp next and
+  previous, Mod+Home / Mod+End first and last, Alt+0 fit everything; never while typing.
+- **IF-23.21** **Story edits**: moving a page in the story is one `move` of its stub in the root part, one commit,
+  attributed and undoable per actor (`createStoryWriter`); an index out of range is `IF-LIB-013`.
+- **IF-23.22** The **Pages panel** (`<if-pages-panel>`, the `instaflow/pages` panel contribution) lists the story in order
+  from kit components only; selecting a page shows it through the controller, Alt+↑/↓ moves it in the story, the toolbar
+  has Previous, Next and Fit all; announcements go to a polite live region; it passes the testkit a11y audit.

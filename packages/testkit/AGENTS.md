@@ -121,6 +121,12 @@ Node only (`@staticflux/testkit/node`):
   ports `BrowserLauncher` / `BrowserLike` / `PageLike` (the slice of Playwright used).
 - `gpu-cli.ts` — `sf-gpu-run` / `pnpm gpu:run`: `parseGpuCliArgs`, `gpuCliMain(argv, io)`.
 
+### Thumbnail renderer contract suite (Instaflow M1b B4, IF-23.11)
+- `thumbnail-renderer-contract.ts` — `runThumbnailRendererContract(name, factory → { renderer, tolerance?, cleanup? },
+  runner)`, `thumbnailRendererContractCases()`, `ThumbnailRendererLike` (structural port): exact output size, a solid colour
+  stays solid, deterministic bytes, an aborted signal is an error `Result`, a non-empty `id`. Instaflow runs it on the A6
+  scene renderer and the CPU fallback (`apps/instaflow/src/library/thumbnails.test.ts`).
+
 ### Render contract suite (IF-7.4, SF-Δ23/Δ24, Instaflow M1 A6)
 - `raster-backend-contract.ts` — `runRasterBackendContract(name, factory → { backend, scene: { add, set, remove },
   nodeOf?, tolerance?, cleanup? }, runner, { skip })`, `rasterBackendContractCases()`: attach + facts + loss on

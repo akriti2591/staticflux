@@ -281,3 +281,22 @@ Consumer: `apps/instaflow/src/elements` (editor and render workers; inspector pa
 - Element actions reachable from the HUD, the keyboard and agents with one pipeline → one capability per action
   (`@staticflux/capabilities`) plus B0's `HudActionContribution`; the panel is a `PanelContribution` built from kit
   components (inspector group/row, colour field, text field, segmented, slider, icon button, menu).
+
+### library and lenses: workspace assets, renditions, Pages and Canvas lenses (Instaflow M1b B4)
+Consumer: Instaflow (`apps/instaflow/src/library`, `src/lenses`; D4, D19; IF-3.5–3.10, IF-23). Built on `@staticflux/blob`
+(content hashing), `@staticflux/document/v2` (the library document, the composition's root part), `@staticflux/stage`
+(actors), `@staticflux/surface` (`raster` headless render, `image` scaling and PNG, R11.54–R11.55) and the B0 spec runtime.
+- "Drop my photos in and use them right away" → `ingest.ingest(file, { signal })`: a provisional id with progress at once,
+  SHA-256 in the blob store, dedupe by digest, an immutable asset record, one library commit.
+- "Find, rename, tag, favourite, trash and restore my assets" → `createLibrary({ source, actor })` (reactive `entries()`,
+  validated single commits) and `queryLibrary(entries, { filter, text, tag, folder })`.
+- "Show me thumbnails, even after a crash" → `createRenditionQueue({ decoder, renderer, encoder })`: background jobs,
+  `resume()` on session start, `sceneThumbnailRenderer({ backend })` through A6 or `scaleThumbnailRenderer()` without a GPU,
+  `pngImageEncoder()` (deterministic → idempotent).
+- "Browse the library by keyboard" → `<if-library-panel>` over `createLibraryPanelModel({ library, ingest, blobs, host })`,
+  contributed as B0's `instaflow/assets` panel.
+- "The same document as a story or as a canvas, without a mode switch in feature code" → `LensFeature` (`arrange`, `focus`,
+  `overview`) with `pagesLensFeature` and `canvasLensFeature` in `createLensFeatureRegistry`; `createLensController`
+  (reactive arrangement, next / previous page, camera requests through `CameraPort`) and `bindLensShortcuts`.
+- "Reorder the story" → `createStoryWriter({ doc, structure, actor }).movePage(page, to)` (one undoable commit) from the
+  `<if-pages-panel>` (B0's `instaflow/pages` panel) with Alt+↑/↓.

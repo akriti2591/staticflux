@@ -32,7 +32,7 @@ fully by hand (D17).
   Motion is CSS on transform/opacity only and is off under `prefers-reduced-motion`.
 - Kit components only, theme tokens only (the canvas well is `neutral4` with a `neutral7` dot grid); lens colours and shapes from
   the typed lens palette. Strings in `studioMessages`.
-- Keyboard: `1`–`4` lenses, tool letters (never while typing: the registry checks the composed origin), `Alt+Enter` HUD, `Mod+K`
+- Keyboard: `1`–`5` lenses (Pages is `5`), tool letters (never while typing: the registry checks the composed origin), `Alt+Enter` HUD, `Mod+K`
   command bar, `Escape` canvas; arrows inside the toolbars, the mode switcher and the dock tabs.
 
 ## Test

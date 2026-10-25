@@ -4,7 +4,7 @@
  * (a spec change), pick a tool, pin a panel — plus their keyboard paths. Headless: `<if-studio>` renders
  * from it; tests drive it without a DOM. Every path works by hand (D17: the agent is always a choice).
  *
- * Keyboard (UX §9): `1`–`4` switch lenses (each lens contribution's shortcut), tool letters pick tools,
+ * Keyboard (UX §9): `1`–`5` switch lenses (each lens contribution's shortcut), tool letters pick tools,
  * `Alt+Enter` focuses the HUD, `Mod+K` the command bar, `Escape` returns to the canvas.
  */
 import { defineShortcut, defineShortcutScope, type ShortcutRegistry } from '@staticflux/a11y';

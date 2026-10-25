@@ -1036,5 +1036,91 @@
       "@staticflux/kit/text-field"
     ],
     "limit": "6.25 KB"
+  },
+  {
+    "name": "@staticflux/surface/image (area scaling + deterministic PNG encoder; renditions and export workers)",
+    "path": "packages/surface/dist/image.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "1.6 KB"
+  },
+  {
+    "name": "@instaflow/app/library (library document, ingest, renditions, thumbnail back ends; excl. framework)",
+    "path": "apps/instaflow/dist/library/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/blob",
+      "@staticflux/document/v2",
+      "@staticflux/stage",
+      "@staticflux/surface/image",
+      "@staticflux/surface/raster",
+      "@staticflux/a11y",
+      "@staticflux/capabilities"
+    ],
+    "limit": "10 KB"
+  },
+  {
+    "name": "@instaflow/app/library/ui (Assets panel and its contribution; excl. lit, kit and framework)",
+    "path": "apps/instaflow/dist/library/ui.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/kit/button",
+      "@staticflux/kit/segmented",
+      "@staticflux/kit/text-field",
+      "@staticflux/kit/toolbar",
+      "@staticflux/kit/tree",
+      "@staticflux/a11y",
+      "@staticflux/capabilities",
+      "@staticflux/document/v2",
+      "@staticflux/stage"
+    ],
+    "limit": "6.25 KB"
+  },
+  {
+    "name": "@instaflow/app/lenses (Pages and Canvas lens features, controller, story edits; excl. framework)",
+    "path": "apps/instaflow/dist/lenses/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/a11y",
+      "@staticflux/capabilities",
+      "@staticflux/document/v2",
+      "@staticflux/stage"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "@instaflow/app/lenses/ui (Pages panel and its contribution; excl. lit, kit and framework)",
+    "path": "apps/instaflow/dist/lenses/ui.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/kit/button",
+      "@staticflux/kit/toolbar",
+      "@staticflux/kit/tree",
+      "@staticflux/a11y",
+      "@staticflux/capabilities",
+      "@staticflux/document/v2",
+      "@staticflux/stage"
+    ],
+    "limit": "3.5 KB"
   }
 ]

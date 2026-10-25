@@ -1977,6 +1977,12 @@
       "fix": "Retry after the device is `running` again; readback buffers need COPY_DST | MAP_READ and 256-byte aligned rows."
     },
     {
+      "code": "SF-SURF-016",
+      "kind": "validation",
+      "summary": "An image could not be scaled or encoded (zero or non-integer size, pixel data of the wrong length, or the compression stream failed).",
+      "fix": "Pass a `RasterImage` whose `data` holds exactly `width × height × 4` RGBA bytes and a positive integer target size; inspect `cause` when `CompressionStream` is missing or failed."
+    },
+    {
       "code": "SF-TEST-001",
       "kind": "invariant",
       "summary": "`bootTestApp` could not boot the app.",

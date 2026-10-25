@@ -28,6 +28,22 @@
     "./elements/panel": {
       "types": "./dist/elements/panel.d.ts",
       "import": "./dist/elements/panel.js"
+    },
+    "./library": {
+      "types": "./dist/library/index.d.ts",
+      "import": "./dist/library/index.js"
+    },
+    "./library/ui": {
+      "types": "./dist/library/ui.d.ts",
+      "import": "./dist/library/ui.js"
+    },
+    "./lenses": {
+      "types": "./dist/lenses/index.d.ts",
+      "import": "./dist/lenses/index.js"
+    },
+    "./lenses/ui": {
+      "types": "./dist/lenses/ui.d.ts",
+      "import": "./dist/lenses/ui.js"
     }
   },
   "scripts": {
@@ -36,6 +52,7 @@
   },
   "dependencies": {
     "@staticflux/a11y": "workspace:*",
+    "@staticflux/blob": "workspace:*",
     "@staticflux/capabilities": "workspace:*",
     "@staticflux/config": "workspace:*",
     "@staticflux/core": "workspace:*",

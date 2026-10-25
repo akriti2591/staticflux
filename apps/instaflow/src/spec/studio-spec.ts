@@ -20,6 +20,7 @@ export const STUDIO_LENS_TOOLS: Readonly<Record<LensContributionId, readonly Too
   [L.pixel]: [T.select, T.brush, T.heal, T.crop, T.hand],
   [L.timeline]: [T.select, T.split, T.hand],
   [L.flow]: [T.select, T.connect, T.hand],
+  [L.pages]: [T.select, T.shape, T.text, T.pen, T.hand],
 });
 
 /** HUD row per lens (UX §2: fixed manipulations, ✦ generative, Animate, More, Ask). */
@@ -28,6 +29,7 @@ export const STUDIO_LENS_HUD: Readonly<Record<LensContributionId, readonly Actio
   [L.pixel]: [H.removeBackground, H.more, H.ask],
   [L.timeline]: [H.animate, H.more, H.ask],
   [L.flow]: [H.more, H.ask],
+  [L.pages]: [H.rewrite, H.animate, H.more, H.ask],
 });
 
 /** Panels every Studio lens shares (selection, undo, chat and the dock persist across lenses, UX §4). */
@@ -46,6 +48,7 @@ export const STUDIO_LENS_PANELS: Readonly<Record<LensContributionId, readonly Pa
   [L.pixel]: [{ panel: P.adjust, dock: 'inspector' }],
   [L.timeline]: [],
   [L.flow]: [],
+  [L.pages]: [],
 });
 
 export const STUDIO_CAPABILITIES = Object.freeze([editDocumentCapability.id, proposeSpecCapability.id]);
