@@ -1713,6 +1713,72 @@
       "fix": "Compare against `formatSpanTree()` output; check the `parent` option where the child span is started."
     },
     {
+      "code": "SF-TEST-006",
+      "kind": "validation",
+      "summary": "An RGBA image is malformed, two images differ in size, or an image is smaller than the SSIM window.",
+      "fix": "Pass `{ width, height, data }` with `data.length === width * height * 4`, compare images of equal size, and use images at least as large as `window.size` (default 11)."
+    },
+    {
+      "code": "SF-TEST-007",
+      "kind": "validation",
+      "summary": "A PNG could not be decoded (corrupt, or a variant the testkit codec does not read).",
+      "fix": "Store goldens as 8-bit, non-interlaced PNGs (what `encodePng` writes); re-create the file with `pnpm goldens:update`."
+    },
+    {
+      "code": "SF-TEST-008",
+      "kind": "not-found",
+      "summary": "A golden image does not exist yet.",
+      "fix": "Run `pnpm goldens:update <test filter>` to write it, review the PNG, and commit it with the test."
+    },
+    {
+      "code": "SF-TEST-009",
+      "kind": "invariant",
+      "summary": "A rendered image does not match its golden within the thresholds.",
+      "fix": "Open the `actual` and `diff` PNGs listed in `details`. If the change is intended, run `pnpm goldens:update <test filter>`; never loosen thresholds to make a test pass."
+    },
+    {
+      "code": "SF-TEST-010",
+      "kind": "validation",
+      "summary": "A golden was rejected: its name is not a lowercase slug, or it exceeds the size limits.",
+      "fix": "Name goldens `[a-z0-9-]+`; render a smaller crop (goldens are small and few: default ≤ 65,536 pixels and ≤ 32 KiB as PNG)."
+    },
+    {
+      "code": "SF-TEST-011",
+      "kind": "unavailable",
+      "summary": "The real-GPU test runner could not start Chromium (Playwright missing or the browser failed to launch).",
+      "fix": "Install Playwright with Chromium (`npx playwright install chromium`) or set `NODE_PATH` to a directory that has it; see `cause`."
+    },
+    {
+      "code": "SF-TEST-012",
+      "kind": "invariant",
+      "summary": "A page under the GPU runner reported a failure or published a malformed result.",
+      "fix": "Read `details.message`, `details.console` and `details.pageErrors`; in SwiftShader runs check that the ANGLE flags are present (presenting to a canvas loses the device without them)."
+    },
+    {
+      "code": "SF-TEST-013",
+      "kind": "timeout",
+      "summary": "A page under the GPU runner did not publish its result before the timeout.",
+      "fix": "Make sure the page always sets `globalThis.__sfGpuResult` (also on failure, via try/catch); read `details.pageErrors` for uncaught errors."
+    },
+    {
+      "code": "SF-TEST-014",
+      "kind": "validation",
+      "summary": "A GPU texture could not be read back (unsupported format, missing usage flag, or the map failed).",
+      "fix": "Read back 8-bit RGBA/BGRA textures created with `COPY_SRC` usage; for canvas textures configure the context with `usage: RENDER_ATTACHMENT | COPY_SRC`."
+    },
+    {
+      "code": "SF-TEST-015",
+      "kind": "invariant",
+      "summary": "VideoFrame or AudioData handles were left open.",
+      "fix": "Close every frame and clone you create or receive (`frame.close()`), typically in a `finally` or a scope `defer`; `details.open` lists the leaked handles."
+    },
+    {
+      "code": "SF-TEST-016",
+      "kind": "validation",
+      "summary": "`sf-gpu-run` was called with invalid arguments.",
+      "fix": "Run `sf-gpu-run <dir> [page.html] [--query=…] [--real-gpu] [--headed] [--timeout=<s>] [--out=<dir>]` or `sf-gpu-run --url=<url> …`."
+    },
+    {
       "code": "SF-TOOL-001",
       "kind": "not-found",
       "summary": "A module given to `sf` could not be imported.",

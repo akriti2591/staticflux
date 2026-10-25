@@ -231,3 +231,10 @@ Every `SfError` carries: `code` (stable), `message` (one line), `units` involved
 | `pwa/update` | idle → checking → available → activating → activated \| failed; reload fallback on framework-major change | `packages/pwa/AGENTS.md` |
 | `platform/async-fact` | idle → probing → settled \| failed (`SF-PLAT-009`: throw, timeout); probing → idle when every caller aborted; settled \| failed → probing on `refresh`; any → disposed (scope) | `packages/platform/src/async-facts.ts` |
 | `platform/baseline` (verdict, not a machine) | pending → supported \| unsupported; a synchronous miss is `unsupported` at once and probes nothing; `unsupported` boots only the unsupported plan (`SF-PLAT-010`) | `packages/platform/src/baseline.ts` |
+
+| `testkit/fake-gpu-device` | live → lost (`destroyed` via `destroy()`, `unknown` via `loseDevice`); terminal: `lost` resolves once, pending maps reject (AbortError), submit no-ops, no errors reported | `packages/testkit/src/gpu-fake.ts` |
+| `testkit/fake-gpu-adapter` | valid → consumed (first `requestDevice`); `requestDevice` on consumed rejects (OperationError) | `packages/testkit/src/gpu-fake.ts` |
+| `testkit/fake-gpu-buffer` | unmapped → pending → mapped → unmapped; pending → unmapped (unmap/destroy/device loss rejects the map) | `packages/testkit/src/gpu-fake.ts` |
+| `testkit/fake-canvas-texture` | acquired (`getCurrentTexture`) → presented/expired (`present`, `unconfigure`); using it after → validation error | `packages/testkit/src/gpu-fake.ts` |
+| `testkit/media-handle` | open → closed (terminal; `clone` adds a handle on the same resource; use after close → InvalidStateError) | `packages/testkit/src/media-fake.ts` |
+| `testkit/golden` | missing → written (update mode) · stored → match \| mismatch (SF-TEST-009) \| updated (update mode) | `packages/testkit/src/golden.ts` |

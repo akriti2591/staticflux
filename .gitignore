@@ -32,3 +32,6 @@ apps/instaflow/spikes/s8-agent-views/evals/prompts/
 # Instaflow engines (Rust/Wasm): cargo output, pinned wasm-bindgen CLI. Wasm artifacts land in engine dist/ (ignored above).
 apps/instaflow/engine/target/
 apps/instaflow/engine/.tools/
+
+# Golden snapshot mismatch artifacts (actual + diff PNGs), written by @staticflux/testkit goldens
+**/__goldens__/__failures__/

@@ -26,7 +26,10 @@
     "budgets": "size-limit --json > .size-results.json; node tooling/sf/dist/cli.js budgets --results .size-results.json; node tooling/sf/dist/cli.js wasm size",
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm install --lockfile-only",
-    "release": "pnpm build && node tooling/sf/dist/cli.js publish"
+    "release": "pnpm build && node tooling/sf/dist/cli.js publish",
+    "goldens:update": "SF_UPDATE_GOLDENS=1 vitest run",
+    "test:gpu": "SF_GPU=${SF_GPU:-1} vitest run .gpu.test",
+    "gpu:run": "node packages/testkit/dist/gpu-cli.js"
   },
   "devDependencies": {
     "typescript": "5.9.3",

@@ -323,6 +323,25 @@
 - **R16.5** Example app has end-to-end tests (Playwright) over mock backends.
 - **R16.6** CI runs: typecheck, lint, boundary checks, graph checks, size budgets, unit, a11y, e2e.
 
+### 16.1 Render, GPU and media testing (Instaflow M1, WP A9 — SF-Δ31 M1 part)
+
+- **R16.20** A **WebGPU fake** (adapter → device → queue, encoders, passes, buffers, textures, canvas context) records every call and
+  models what recovery and readback code depends on: adapter `info`/`features`/`limits`, device features/limits only as requested,
+  consumed adapters, copies/clears/maps, validation errors through error scopes, and injectable **device loss** (`device.lost`).
+- **R16.21** A **perceptual image comparison** usable in Node on RGBA buffers: SSIM (Wang et al. 2004; 11×11 Gaussian σ 1.5,
+  K1 0.01, K2 0.03) plus max channel delta, differing-pixel fraction and optional blurred SSIM, with threshold presets derived from
+  measurements (same backend, GPU vs CPU reference, cross-rasterizer). SSIM values are pinned against an independent implementation.
+- **R16.22** **Golden render snapshots**: small PNGs next to the test, compared with R16.21 thresholds; written or rewritten only by an
+  explicit command (`pnpm goldens:update`); a missing golden fails; size limits keep goldens small and few; mismatches leave the
+  actual image and a diff image for review.
+- **R16.23** A **real-GPU test runner**: serve a page cross-origin isolated, run it in Chromium with WebGPU on SwiftShader + ANGLE
+  (default, CI) or on a real GPU (`--real-gpu`), read pixels back and return a structured result (adapter, data, images, console,
+  page errors). GPU browser tests are opt-in (`SF_GPU`) so the default test run never launches a browser.
+- **R16.24** **Media fakes** (`VideoFrame`, `AudioData`) with **close accounting**: every handle (including clones) is tracked and a test
+  can assert that none leaked. M3 extends this with decoder/encoder fakes, `AudioContext` and a deterministic media clock.
+- **R16.25** Test pages publish results through one protocol (`globalThis.__sfGpuResult = { ok, data, images }`); readback helpers
+  (texture → RGBA with row-alignment and BGRA handling) are shared, not re-written per package.
+
 ## 17. Observability & devtools
 
 - **R17.1** Vendor-neutral, OpenTelemetry-shaped API (traces, metrics, logs, events); pluggable sinks; sampling.

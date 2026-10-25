@@ -92,3 +92,13 @@
   budgets and enforced in CI (R20.8).
 - IF-2.11: CI rejects GPL/AGPL, non-commercial or watermark-licensed npm and cargo dependencies and model weights;
   the matte feature may use MediaPipe selfie (Apache-2.0) and BiRefNet (MIT) but never RMBG (non-commercial) (R20.9).
+
+### testkit — render, GPU and media (Instaflow M1, WP A9)
+- Render module (A6): test device-loss recovery (`running → lost → attaching`, re-init from retained IR) and pipeline warm-up without a
+  GPU → `createFakeGpu` (`loseDevice`, consumed adapters, `callsTo`, `uncapturedErrors`); assert tiled vs full and GPU vs `vello_cpu`
+  frames → `compareImages` + `RENDER_THRESHOLDS`; a few golden frames per feature → `createGoldenStore`; real WebGPU in CI on SwiftShader
+  and on the owner's GPU → `runGpuPage` / `pnpm test:gpu` / `sf-gpu-run --real-gpu`; texture readback in pages → `readbackTexture`.
+- Platform facts (A1): fake adapters with `isFallbackAdapter`, features and limits, and `requestAdapter() → null` → `createFakeGpu({ adapter })`.
+- Export (C1): SVG/PDF parity rasterized by another engine → `RENDER_THRESHOLDS.crossRasterizer` (SSIM + blurred SSIM); PNG export
+  goldens → `createGoldenStore`.
+- Media (M3, groundwork now): decoders hand out frames that must be closed → `createMediaFakes().expectAllClosed()`.
