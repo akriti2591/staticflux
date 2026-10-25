@@ -257,6 +257,46 @@ describe('accessible DOM layer', () => {
   });
 });
 
+describe('accessible DOM layer: editor options (R11.60–R11.62)', () => {
+  it('sets role descriptions, levels, a roving tab order and no empty names', () => {
+    const layer = unwrap(createAccessibleLayer({ host: hostElement(), document }));
+    layer.update([
+      { id: 'h', role: 'heading', label: 'Title', level: 2, focusable: true, tabIndex: -1 },
+      { id: 'r', role: 'img', label: 'Box', roleDescription: 'rectangle', focusable: true, tabIndex: 0 },
+      { id: 'g', role: 'group', label: '' },
+    ]);
+    expect(layer.element('h')?.getAttribute('aria-level')).toBe('2');
+    expect(layer.element('h')?.getAttribute('tabindex')).toBe('-1');
+    expect(layer.element('r')?.getAttribute('tabindex')).toBe('0');
+    expect(layer.element('r')?.getAttribute('aria-roledescription')).toBe('rectangle');
+    expect(layer.element('g')?.hasAttribute('aria-label')).toBe(false);
+    expect(layer.focus('h')).toBe(true);
+    layer.update([{ id: 'h', role: 'heading', label: 'Title', focusable: true }]);
+    expect(layer.element('h')?.hasAttribute('aria-level')).toBe(false);
+    expect(layer.element('h')?.getAttribute('tabindex')).toBe('0');
+    layer.dispose();
+  });
+
+  it('leaves keys to the app with activateKeys: [] and draws a focus ring when asked', () => {
+    const host = hostElement();
+    const actions: string[] = [];
+    const layer = unwrap(createAccessibleLayer({ host, document, activateKeys: [], focusRing: '2px solid var(--ring)', onAction: (id, a) => actions.push(`${a}:${id}`) }));
+    layer.update([{ id: 'a', role: 'img', label: 'A', focusable: true }, { id: 'b', role: 'img', label: 'B', focusable: true }]);
+    const a = layer.element('a') as HTMLElement;
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    a.dispatchEvent(enter);
+    expect(enter.defaultPrevented).toBe(false);
+    expect(actions).toEqual([]);
+    const style = layer.root.querySelector('style');
+    expect(style?.textContent).toContain('outline:2px solid var(--ring);outline-offset:2px');
+    expect(a.style.opacity).toBe('');
+    // The style element stays first; nodes keep projection order after it.
+    layer.update([{ id: 'b', role: 'img', label: 'B', focusable: true }, { id: 'a', role: 'img', label: 'A', focusable: true }]);
+    expect([...layer.root.children].map((el) => el.localName === 'style' ? 'style' : el.getAttribute('data-sf-a11y-id'))).toEqual(['style', 'b', 'a']);
+    layer.dispose();
+  });
+});
+
 // ---------------------------------------------------------------- images
 
 describe('CORS-clean image loading', () => {

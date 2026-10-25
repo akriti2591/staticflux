@@ -5,6 +5,11 @@
  * states, focus order), so screen readers, keyboard focus and find-in-page work
  * although pixels come from a canvas. Not needed when the HTML-in-Canvas
  * adapter is used (its content is DOM already).
+ *
+ * Editor options (R11.60–R11.62): `roleDescription` and `level` per node, a
+ * roving `tabIndex` (one node in the tab order, the rest `-1`), `activateKeys`
+ * (an editor whose own shortcuts own Enter / Space passes `[]`), and a visible
+ * `focusRing` (nodes stay transparent; the focused one shows the outline).
  */
 import { err, ok, type Result } from '@staticflux/core';
 import { MainThreadOnlyError } from './errors.js';
@@ -27,6 +32,12 @@ export interface AccessibleNode {
   /** CSS px relative to the surface. */
   readonly bounds?: AccessibleBounds;
   readonly focusable?: boolean;
+  /** Roving tab order for focusable nodes: `0` (default) is in the tab order, `-1` only programmatically focusable. */
+  readonly tabIndex?: 0 | -1;
+  /** `aria-roledescription` (e.g. `rectangle` for an `img`). */
+  readonly roleDescription?: string;
+  /** `aria-level` (headings, tree items). */
+  readonly level?: number;
   readonly selected?: boolean;
   readonly checked?: boolean;
   readonly disabled?: boolean;
@@ -56,7 +67,17 @@ export interface AccessibleLayerOptions {
   readonly onAction?: (id: string, action: AccessibleAction) => void;
   /** Label of the layer root (e.g. "Canvas: page 1"). */
   readonly label?: string;
+  /** Keys that activate a node (default Enter and Space); `[]` leaves every key to the app's shortcuts. */
+  readonly activateKeys?: readonly string[];
+  /**
+   * CSS `outline` for the focused node (e.g. `2px solid var(--sf-color-focus-ring)`). When set, nodes are
+   * transparent (not `opacity: 0`) and the focused one shows this ring, offset by `focusRingOffset` (default 2px).
+   */
+  readonly focusRing?: string;
+  readonly focusRingOffset?: string;
 }
+
+let layerSerial = 0;
 
 const NODE_ATTR = 'data-sf-a11y-id';
 
@@ -64,12 +85,22 @@ export function createAccessibleLayer(options: AccessibleLayerOptions): Result<A
   const doc = options.document;
   if (doc === undefined) return err(MainThreadOnlyError({ details: { api: 'accessible-layer' } }));
   const root = doc.createElement('div');
-  root.setAttribute('data-sf-a11y-layer', '');
+  layerSerial += 1;
+  const layerId = `l${layerSerial}`;
+  root.setAttribute('data-sf-a11y-layer', layerId);
   root.setAttribute('role', 'group');
   if (options.label !== undefined) root.setAttribute('aria-label', options.label);
   // Positioned over the canvas, invisible but present in the accessibility tree.
   Object.assign(root.style, { position: 'absolute', left: '0px', top: '0px', right: '0px', bottom: '0px', overflow: 'hidden', pointerEvents: 'none' });
   options.host.appendChild(root);
+  const ring = options.focusRing;
+  if (ring !== undefined) {
+    const style = doc.createElement('style');
+    const node = `[data-sf-a11y-layer="${layerId}"] [${NODE_ATTR}]`;
+    style.textContent = `${node}{color:transparent;background:transparent;outline:none}${node}:focus-visible{outline:${ring};outline-offset:${options.focusRingOffset ?? '2px'}}@media (forced-colors: active){${node}:focus-visible{outline-color:Highlight}}`;
+    root.appendChild(style);
+  }
+  const activateKeys = new Set(options.activateKeys ?? ['Enter', ' ']);
   const elements = new Map<string, HTMLElement>();
 
   const onClick = (event: Event): void => {
@@ -78,7 +109,7 @@ export function createAccessibleLayer(options: AccessibleLayerOptions): Result<A
   };
   const onKeydown = (event: Event): void => {
     const key = (event as KeyboardEvent).key;
-    if (key !== 'Enter' && key !== ' ') return;
+    if (!activateKeys.has(key)) return;
     const id = (event.target as Element | null)?.getAttribute?.(NODE_ATTR);
     if (id === null || id === undefined) return;
     event.preventDefault();
@@ -109,12 +140,14 @@ export function createAccessibleLayer(options: AccessibleLayerOptions): Result<A
       elements.set(node.id, el);
     }
     setAttr(el, 'role', node.role);
-    setAttr(el, 'aria-label', node.label);
+    setAttr(el, 'aria-label', node.label === '' ? undefined : node.label);
+    setAttr(el, 'aria-roledescription', node.roleDescription);
+    setAttr(el, 'aria-level', node.level === undefined ? undefined : String(node.level));
     setAttr(el, 'aria-description', node.description);
     setAttr(el, 'aria-selected', bool(node.selected));
     setAttr(el, 'aria-checked', bool(node.checked));
     setAttr(el, 'aria-disabled', bool(node.disabled));
-    setAttr(el, 'tabindex', node.focusable === true ? '0' : undefined);
+    setAttr(el, 'tabindex', node.focusable === true ? String(node.tabIndex ?? 0) : undefined);
     const ownText = node.text ?? '';
     const textNode = el.firstChild !== null && el.firstChild.nodeType === 3 ? el.firstChild : undefined;
     if (ownText !== '' && textNode === undefined) el.insertBefore(doc.createTextNode(ownText), el.firstChild);
@@ -126,7 +159,7 @@ export function createAccessibleLayer(options: AccessibleLayerOptions): Result<A
     const style = el.style;
     style.position = 'absolute';
     style.pointerEvents = node.focusable === true ? 'auto' : 'none';
-    style.opacity = '0';
+    if (ring === undefined) style.opacity = '0';
     if (b !== undefined) {
       style.left = `${b.x - origin.x}px`;
       style.top = `${b.y - origin.y}px`;
@@ -153,7 +186,7 @@ export function createAccessibleLayer(options: AccessibleLayerOptions): Result<A
     root,
     update(nodes) {
       const seen = new Set<string>();
-      let previous: HTMLElement | undefined;
+      let previous: HTMLElement | undefined = ring === undefined ? undefined : (root.firstElementChild as HTMLElement);
       for (const node of nodes) {
         render(node, root, seen, { x: 0, y: 0 });
         const el = elements.get(node.id) as HTMLElement;
