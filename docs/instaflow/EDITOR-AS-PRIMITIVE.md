@@ -1,6 +1,7 @@
 # Instaflow — the editor as a primitive
 
-> Status: **proposed** (2026-10-25). Proposes D16–D19 for [DECISIONS.md](DECISIONS.md) after review.
+> Status: **accepted** (2026-10-25) as D16–D19 in [DECISIONS.md](DECISIONS.md). The agent is always optional: Studio
+> works fully by hand.
 > Builds on D4 (modes over one core), D7 (extend through contribution points), D12–D13 (agents, autonomy) and
 > D15 (editor and render are modules).
 
