@@ -330,9 +330,33 @@ export function createDeltaStream(definition: DeltaStreamDefinition, options: Cr
   // Aborted on close: stops the request watcher and the back-pressure retry.
   const lifetime = new AbortController();
 
+  // Listeners never run inside append()/snapshot(): a listener that snapshots from there would
+  // capture state that already contains the record being appended. They run when the call returns.
+  let depth = 0;
+  let queuedReasons: ('reader' | 'overflow')[] = [];
+  const drainNotifications = (): void => {
+    while (queuedReasons.length > 0 && depth === 0) {
+      if (!owed) {
+        queuedReasons = []; // a snapshot was written meanwhile: nothing is owed any more
+        return;
+      }
+      const reason = queuedReasons.shift() as 'reader' | 'overflow';
+      for (const listener of [...listeners]) listener(reason);
+    }
+  };
+  const guarded = <T>(fn: () => T): T => {
+    depth += 1;
+    try {
+      return fn();
+    } finally {
+      depth -= 1;
+      drainNotifications();
+    }
+  };
   const requestSnapshot = (reason: 'reader' | 'overflow'): void => {
     owed = true;
-    for (const listener of [...listeners]) listener(reason);
+    queuedReasons.push(reason);
+    drainNotifications();
   };
   const checkRequests = (): void => {
     const requests = Atomics.load(words, W_RESNAP);
@@ -401,6 +425,7 @@ export function createDeltaStream(definition: DeltaStreamDefinition, options: Cr
       pending.length = 0;
       pendingBytes = 0;
       stats.overflows += 1;
+      overflowOwed = true;
       requestSnapshot('overflow');
       return err(PipeOverflowError({ details: { pipe: definition.id, maxPendingBytes } }));
     }
@@ -429,52 +454,51 @@ export function createDeltaStream(definition: DeltaStreamDefinition, options: Cr
     get closed() {
       return closed;
     },
-    append(record) {
-      if (closed) return err(PipeClosedError({ details: { pipe: definition.id } }));
-      checkRequests();
-      if (!(record.version > version) || !Number.isFinite(record.version)) {
-        return err(DeltaOrderError({ details: { pipe: definition.id, version: record.version, previous: version } }));
-      }
-      if (overflowOwed) {
-        // Deltas after an overflow are meaningless until the snapshot: the reader resyncs from it.
+    append: (record) =>
+      guarded((): Result<PushOutcome> => {
+        if (closed) return err(PipeClosedError({ details: { pipe: definition.id } }));
+        checkRequests();
+        if (!(record.version > version) || !Number.isFinite(record.version)) {
+          return err(DeltaOrderError({ details: { pipe: definition.id, version: record.version, previous: version } }));
+        }
+        if (overflowOwed) {
+          // Deltas after an overflow are meaningless until the snapshot: the reader resyncs from it.
+          version = record.version;
+          return err(PipeOverflowError({ message: 'A snapshot is owed after an overflow; the delta was dropped.', details: { pipe: definition.id } }));
+        }
+        const refs = checkRefs(record.refs);
+        if (!refs.ok) return refs;
+        const encoded = encodeRecord(KIND_DELTA, epoch, record.version, record.base ?? version, record.flags ?? 0, refs.value, record.payload ?? EMPTY);
+        const result = enqueue(encoded);
+        if (result.ok) stats.records += 1;
+        if (result.ok || result.error.code === PipeOverflowError.code) version = record.version;
+        return result;
+      }),
+    snapshot: (record) =>
+      guarded((): Result<PushOutcome> => {
+        if (closed) return err(PipeClosedError({ details: { pipe: definition.id } }));
+        const refs = checkRefs(record.refs);
+        if (!refs.ok) return refs;
+        // Requests seen so far are satisfied by this snapshot.
+        seenRequests = Atomics.load(words, W_RESNAP);
+        queuedReasons = [];
+        const nextEpoch = epoch + 1;
+        const encoded = encodeRecord(KIND_SNAPSHOT, nextEpoch, record.version, Number.NaN, record.flags ?? 0, refs.value, record.payload ?? EMPTY);
+        // A snapshot supersedes every queued delta.
+        pending.length = 0;
+        pendingBytes = 0;
+        const result = enqueue(encoded);
+        if (!result.ok) return result;
+        epoch = nextEpoch;
         version = record.version;
-        return err(PipeOverflowError({ message: 'A snapshot is owed after an overflow; the delta was dropped.', details: { pipe: definition.id } }));
-      }
-      const refs = checkRefs(record.refs);
-      if (!refs.ok) return refs;
-      const encoded = encodeRecord(KIND_DELTA, epoch, record.version, record.base ?? version, record.flags ?? 0, refs.value, record.payload ?? EMPTY);
-      const result = enqueue(encoded);
-      if (result.ok) {
-        version = record.version;
+        owed = false;
+        overflowOwed = false;
         stats.records += 1;
-      } else if (result.error.code === PipeOverflowError.code) {
-        version = record.version;
-        overflowOwed = true;
-      }
-      return result;
-    },
-    snapshot(record) {
-      if (closed) return err(PipeClosedError({ details: { pipe: definition.id } }));
-      const refs = checkRefs(record.refs);
-      if (!refs.ok) return refs;
-      checkRequests();
-      const nextEpoch = epoch + 1;
-      const encoded = encodeRecord(KIND_SNAPSHOT, nextEpoch, record.version, Number.NaN, record.flags ?? 0, refs.value, record.payload ?? EMPTY);
-      // A snapshot supersedes every queued delta.
-      pending.length = 0;
-      pendingBytes = 0;
-      const result = enqueue(encoded);
-      if (!result.ok) return result;
-      epoch = nextEpoch;
-      version = record.version;
-      owed = false;
-      overflowOwed = false;
-      stats.records += 1;
-      stats.snapshots += 1;
-      Atomics.store(words, W_EPOCH, epoch);
-      region.publish([W_EPOCH]);
-      return result;
-    },
+        stats.snapshots += 1;
+        Atomics.store(words, W_EPOCH, epoch);
+        region.publish([W_EPOCH]);
+        return result;
+      }),
     flush,
     onResnapshot(listener) {
       listeners.add(listener);

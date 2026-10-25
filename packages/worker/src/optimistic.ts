@@ -146,7 +146,8 @@ export function createOptimisticIntents<O>(options: { readonly version?: number;
       const external = commitOptions.signal;
       // Detached once the send settles.
       const detach = new AbortController();
-      external?.addEventListener('abort', () => controller.abort(external.reason), { once: true, signal: detach.signal });
+      if (external?.aborted === true) controller.abort(external.reason);
+      else external?.addEventListener('abort', () => controller.abort(external.reason), { once: true, signal: detach.signal });
       emit({ removed: [], reason: 'committed' });
       let result: Result<OptimisticAck<unknown>>;
       try {
