@@ -66,7 +66,9 @@ describe('handles and resize maths (no Wasm)', () => {
     expect(resizedBounds(b, 'e', 10, 0, { fromCenter: true })).toEqual({ minX: -10, minY: 0, maxX: 110, maxY: 50 });
     expect(resizedBounds(b, 'se', 100, 0, { aspect: true })).toEqual({ minX: 0, minY: 0, maxX: 200, maxY: 100 });
     expect(resizedBounds(b, 's', 0, 50, { aspect: true })).toEqual({ minX: -50, minY: 0, maxX: 150, maxY: 100 });
-    expect(resizedBounds(b, 'w', 500, 0).maxX - resizedBounds(b, 'w', 500, 0).minX).toBe(1);
+    // Never below the minimum; past the opposite edge the box flips over it (B10a).
+    expect(resizedBounds(b, 'w', 99.5, 0).maxX - resizedBounds(b, 'w', 99.5, 0).minX).toBe(1);
+    expect(resizedBounds(b, 'w', 500, 0)).toEqual({ minX: 100, minY: 0, maxX: 500, maxY: 50 });
     expect(fixedFraction('ne')).toEqual([0, 1]);
     expect(fixedFraction('n', { fromCenter: true })).toEqual([0.5, 0.5]);
     fc.assert(

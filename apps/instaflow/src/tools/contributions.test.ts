@@ -30,7 +30,8 @@ describe('B3 contributions (B0 tokens)', () => {
     expect(registries.ok).toBe(true);
     expect(registries.ok && registries.value.tool('instaflow/select')?.description).toContain('marquee');
     expect(studioSpec.tools).toContain(selectTool.id);
-    expect(toolHudActions.map((h) => h.capability)).toEqual(['instaflow/rotate-90-cw', 'instaflow/rotate-90-ccw']);
+    // B10a adds the flips and Free transform (an editor command, no capability).
+    expect(toolHudActions.map((h) => h.capability)).toEqual(['instaflow/rotate-90-cw', 'instaflow/rotate-90-ccw', 'instaflow/flip-horizontal', 'instaflow/flip-vertical', undefined]);
     expect(toolCapabilities.every((c) => c.exposeToAgents && !c.destructive)).toBe(true);
     // Align, centre in container and distribute stay B1's.
     expect(toolCapabilities.some((c) => /align|distribute|center/.test(c.id))).toBe(false);

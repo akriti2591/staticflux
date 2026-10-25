@@ -1,39 +1,46 @@
 /**
  * The pointer tools (IF-24.2–24.7, IF-24.14–24.16, IF-24.19): select (click, Shift+click, Mod+click deep select,
  * double click to enter a group or frame, marquee with Alt for "fully inside"), move, resize and rotate through the
- * round handles, and the hand (pan). One controller per tab over the open page (`ToolSession`); headless — the
- * canvas feeds it pointer events in screen pixels and draws `view.overlay`.
+ * round handles, and the hand (pan). B10a adds skew (Mod-drag a side handle), the draggable pivot (Alt-click resets
+ * it), flips on a resize past the opposite edge, and transform mode's behaviour. One controller per tab over the open
+ * page (`ToolSession`); headless — the canvas feeds it pointer events in screen pixels and draws `view.overlay`.
  *
  * **One drag = one undo step**: while dragging, new values are previews in the stage's **session layer** (never
  * persisted, drawn through the render projection like any composed value); on release they are cleared and
  * committed as one change set through B1's `commitEdit` (value checks, locks, final paths, brand rules). Escape or
- * pointercancel clears the preview and commits nothing. Position-locked elements never move.
+ * pointercancel clears the preview and commits nothing. Position-locked elements never move. In transform mode
+ * (B10a, `transform-mode.ts`) a released drag is staged into the session instead (`SINKS`).
  *
  * **No branch on mode** (rule 4): what a press starts is data — `PRESS_GESTURES[behaviour][pressTarget]` — and each
  * gesture kind is a strategy in `GESTURES` (begin, update, end). The active tool's behaviour comes from
- * `TOOL_BEHAVIOURS`. Machine: `ToolGestureLifecycle` (`instaflow/tool-gesture`, LIFECYCLES §25).
+ * `TOOL_BEHAVIOURS`, overridden by `MODE_BEHAVIOURS` while a transform session is active. Machine:
+ * `ToolGestureLifecycle` (`instaflow/tool-gesture`, LIFECYCLES §25).
  */
 import { createMachine, defineMachine, err, ok, type Result } from '@staticflux/core';
 import type { Box } from '@staticflux/document/spatial-index';
-import type { JsonValue, NodeId } from '@staticflux/document/v2';
+import type { NodeId } from '@staticflux/document/v2';
 import type { Actor, SessionLayer, Stage } from '@staticflux/stage';
 import { commitEdit, type EditTarget } from '../elements/actions.js';
-import { P } from '../elements/components.js';
+import { applyAffine, IDENTITY, invert } from '../elements/resolve.js';
 import { elementBounds } from '../elements/layout.js';
 import { StudioIds } from '../spec/studio-ids.js';
 import { GestureStateError, TargetGoneError } from './errors.js';
+import { CENTER_PIVOT, frameBasis, isCenterPivot, pivotFraction, pivotPoint, SKEW_HANDLES, type SkewHandleId, skewValues, snapPivot } from './free-transform.js';
 import { type ElementIndex, hitTest, marqueeSelect, rectFrom, type ToolContext } from './hit-test.js';
 import { EMPTY_OVERLAY, type ToolOverlay } from './overlay.js';
 import { collectSnapTargets, type Guide, type GuideLabel, shiftBox, SNAP_THRESHOLD_PX, type SnapFeature, snapBox, type SnapTargets } from './snapping.js';
+import { createPreview, type Preview, type TransformMode, type TransformModeState } from './transform-mode.js';
 import {
   angleAbout,
   axisAligned,
   captureTransform,
   HANDLE_DIRECTIONS,
+  type HandleKind,
   moveValues,
   pickHandle,
   type ResizeHandleId,
   resizedBounds,
+  resizedSize,
   resizeValues,
   rotateValues,
   selectionFrame,
@@ -57,42 +64,52 @@ export interface ToolSession {
   readonly view: ViewState;
   /** The person at the pointer (attribution of commits). */
   readonly actor: () => Actor;
+  /** B10a: the tab's transform session (Mod+T); without one, gestures always commit at once. */
+  readonly mode?: TransformMode;
 }
 
 export const ToolGestureLifecycle = /* @__PURE__ */ defineMachine({
   id: 'instaflow/tool-gesture',
   initial: 'idle',
-  states: ['idle', 'pressed', 'moving', 'resizing', 'rotating', 'marqueeing', 'panning'],
+  states: ['idle', 'pressed', 'moving', 'resizing', 'rotating', 'skewing', 'pivoting', 'marqueeing', 'panning'],
   transitions: {
     idle: { press: 'pressed' },
-    pressed: { move: 'moving', resize: 'resizing', rotate: 'rotating', marquee: 'marqueeing', pan: 'panning', release: 'idle', cancel: 'idle' },
+    pressed: { move: 'moving', resize: 'resizing', rotate: 'rotating', skew: 'skewing', pivot: 'pivoting', marquee: 'marqueeing', pan: 'panning', release: 'idle', cancel: 'idle' },
     moving: { release: 'idle', cancel: 'idle' },
     resizing: { release: 'idle', cancel: 'idle' },
     rotating: { release: 'idle', cancel: 'idle' },
+    skewing: { release: 'idle', cancel: 'idle' },
+    pivoting: { release: 'idle', cancel: 'idle' },
     marqueeing: { release: 'idle', cancel: 'idle' },
     panning: { release: 'idle', cancel: 'idle' },
   },
 });
 export type ToolGestureState = (typeof ToolGestureLifecycle.states)[number];
 
-export const DRAG_KINDS = ['move', 'resize', 'rotate', 'marquee', 'pan'] as const;
+export const DRAG_KINDS = ['move', 'resize', 'rotate', 'skew', 'pivot', 'marquee', 'pan'] as const;
 export type DragKind = (typeof DRAG_KINDS)[number];
 
-/** What is under the pointer when it goes down. */
-export const PRESS_TARGETS = ['resize-handle', 'rotate-handle', 'element', 'selected', 'empty'] as const;
+/** What is under the pointer when it goes down (`skew-handle`: a side handle pressed with Mod, B10a). */
+export const PRESS_TARGETS = ['resize-handle', 'rotate-handle', 'skew-handle', 'pivot-handle', 'element', 'selected', 'empty'] as const;
 export type PressTarget = (typeof PRESS_TARGETS)[number];
 
-export const TOOL_BEHAVIOURS_LIST = ['select', 'hand'] as const;
+/** `transform`: the select tool while a transform session is active (B10a). */
+export const TOOL_BEHAVIOURS_LIST = ['select', 'hand', 'transform'] as const;
 export type ToolBehaviour = (typeof TOOL_BEHAVIOURS_LIST)[number];
 
 /** Which gesture a drag starts, per tool behaviour and press target (data, rule 4). */
 export const PRESS_GESTURES: Readonly<Record<ToolBehaviour, Readonly<Record<PressTarget, DragKind>>>> = Object.freeze({
-  select: { 'resize-handle': 'resize', 'rotate-handle': 'rotate', element: 'move', selected: 'move', empty: 'marquee' },
-  hand: { 'resize-handle': 'pan', 'rotate-handle': 'pan', element: 'pan', selected: 'pan', empty: 'pan' },
+  select: { 'resize-handle': 'resize', 'rotate-handle': 'rotate', 'skew-handle': 'skew', 'pivot-handle': 'pivot', element: 'move', selected: 'move', empty: 'marquee' },
+  hand: { 'resize-handle': 'pan', 'rotate-handle': 'pan', 'skew-handle': 'pan', 'pivot-handle': 'pan', element: 'pan', selected: 'pan', empty: 'pan' },
+  // Free Transform: a press anywhere inside moves the session's elements, outside the frame rotates them.
+  transform: { 'resize-handle': 'resize', 'rotate-handle': 'rotate', 'skew-handle': 'skew', 'pivot-handle': 'pivot', element: 'move', selected: 'move', empty: 'rotate' },
 });
 
 /** Tool contribution id → pointer behaviour (other tools, e.g. B2's text, bring their own controllers). */
 export const TOOL_BEHAVIOURS: Readonly<Record<string, ToolBehaviour>> = Object.freeze({ [StudioIds.tool.select]: 'select', [StudioIds.tool.hand]: 'hand' });
+
+/** The behaviour a transform session imposes (undefined: the tool's own). */
+export const MODE_BEHAVIOURS: Readonly<Record<TransformModeState, ToolBehaviour | undefined>> = Object.freeze({ idle: undefined, active: 'transform' });
 
 /** Screen-pixel constants. */
 export const POINTER = Object.freeze({ dragSlop: 3, hitTolerance: 3 });
@@ -104,7 +121,7 @@ export interface ToolPointer {
   readonly y: number;
   readonly shift?: boolean;
   readonly alt?: boolean;
-  /** Cmd on macOS, Ctrl elsewhere: deep select on press, no snapping while dragging. */
+  /** Cmd on macOS, Ctrl elsewhere: deep select on press, no snapping while dragging, skew on a side handle. */
   readonly mod?: boolean;
   /** Click count on `down` (2 = double click). */
   readonly clicks?: number;
@@ -114,6 +131,10 @@ export type ToolOutcome =
   | { readonly kind: 'none' }
   | { readonly kind: 'selection'; readonly selection: readonly NodeId[] }
   | { readonly kind: 'committed'; readonly label: string; readonly ops: number }
+  /** B10a: a step joined the active transform session (committed with it on Enter). */
+  | { readonly kind: 'staged'; readonly label: string }
+  /** B10a: the transform session started. */
+  | { readonly kind: 'mode'; readonly state: TransformModeState }
   | { readonly kind: 'cancelled' };
 
 const NONE: ToolOutcome = Object.freeze({ kind: 'none' });
@@ -135,10 +156,17 @@ interface Modifiers {
   readonly mod: boolean;
 }
 
+/** Where a transform gesture previews and what its release does (B10a: commit now, or stage into the session). */
+interface GestureSink {
+  readonly preview: Preview;
+  end(start: TransformStart, values: readonly SpatialValues[], label: string): Result<ToolOutcome>;
+  cancel(): void;
+}
+
 interface GestureContext {
   readonly s: ToolSession;
   readonly press: Press;
-  readonly preview: Preview;
+  readonly sink: GestureSink;
 }
 
 /** A gesture kind: begin once the pointer leaves the slop, update on every move, end on release. */
@@ -150,32 +178,6 @@ interface GestureRun {
   update(page: readonly [number, number], screen: readonly [number, number], mods: Modifiers): void;
   end(): Result<ToolOutcome>;
   cancel(): void;
-}
-
-/** Session-layer previews of one gesture. */
-interface Preview {
-  show(values: readonly SpatialValues[]): void;
-  clear(): void;
-}
-
-function createPreview(session: ToolSession['session']): Preview {
-  const touched = new Set<NodeId>();
-  const PATHS = { x: P.x, y: P.y, w: P.w, h: P.h, rotation: P.rotation } as const;
-  return {
-    show(values) {
-      for (const v of values) {
-        touched.add(v.node);
-        for (const key of ['x', 'y', 'w', 'h', 'rotation'] as const) {
-          const value = v[key];
-          if (value !== undefined) session.set(v.node, PATHS[key], value as JsonValue);
-        }
-      }
-    },
-    clear() {
-      for (const node of touched) for (const path of Object.values(PATHS)) session.clear(node, path);
-      touched.clear();
-    },
-  };
 }
 
 const threshold = (s: ToolSession): number => SNAP_THRESHOLD_PX / s.view.camera.zoom;
@@ -191,29 +193,59 @@ function commitValues(s: ToolSession, start: TransformStart, values: readonly Sp
   return committed.ok ? ok({ kind: 'committed', label, ops: ops.length }) : committed;
 }
 
+/** Gesture sinks per transform-session state (rule 4). */
+export const SINKS: Readonly<Record<TransformModeState, (s: ToolSession) => GestureSink>> = Object.freeze({
+  idle(s: ToolSession): GestureSink {
+    const preview = createPreview(s.session);
+    return {
+      preview,
+      end(start, values, label) {
+        preview.clear();
+        return commitValues(s, start, values, label);
+      },
+      cancel: () => preview.clear(),
+    };
+  },
+  active(s: ToolSession): GestureSink {
+    const mode = s.mode as TransformMode;
+    return {
+      preview: mode.preview,
+      end(_start, values, label) {
+        mode.stage(values, label);
+        return ok({ kind: 'staged', label });
+      },
+      cancel: () => mode.restore(),
+    };
+  },
+});
+
+const modeState = (s: Pick<ToolSession, 'mode'>): TransformModeState => s.mode?.state ?? 'idle';
+
 function transformRun(g: GestureContext, start: TransformStart, label: string, compute: (page: readonly [number, number], mods: Modifiers) => { values: SpatialValues[]; guides: readonly Guide[]; labels: readonly GuideLabel[] }): GestureRun {
   let last: SpatialValues[] = [];
   return {
     update(page, _screen, mods) {
       const r = compute(page, mods);
       last = r.values;
-      g.preview.show(r.values);
+      g.sink.preview.show(r.values);
       refreshOverlay(g.s, { guides: r.guides, labels: r.labels });
     },
     end() {
-      g.preview.clear();
-      const outcome = commitValues(g.s, start, last, label);
+      const outcome = g.sink.end(start, last, label);
       refreshOverlay(g.s);
       return outcome;
     },
     cancel() {
-      g.preview.clear();
+      g.sink.cancel();
       refreshOverlay(g.s);
     },
   };
 }
 
 const movingFeatures = (d: -1 | 0 | 1): readonly SnapFeature[] => (d === 1 ? ['max'] : d === -1 ? ['min'] : []);
+
+/** The pivot of a start snapshot on the page (the view's pivot fractions in the start's frame). */
+const pivotOf = (s: ToolSession, start: TransformStart): readonly [number, number] => pivotPoint(start.frame, s.view.pivot);
 
 /** The gesture strategies (rule 4: chosen from data, never by mode). */
 export const GESTURES: Readonly<Record<DragKind, GestureStrategy>> = Object.freeze({
@@ -259,14 +291,19 @@ export const GESTURES: Readonly<Record<DragKind, GestureStrategy>> = Object.free
       const [hx, hy] = HANDLE_DIRECTIONS[handle];
       const single = start.value.elements.length === 1 ? start.value.elements[0] : undefined;
       const snappable = single === undefined || axisAligned(single.transform);
+      const pivot = g.s.view.pivot;
+      const b = start.value.frame.bounds;
       return ok(
         transformRun(g, start.value, 'Resize', (page, mods) => {
           let dx = page[0] - g.press.page[0];
           let dy = page[1] - g.press.page[1];
-          const options = { aspect: mods.shift, fromCenter: mods.alt };
+          // Alt: about the pivot (B10a; the centre unless it was moved).
+          const options = { aspect: mods.shift, fromCenter: mods.alt, ...(pivot === undefined ? {} : { pivot }) };
           let guides: readonly Guide[] = [];
-          if (snappable && !mods.mod && !mods.shift) {
-            const raw = resizedBounds(start.value.frame.bounds, handle, dx, dy, options);
+          const signed = resizedSize(b.maxX - b.minX, b.maxY - b.minY, handle, dx, dy, options);
+          // A flipped box has its dragged edge on the other side: no edge snapping past the fixed point.
+          if (snappable && !mods.mod && !mods.shift && signed.w > 0 && signed.h > 0) {
+            const raw = resizedBounds(b, handle, dx, dy, options);
             const r = snapBox(raw, targets.value, { threshold: threshold(g.s), spacing: false, features: { x: movingFeatures(hx), y: movingFeatures(hy) } });
             // The dragged edge moves by exactly the pointer delta (also about the centre), so the snap offset adds up.
             dx += r.dx;
@@ -282,7 +319,7 @@ export const GESTURES: Readonly<Record<DragKind, GestureStrategy>> = Object.free
     begin(g) {
       const start = captureTransform(g.s.ctx, g.s.view.selection);
       if (!start.ok) return start;
-      const pivot = start.value.frame.center;
+      const pivot = pivotOf(g.s, start.value);
       const from = angleAbout(pivot, g.press.page[0], g.press.page[1]);
       return ok(
         transformRun(g, start.value, 'Rotate', (page, mods) => {
@@ -291,6 +328,44 @@ export const GESTURES: Readonly<Record<DragKind, GestureStrategy>> = Object.free
           return { values: rotateValues(start.value, degrees, pivot), guides: [], labels: [] };
         }),
       );
+    },
+  },
+  skew: {
+    begin(g) {
+      const handle = g.press.handle?.id as SkewHandleId;
+      const start = captureTransform(g.s.ctx, g.s.view.selection);
+      if (!start.ok) return start;
+      const basis = frameBasis(start.value);
+      const toLocal = invert([basis.toPage[0], basis.toPage[1], basis.toPage[2], basis.toPage[3], 0, 0]) ?? IDENTITY;
+      const pivot = g.s.view.pivot ?? CENTER_PIVOT;
+      return ok(
+        transformRun(g, start.value, 'Skew', (page, mods) => {
+          const [ldx, ldy] = applyAffine(toLocal, page[0] - g.press.page[0], page[1] - g.press.page[1]);
+          return { values: skewValues(start.value, handle, ldx, ldy, { snap: mods.shift, aboutPivot: mods.alt, pivot }), guides: [], labels: [] };
+        }),
+      );
+    },
+  },
+  pivot: {
+    begin(g) {
+      const before = g.s.view.pivot;
+      const frame = selectionFrame(g.s.ctx, g.s.view.selection);
+      if (!frame.ok) return frame;
+      const f = frame.value;
+      return ok({
+        update(page, _screen, mods) {
+          if (f === undefined) return;
+          const raw = pivotFraction(f, page);
+          // Snaps to the frame's nine reference points (Mod: free).
+          g.s.view.setPivot(mods.mod ? raw : snapPivot(f, raw, threshold(g.s)));
+          refreshOverlay(g.s);
+        },
+        end: () => ok(NONE),
+        cancel() {
+          g.s.view.setPivot(before);
+          refreshOverlay(g.s);
+        },
+      });
     },
   },
   marquee: {
@@ -337,16 +412,24 @@ export function pruneSelection(s: Pick<ToolSession, 'ctx' | 'view'>): void {
   if (alive.length !== s.view.selection.length) s.view.select(alive);
 }
 
+/** Whether the pivot handle shows, per session state: always in transform mode, otherwise once it was moved (B10a). */
+const SHOW_PIVOT: Readonly<Record<TransformModeState, (pivot: readonly [number, number] | undefined) => boolean>> = Object.freeze({
+  idle: (pivot: readonly [number, number] | undefined) => !isCenterPivot(pivot),
+  active: () => true,
+});
+
 /** Recompute the selection frame and handles (plus gesture extras) into `view.overlay`. */
-export function refreshOverlay(s: Pick<ToolSession, 'ctx' | 'view'>, extra: Partial<Pick<ToolOverlay, 'guides' | 'labels' | 'marquee'>> = {}): void {
+export function refreshOverlay(s: Pick<ToolSession, 'ctx' | 'view' | 'mode'>, extra: Partial<Pick<ToolOverlay, 'guides' | 'labels' | 'marquee'>> = {}): void {
   const frame = selectionFrame(s.ctx, s.view.selection.filter((n) => s.ctx.stage.read(n) !== undefined));
   const hoverNode = s.view.hover;
   const hover = hoverNode === undefined || s.view.selection.includes(hoverNode) ? undefined : elementBounds(s.ctx, hoverNode);
   const f = frame.ok ? frame.value : undefined;
+  const pivot = SHOW_PIVOT[modeState(s)](s.view.pivot) ? (s.view.pivot ?? CENTER_PIVOT) : undefined;
   s.view.setOverlay({
     ...EMPTY_OVERLAY,
-    ...(f === undefined ? {} : { frame: f, handles: transformHandles(f, s.view.camera.zoom) }),
+    ...(f === undefined ? {} : { frame: f, handles: transformHandles(f, s.view.camera.zoom, pivot) }),
     ...(hover?.ok === true && hoverNode !== undefined ? { hover: { node: hoverNode, bounds: hover.value.geometry } } : {}),
+    ...(f !== undefined && modeState(s) === 'active' ? { transforming: true } : {}),
     ...extra,
   });
 }
@@ -363,18 +446,26 @@ export interface ToolController {
 
 const mods = (e: ToolPointer): Modifiers => ({ shift: e.shift === true, alt: e.alt === true, mod: e.mod === true });
 
+const SKEW_SIDES_SET: ReadonlySet<string> = new Set(SKEW_HANDLES);
+
+/** Press target per handle kind (a side handle with Mod skews, B10a). */
+const HANDLE_TARGETS: Readonly<Record<HandleKind, (handle: TransformHandle, mod: boolean) => PressTarget>> = Object.freeze({
+  resize: (handle: TransformHandle, mod: boolean) => (mod && SKEW_SIDES_SET.has(handle.id) ? 'skew-handle' : 'resize-handle'),
+  rotate: () => 'rotate-handle',
+  pivot: () => 'pivot-handle',
+});
+
 /** The pointer tool controller of one tab (see the module header). */
 export function createToolController(s: ToolSession): ToolController {
   const machine = createMachine(ToolGestureLifecycle);
   let press: Press | undefined;
   let run: GestureRun | undefined;
-  let preview: Preview | undefined;
-  const behaviour = (): ToolBehaviour => TOOL_BEHAVIOURS[s.view.tool] ?? 'select';
+  const behaviour = (): ToolBehaviour => MODE_BEHAVIOURS[modeState(s)] ?? TOOL_BEHAVIOURS[s.view.tool] ?? 'select';
   const tolerance = (): number => POINTER.hitTolerance / s.view.camera.zoom;
 
   const classify = (page: readonly [number, number], deep: boolean): Result<{ target: PressTarget; handle?: TransformHandle; hit?: NodeId }> => {
     const handle = pickHandle(s.view.overlay.handles, page[0], page[1]);
-    if (handle !== undefined && s.view.selection.length > 0) return ok({ target: handle.kind === 'resize' ? 'resize-handle' : 'rotate-handle', handle });
+    if (handle !== undefined && s.view.selection.length > 0) return ok({ target: HANDLE_TARGETS[handle.kind](handle, deep), handle });
     const hit = hitTest(s.ctx, s.index, page[0], page[1], { tolerance: tolerance(), context: s.view.context, deep });
     if (!hit.ok) return hit;
     if (hit.value === undefined) return ok({ target: 'empty' });
@@ -422,8 +513,8 @@ export function createToolController(s: ToolSession): ToolController {
     if (machine.is('pressed')) {
       if (Math.hypot(e.x - press.sx, e.y - press.sy) < POINTER.dragSlop) return ok(NONE);
       const kind = PRESS_GESTURES[press.behaviour][press.target];
-      preview = createPreview(s.session);
-      const begun = GESTURES[kind].begin({ s, press, preview }, mods(e));
+      const sink = SINKS[modeState(s)](s);
+      const begun = GESTURES[kind].begin({ s, press, sink }, mods(e));
       if (!begun.ok) {
         machine.send('cancel');
         press = undefined;
@@ -436,9 +527,17 @@ export function createToolController(s: ToolSession): ToolController {
     return ok(NONE);
   };
 
-  /** A press released without dragging: empty space clears (and leaves the entered container); a selected element becomes the only selection (Shift: leaves it). */
+  /**
+   * A press released without dragging: empty space clears (and leaves the entered container); a selected element
+   * becomes the only selection (Shift: leaves it); Alt-click on the pivot puts it back in the centre (B10a).
+   */
   const click = (e: ToolPointer): ToolOutcome => {
     const p = press;
+    if (p?.target === 'pivot-handle') {
+      if (e.alt === true) s.view.setPivot(undefined);
+      refreshOverlay(s);
+      return NONE;
+    }
     if (p === undefined || p.behaviour !== 'select') return NONE;
     if (p.target === 'empty' && e.shift !== true) {
       s.view.clear();
@@ -463,18 +562,15 @@ export function createToolController(s: ToolSession): ToolController {
     machine.send('release');
     press = undefined;
     run = undefined;
-    preview = undefined;
     return r;
   };
 
   const cancel = (): ToolOutcome => {
     if (machine.is('idle')) return NONE;
     run?.cancel();
-    preview?.clear();
     machine.send('cancel');
     press = undefined;
     run = undefined;
-    preview = undefined;
     return { kind: 'cancelled' };
   };
 

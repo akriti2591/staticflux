@@ -33,7 +33,7 @@ const RAD = Math.PI / 180;
 
 /** The local → repeat affine of a placement (the wrapper group's `boxTransform`). */
 export function placementTransform(p: Placement): Affine {
-  return boxTransform({ x: p.x, y: p.y, w: 0, h: 0, rotation: p.rotation, scaleX: 1, scaleY: 1, anchorX: 0, anchorY: 0, flipX: false, flipY: p.flipY });
+  return boxTransform({ x: p.x, y: p.y, w: 0, h: 0, rotation: p.rotation, scaleX: 1, scaleY: 1, anchorX: 0, anchorY: 0, flipX: false, flipY: p.flipY, skewX: 0 });
 }
 
 /** A placement that turns by `rotation` degrees (with an optional reflection) and maps `from` onto `to`. */
