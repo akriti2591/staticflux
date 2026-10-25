@@ -1188,6 +1188,9 @@ Supersedes IF-27.4 (B8's one-realm placement).
   worker, with the EditContext's character bounds inside the text box.
 - **IF-33.25** A text element is hit across its box (B1 fix found here: double click inside text edits it).
 - **IF-33.26** A release whose press went elsewhere (a double click into text) is not reported as a problem.
+- **IF-33.27** Studio's spec changes run one after another on the latest spec (B0 fix found here: a lens switch during a
+  scope change put the old scope back), and Studio's scope is compared with the selection it should follow, not with the
+  last scope asked for.
 
 | Code | Meaning |
 |---|---|
