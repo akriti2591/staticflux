@@ -280,6 +280,25 @@ step). Main-step rows are marked **main**; the rest live in `Advanced`.
 | SVG | **Text** | Chips `Outlines · Text` under a one-line hint. `Outlines` = today's writer (glyph outlines labelled with their text, D21). `Text` writes `<text>` runs and needs the font on the reader's machine or embedded. Default `Outlines`. | Outlines (a); Text (c) M2 |
 | SVG | **Embed fonts** | Switch, rendered only with `Text`; default on. Embeds the used subset as `@font-face` data URIs. | (c) M2 |
 
+**Custom size (output pixels)**
+
+A **Size** row sits under the format's main option for PNG and JPG: the **size field pair** (the same block as New
+design and Page › Size, HOME-FILES §1.3): `W` and `H` mono fields with `px`, a lock (always locked here: the page's
+ratio is fixed), a `Presets ▾` menu (`1 080 × 1 080 · Instagram post`, `1 080 × 1 920 · Story`, `1 200 × 628 ·
+Link preview`, `1 920 × 1 080 · HD`, `3 840 × 2 160 · 4K`, `A4 at 300 dpi · 2 480 × 3 508`, …; a preset whose ratio
+differs from the page is listed with `· fits width` and sets W only), and a muted hint line. Typing W sets H by the
+ratio and vice versa; the Scale chips follow (`2.22×`) and deselect when no chip matches. **In M1** the pair snaps on
+blur to the nearest of 1× / 2× / 3× and the hint says `Nearest scale: 2× · 2 160 × 2 160 px` (b); when arbitrary scale
+lands (c, M2) any value within the device ceiling is accepted and the hint shows the resulting scale. A value past the
+ceiling is clamped with the reason (`Max 16 384 px on this device`). The pair never changes the page: a different
+*ratio* is **Resize design** (GAP-AUDIT Q-A, Q-B, backlog B-5), reachable from the row's hint link `Different shape?
+Resize the design…` once that feature exists; until then the hint link reads `Change the page size…` and opens
+Page › Size behind the dialog (closing it). Departure from Canva, which mixes "download size" with "resize design":
+one block, one meaning (pixels out), and the shape question lives where the shape is set.
+
+For PDF the row reads as a `Page size` line only (`1 080 × 1 080 pt`, mono, not editable; print sizes come with Print
+kind, M2). For SVG there is no size row (vector).
+
 **File name**
 
 | Case | Name | Letter |
@@ -318,8 +337,9 @@ Pages thumbnail projection lands; until then the card shows the page's format ch
 **Main step versus `advanced`**
 
 The main step holds **four decisions** and nothing else: `What` (scope, with the picker when `Pages`), `Preset`
-(rendered only when at least one preset applies), `Format`, and the format's one main option (`Scale` for PNG/JPG,
-`Kind` for PDF; SVG has none). Below them: the file-name line, the loose-elements line (when relevant), the output
+(rendered only when at least one preset applies; when any preset is hidden for size the row ends with the muted link
+`Other sizes…` → Page › Size, see §6 item 9), `Format`, and the format's one main option (`Scale` for PNG/JPG with
+the **Size** pair under it, `Kind` for PDF; SVG has none). Below them: the file-name line, the loose-elements line (when relevant), the output
 size card at the right, and `Advanced ▸` as a ghost row whose right side summarises every non-default advanced setting
 in a mist tag (`Transparent · Custom name`). Footer: `Reset to defaults` (ghost, left; see Memory), `Cancel`, primary
 `Export PNG` / `Export PDF` / `Export 2 formats`.
@@ -647,18 +667,22 @@ are recorded for history only.
 6. **Share tab designed now though D3 (no accounts) keeps it unrendered in M1.** Recommend keeping the design so B11a
    builds the wizard step frame, inline confirm row and copy field once; nothing of Share is rendered before accounts.
 
-**Added 2026-10-25 with the Export tab (§2.3 Export); open, defaults are the recommendations.**
+**Added 2026-10-25 with the Export tab (§2.3 Export). Items 7 and 8 answered (accepted by the owner, 2026-10-25);
+item 9 rewritten and open.**
 
-7. **`Mod+Shift+E` opens the dialog instead of exporting at once.** C1's `ExportShortcut` exports immediately with the
-   last choice. Recommend: the shortcut opens the Export dialog with the remembered settings and focus on the primary,
-   so `Mod+Shift+E`, Enter is the two-key quick export (F-53 variant) and a stray shortcut never downloads a file
-   (Figma does the same). Alternative: keep immediate export and add a second shortcut for the dialog — rejected (two
-   shortcuts for one surface, and the immediate one has no visible home for its settings).
-8. **Several files are zipped by default** (`<Title>.zip` whenever an export yields more than one file), with Advanced ›
-   `Zip several files` to turn it off. Recommend zip: one download, no browser multiple-download prompt, and the zip
-   writer already exists in `@staticflux/blob`. Alternative: loose files by default (Figma) — rejected for the prompt
-   and for 20-page designs.
-9. **Presets that do not apply to the page are not rendered** (Social when the page is not that size, Print before print
-   PDF exists), per FOUNDATIONS §5.6. Recommend not rendering; a preset that resizes the content would be a different
-   feature (Resize design). Alternative: show every preset and resize — rejected for M1 (the engine does not resize and
-   the result would surprise).
+7. **Answered — accepted.** `Mod+Shift+E` opens the dialog with the remembered settings and focus on the primary;
+   `Mod+Shift+E`, Enter is the two-key quick export (F-53 variant). C1's `ExportShortcut` changes accordingly.
+8. **Answered — accepted.** Several files are zipped by default (`<Title>.zip`), Advanced › `Zip several files` turns
+   it off.
+9. **Open — presets that do not fit the page: hide them, or show them and resize?** In plain words: a preset such as
+   `Social story · 1 080 × 1 920` only picks a file type and a scale; it never changes the design. Suppose the page is
+   a **square post (1 080 × 1 080)**. The story preset is a **tall rectangle**. If it were shown and pressed, the only
+   honest result would be to **change the design's shape** (crop, stretch or re-lay-out the square into a tall page),
+   which the engine cannot do today and which would surprise ("where did my layout go?"). **Recommendation:** hide
+   presets that do not fit the page's shape (today's rule), **and** end the preset row with a muted link `Other
+   sizes…` that opens Page › Size, so a person who wants a story first makes the page a story, then exports. When
+   **Resize design** exists (backlog B-5), the link becomes `Resize design…` and the hidden presets return labelled
+   `Social story · resize to 1 080 × 1 920`. Alternative: always show every preset and resize on export — not
+   recommended for M1 (no engine support; a guess about the extra 840 px of height). **Question for the owner:** is
+   "hide + `Other sizes…` link" right for M1, or should Resize design be pulled forward? Worked example in
+   GAP-AUDIT Q-A.

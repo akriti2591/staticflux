@@ -32,7 +32,7 @@ STUDIO §13 and Appendix A). "Spec" says where it is or should be specified.
 | Contextual HUD + inspector (one control model) | worked | Canva (pill), Figma (inspector) | STUDIO §4.2, §5 |
 | Command palette | worked | Raycast, Linear | FOUNDATIONS §4.16, STUDIO §4.4 |
 | **Find and replace** (text, fonts, colours across pages) | missing → **worked this pass** | Figma plugin "Find and replace", Google Docs | STUDIO §9.1 (new), F-56 |
-| **Keyboard cheat sheet** (`?`) | frame only → **worked this pass** | Figma `?` panel, Linear `?` | STUDIO §2.5 (new), F-57 |
+| **Keyboard cheat sheet** (`?`) | frame only → **worked this pass** | Figma `?` panel, Linear `?` | STUDIO §2.3.1 (new), F-57 |
 | Export dialog (+ Share tab, M2) | worked | Figma export, Canva download | OVERLAYS §2.3 |
 | Milestones list, preview, Compare, open as new | worked | Figma version history (read-only preview) | OVERLAYS §2.3 |
 | Settings dialog over Studio | worked (shell) | — | STUDIO §2.4 |
@@ -86,7 +86,7 @@ STUDIO §13 and Appendix A). "Spec" says where it is or should be specified.
 | **Disclosure row** (`More ▾`, `Advanced ▸`, section ▸) as one block with memory rules | frame only → **worked this pass** | Apple (disclosure triangles) | DENSITY-DISCLOSURE §2 |
 | **Size field pair** (W × H, lock, orientation, unit, presets menu) | missing → **worked this pass** | Figma frame presets | HOME-FILES §1.3, OVERLAYS §2.3 Export |
 | **Search field with scopes and results list** (Find) | missing → **worked this pass** | VS Code find widget | STUDIO §9.1 |
-| **Cheat sheet grid** | missing → **worked this pass** | Figma | STUDIO §2.5 |
+| **Cheat sheet grid** | missing → **worked this pass** | Figma | STUDIO §2.3.1 |
 | **Localisation rules** (strings, numbers, RTL, dates) | missing → **worked this pass** | — | FOUNDATIONS §5.12 |
 | **Keyboard shortcut customisation** | missing | VS Code | backlog B-10 |
 | Icons (`<sf-icon>`, Lucide + custom) | worked | — | STUDIO §10.2 |
@@ -126,7 +126,7 @@ genuinely serves people (muscle memory, a gesture everyone already knows), and s
 | 4 | **Import** is images-only and dock-only; no Home import, no drop on Home, no `.iflow`/SVG/PDF/font path spelled out | Anyone bringing work in | **yes** | HOME-FILES §3.1, F-55 |
 | 5 | **First run** is implicit; nothing asks for storage persistence or shows the one card that orients | Every new person | **yes** | HOME-FILES §1.4, F-59 |
 | 6 | **Find and replace** across pages (text, font, colour) | Anyone with > 3 pages; brand changes | **yes** | STUDIO §9.1, F-56 |
-| 7 | **Shortcut cheat sheet** is "a searchable table" with no design | Keyboard users, Figma natives | **yes** | STUDIO §2.5, F-57 |
+| 7 | **Shortcut cheat sheet** is "a searchable table" with no design | Keyboard users, Figma natives | **yes** | STUDIO §2.3.1, F-57 |
 | 8 | **Performance states**: what the canvas shows while tiles render, while a 200-page document loads, when the GPU is lost | Anyone on a slow machine or a big file | **yes** (short) | STUDIO §9.2 |
 | 9 | **Resize design** (change page size; content follows) | Canva natives, every social-format job | no → backlog B-5 | — |
 | 10 | **Timeline lens UX** (D5 must-have, nothing specified) | Everyone in M2 | no → backlog B-1 | — |
@@ -147,7 +147,7 @@ genuinely serves people (muscle memory, a gesture everyone already knows), and s
 | B-7 | **Presentation mode** `▶`: chrome-free pages with transitions, presenter window, reduced motion | STUDIO §2 row + flow | Keynote | UX.md §4. |
 | B-8 | **Collaboration hooks**: presence chip model shared by people and agents, cursors, held-element highlight, comments panel and `comment=` | Layer 1 `PRESENCE-COMMENTS.md` | Figma | D11, IF-12.6. |
 | B-9 | **Asset and page trash**: deleted media and pages recoverable from the dock (not only designs) | HOME-FILES §2.4, STUDIO §3.2–3.3 | — | Pages already toast with Undo. |
-| B-10 | **Shortcut customisation**: rebind in Settings › Shortcuts with conflict warnings, export/import a map | STUDIO §2.5 | VS Code | Read-only in M1 by decision. |
+| B-10 | **Shortcut customisation**: rebind in Settings › Shortcuts with conflict warnings, export/import a map | STUDIO §2.3.1 | VS Code | Read-only in M1 by decision. |
 | B-11 | **Multi-select on Home** (not only Files): drag-select cards, bulk bar on Home | HOME-FILES §1 | Finder | Files has it. |
 | B-12 | **Permissions later**: role matrix for Share, release visibility, read-only link UI | OVERLAYS §2.3 Share | Figma | Needs accounts (D3). |
 | B-13 | **Settings field-level spec**: every field's control, default, hint, validation | STUDIO §2.4 | Linear | Sections exist; fields are one-liners. |

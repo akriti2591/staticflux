@@ -98,17 +98,31 @@ models. Instaflow therefore never hard-codes a vendor in the UI.
 
 ### 2.3 Density
 
-Density leaves the top bar. It is a **View** setting (View menu and Settings › General), remembered per device, default
-**Standard**. Each option has a one-line explanation in the menu and in Settings:
+Density leaves the top bar. It is a **View** setting (View menu, Settings › General, `Mod+.` cycle, the palette),
+remembered per device, default **Standard**. The three modes (Focus · Standard · Pro), their one-liners, and exactly
+what the top bar, dock, inspector, HUD, popovers and dialogs show, tuck or hide in each, with the spacing and type
+tokens and the memory rules, are **`DENSITY-DISCLOSURE.md`** §1–3 and §6–7; the inspector's essential-vs-more tiers
+per selection kind are its §3.2 and §8.1. The first run opens in Standard. Switching animates regions (160 ms) and
+never moves the page under the pointer.
 
-| Density | One line | Shows |
-|---|---|---|
-| Focus | "Just the canvas. Panels open when you need them." | Top bar, tools, selection pill, command bar, zoom. Dock and inspector collapsed to rails (expand on click, auto-collapse on canvas click). |
-| Standard (default) | "Canvas with layers and the inspector." | + dock open on the last tab, inspector open, rulers off. |
-| Pro | "Everything at once, with rulers and numbers." | + rulers, Transform section expanded with scrubbable fields, shortcut hints in tooltips and menus, split dock (two tabs). |
+### 2.3.1 Keyboard cheat sheet (`?`) and Settings › Shortcuts
 
-The first run opens in Standard. Switching density animates regions (160 ms) and never moves the canvas origin under the
-pointer (the camera is re-centred so the page stays where it was on screen).
+`?` (and `⋯ › Keyboard shortcuts`, and the palette `Shortcuts`) opens the **cheat sheet**: a routable dialog
+(`/d/settings?section=shortcuts` in Studio, `/settings/shortcuts` on Home) 840 × 600 px, heading `Keyboard shortcuts`,
+a search field (`Search shortcuts`, focused on open; typing filters rows and highlights matches), a platform switch
+`Mac · Windows` (defaults to the person's; GAP-AUDIT Q-H), and the shortcuts as **cards in a 3-column grid**, one card
+per group in the order a person works: **Tools** · **Selection** · **Edit** · **Arrange** · **Transform** · **Text** ·
+**View** · **Studio** · **Home** (Home's card shows on Home only). Each card: an 11 px uppercase heading, rows of
+`label … kbd` (label 13 px, keys as `kbd` pills right-aligned, 28 px rows), rows that are **not available right now**
+(Pen before it ships, lens keys 2–4, DevTools unless on) are **absent** (principle 1). Hovering a row highlights the
+control it belongs to when that control is visible (the tool picker item, the View menu entry): the sheet teaches by
+pointing. A ghost `Print` at the bottom-left produces a one-page print stylesheet (two columns, no chrome). Escape
+closes; `?` again closes. Source of truth: the shortcut registry (`checkShortcuts` in CI), so the sheet can never be
+stale (departure from Figma's hand-maintained panel, see GAP-AUDIT §2). Settings › Shortcuts is the **same component**
+rendered as a page with both platform columns in Pro and the switch otherwise; read-only in M1 (customisation:
+backlog B-10). **Code:** `@staticflux/a11y` shortcut registry (descriptions, scopes), `kit/dialog`; **missing:** the
+cheat-sheet grid component (StaticFlux kit `<sf-shortcut-sheet>` over a registry snapshot), the Studio wiring and the
+group metadata on each binding (Instaflow `src/tools/keyboard.ts`, `src/app/canvas-shortcuts.ts`).
 
 ### 2.4 Settings surface (new; M1 General/Storage/Shortcuts, M2 Assistant)
 
@@ -590,6 +604,51 @@ A `sf-menu` at the pointer, kit styling, items with icons and shortcuts; only ap
 | Shift+scroll / wheel | Horizontal pan; `Mod+wheel` zoom about the pointer; trackpad pinch zooms. |
 | Space+drag | Pan with any tool. |
 | Escape ladder | Text editing → element selected → container left → nothing selected → tool back to Select. |
+
+### 9.1 Find and replace (`Mod+F`)
+
+`Mod+F` (also `⋯ › Find…`, palette `Find`) opens the **find bar**: a floating white pill-card 420 px wide, anchored
+under the top bar at the canvas's top-right (layer 2, non-modal; the canvas stays live), with: a `Kind ▾` menu
+(`Text · Font · Colour`), the search field (focused; for `Font` it is the font picker's filter; for `Colour` a swatch
++ hex), a mono count `3 of 12`, `↑ ↓` icon buttons (Enter / Shift+Enter), a `Replace ▾` disclosure that adds a second
+row (`Replace with` field or font/colour picker, `Replace` and `Replace all`), a `Scope ▾` (`All pages · This page ·
+Selection`, default All pages), and `×`. Matches are found across **every page and loose element** (departure: Figma
+needs a plugin, Canva has nothing; a brand change on a 20-page deck is one gesture here). Behaviour: matches
+highlight on the canvas with the sunflower outline and in Layers rows; the current match is selected and the camera
+zooms to it (10 % padding) when it is off-screen; `Enter` steps; **text** matching is case-insensitive by default with
+a `Aa` toggle and matches inside rich text runs (replacing keeps the run's marks); **font** matching lists every
+element using the family (replace keeps weight when the new family has it, else nearest, and says so in a toast
+`Replaced Fraunces with Inter · 14 elements · 2 weights substituted · Undo`); **colour** matching finds fills, strokes,
+text colours and page backgrounds with that resolved colour or token (`@primary`), and `Replace all` offers `Replace
+with a token ▾` when a kit exists. `Replace all` is **one undo step** named `Replace '<a>' with '<b>'` with a toast
+carrying Undo. Empty: `No matches for 'flyer' in 5 pages`. Escape closes the bar and keeps the current selection; the
+bar remembers Kind and Scope per device. Locked and hidden elements are matched and listed with their lock/eye icon;
+replacing in a locked element is skipped and counted (`2 locked, skipped`). Keyboard: `Mod+F` focuses the field when
+open; `Mod+G` / `Mod+Shift+G` next/previous match **while the bar has focus** (Group shortcuts otherwise); `Mod+Alt+F`
+opens with Replace expanded. A11y: `role=search` named `Find`, the count is a polite live region, matches are announced
+as `Match 3 of 12: Headline on Page 2`. **Code:** **missing** — a `TextIndexMirror` and `UsageMirror` (fonts, colours)
+in `src/workers/mirrors.ts`, capabilities `instaflow/find`, `instaflow/replace` (`src/elements/actions.ts`), the bar
+(`src/studio/find-bar.ts`); the kit's text field and font picker are reused.
+
+### 9.2 Performance states (what a person sees while Studio works)
+
+| Situation | What shows | Never |
+|---|---|---|
+| Boot of a design (any size) | The chrome in the first frame; panels as skeletons (`<sf-skeleton>`); the page card drawn as a white card with its label as soon as structure is known; content tiles fill in from the camera's centre outward | a spinner, a blank canvas, a progress bar for < 2 s |
+| Big document (hundreds of pages) | Pages outside the viewport are **not loaded** (lazy, D8); the Pages panel shows format chips, thumbnails render as they scroll into view; the Layers tree virtualises; the top-bar save status is unchanged | "Loading pages…" text |
+| Zoom or pan faster than tiles render | The previous zoom level's tiles scaled (soft), sharpened within 1–3 frames (A6 "time to sharp"); during a continuous zoom text may be soft, never missing | a checkerboard, grey boxes |
+| First frame after idle or GPU warm-up (≈ 1 s) | The cached last frame at once, then the live one | — |
+| An image still decoding or a video proxy building | The element's box with a mist fill and a small busy dot top-left, its name in the label; the image appears in place when ready; Assets shows a progress ring on the thumbnail | a toast |
+| Export, import, proxy, matte jobs (IF-10.7) | A progress row where the gesture was (dialog, Assets row); when the dialog closes, the sticky toast (OVERLAYS §3.4) | blocking the canvas |
+| Editor worker busy > 100 ms (a CRDT merge, a boolean on a 10k-point path) | The canvas stays interactive; the pending element draws at 60 % with a `busy` chip in the HUD (`Combining…`); the inspector fields are read-only (`aria-busy`) until the commit | a frozen pointer, a modal |
+| GPU device lost (A6 recovery) | The last frame stays; a mist banner `Graphics restarting…` for the recovery; then the live frame; no toast when it recovers within 2 s | the blocking error (that is for the worker, OVERLAYS §3.3) |
+| Low memory (tile budget hit) | Tiles far from the viewport are dropped silently; nothing visible changes; DevTools › Perf records it | a banner |
+| A frame budget miss streak (p95 over A7's budget for 2 s) | Nothing for people; DevTools › Perf shows it; a dev build logs once | "Performance mode" prompts |
+
+Rule: performance states are **spatial** (soft tiles, placeholder boxes) and never **textual** for people; words
+appear only when a job is countable (progress rows) or something stopped (banners). **Code:** `src/app/canvas-
+pipeline.ts` (soft-tile fallback exists in A6), `src/library/renditions.ts` (progress), **missing:** the busy chip in
+the HUD, the decoding placeholder box, the GPU-restart banner wiring (`src/app/recovery.ts`).
 
 **Feedback per Studio action** (the feedback hierarchy, toast rules and error copy rules are `OVERLAYS-FEEDBACK.md` §3;
 FOUNDATIONS §5.3 says what gets a toast):
