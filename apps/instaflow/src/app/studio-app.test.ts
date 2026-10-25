@@ -2,9 +2,13 @@
 // B1's geometry and B2's text Wasm load from the file system; the canvas surface is a lent happy-dom element. B9: the
 // editor and render modules run in in-process "workers" (the browser's host code on in-memory ports), in both
 // topologies; input goes through A5's ring.
-import { createScope, ok } from '@staticflux/core';
+import { createScope, ok, type Result } from '@staticflux/core';
+import { inMemorySpawner } from '@staticflux/worker';
 import { InputCode } from '@staticflux/surface';
 import { describe, expect, it } from 'vitest';
+import type { ExportFile } from '../export/formats.js';
+import { hostExportWorker } from '../export/host.js';
+import { createExportFixture, exportBuilt } from '../export/testing/fixtures.js';
 import type { LibraryEntry } from '../library/library-doc.js';
 import { DEFAULT_SEQUENCING_SETTINGS } from '../sequencing/topology.js';
 import { StudioIds } from '../spec/studio-ids.js';
@@ -25,12 +29,26 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     dom.document.body.append(surface);
     const workers = inProcessWorkers();
     const inputs: ReturnType<typeof scriptedTextInput>[] = [];
+    // C1: an in-process export worker over the Node toolchain (real composition and writers; rasters recorded).
+    const exportEnv = exportBuilt ? (await createExportFixture()).env : undefined;
+    const delivered: ExportFile[][] = [];
     const app = unwrap(
       await createStudioApp({
         workspace,
         document: { asset: `as_app_${topology}`, title: 'Flyer', create: { pages: 2 } },
         person,
-        workers: { settings: { ...DEFAULT_SEQUENCING_SETTINGS, topology }, spawn: () => workers.spawn() },
+        workers: { settings: { ...DEFAULT_SEQUENCING_SETTINGS, topology }, spawn: () => workers.spawn(), assets: { manifest: 'memory://manifest', fonts: [] } },
+        ...(exportEnv === undefined
+          ? {}
+          : {
+              exporter: {
+                spawn: () => inMemorySpawner((port) => hostExportWorker({ port, env: { load: async () => ok(exportEnv) } }), { clone: false }),
+                deliver: async (files: readonly ExportFile[]): Promise<Result<void>> => {
+                  delivered.push([...files]);
+                  return ok();
+                },
+              },
+            }),
         textInput: {
           kind: 'hidden-textarea',
           create: () => {
@@ -122,6 +140,22 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     await until(() => app.tab?.view.selection.length === 1, 'image selected');
     const image = await app.element(app.tab?.view.selection[0] as string);
     expect([image?.kind, image?.w, image?.h]).toEqual(['image', 40, 20]);
+
+    // C1: export from a frozen snapshot in the export worker; the document gains nothing (D10).
+    if (exportEnv !== undefined) {
+      const before = (await inspect())?.elements.length;
+      unwrap(await app.exportDesign({ format: 'pdf', scale: 2, transparent: false, scope: 'pages' }));
+      unwrap(await app.exportDesign({ format: 'png', scale: 1, transparent: false, scope: 'page' }));
+      expect(delivered.map((files) => files.map((f) => f.name))).toEqual([['Flyer.pdf'], ['Flyer.png']]);
+      const pdf = delivered[0]?.[0]?.bytes as Uint8Array;
+      expect(new TextDecoder().decode(pdf.subarray(0, 8))).toBe('%PDF-1.7');
+      // Both pages; the shapes and text drawn above sit off the page (negative x), so the page shows the image only.
+      expect(new TextDecoder('latin1').decode(pdf)).toContain('/Count 2');
+      expect([...(delivered[1]?.[0]?.bytes.subarray(1, 4) ?? [])]).toEqual([0x50, 0x4e, 0x47]);
+      expect(app.exports?.status.kind).toBe('done');
+      expect(app.spoken.at(-1)).toBe('Exported Flyer.png');
+      expect((await inspect())?.elements.length).toBe(before);
+    }
 
     // The Pages panel's lens controller moves the canvas to page 2.
     unwrap(app.lens.goTo('p2'));
