@@ -209,6 +209,225 @@ Deep links: `/s/:asset/d/share` (step 1), `?step=link-settings` reopens step 2. 
 Share tab is not rendered (FOUNDATIONS §5.6), and `/d/share` falls back to the Export tab with a toast "Sharing isn't
 available yet" (`NAVIGATION-DEEPLINKS.md` §4). Gating here is UX, not security: the server owns access (rule 9).
 
+#### Export (the Export dialog's **Export** tab), worked end to end
+
+The owner's brief: "the download flow needs a share-like design, for customisations." Export is the same dialog as
+Share (routable `/d/export`, tab `Export`, wizard type §2.1, 640 px), one main step and one `advanced` step. It runs
+C1's engine (`apps/instaflow/src/export/`: `instaflow/export` capability, `ExportService`, the export worker) through
+the existing `ExportPanelPort`; the dialog holds no export logic (C1 handoff, next step 1). D10 stands: an export
+creates nothing in the design; the dialog says so once, in the footer's muted line `Exports render from a snapshot and
+change nothing in the design.`
+
+**Every option below carries a letter.** (a) = C1's engine does it today (`formats.ts`, `job.ts`, `service.ts`);
+(b) = UI only, buildable in B11b over the existing port — where a row says *plumbing*, a TypeScript option is threaded
+through `service.ts`/`job.ts` (a page subset, a file name, a zip step) and nothing in the renderer or the writers
+changes; (c) = new export-engine work (Wasm writers, the renderer, or the job's pipeline), listed under **Export engine
+follow-ups** with a milestone. FOUNDATIONS §5.6 applies: **a (c) option is not rendered in M1** — no greyed chip, no
+"coming soon" tag; the row simply does not exist until its engine work lands. Nothing here changes the capability's
+input for agents; new options are added to `ExportCapability.input` as optional fields when their letter becomes (a).
+
+**Entry points and scope**
+
+| Entry | Opens with | Letter |
+|---|---|---|
+| Top bar `Export` (primary, STUDIO §2) · `Mod+Shift+E` | The dialog with the **remembered settings** for this design (see Memory); focus on the primary, so `Mod+Shift+E`, Enter is the quick export. Scope stays what was remembered, except `Selection` falls back to `Page` when nothing is selected. | (b) — changes C1's shortcut, which today exports immediately (§6 item 7) |
+| Page label menu `Export this page…` · Pages row menu `Export page…` | Scope `Page` locked to **that** page (`?scope=page&page=<id>`), other settings remembered. | (a) scope `page` exports the page shown; (b) *plumbing* to name the page explicitly |
+| Context menu `Export selection…` (any element, multi) · HUD `⋯ › Export selection…` | Scope `Selection` (`?scope=selection`); the selection is the current one (never in the URL: selection is hidden state). | (a) |
+| Home card `⋯ › Export…` (HOME-FILES §) | Studio on the design with `/d/export`, remembered settings. | (b) |
+| Command palette `Export…`, `Export selection…`, `Export all pages…` | As the three above. | (b) |
+
+The main step's first row is **What**: a switcher `Page · Selection · Pages`. `Page` names the page it will export
+(`Page 2 · Post · 1 080 × 1 080`, mono); `Selection` reads `3 elements · 640 × 420` and is **disabled with the reason**
+in its tooltip (`Selection · Select something on the canvas first`, §2.2 allows this in dialogs) when nothing is
+selected; `Pages` expands a **page-range picker** under the row: 72 px thumbnails in a wrapping grid (the Pages panel's
+projection thumbnails; a format chip until that projection lands, STUDIO §3.2), each with a checkbox corner and the
+page's label, `All · None` ghost links at the right, a mono count `3 of 5 pages`. Default: all pages checked.
+Thumbnails render in document order; the export keeps that order. Letters: `Page`, `Selection`, `Pages` = all (a); a
+**subset** of pages (b, *plumbing*: `pages` on the run request; `job.ts` already takes `pages` in export order).
+
+**Presets (recommended set)**
+
+A preset is a row of chips above Format (`Preset`), each a named bundle of the settings below; choosing one sets them
+and the chip stays selected until a setting is changed by hand (then no chip is selected; nothing is "custom" by name).
+A preset **never resizes content**: it only chooses format and scale for the page as it is, so a preset that needs a
+size the page does not have is **not rendered** (not greyed) — the row shows only presets that apply. A size preset
+compares the page's size to its target with a 1 px tolerance.
+
+| Preset | Sets | Rendered when | Letter / milestone |
+|---|---|---|---|
+| `Current size` | PNG · 1× · page background | always | (a) M1 |
+| `Screen 2×` (the default when nothing is remembered) | PNG · 2× | always | (a) M1 |
+| `Slide 16:9` | PDF · all pages | the pages are 16:9 | (a) M1 |
+| `Social post · 1 080 × 1 080` | JPG 90 (PNG until JPG exists) · fit the longest side to 1 080 px | the page is 1 080 × 1 080 (1×) in M1; any page once arbitrary scale exists | (a) at 1×, M1; (c) arbitrary scale, M2 |
+| `Social story · 1 080 × 1 920` | as above | the page is 1 080 × 1 920 in M1 | (a) at 1×, M1; (c) M2 |
+| `Print A4` · `Print Letter` | PDF · print · 3 mm bleed · crop marks | the pages are A4 (794 × 1 123) or Letter (816 × 1 056) at 96 px/in **and** print PDF exists | (c) M2 — not rendered in M1; M1 people pick `PDF` by hand |
+
+**Format and per-format options**
+
+`Format` is a switcher `PNG · JPG · PDF · SVG` (M1 renders `PNG · PDF · SVG`; `.iflow` joins as a fourth chip when C2
+lands and takes no options). The rows under it are the chosen format's, re-rendered in place (no slide; this is not a
+step). Main-step rows are marked **main**; the rest live in `Advanced`.
+
+| Format | Option | Control and default | Letter |
+|---|---|---|---|
+| PNG | **Scale** (main) | Chips `1× · 2× · 3×` with the resulting size as a mono tag under the chip row (`2 160 × 2 160 px`). A chip whose output would pass the device ceiling (`MAX_EXPORT_PIXELS`, 16 384 px a side) is disabled with the reason `3× · Too large for this device (max 16 384 px)`. Default 2×. | (a) |
+| PNG | **Pixel size** | A `Width` field (`px`, mono) beside the chips; typing a width sets the scale and the chips follow. In M1 the field **snaps** to the nearest of 1×/2×/3× on blur and says so in its hint (`Nearest scale: 2× · 2 160 px`); when arbitrary scale lands it takes any value and the chips become shortcuts. | (b) snapped; (c) arbitrary scale, M2 |
+| PNG, SVG, PDF | **Transparent background** | A switch in Advanced, default off. For PDF and SVG it means no white page. On: the preview shows a checkerboard. | (a) |
+| JPG | **Quality** | A slider `60–100`, default `90`, value in a mono pill; **no** transparency switch (the row is not rendered). Scale and pixel size as PNG. | (c) M2 (a JPEG encoder beside `encodePng`) |
+| PDF | **Kind** (main) | Chips `Standard · Print`. Standard = today's writer. Print adds the rows below. | Standard (a); Print (c) M2 |
+| PDF | **Bleed** | Field `3 mm` (default; `0–10 mm`); the page is extended by that much on each side and the content behind the page edge is drawn there (clipping moves out by the bleed). | (c) M2 |
+| PDF | **Crop marks** | Switch, default on when Print; hairline marks outside the bleed. | (c) M2 |
+| SVG | **Text** | Chips `Outlines · Text` under a one-line hint. `Outlines` = today's writer (glyph outlines labelled with their text, D21). `Text` writes `<text>` runs and needs the font on the reader's machine or embedded. Default `Outlines`. | Outlines (a); Text (c) M2 |
+| SVG | **Embed fonts** | Switch, rendered only with `Text`; default on. Embeds the used subset as `@font-face` data URIs. | (c) M2 |
+
+**File name**
+
+| Case | Name | Letter |
+|---|---|---|
+| One file | `<Title>.<ext>` — the design title cleaned to letters, digits, spaces, `_` and `-`, at most 80 characters, `Design` when empty (`exportFileName`). | (a) |
+| One file per page (PNG, SVG, JPG of `Pages`) | `<Title> - 01.png`, `<Title> - 02.png` … zero-padded to the page count's width, in export order. | (a) |
+| Selection | `<Title> - selection.<ext>` | (b) *plumbing* (today: `<Title>.<ext>`) |
+| Several formats | Each format uses the rows above with its own extension; names never collide because the extension differs. | (b) |
+| Custom name | Advanced › `File name` field, default empty, placeholder = the computed name; the pattern above still adds the page suffix. Validation on blur: characters outside the allowed set are replaced and the field shows what it will use (`Uses: Night market v2`). | (b) *plumbing*: `fileName` beside `title` on the run request |
+
+The main step shows the resulting name(s) as one muted line under the options: `poster.png`, `poster - 01…05.png
+(5 files)`, `poster.zip (PNG, PDF · 6 files)`.
+
+**Several formats at once**
+
+The Format switcher accepts **more than one** chip (`Mod+click` / `Space` on a focused chip adds; a single click
+replaces, so one format stays the simple path). Each chosen format shows its own option rows, stacked, headed by the
+format name. Output: **one zip** `<Title>.zip` when the export produces more than one file for any reason (several
+formats, or one-per-page output), one plain file otherwise. Reason: the browser's multiple-download prompt and a
+folder full of loose files are worse than one archive; the zip is written on main with `@staticflux/blob`'s
+`createZipWriter` (stored entries, no recompression) before `deliver`. Advanced › `Zip several files` switch (default
+on) turns it off for people who want loose files. Letters: multiple formats = several jobs run **in sequence** by the
+dialog over the one-job-at-a-time service, with one progress row (b); zip (b, *plumbing* on main); loose files (a).
+
+**Output size**
+
+A **preview card** sits at the right of the main step (240 px wide, 12 px corners, mist): the chosen scope's thumbnail
+from the Pages projection (the selection's bounds for `Selection`, the first checked page for `Pages` with a `+4`
+corner tag), on a checkerboard when transparent, else on the page colour. Under it, one mono line: `2 160 × 2 160 px ·
+about 1.4 MB` for raster (estimate = pixels × 0.3 bytes for PNG, × 0.12 for JPG 90, labelled `about`, never shown as
+exact); `1 080 × 1 080 pt · 5 pages` for PDF; `1 080 × 1 080 · 5 files` for SVG (no size estimate for vector). After the
+export, the done toast and the DevTools entry carry the **real** size (`formatBytes`). Letters: preview (b, once the
+Pages thumbnail projection lands; until then the card shows the page's format chip and the size line only); estimate
+(b); real size (a).
+
+**Main step versus `advanced`**
+
+The main step holds **four decisions** and nothing else: `What` (scope, with the picker when `Pages`), `Preset`
+(rendered only when at least one preset applies), `Format`, and the format's one main option (`Scale` for PNG/JPG,
+`Kind` for PDF; SVG has none). Below them: the file-name line, the loose-elements line (when relevant), the output
+size card at the right, and `Advanced ▸` as a ghost row whose right side summarises every non-default advanced setting
+in a mist tag (`Transparent · Custom name`). Footer: `Reset to defaults` (ghost, left; see Memory), `Cancel`, primary
+`Export PNG` / `Export PDF` / `Export 2 formats`.
+
+`Advanced` is a **step** of the same dialog (`?step=advanced`, back chevron, title `Advanced`, 160 ms slide): the
+format-specific extras above (transparent background, JPG quality, PDF bleed and crop marks, SVG text and fonts), `File
+name`, `Zip several files`, and `Remember for this design` (switch, default on). Footer: `Back · Done` — Advanced
+commits as you go (the settings are the dialog's own state, nothing is destroyed), so there is no Save and no "Discard
+changes?" row; Escape = Back. The primary `Export…` is **not** shown on the Advanced step: people export from the main
+step, which keeps one primary per dialog (§2.2).
+
+**Memory**
+
+Settings are remembered **per design per device** under `instaflow/ui/export/<asset>` (`localStorage`, like the camera,
+STUDIO §12): scope (not the page subset or the selection), formats, every option and the custom name. `Export this
+page…` and `Export selection…` override scope for that opening without writing it back. `Reset to defaults` (footer
+ghost) restores `Screen 2×` of the page and clears the memory for this design, with an undo-free inline status
+`Defaults restored` for 1.5 s. Advanced › `Remember for this design` off = the dialog opens with the defaults every
+time. Nothing of this is in the document, a milestone or an export (D10). Letter: (b).
+
+**The loose-elements line, validation and disabled reasons**
+
+| Situation | Where it shows | Text |
+|---|---|---|
+| The document has elements outside every page and scope is `Page` or `Pages` (STUDIO §1 clipping rule) | A muted line with an info dot under the options | `2 elements outside the pages won't be exported. · Export selection instead` — the link selects those elements and switches scope to `Selection` |
+| Scope `Selection`, nothing selected | The `Selection` chip is disabled, reason in its tooltip | `Selection · Select something on the canvas first` |
+| Scope `Pages`, no page checked | The primary is disabled (`aria-disabled`, focusable), reason in its tooltip | `Export · Choose at least one page` |
+| A scale passes the device ceiling | That chip disabled, reason in its tooltip | `3× · Too large for this device (max 16 384 px)` |
+| No format chosen (every chip deselected with `Mod+click`) | Not possible: the last selected chip cannot be deselected | — |
+| Custom name empty or only disallowed characters | Not an error: the computed name is used; the hint says `Uses: Night market` | — |
+| Selected elements are hidden or the selection's bounds are empty (`IF-EXP-002`) | Section error after pressing Export | `Nothing to export: the selected elements are hidden · Show them` |
+
+Validation runs on blur and on submit (§2.4); the only field is the width and the name, both masked.
+
+**Progress, background export and toasts** (reuse §3.4 and §3.5 as written)
+
+Pressing the primary turns the footer into the **progress row**: a determinate bar (the job reports `fraction` per page
+and per rendered chunk), text `Rendering page 2 of 5` → `Writing PDF` → (several formats) `Exporting PNG · 2 of 3
+formats`, and `Cancel` (secondary) wired to the job's `AbortSignal`. The options above the row are **inert** while it
+runs (dimmed, not disabled). Under 300 ms the row never appears (the result is the feedback). Closing the dialog
+(Escape, `×`, backdrop, Back) while it runs **does not cancel**: the row becomes the sticky toast `Exporting
+poster.png… · Cancel`, which becomes `Exported poster.png · Show in folder` (8 s; `Show in folder` only when the
+folder mirror is on, else no action and 5 s) or the danger toast with the error and its fix. On success inside the
+dialog, the dialog **closes** (`history.back()` when pushed) and the same success toast shows: the result is a download,
+not visible where the gesture happened (FOUNDATIONS §5.3). Cancel leaves no file and no toast. Letters: progress,
+cancel (a); the background toast (b: the service's `status` is already reactive and the job outlives the panel).
+
+**Errors** (levels per §3.1: a failed gesture inside a dialog is a **section error** above the footer; after the dialog
+closed, the same text is a danger toast — never both)
+
+| Cause (`code`, never shown) | Text (`message · fix`) | Fix action | Letter |
+|---|---|---|---|
+| The export worker died or never answered (`IF-EXP-007`, F-50 step 6) | `Couldn't export 'poster.png' · Try again` | `Try again` re-runs with the same settings (one automatic retry already happened, §3.3). The editor is fine: **no banner**. | (a) |
+| The render ran out of memory or the output was too large (`IF-EXP-005` over `SF-SURF-013`) | `Couldn't render at 3× · Export at 2×` | The fix button sets the scale one step down and re-runs; at 1× it reads `Couldn't render this page · Export a selection instead`. | (a) detection; (b) the step-down fix |
+| A font used in the design is not available to the export (`IF-EXP-009`, new) | After a successful export: `Exported poster.png · 1 font missing, text uses the fallback · Details`; `Details` opens the dialog's done state listing `Inter Display → Geist`. The export is **not** refused. | (c) M2: the job reports `missingFonts` like `missingImages`; until then text falls back silently |
+| An image could not be drawn (`missingImages`) | `Exported poster.png · 2 images missing · Show` — `Show` selects them on the canvas | (a) report; (b) the selection action |
+| The snapshot could not be read (`IF-EXP-003`) | `Couldn't read the design to export it · Try again` | `Try again` | (a) |
+| The writers rejected the scene (`IF-EXP-006`, an invariant) | `Couldn't write the PDF · Copy diagnostics` | Copies the `SfError` JSON; this is a bug, not a condition | (a) |
+| The browser refused the download (`IF-EXP-008`) | `Couldn't save 'poster.png' · Allow downloads for this site` | Plain text (advice), plus `Try again` | (a) |
+| The export Wasm failed to load (`IF-EXP-004`, offline on first PDF/SVG) | `PDF export needs a one-time download · Try again when online` — and the offline banner rule of §3.3 applies (`You're offline. PDF and SVG export need a connection; PNG works.`) | `Try again` | (a) |
+
+**Deep link params** (`NAVIGATION-DEEPLINKS.md` §2.2 and §7 gain the three keys marked new)
+
+| State | URL | Kind |
+|---|---|---|
+| The dialog, main step, remembered settings | `/s/:asset/d/export` (`?tab=export` is implied) | — |
+| Advanced step | `…/d/export?step=advanced` | `step`, view (exists) |
+| Scope | `…/d/export?scope=page` · `selection` · `pages` | `scope`, view, **new** |
+| The page for `scope=page` | `…/d/export?scope=page&page=<id>` | `page`, view (exists) |
+| The checked pages for `scope=pages` | `…/d/export?scope=pages&pages=<id>,<id>` (≤ 50 ids; absent = all) | `pages`, view, **new** |
+| Format(s) | `…/d/export?format=png` · `png,pdf` | `format`, view, **new** |
+| Scale, name, advanced options | nowhere (remembered per device; a link is "export this", not "my settings") | — |
+
+`Copy link` in the header produces the dialog's current scope, pages and format (§5 of NAVIGATION-DEEPLINKS). A
+deep-linked `pages=` with unknown ids keeps the known ones; all unknown → all pages, toast `Those pages are no longer
+in this design` (neutral, 5 s; §4 fallback rules). `scope=selection` from a link opens with `Page` (there is no
+selection on arrival) and no toast.
+
+**Keyboard and a11y**
+
+- The dialog is `dialog` `aria-modal=true` named `Export` (the tab list `Export · Share` is `tablist` when Share is
+  rendered; in M1 the tab strip is not rendered and the heading is `Export`). Initial focus: the **primary** (there is
+  no required field), so Enter exports at once with the remembered settings.
+- Tab order: What → (page picker) → Preset → Format → the format's main option → Advanced ▸ → Reset to defaults →
+  Cancel → Export. Every switcher is a `radiogroup` (arrows move, Space/Enter select); the multi-format switcher is a
+  group of `checkbox`es styled as chips (Space toggles, the last one cannot be unchecked, announced as `PNG, checked, 1
+  of 3`). Chips disabled with a reason are `aria-disabled` and keep their tooltip and focus.
+- The page picker is a `listbox` `aria-multiselectable` of `option`s named `Page 2 of 5 · Post · 1 080 × 1 080`,
+  `aria-selected` for checked; arrows move, Space toggles, `Shift+arrows` extend, `Mod+A` selects all; the count line is
+  `aria-live=polite`.
+- The width field and JPG slider follow the scrubbable-number and slider rules (STUDIO §5.3, FOUNDATIONS §4.5).
+- Progress: the bar is `progressbar` with `aria-valuetext` = the row's text; the polite live region announces at **page
+  boundaries** and on done or failure, never per chunk. The disabled-while-running options are `aria-busy` on the body.
+- Shortcuts inside the dialog: Enter = the primary from any chip or field; `Mod+Enter` from the name field;
+  `Mod+Shift+E` while open re-runs the primary; `Alt+←` = Back on the Advanced step; Escape per §1.4.
+- The preview card is `img` named `Preview of Page 2`, `aria-hidden` when it only repeats the size line.
+
+**Export engine follow-ups (every (c) above, none rendered in M1)**
+
+| Follow-up | Where | Milestone |
+|---|---|---|
+| Arbitrary scale (`scale` any number > 0 within `MAX_EXPORT_PIXELS`, from a target width), unlocking Social presets on any page and the free `Width` field | `formats.ts` `EXPORT_SCALES` → a range; `job.ts` already multiplies by `scale`; `ExportCapability.input.scale` | M2 (C1 follow-up, small) |
+| JPG with quality (an encoder beside `encodePng` in `@staticflux/surface/image`; `EXPORT_FORMATS.jpg` row) | surface image, `formats.ts` | M2 |
+| Print PDF: bleed and crop marks (`pdf_page` takes a bleed box; marks drawn by the writer; MediaBox/TrimBox) | `engine/crates/export` pdf writer, `job.ts` | M2 |
+| SVG text as `<text>` with optional embedded font subsets | `engine/crates/export` svg writer (needs glyph → text run mapping, already carried by IR v4) | M2 |
+| `missingFonts` in `ExportResult` and `IF-EXP-009` (a warning, not a failure) | `job.ts`, `scene.ts`, `errors.ts`, the capability's output | M2 |
+| Colour glyphs (emoji) export only outlines today (C1 handoff next step 3) | render crate | M2 |
+
 #### Milestones (list · preview · compare · restore · name)
 
 D2 stands: Latest and named milestones, no automatic versions, and **no in-place restore**; "restore" means **New
@@ -427,3 +646,19 @@ are recorded for history only.
    the takeover: two full canvases need the width, and it gets a URL (`?compare=`).
 6. **Share tab designed now though D3 (no accounts) keeps it unrendered in M1.** Recommend keeping the design so B11a
    builds the wizard step frame, inline confirm row and copy field once; nothing of Share is rendered before accounts.
+
+**Added 2026-10-25 with the Export tab (§2.3 Export); open, defaults are the recommendations.**
+
+7. **`Mod+Shift+E` opens the dialog instead of exporting at once.** C1's `ExportShortcut` exports immediately with the
+   last choice. Recommend: the shortcut opens the Export dialog with the remembered settings and focus on the primary,
+   so `Mod+Shift+E`, Enter is the two-key quick export (F-53 variant) and a stray shortcut never downloads a file
+   (Figma does the same). Alternative: keep immediate export and add a second shortcut for the dialog — rejected (two
+   shortcuts for one surface, and the immediate one has no visible home for its settings).
+8. **Several files are zipped by default** (`<Title>.zip` whenever an export yields more than one file), with Advanced ›
+   `Zip several files` to turn it off. Recommend zip: one download, no browser multiple-download prompt, and the zip
+   writer already exists in `@staticflux/blob`. Alternative: loose files by default (Figma) — rejected for the prompt
+   and for 20-page designs.
+9. **Presets that do not apply to the page are not rendered** (Social when the page is not that size, Print before print
+   PDF exists), per FOUNDATIONS §5.6. Recommend not rendering; a preset that resizes the content would be a different
+   feature (Resize design). Alternative: show every preset and resize — rejected for M1 (the engine does not resize and
+   the result would surprise).

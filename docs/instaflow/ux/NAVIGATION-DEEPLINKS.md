@@ -56,6 +56,9 @@ Three kinds, after `@staticflux/urlstate`: **view** (synced from the store, repl
 | `section` | view (dialog `settings`) | as `/settings/:section` | the Settings dialog's section in Studio |
 | `step` | view (dialog `share`, `export`) | `link-settings` · `publish` · `advanced` | the dialog step |
 | `tab` | view (dialog `export`) | `export` · `share` | the Export dialog tab (`/d/share` = `/d/export?tab=share`) |
+| `scope` | view (dialog `export`) | `page` · `selection` · `pages` | what the Export tab exports (`OVERLAYS-FEEDBACK.md` §2.3 Export); `page` uses the `page` key for which page; `selection` from a link falls back to `page` (there is no selection on arrival) |
+| `pages` | view (dialog `export`, `scope=pages`) | page ids, comma-separated, ≤ 50 | the checked pages of the range picker; absent = all; unknown ids are dropped (§4) |
+| `format` | view (dialog `export`) | `png` · `pdf` · `svg` (later `jpg`, `iflow`), comma-separated for several | the Export tab's format chips; scale, name and advanced options are never in the URL (remembered per device) |
 | `thread` | view (Studio, M2) | a thread id | the Chat side panel docked on that thread |
 | `turn` | intent (Chat, M2) | a turn id | scroll to and highlight that turn |
 | `comment` | intent (reserved, D11) | a comment thread id | select the anchored element and open its thread in the comments panel |
@@ -108,6 +111,7 @@ Fallbacks are **one level up, once announced, never blocking**:
 | Element ids partly unknown | select the ones that exist | toast `2 of 3 linked elements are no longer in this design` |
 | Element inside a hidden or locked container | select it anyway (selection by link may enter containers) | the inspector breadcrumb shows where it is |
 | Milestone unknown | Latest | toast `That milestone is no longer here` |
+| Export `pages=` ids all unknown | all pages | toast `Those pages are no longer in this design`; partly unknown → the known ones, no toast |
 | Dialog key unknown or not available yet (`share` before accounts, `SF-NAV-008`) | the surface, the path replaced to the parent | toast `Sharing isn't available yet` — only when a person would understand; an unknown key is dropped silently and logged |
 | Dialog not permitted (gated capability) | the surface | toast with the gate's `fix` (`Set up an assistant`); DevTools `explain()` has the reason |
 | `thread=` with no provider (M2) | the design without the panel | toast `Set up an assistant to open this conversation · Open settings` |
@@ -127,7 +131,7 @@ One capability, `instaflow/copy-link`, with a target; the toast is `Link copied`
 | The selection | context menu `Copy link to selection` (any element, multi); HUD `⋯ › Copy link` | `/s/:asset?page=&el=` |
 | A page | page label menu `Copy link to page`; Pages row menu | `/s/:asset?lens=pages&page=` |
 | A milestone | Milestones row `⋯ › Copy link`; the preview and Compare headers `Copy link` | `/s/:asset/m/:id` (+ `?compare=`) |
-| A dialog | the `Copy link` ghost in a routable dialog's header | `…/d/:dialog?…` with its current step or section |
+| A dialog | the `Copy link` ghost in a routable dialog's header | `…/d/:dialog?…` with its current step or section (Export: `scope`, `pages`, `format`) |
 | Settings › Shortcuts | the Shortcuts view header | `/settings/shortcuts` (Home shell URL, so it opens standalone) |
 | A chat thread (M2) | thread menu `Copy link`; a turn's hover `⋯ › Copy link to this message` | `/c/:thread` · `?turn=` |
 | A comment (later) | the comment's `⋯` | `/s/:asset?el=&comment=` |
@@ -167,7 +171,7 @@ something specific.
 | View params | `urlstate` `defineUrlBinding({ kind: 'view', codec, history: 'replace' })` + `createUrlSync` bound to the view-state store | `src/tools/view-state.ts` (camera, selection; local) | **missing:** `lens`, `page`, `dock`, `compare`, `section`, `step`, `tab`, `thread`, Files `q/filter/sort/view` as bindings in `src/app/url.ts`; the store ↔ URL sync is per frame and never calls the router |
 | Selection and inspector intents | `urlstate` `defineIntent({ id, params: { el: codec.list }, safe: true })` + `createIntentService().consume` | — | **missing** (`src/app/url.ts`; `safe: true` because selecting and zooming never change the document) |
 | Hidden state | `urlstate` kind `hidden` for selection (stripped if present) | — | declare so a stray `sel=` never leaks |
-| Routable dialogs | `router` `defineDialog({ key, owner, requires, load })` + `urlstate` `formatDialogPath` + `messaging` `createRoutableDialogBridge` (`openDialog(key, params, { source })`, `onDismissIntent` back/replace) | `/d/export` bridge exists (FOUNDATIONS §4.11) | **missing:** `settings` and `share` keys, the step/section params, `Copy link` in the header |
+| Routable dialogs | `router` `defineDialog({ key, owner, requires, load })` + `urlstate` `formatDialogPath` + `messaging` `createRoutableDialogBridge` (`openDialog(key, params, { source })`, `onDismissIntent` back/replace) | `/d/export` bridge exists (FOUNDATIONS §4.11) | **missing:** `settings` and `share` keys, the step/section params, the Export tab's `scope` / `pages` / `format` view params, `Copy link` in the header |
 | History strategy | `router` `createBrowserHistory` (Navigation API with History fallback), one instance bound to both `HistoryAdapterToken` and `HistoryPortToken` | Studio boot | check: one instance, `source: 'urlstate'` writes adopted as view |
 | Not found | `routerUnitWith({ notFound })` → the Home-shell "not on this device" page; `SF-NAV-001`; dialog `SF-NAV-008` → drop + toast | — | **missing** (`src/home/not-found.ts`, Instaflow) |
 | Gating of dialogs and features | `router` `requires` + the gate stage plugin; `SF-NAV-002` blocked → fallback + toast with the gate's `fix` | — | the gate's `explain()` feeds DevTools |
