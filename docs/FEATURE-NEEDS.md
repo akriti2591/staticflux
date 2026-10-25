@@ -238,3 +238,36 @@ that themes the kit (R13.21–R13.23).
   `<sf-tag tone .color .ink mono>`; the lens colours stay in the app's typed lens palette (`lensTag(lens)`).
 - Dials (Warmth, Exposure): `<sf-slider>` with a thin track, filled part, ringed thumb and the value in a pill.
 
+### versioning: Latest, milestones, new document, templates, export snapshot (Instaflow M1 B5)
+Consumer: Instaflow (`apps/instaflow/src/versioning`; D2, D9, D10; IF-5, IF-22). Built on `DocumentRepo` + the
+`DocumentStore` port and canonical parts (A4), the stage undo service (A8), the kit and Clean Pop (A10, DS1).
+- "There is no save button, but I want to know my work is safe" → a save state from commit acknowledgements
+  (`createLatestService`), shown by `<if-save-status>` over the kit's new **`<sf-status>`** (dot + words in a polite live
+  region, R13.24). "The folder copy is behind" is its own state, not an error.
+- "Keep the version I sent the client, then keep working" → `milestones.create({ name, note, actor })` writes only the
+  changed parts (frontier cache + digest dedupe in `createPartCapture`), costs the same in a document with 60 milestones
+  as in one with 3, and is reachable from the Milestones panel, `Mod+Alt+S` and agents (one capability).
+- "Show me what they saw next to what I have now" → `openComparison(…, milestone, 'latest')`: two read-only documents
+  (canonical parts, no CRDT), the Latest side frozen through an export snapshot; no structural diff in V1.
+- "Start a variant from what they saw next week" → `createDocumentFromMilestone`: a new asset with a detached baseline;
+  the source can be edited or deleted without affecting it.
+- "Use this flyer as a template" → `markSlot` (text, image, colour; undoable) and `createDocumentFromTemplate({ fills })`.
+- "Export while I keep editing" (C1) → `snapshots.freeze()` at export start, `snapshots.open(frozen)` to render; nothing
+  is recorded. Publishing later goes through `ReleasePort`.
+- The editor (B0) mounts everything through contributions (`PanelContribution`, `TopBarContribution`,
+  `CommandContribution`) and the `VersioningHost` port (show read-only, show comparison, open document).
+
+
+### shell/spec: declarative editor specs over a closed vocabulary (Instaflow M1b B0, D16)
+Consumer: Instaflow's editors — Studio (the maximal spec), mini editors in Chat (M2), presets and agent-proposed specs
+(`apps/instaflow/src/spec`, `src/studio`) — and any app that composes screens from registered contributions (R13.25–R13.30).
+- "An editor is a lens, a scope and a set of registered tools, panels and actions": `createSpecVocabulary({ sections, contributions })`
+  with `defineSpecSection` / `defineSpecContribution`; the app compiles its schema to `ShellSpec` (`toShellSpec`).
+- "Agents may only name what exists, and never bypass gating": `validateSpec(spec, vocabulary, { decide })` returns every issue with a
+  code and a fix (SF-SHELL-009…013); agents are decided as agents through the gate adapter.
+- "A new turn changes only what differs, with 120–200 ms motion, never reshuffles": `diffSpecs` (LIS-minimal moves, insertion
+  anchors), `createSpecRuntime({ vocabulary, port, decide, motion, reducedMotion })` → `apply`, `preview`, `revalidate`.
+- "What I pinned stays": `runtime.pin(key)` / `unpin`; pins in a spec are added, never removed by another spec.
+- "Render the layout with enter/exit motion without a DOM in the runtime": `createSpecLayoutPort()` (`entries(group)` with phases,
+  `groups()`, `mountedContext`).
+- **Tests**: `runSpecRuntimeContract`, `runSpecMountPortContract` (Studio's `<if-studio>` DOM runs the port suite).

@@ -47,3 +47,5 @@ export const DuplicateContributionError = defineError(
   'Two shell contributions (slot contributions, commands or workspaces) share an id.',
   'Ids are app-unique (`<package>/<name>`); rename one of them.',
 );
+
+// SF-SHELL-009…015 (spec runtime) live in `spec-errors.ts`, exported from `@staticflux/shell/spec` only.

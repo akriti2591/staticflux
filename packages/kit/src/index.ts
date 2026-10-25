@@ -15,6 +15,7 @@ import { defineSegmented } from './segmented.js';
 import { defineSlider } from './slider.js';
 import { defineSurfaces } from './surfaces.js';
 import { defineTabs } from './tabs.js';
+import { defineStatus } from './status.js';
 import { defineTag } from './tag.js';
 import { defineTextField } from './text-field.js';
 import { defineToolbar } from './toolbar.js';
@@ -30,6 +31,7 @@ export * from './segmented.js';
 export * from './text-field.js';
 export * from './slider.js';
 export * from './tag.js';
+export * from './status.js';
 export * from './color-field.js';
 export * from './popover.js';
 export * from './tooltip.js';
@@ -52,6 +54,7 @@ export function defineKit(registry: CustomElementRegistry = customElements): voi
     defineTextField,
     defineSlider,
     defineTag,
+    defineStatus,
     defineColorField,
     definePopover,
     defineTooltip,

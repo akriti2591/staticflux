@@ -314,6 +314,8 @@ export interface Milestone {                             // records/ms/…, immu
 - **Open:** read-only, from parts. No CRDT is involved.
 - **Delete:** allowed for unpinned milestones that no export record names. Pinning is a head field, so pinning
   does not rewrite the immutable record.
+- **Rename** (M1 B5): also a head field (`names: { [MilestoneId]: string }`, next to `milestones` and `pinned`); the record
+  keeps the name it was created with, so its id never changes.
 - **New document from milestone:** create a new `AssetRecord` (`createdFrom` label only) and new Latest CRDT
   parts built from the canonical parts with a fresh history and fresh peer ids. Node ids are kept (they are
   asset-local). No structural link to the source exists afterwards: deleting the source never affects the copy.

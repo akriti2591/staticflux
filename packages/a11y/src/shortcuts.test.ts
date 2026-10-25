@@ -173,6 +173,25 @@ describe('shortcut registry', () => {
     document.body.innerHTML = '';
   });
 
+  it('treats a text field inside a shadow root as editable (composed origin, not the retargeted host)', () => {
+    const registry = createShortcutRegistry({ isMac: false });
+    const next = vi.fn();
+    registry.register(Next, next);
+    registry.activate(EditorScope);
+    const host = document.createElement('div');
+    const input = document.createElement('input');
+    host.attachShadow({ mode: 'open' }).append(input);
+    document.body.append(host);
+    const scope = createScope('shadow');
+    registry.attach(document, scope);
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'j', bubbles: true, composed: true, cancelable: true }));
+    expect(next).not.toHaveBeenCalled();
+    host.dispatchEvent(new KeyboardEvent('keydown', { key: 'j', bubbles: true, composed: true, cancelable: true }));
+    expect(next).toHaveBeenCalledTimes(1);
+    void scope.dispose();
+    document.body.innerHTML = '';
+  });
+
   it('respects when(), preventDefault: false, defaultPrevented, and scope-bound unregistration', async () => {
     const registry = createShortcutRegistry({ isMac: false });
     let enabled = false;

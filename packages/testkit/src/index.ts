@@ -45,3 +45,7 @@ export * from './sequencing-oracle-contract.js';
 
 // Render contract suite (Instaflow M1 A6: IF-7.4, SF-Δ23, Δ24).
 export * from './raster-backend-contract.js';
+
+// Spec runtime and mount port suites (Instaflow M1b B0: D16, R13.25–R13.29).
+export * from './spec-runtime-contract.js';
+export * from './spec-mount-port-contract.js';

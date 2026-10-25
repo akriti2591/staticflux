@@ -4,14 +4,57 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/**/gpu-page/**"],
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.bench.ts",
+    "src/**/test-helpers.ts",
+    "src/**/gpu-page/**"
+  ],
   "references": [
-    { "path": "../../packages/config" },
-    { "path": "../../packages/core" },
-    { "path": "../../packages/document" },
-    { "path": "../../packages/platform" },
-    { "path": "../../packages/surface" },
-    { "path": "../../packages/worker" }
+    {
+      "path": "../../packages/a11y"
+    },
+    {
+      "path": "../../packages/capabilities"
+    },
+    {
+      "path": "../../packages/config"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/document"
+    },
+    {
+      "path": "../../packages/i18n"
+    },
+    {
+      "path": "../../packages/kit"
+    },
+    {
+      "path": "../../packages/platform"
+    },
+    {
+      "path": "../../packages/stage"
+    },
+    {
+      "path": "../../packages/surface"
+    },
+    {
+      "path": "../../packages/ui"
+    },
+    {
+      "path": "../../packages/worker"
+    },
+    {
+      "path": "../../packages/gate"
+    },
+    {
+      "path": "../../packages/shell"
+    }
   ]
 }

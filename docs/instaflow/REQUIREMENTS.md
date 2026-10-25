@@ -494,3 +494,96 @@
   change sets that address a comment (the change set links the comment id, and accepting it offers "resolve").
 - **IF-18.4** Threads, mentions and notifications come with accounts. V1-era comments are single-level notes
   with author, time and open/resolved status.
+
+## 22. Versioning in M1 (work package B5; D2, D9, D10)
+
+Refines §5 for the M1 build (`apps/instaflow/src/versioning`). Errors are `IF-VER-001…010`; lifecycles in
+`docs/LIFECYCLES.md` §23.
+
+- **IF-22.1** The Latest service turns commit acknowledgements into a save state `saving | saved |
+  offline-mirror-behind` for the top bar. `saving` turns `stalled` ("Not saved yet: <cause>") after 2 s without an
+  acknowledgement or on an append failure, and a failed flush is retried until it succeeds (IF-5.2).
+- **IF-22.2** `offline-mirror-behind` is shown only when every commit is durable in the browser store and the folder
+  mirror is paused (permission lapsed) or failing; a mirror that is merely batching shows `saved`.
+- **IF-22.3** Creating a milestone flushes Latest, captures canonical parts, writes the record (its digest is the
+  milestone id), prepends it to `head.app.versioning.milestones` by compare-and-swap with retry, then flushes the folder
+  mirror. A failed mirror flush is reported (`mirrored: false`) but never undoes the milestone. Creations queue (one at
+  a time per document).
+- **IF-22.4** A milestone writes **only changed parts**: a part whose CRDT frontier did not move since the last capture is
+  not re-encoded, and a canonical digest already known (the newest milestone's parts) is not written again.
+- **IF-22.5** Pin and rename are head fields (`pinned`, `names`); they never rewrite an immutable record. Names are 1–120
+  characters after trimming (IF-VER-001); notes at most 2,000.
+- **IF-22.6** Opening a milestone is read-only and reads only its record and the parts actually viewed (lazy, cached
+  per part, `parse → migrate` on read). No CRDT is created.
+- **IF-22.7** Compare opens two read-only documents side by side: two milestones, or a milestone and Latest frozen at that
+  moment (a snapshot, not a milestone). It offers no structural diff.
+- **IF-22.8** **Cost is independent of age:** creating a milestone reads the head and the newest record only (never the
+  list); opening and New document read the record and each part once. A deterministic test holds store operations and
+  bytes equal at ages 3, 20 and 60; a bench file reports the wall-clock numbers.
+- **IF-22.9** New document from milestone writes a new head (generation 1) whose parts are rebuilt from canonical parts
+  with one fresh peer and one commit of history, keeps node ids, and refuses an asset id in use (IF-VER-008). The new
+  asset record carries `createdFrom { asset, milestone, title }` as a label only; nothing in the new head names a source
+  object, so the copy opens and edits with every source object deleted, and edits on either side never reach the other.
+- **IF-22.10** Templates mark slots on existing elements — text, image or colour — as the `slot` component (`name`,
+  `accepts`, `target` path, `required`, `maxChars`). Marking and unmarking are ordinary commits through the stage undo
+  service (one undo step per actor). Slots sharing a name must accept the same kind.
+- **IF-22.11** Using a template is New document from milestone plus slot filling: one fill fills every slot of its name;
+  text keeps the first span's marks; image fills take an asset id, colour fills a hex colour; markers are dropped unless
+  `keepSlots`. Unknown slot names, wrong value types, over-long text (IF-VER-006) and empty required slots (IF-VER-007)
+  fail before anything is written.
+- **IF-22.12** The frozen export snapshot is a content-addressed manifest (`sn_…`) over canonical parts of what is
+  applied in memory when the export starts. It writes blobs only: no record, no head change, no list entry (D10). Its
+  parts dedupe with milestones by digest.
+- **IF-22.13** A `ReleasePort` hook exists for publishing (rendered outputs + frozen snapshot + "published from" label);
+  M1 binds `unavailableReleasePort` (IF-VER-009).
+- **IF-22.14** The Milestones panel (`<if-milestones-panel>`) offers create (name, note), the list (name, date, pinned),
+  open read-only, compare (one with Latest, or two side by side), pin, rename and New document from milestone, built only
+  from kit components under Clean Pop with the design's button variants, fully usable by keyboard, results announced
+  in a polite live region.
+- **IF-22.15** The top bar's save status (`<if-save-status>`) shows the save state in words in a polite live region
+  (kit `<sf-status>`).
+- **IF-22.16** "Milestone" is one capability (`instaflow/create-milestone`, `Mod+Alt+S`) for the top bar, the palette and
+  agents: with a name it creates the milestone as the invoking actor; without one it opens the panel's name field.
+
+## 19. Editor specs and the Studio shell (M1b B0; D16–D19)
+
+- **IF-19.1** **The editor is a composition** (D16): an `EditorSpec` names a lens, a scope (`asset | page | selection |
+  time-range | layer`), tools in toolbar order, panels with where they dock (`side | dock | inspector | tray`), HUD actions,
+  capabilities, a density (`focus | standard | pro`) and the person's pins. Specs are data (`defineEditorSpec`).
+- **IF-19.2** Specs draw only on the **closed vocabulary** of registered contributions: `LensContribution`,
+  `ToolContribution`, `PanelContribution`, `HudActionContribution` (multi tokens `*ContributionsToken`, unit helpers
+  `*Contribution(item)`) and declared capabilities, compiled by `createEditorRegistries` into the framework vocabulary
+  (R13.25). Duplicate ids or unknown lenses are `IF-SPEC-002`.
+- **IF-19.3** Applicability is data: a contribution's `lenses` and `scopes` become `when` conditions; a lens's `scopes`
+  limits what it can open. A spec naming a tool outside its lens or a lens outside its scope is rejected (SF-SHELL-011).
+- **IF-19.4** Untrusted specs (agents, saved specs) are parsed with `parseEditorSpec` against `EditorSpecSchema` (strict,
+  per-scope required fields); malformed input is `IF-SPEC-001` with JSON paths. Agents get the JSON Schema from
+  `proposeSpecCapability`.
+- **IF-19.5** Specs are **gated** through `@staticflux/gate` (`gateSpecDecide(gate, subject)`): a spec proposed by an agent
+  is decided as the agent (principal ∧ agent policies, R6.17); capabilities are gated at the `capability` level. Specs never
+  bypass locks, brand rules or gating (D13).
+- **IF-19.6** Spec changes are **minimal animated diffs** (R13.27–R13.28) with 120–200 ms motion, 0 under reduced motion;
+  pinned slots stay (R13.29).
+- **IF-19.7** **Spec lifecycle in a turn**: `proposed → validated → (previewing) → mounted`, or `rejected | declined |
+  superseded | failed` (LIFECYCLES §20). Routing is a table over source × autonomy (D13): people and presets mount; agents
+  preview in Plan and Ask and mount in Accept edits and Autopilot. Acting on a settled proposal is `IF-SPEC-003`.
+- **IF-19.8** The agent seam (M2): `SpecProposer` (`SpecProposerToken`, `pull(proposer)`; a failed turn is `IF-SPEC-004`,
+  nothing changes) and `proposeSpecCapability` through the capability pipeline. Tested with a scripted proposer.
+- **IF-19.9** **Studio is a spec** (D19, canvas-first): `studioSpec` — the Canvas lens over the asset, the full toolbar,
+  chat as a contextual side panel, the tabbed dock (Layers, Pages, Assets, Brand), Properties in the inspector, the HUD and
+  the editor capabilities, at Pro density. Modes are well-known specs: `studioSpecFor(lens)` (variant tables per lens).
+- **IF-19.10** Mini editors are narrow specs over the same engine; the example is `pixelTouchUpSpec(nodes)` (Pixel lens on a
+  selection, three tools, the Adjust panel, one ✦ action, Focus).
+- **IF-19.11** **The Studio shell** (`<if-studio>`, `createStudio`) is laid out from the mounted spec only, with kit
+  components under the active theme (Clean Pop), matching `design/StudioCP.dc.html` structurally: top bar (home, breadcrumb,
+  lens mode switcher with lens shapes, save state, agent chip, density, Milestone, Share), side panel, tabbed left dock,
+  canvas region (tools, HUD slot, canvas surface, command bar, zoom, proposal card) and inspector.
+- **IF-19.12** **Density** (UX §3): Focus collapses the side panel and dock to rails, Standard opens them, Pro opens
+  Properties (`PanelContribution.minDensity`); a density change is a spec change; the person can open a collapsed dock.
+- **IF-19.13** **Studio is fully usable by hand** (D17): every spec change has a non-agent path (mode switcher, density
+  switch, pin buttons, keyboard). Keyboard: `1`–`4` lenses, tool letters (not while typing), `Alt+Enter` HUD, `Mod+K`
+  command bar, `Escape` back to the canvas; toolbar, HUD, mode switcher and dock tabs follow their APG patterns.
+- **IF-19.14** The canvas region mounts the A7 editor and render modules behind their ports (`CanvasPort`,
+  `sequencingCanvas`); a canvas that cannot start is an inline alert (`IF-SPEC-005`) and the rest of Studio stays usable.
+- **IF-19.15** The shell passes the testkit a11y audit (names, ARIA references, roles, nested controls) and its DOM satisfies
+  `runSpecMountPortContract`.

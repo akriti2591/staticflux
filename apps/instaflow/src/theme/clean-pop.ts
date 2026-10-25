@@ -40,6 +40,10 @@ export const cleanPopPalette = Object.freeze({
   agentHover: '#BC1F52',
   agentSoft: '#FDE8EF',
   agentInk: '#B3174C',
+  /** Saved / success dot (non-text, 3.24:1 on white); text uses `successText`. */
+  success: '#00A372',
+  successSubtle: '#E0F5EC',
+  successText: '#00704F',
 });
 
 const p = cleanPopPalette;
@@ -83,6 +87,9 @@ const colors = {
   onAgent: p.white,
   agentSoft: p.agentSoft,
   agentInk: p.agentInk,
+  success: p.success,
+  successSubtle: p.successSubtle,
+  successText: p.successText,
   focusRing: p.primary,
   backdrop: 'rgba(22, 21, 26, 0.32)',
   skeleton: 'rgba(22, 21, 26, 0.07)',

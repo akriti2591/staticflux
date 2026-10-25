@@ -41,6 +41,12 @@ importers:
       '@lit/context':
         specifier: 1.1.6
         version: 1.1.6
+      '@staticflux/a11y':
+        specifier: workspace:*
+        version: link:../../packages/a11y
+      '@staticflux/capabilities':
+        specifier: workspace:*
+        version: link:../../packages/capabilities
       '@staticflux/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -50,12 +56,24 @@ importers:
       '@staticflux/document':
         specifier: workspace:*
         version: link:../../packages/document
+      '@staticflux/gate':
+        specifier: workspace:*
+        version: link:../../packages/gate
+      '@staticflux/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@staticflux/kit':
         specifier: workspace:*
         version: link:../../packages/kit
       '@staticflux/platform':
         specifier: workspace:*
         version: link:../../packages/platform
+      '@staticflux/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
+      '@staticflux/stage':
+        specifier: workspace:*
+        version: link:../../packages/stage
       '@staticflux/surface':
         specifier: workspace:*
         version: link:../../packages/surface
@@ -532,6 +550,9 @@ importers:
       '@staticflux/runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@staticflux/shell':
+        specifier: workspace:*
+        version: link:../shell
       '@staticflux/stage':
         specifier: workspace:*
         version: link:../stage

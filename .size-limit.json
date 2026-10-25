@@ -919,5 +919,70 @@
       "@staticflux/capabilities"
     ],
     "limit": "1.1 KB"
+  },
+  {
+    "name": "@staticflux/kit/status",
+    "path": "packages/kit/dist/status.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "1.1 KB"
+  },
+  {
+    "name": "@instaflow/app/versioning (Latest, milestones, snapshots, new document, templates; next to the DocumentRepo)",
+    "path": "apps/instaflow/dist/versioning/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/document/v2",
+      "@staticflux/stage",
+      "@staticflux/capabilities"
+    ],
+    "limit": "9.5 KB"
+  },
+  {
+    "name": "@instaflow/app/versioning/ui (Milestones panel, save status, contributions; excl. lit, kit and framework)",
+    "path": "apps/instaflow/dist/versioning/ui.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/i18n",
+      "@staticflux/kit/button",
+      "@staticflux/kit/text-field",
+      "@staticflux/kit/toolbar",
+      "@staticflux/kit/tree",
+      "@staticflux/kit/status",
+      "@staticflux/capabilities",
+      "@staticflux/document/v2",
+      "@staticflux/stage"
+    ],
+    "limit": "3.75 KB"
+  },
+  {
+    "name": "@staticflux/shell/spec (spec runtime, diff, layout port; excl. framework)",
+    "path": "packages/shell/dist/spec.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/messaging",
+      "@staticflux/a11y"
+    ],
+    "limit": "6 KB"
   }
 ]
