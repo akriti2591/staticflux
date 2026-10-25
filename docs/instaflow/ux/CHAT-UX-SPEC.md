@@ -5,6 +5,8 @@
 > them). Sources: `docs/instaflow/design/ChatCP.dc.html`, `UX.md` §2 and §5, `EDITOR-AS-PRIMITIVE.md`, D12, D13,
 > D16–D18. Flows: `FLOWS.md` F-40…F-46 (all marked M2).
 > Nothing in this file is rendered in M1 except the Settings › Assistant pre-launch card (STUDIO-UX-SPEC §2.4).
+> Overlay, feedback and deep-link rules come from `OVERLAYS-FEEDBACK.md` and `NAVIGATION-DEEPLINKS.md`; §7–§9 here
+> apply them to provider setup, the no-provider state, chat errors, the empty thread and long turns.
 
 ## 1. What Chat is
 
@@ -78,7 +80,87 @@ the selection into the full editor and back without losing an edit.
   survives; "New document from milestone" copies the thread as history).
 - Deleting a thread never deletes the asset; moving the asset to trash hides its threads until restored.
 
-## 7. What M1 must not do (hooks)
+## 7. Provider setup (Settings › Assistant)
+
+The section STUDIO-UX-SPEC §2.4 reserves. It composes Settings' rules (every change applies immediately with a `Saved on
+this device` line) and the feedback hierarchy (`OVERLAYS-FEEDBACK.md` §3). Keys never leave the device except to the
+provider's own endpoint; the UI says so in one sentence at the top: "Keys are stored only on this device, never in
+documents, milestones or exports, and never synced."
+
+| Part | Contents | Behaviour |
+|---|---|---|
+| **Providers list** | One card per provider: `Chrome built-in`, `On-device model`, `Anthropic`, `OpenAI`, `Google`, `Custom endpoint`. Each card: name, a `<sf-status>` line (`Not set up` · `Downloadable · 1.2 GB` · `Downloading 43 %` · `Ready · claude-…` · `Key refused`), and its fields when expanded. | One card expanded at a time (click the header). The default provider carries a mist tag `Default`. |
+| **Chrome built-in** | availability from `packages/ai` facts; `Download` (secondary) when `downloadable`; a determinate progress row while downloading with `Cancel`; `Ready` when available. | `Download` needs a gesture (SF-AI-002), so it is a button, never automatic. Unavailable (not Chrome, flag off): one muted line naming what is missing; no button. |
+| **Remote provider** (Anthropic, OpenAI, Google) | `API key` field (password, `Show` toggle, paste accepted, masked to `sk-…9f2a` after blur), `Model ▾` (the provider's known models, typed default), `Test connection` (secondary). | The key saves on blur (local store `instaflow/settings`), status becomes `Key saved · not tested`. `Test connection` runs one minimal call with `aria-busy` on the button, then an **inline status row** under the fields: `● Connected · claude-… · 420 ms` (success) or the error as a **section error** with the fix (`Key refused · Check the key, or create a new one` with a link to the provider's console; `Over quota · Try again later`; `Couldn't reach <Provider> · Check your connection`). `Remove key` (ghost, at the right) clears it with the toast `Key removed · Undo` (8 s). |
+| **Custom endpoint** | `Endpoint URL`, `API key` (optional), `Model` (free text), `Test connection`. | As remote. The URL must be `https:`; inline error otherwise. |
+| **Defaults** | `Default provider ▾` for each task (`Write`, `Edit images`, `Decide`); `Default autonomy` as a switcher `Plan · Ask · Accept edits · Autopilot` with the D13 one-line explanations; `Autopilot limits` (steps, spend) fields shown only when Autopilot is chosen. | Each applies immediately. The top-bar chip reads the default provider. |
+
+Deep link: `/settings/assistant` (Home shell) and `/s/:asset/d/settings?section=assistant` (Studio dialog).
+
+## 8. The no-provider state
+
+Settled by STUDIO-UX-SPEC §2.2: nothing assistant-shaped renders in Studio, and Home's hero shows `Set up an assistant`.
+Added here for Chat itself:
+
+- `/c/*` **opens** even without a provider: threads are the person's content and stay readable. The composer is
+  replaced by one calm card: "Set up an assistant to continue this conversation." with `Open settings` (secondary). Mini
+  editors still work by hand (D17: the agent is always a choice).
+- A key that was **removed or refused** after threads exist shows the same card with the reason in the status line
+  (`Claude's key was refused`), and the top-bar chip reads `✦ Set up an assistant`.
+- A `?thread=` deep link into Studio without a provider opens the design without the panel and toasts the fix
+  (`NAVIGATION-DEEPLINKS.md` §4).
+
+## 9. Chat errors, the empty thread, long turns
+
+### 9.1 Errors, by what happened
+
+Errors show **in the thread**, as a turn-level card where the reply would have been, never as a dialog; a toast is used
+only when the person is not looking at the thread (Studio with the panel closed). `SfError.message` is the first line,
+`fix` the button (`OVERLAYS-FEEDBACK.md` §3.2).
+
+| What happened | Card | Actions |
+|---|---|---|
+| **Auth failed** (401/403, key refused) | `Couldn't reach Claude: the key was refused.` | `Check the key` (→ Settings › Assistant, the card expanded) · `Retry` |
+| **Quota or rate limit** (429, provider budget) | `Claude is over its limit right now.` + the provider's retry hint when given (`Try again in 30 s`) | `Retry` (enabled after the hint's delay, with a countdown in the label) · `Switch provider ▾` (menu of ready providers) |
+| **Offline** | A **banner** above the composer `You're offline. The assistant needs a connection; editing works.`; the send button is disabled with the reason in its tooltip (`Send · You're offline`). The pending turn's card reads `Waiting for a connection…` with `Cancel`. | Resumes by itself when online returns (the turn is re-sent once). |
+| **Provider down** (5xx, timeout after 90 s without tokens, network error) | `Couldn't reach Claude.` + `It may be a temporary problem.` | `Retry` · `Switch provider ▾` |
+| **Refusal** (the model declines the request) | Not an error. The assistant's words render as an ordinary reply with a mist tag `Declined`; proposals are not created. | The composer keeps focus; a suggestion button `Rephrase` prefills the last message. |
+| **Invalid output** (SF-AI-005: the change set did not validate) | `Claude's suggestion didn't fit this design.` | `Try again` · the raw text stays readable in a `Show details` disclosure |
+| **Gated** (autonomy or lock refused a step) | A proposal card instead of an error: `Claude wanted to delete 3 elements, which needs your approval.` | `Allow` (agent) · `Skip` |
+| **Model unavailable on device** (SF-AI-001 built-in) | `Chrome's built-in model isn't downloaded.` | `Download` (needs the gesture) · `Switch provider ▾` |
+
+Every error card keeps the person's message above it intact and re-sendable (`↑` in the empty composer recalls it).
+Codes never show; `Copy diagnostics` is in the card's `⋯`.
+
+### 9.2 The empty thread
+
+A new thread shows: the header with the asset chip (or `New design` when none), the empty transcript with **three
+suggestion buttons** built from the D18 quick actions that apply (`Make a flyer from this`, `Resize for Instagram`,
+`Write three headline options`) as small secondary buttons (never tags), the context chip when a selection exists, and
+the composer focused. One muted line above the suggestions: "Describe what you want to make, or pick a start." No
+illustration. In Studio's docked panel the same, in 288 px.
+
+### 9.3 Long-running turns and cancel
+
+- A turn streams; the reply bubble grows; a mini editor's preview appears as soon as its first change set validates.
+- `Send` becomes **`Stop`** (secondary with a square icon) while a turn runs; `Escape` in the composer stops too. Stop
+  keeps the partial reply, tags it `Stopped`, discards proposals still in flight, and keeps applied Accept-edits steps
+  (each was an undo step already). Nothing is silently rolled back.
+- After **8 s** without new tokens a muted line `Still working…` appears under the bubble; after **90 s** the turn is
+  treated as provider down (§9.1). Autopilot shows a progress line `Step 12 of 40 · Stop` (D13) and stops at destructive
+  steps with a proposal card.
+- The person may keep editing by hand during a turn; conflicts follow §5 (the split chip).
+- Leaving the thread (Home, another thread) does not stop the turn; the threads rail shows a pulsing agent dot on the
+  running thread; returning shows the result. Closing the tab stops it (no background work without a page).
+
+### 9.4 Deep links into a thread
+
+`/c/:thread` opens the thread scrolled to the last turn; `?turn=<id>` scrolls to that turn and highlights it for 2 s
+(an intent, consumed); `/s/:asset?thread=<id>` opens Studio with the panel docked on that thread. A missing thread opens
+the threads list with the toast `That conversation is no longer here`. Copy link: the thread's menu and a turn's hover
+`⋯` (`NAVIGATION-DEEPLINKS.md` §5).
+
+## 10. What M1 must not do (hooks)
 
 1. Never hard-code a vendor name in strings, ids or colours: the agent role colour is `agent*` tokens; copy uses
    "assistant" or the configured provider name from Settings.

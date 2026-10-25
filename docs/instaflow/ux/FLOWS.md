@@ -6,7 +6,8 @@
 > Tier: **M1 must-pass** (the end-to-end suite, both worker topologies), **M1** (ships in M1, tested when its WP lands),
 > **M2**. Pointer and keyboard paths are both given; a flow passes only when both do, unless a step says otherwise.
 >
-> Conventions: `Mod` = ⌘ / Ctrl. "Pill" = the selection pill. "Toast" = FOUNDATIONS §4.10. Fixture: a fresh workspace
+> Conventions: `Mod` = ⌘ / Ctrl. "Pill" = the selection pill. "Toast", "banner", "takeover" = `OVERLAYS-FEEDBACK.md`;
+> URLs and fallbacks = `NAVIGATION-DEEPLINKS.md`. Fixture: a fresh workspace
 > unless a precondition says otherwise. Every step's result must be checkable by a test (DOM text, accessibility tree,
 > the editor's `inspect`, a screenshot region, or the polite live region).
 
@@ -223,9 +224,9 @@ Blocks: Button, Popover, Toast, Dock Milestones (Tree), read-only banner.
 
 ### F-18 Export — **M1** (after C1)
 
-1. `Export` (primary) or `Mod+Shift+E` → the dialog: format switcher PNG · PDF · SVG · .iflow, scale (1× 2× 3×),
-   pages (All / Current / Selection), the loose-elements line when relevant, the "snapshot" sentence. 2. PNG 2× of the
-   current page → a download `<title>-page-1@2x.png`, toast "Exported … · Show in folder" (folder mirror on) and the
+1. `Export` (primary) or `Mod+Shift+E` → the dialog: What `Page · Selection · Pages`, format switcher PNG · PDF · SVG
+   (· .iflow after C2), scale (1× 2× 3×), the loose-elements line when relevant, the "snapshot" sentence (the full
+   dialog is F-53). 2. PNG 2× of the current page → a download `<Title>.png`, toast "Exported … · Show in folder" (folder mirror on) and the
    dialog closes; the Milestones list is unchanged (D10: exports create nothing). 3. PDF of all pages → one file, real
    text (selectable in a viewer). 4. SVG → opens in a browser identically (parity rule from C1). 5. `.iflow` → re-import
    (C2) opens an identical document. 6. Cancel mid-export → no file, no toast, the dialog stays usable.
@@ -446,15 +447,139 @@ Blocks: Card (composer), Button (Agent), Switcher, Toast.
 Select text → the pill shows `✦ Rewrite` as the 6th item; click → the side panel opens with `Context: Headline selected`
 and a tone sheet; a proposal follows F-42; `✦ Ask` in the command bar routes natural language to the thread.
 
+## E. Primitives end to end (overlays, feedback, deep links)
+
+### F-47 Share a design — **M2** (after accounts, D3; the Share tab is not rendered before)
+Blocks: Dialog (routable, tabs, wizard step), Menu inside a dialog, inline confirm row, copy field, Toast, deep link.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | `Export` → tab `Share` | `Mod+Shift+E`, `→` on the tabs | The dialog switches to Share (URL `…/d/export?tab=share`); the link row with `Copy`, the access row `Anyone with the link ▾ · can view ▾`, the invite field, `Publish a release ▸`, `Done` primary. One modal; the canvas behind is inert. |
+| 2 | `Copy` | Tab to it, Enter | The button reads `Copied` for 1.5 s; the clipboard holds `/s/<asset>`; no toast (the feedback is at the gesture). |
+| 3 | `Anyone with the link ▾` › `People invited` | Enter, arrows, Enter | A one-level menu over the dialog; choosing applies at once; the status line `Saved · Only invited people can open this`; Escape would have closed the menu only. |
+| 4 | Type `ana@example` in Invite, `Invite` | — | Inline field error `Enter an email address` under the field; the primary stays enabled. Fix it → the row `ana@example.com · can view ▾ · ×` appears. |
+| 5 | Row `×` | Tab to it, Enter | The row becomes `Remove ana@example.com? · Remove · Cancel` inline; no second dialog. `Remove` → row gone. |
+| 6 | `Link settings ▸` | — | The body slides left 160 ms; header gains a back chevron and `Link settings`; fields Expires ▾, Allow download, Require a password; footer `Back · Save`. URL `?step=link-settings`. |
+| 7 | Set Expires `30 days`, press Escape | Escape | Not closed: the footer shows `Discard changes? · Discard · Keep editing` with focus on Keep editing. `Keep editing`, then `Save` → back to step 1, the link row shows the tag `Expires in 30 days`. |
+| 8 | `Publish a release ▸` → `Publish` | — | Step 3: progress row `Rendering page 2 of 3` with `Cancel`; then the release link with `Copy` and `Open`, primary `Done`. |
+| 9 | `Done` | Enter | The dialog closes with `history.back()` (it was pushed); focus returns to `Export`; toast `Published 'Release 1' · Open` (8 s). |
+| 10 | Open `/s/<asset>/d/share` in a new tab | — | Studio renders, then the dialog opens on the Share tab; Escape **replaces** the URL with `/s/<asset>` (no Back needed). Before accounts exist the same link opens Export with the toast `Sharing isn't available yet`. |
+
+### F-48 Restore a milestone (preview, compare, open as new design) — **M1**
+Blocks: Dock Milestones (Tree, row menu), Takeover, banner header, read-only HUD, Toast, deep links, history.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Create `Client v1`, change the headline, create `Client v2` | `Mod+Alt+S` ×2 | Milestones tab: `Latest`, `Client v2`, `Client v1`. |
+| 2 | Click `Client v1` | ↓ to it, Enter | The **preview takeover**: the canvas shows the old headline; banner header `Milestone 'Client v1' · today 14:02 · Read-only` with `Compare with Latest`, `Open as new design`, `Copy link`, `Back to Latest`; no handles; dock and inspector read-only. URL `/s/<asset>/m/<id>` (pushed). |
+| 3 | Select the old headline, `Mod+C` | Tab to it, `Mod+C` | The HUD shows `Copy` only; copied. |
+| 4 | `Compare with Latest` | — | Two canvases side by side labelled `Client v1 · today 14:02` and `Latest`; pan one → both move; `Show changes` outlines the headline on both sides (sunflower). URL `…?compare=latest`. |
+| 5 | Press Escape | Escape | Back to the preview (one level); Escape again → Latest, URL `/s/<asset>`, nothing selected, history has no dead entries (Back leaves the design). |
+| 6 | `Mod+V` | — | The old headline is pasted into Latest at the same coordinates (the person lifted a part of the old version); one undo step `Paste`. |
+| 7 | Milestones row `⋯ › Open as new design` | `Shift+F10`, arrows, Enter | Latest flushes; a new design `Client v1 copy` opens with the title field focused; toast `New design from 'Client v1' · Back to 'Night market'`; its Document section reads `From milestone 'Client v1' of 'Night market'`; its Milestones list has `Latest` only. Nothing in the original changed. |
+| 8 | Row `⋯ › Delete milestone` on `Client v2` | — | The row becomes `Delete 'Client v2'? · Delete · Cancel`; `Delete` → gone; no dialog; the copy says it can't be undone. |
+| 9 | Open `/s/<asset>/m/<deleted id>` | — | Latest opens; toast `That milestone is no longer here`; the URL is replaced with `/s/<asset>`. |
+
+### F-49 Follow a deep link to a missing element — **M1**
+Blocks: Routes, intents (`el=`, `inspect=`), fallbacks, Toast, cold boot order, hints suppression.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Context menu on a shape › `Copy link to selection` | `Shift+F10`, `c` typeahead, Enter | Toast `Link copied` (1.5 s); the clipboard holds `/s/<asset>?page=<p>&el=<e>`. |
+| 2 | Paste it in a new tab | — | Studio boots with the skeleton; the page card and chrome first; then the shape is **selected**, the camera zoomed to it with padding, the HUD above it, `1 element selected` announced; the inspector shows Shape sections; `el=` is stripped from the URL. No first-use hint shows. |
+| 3 | Edit the link to `…&inspect=stroke` | — | As 2, and the inspector's Stroke section is expanded and scrolled into view; focus stays on the canvas (Escape and shortcuts work). |
+| 4 | In the first tab, delete the shape; reload the second tab's original link | — | The design opens, nothing selected, camera fits the page; toast `That element is no longer in this design` (neutral, 5 s); URL replaced to `/s/<asset>?page=<p>`. Reload again → no toast (the URL no longer asks). |
+| 5 | Edit the link to `el=<e2>,<deleted>` | — | `e2` selected; toast `1 of 2 linked elements is no longer in this design`. |
+| 6 | Change `page=` to a bogus id | — | First page; toast `That page is no longer in this design`. |
+| 7 | Open `/s/not-a-design` | — | The Home-shell page `This design isn't on this device` with `Go to Home` and `Open a folder…`; no spinner, no toast, no Studio chrome. |
+| 8 | Open `/s/<asset>/d/settings?section=shortcuts` | `?` in Studio does the same in-app | Studio, then the Settings dialog on Shortcuts, after the first content frame; `Copy link` in its header; Escape **replaces** to `/s/<asset>` (deep-linked) whereas in-app `?` then Escape calls `history.back()`. |
+
+### F-50 Recover from a worker crash — **M1**
+Blocks: Banner, automatic retry, Toast, blocking error, `Copy diagnostics`, save status.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Draw and move shapes; the test terminates the editor worker (`IF-WRK-*`) | — | Within 500 ms: the canvas freezes; a banner over the canvas region `The editor stopped unexpectedly · Restarting…` with the busy dot; the top bar, dock and inspector stay usable; shortcuts that need the editor are off; save status `● Not saved · Restarting`. No dialog. |
+| 2 | Wait | — | Workers restart once; the document reloads from Latest; the banner leaves; toast `Editor restarted` (8 s), or `Editor restarted · Your last changes from the past 2 s may be lost · Undo history kept` when the last commit was not acknowledged; `● Saved`; the selection is restored when its elements exist; undo still works. |
+| 3 | Terminate it again within a minute | — | The **blocking error** takeover: `The editor can't start`, one sentence, `Reload` (primary), `Copy diagnostics`, `Back up workspace`; `alertdialog`, announced once; nothing else is reachable. |
+| 4 | `Copy diagnostics` | Tab, Enter | The button reads `Copied`; the clipboard holds JSON with the `IF-WRK-*` codes, topology and versions; the surface text itself shows no code. |
+| 5 | `Reload` | Enter | Studio boots; the document is at the last acknowledged Latest; Home's card shows the same `Edited` time. |
+| 6 | Export during a crash of the export worker only (`IF-EXP-*`) | — | A **section error** inside the Export dialog (`Couldn't export · Try again`), not a banner: the editor is fine. |
+
+### F-51 Configure an assistant — **M2**
+Blocks: Settings (dialog and page), Field (password), inline status, section error, Toast with Undo, deep link, no-provider state.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Home hero `Set up an assistant` | Tab, Enter | `/settings/assistant`: the one-sentence key notice; provider cards `Chrome built-in`, `On-device model`, `Anthropic`, `OpenAI`, `Google`, `Custom endpoint`, each with a status line; none is `Default`. |
+| 2 | Expand `Anthropic`, paste a key, Tab | — | The key masks to `sk-…9f2a` on blur; status `Key saved · not tested`; the line `Saved on this device`. |
+| 3 | `Test connection` with a bad key | Enter | `aria-busy` on the button; then a **section error** under the fields: `Key refused · Check the key, or create a new one` with the provider console link; the key field keeps its value and gets `aria-invalid`. |
+| 4 | Fix the key, `Test connection` | — | Inline status `● Connected · claude-… · 420 ms`; the card gets the `Default` tag (first ready provider); Defaults show `Write: Anthropic`. |
+| 5 | Open a design | — | The top-bar chip `✦ Claude · Accept edits`; the command bar reads `Ask Claude or type a command`; `✦ Rewrite` on a text selection. |
+| 6 | Settings › Assistant › `Remove key` | — | Toast `Key removed · Undo` (8 s); the chip reads `✦ Set up an assistant`; `✦` actions vanish; `/c/<thread>` still opens with the card `Set up an assistant to continue this conversation · Open settings`. `Undo` restores the key and the chip. |
+| 7 | Go offline, send a message in Chat | — | Banner above the composer `You're offline. The assistant needs a connection; editing works.`; Send disabled with the reason in its tooltip; the turn card `Waiting for a connection… · Cancel`; back online → the turn sends once. |
+| 8 | Provider returns 429 | — | The turn card `Claude is over its limit right now · Try again in 30 s` with `Retry` counting down and `Switch provider ▾`. |
+| 9 | Send a long request, press `Stop` | Escape in the composer | The partial reply stays, tagged `Stopped`; in-flight proposals vanish; applied steps remain as undo steps. |
+
+### F-52 Canva-style quick recolour from the HUD — **M1 must-pass**
+Blocks: Contextual HUD (control model), Colour popover (document colours), light dismiss pass-through, Inspector sync, Undo.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Draw a rectangle, a cream (`#FFF4E0`) ellipse and a text | — | Three elements; the document uses tangerine, cream and ink. |
+| 2 | Click the rectangle | Tab | Pill `Fill · Stroke · Radius · Duplicate · Delete · ⋯`, 12 px above the selection; the Fill swatch shows the **resolved** tangerine; the inspector Fill row shows the same colour and `@primary`. |
+| 3 | Click the pill's Fill swatch | `Alt+Enter`, Enter | The **colour popover** (264 px) anchored to the swatch: hex `#FF5C39`, opacity `100 %`, eyedropper (Chrome), **Document colours** `#FF5C39 · #FFF4E0 · #16151A`, Brand (when a kit), Palette, Recent, `Custom ▸`; focus in the hex field; the pill is frozen. |
+| 4 | Hover the cream document swatch | arrows to it | A mono tag `#FFF4E0 · 1 use`; **no** preview on hover. |
+| 5 | Click it | Enter | The rectangle turns cream within one frame; the inspector Fill row reads `#FFF4E0` at the same instant; one undo step `Fill`; the popover stays open; Document colours now shows `#FFF4E0 · 2 uses` first. |
+| 6 | Type `3D5AFE` in the hex field | — | Live preview on each complete hex; Enter commits one undo step; Escape would restore cream. |
+| 7 | Click the ellipse on the canvas | — | The popover closes **and** the ellipse is selected (one click, pass-through); the pill re-lays out for the new selection; focus on the canvas. |
+| 8 | Open the inspector Fill swatch | Tab to it, Enter | The **same** popover component, anchored to the inspector row, with the same Document colours including the blue; pick blue → the ellipse is blue; `Mod+Z` twice restores both. |
+| 9 | Select the text, pill `Colour` swatch; then double-click into the text, select one word, pill swatch | — | The whole text recolours; inside editing, only the selected run recolours (the pill stays above the element while editing). |
+| 10 | Marquee the rectangle and the text | `Mod+A` | Pill `Fill · Align ▾ · Distribute ▾ · Group · Delete` (both have a fill); the Fill swatch shows the `Mixed` hatch; pick a document colour → both change; the inspector Fill row no longer reads `Mixed`. |
+| 11 | `Custom ▸` | — | The picker expands **inside** the popover (no second popover); drag → live; release = one undo step. Escape closes the popover only; the selection stays. |
+| 12 | Open DevTools (switch on), `Alt+Shift+click` the Fill swatch | — | The Explain tab names the control `fill.color`, its section `Fill`, HUD rank 1, the capability it runs, and the facts it read. |
+
+### F-53 Export a multi-page design as print PDF and PNGs — **M1** (after C1; steps marked M2 need the engine follow-ups)
+Blocks: Dialog (routable, wizard step `advanced`), Switcher (single and multi), page-range picker (listbox), disabled
+reasons, progress row, background toast, section error, memory per design, deep link. Precondition: a design `Night
+market` with 5 pages at 1 080 × 1 080, one loose element on the mist, the folder mirror on.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Top bar `Export` | `Mod+Shift+E` | The dialog `Export` (URL `/s/<asset>/d/export`, pushed): What `Page · Selection · Pages` on `Page` (`Page 1 · Post · 1 080 × 1 080`), Preset `Current size · Screen 2× · Social post` (the page is 1 080 × 1 080) with `Screen 2×` selected, Format `PNG · PDF · SVG` on PNG, Scale `1× · 2× · 3×` on 2× with `2 160 × 2 160 px` under it, the line `Night market.png`, the loose line `1 element outside the pages won't be exported. · Export selection instead`, the preview card with `2 160 × 2 160 px · about 1.4 MB`, footer `Reset to defaults · Cancel · Export PNG`. Focus is on `Export PNG`. The `Selection` chip is disabled; its tooltip reads `Selection · Select something on the canvas first`. Nothing says "coming soon"; no JPG, no Print chip. |
+| 2 | `Pages` | `→` ×2 | The picker: five 72 px thumbnails (or format chips before the projection lands), all checked, `5 of 5 pages`, `All · None`. Uncheck pages 2 and 4 → `3 of 5 pages`; the name line reads `Night market - 01…05.png (3 files)` and the primary `Export PNG`; URL `?scope=pages&pages=<p1>,<p3>,<p5>`. `None` → the primary is `aria-disabled` with tooltip `Export · Choose at least one page`; `All` restores. |
+| 3 | `Mod+click` `PDF` | Tab to Format, `→` to PDF, Space | Both chips selected (`PNG, checked, 1 of 3` announced); the PDF rows appear under the PNG rows headed `PDF`, Kind `Standard` only (Print is M2 and not rendered); the name line `Night market.zip (PNG, PDF · 6 files)`; primary `Export 2 formats`. |
+| 4 | `Advanced ▸` | Tab to it, Enter | The body slides left 160 ms; back chevron and title `Advanced`; URL `?step=advanced`; rows `Transparent background` (off), `File name` (placeholder `Night market`), `Zip several files` (on), `Remember for this design` (on); footer `Back · Done`, no Export. Switch Transparent on → the preview's checkerboard shows when back on the main step; the Advanced row summarises `Transparent`. |
+| 5 | `Done`, then `Export 2 formats` | Enter, Enter | The footer becomes the progress row `Rendering page 1 of 5` with `Cancel`; the options dim (`aria-busy`); the live region announces at page boundaries; then `Exporting PDF · 2 of 2 formats`, `Writing PDF`. On success the dialog closes (`history.back()`), focus returns to `Export`, toast `Exported Night market.zip · Show in folder` (8 s). The zip holds `Night market - 01.png`, `- 03.png`, `- 05.png` and `Night market.pdf` (5 pages, selectable text). Milestones unchanged (D10). |
+| 6 | `Export`, then Escape during `Rendering page 2 of 5` | `Mod+Shift+E`, Enter, Escape | The dialog closes; the sticky toast `Exporting Night market.zip… · Cancel` continues; it becomes `Exported … · Show in folder`. Press `Cancel` instead on a second run → the toast leaves, no file, no further toast. |
+| 7 | Page label menu on page 3 › `Export this page…` | `Shift+F10` on the label, arrows, Enter | The dialog on `Page` locked to `Page 3 · Post`, URL `?scope=page&page=<p3>`; formats still PNG + PDF and Transparent on (remembered per design). `Reset to defaults` → `Screen 2×` of the page, PNG only, `Defaults restored` inline for 1.5 s. |
+| 8 | Select two shapes, context menu › `Export selection…` | `Shift+F10`, `e` typeahead, Enter | The dialog on `Selection` (`2 elements · 640 × 420`), no loose-elements line, name `Night market - selection.png`. |
+| 9 | Set `3×` on a 6 000 × 6 000 page (test fixture) | — | The `3×` chip is disabled with tooltip `3× · Too large for this device (max 16 384 px)`; the test then forces `SF-SURF-013` at 2× → section error above the footer `Couldn't render at 2× · Export at 1×`; the fix button sets 1× and re-runs; no banner, no toast while the dialog is open. |
+| 10 | The test terminates the export worker mid-run | — | Section error `Couldn't export 'Night market.png' · Try again` (F-50 step 6); `Try again` re-runs; the editor keeps working behind the dialog. After the dialog was closed, the same failure is a danger toast with `Try again` instead. |
+| 11 | Open `/s/<asset>/d/export?scope=pages&pages=<p1>,<deleted>&format=pdf` in a new tab | — | Studio renders, then the dialog on `Pages` with page 1 checked only, PDF selected; no toast (partly unknown); with every id unknown: all pages and the toast `Those pages are no longer in this design`. Escape **replaces** the URL with `/s/<asset>`. |
+| 12 | (M2, after the engine follow-ups) Preset `Print A4` on an A4 design | — | PDF · Print, `Bleed 3 mm`, `Crop marks` on; the preview shows the marks outside the page; the PDF's TrimBox is the page. Not rendered in M1. |
+
+**Quick-export variant (M1):** with a design exported before on this device, `Mod+Shift+E`, Enter exports with the
+remembered settings; the dialog is visible for the duration of the progress row and closes on success with the toast.
+Two keys, no pointer, no chooser; a stray `Mod+Shift+E` alone downloads nothing.
+
 ## D. Coverage matrix (block → flows)
 
 | Block | Flows |
 |---|---|
 | Button / Icon button / Tooltip | F-01, F-03, F-19, F-20, F-29 |
-| Switcher / tabs | F-01, F-15, F-23, F-34 |
-| Field / Scrubbable number / Colour / Slider | F-04, F-09, F-10, F-28, F-30 |
-| Menu / Context menu | F-05, F-08, F-19, F-26, F-31, F-33 |
-| Popover / Toast / Dialog | F-01, F-05, F-17, F-18, F-24, F-31 |
+| Switcher / tabs | F-01, F-15, F-23, F-34, F-53 |
+| Field / Scrubbable number / Colour / Slider | F-04, F-09, F-10, F-28, F-30, F-53 |
+| Menu / Context menu | F-05, F-08, F-19, F-26, F-31, F-33, F-53 |
+| Popover / Toast / Dialog | F-01, F-05, F-17, F-18, F-24, F-31, F-47, F-48, F-53 |
+| Overlay layering / Escape order / light dismiss | F-47, F-48, F-52, F-53 |
+| Banner / blocking error / progress | F-22, F-37, F-47, F-50, F-51, F-53 |
+| Colour popover / font picker / HUD control model | F-09, F-10, F-52 |
+| Deep links / copy link / fallbacks | F-47, F-48, F-49, F-51, F-53 |
+| Export dialog (scope, presets, formats, memory, section errors) | F-02, F-18, F-50, F-53 |
+| Disabled-with-reason (dialogs only) | F-53 |
+| First-use hints | F-01, F-03, F-49 (suppressed) |
+| DevTools | F-52 (step 12) |
 | Tree (Layers, Pages, files) / Inline rename / Drag and drop | F-02, F-11, F-15, F-33, F-38 |
 | Card | F-01, F-30, F-31, F-32, F-36, F-40 |
 | Command palette | F-20, F-25 |
@@ -464,6 +589,7 @@ and a tone sheet; a proposal follows F-42; `✦ Ask` in the command bar routes n
 | Keyboard map / Help | F-20, F-24 |
 | Accessibility tree / announcer | F-21 |
 | Empty / error states | F-22, F-37 |
-| Coming pattern / forbidden text | F-19, F-23, F-24 |
+| Coming pattern / forbidden text | F-19, F-23, F-24, F-53 (no JPG or Print chip in M1) |
 | Lens model | F-23 |
-| Settings | F-24, F-45 |
+| Settings | F-24, F-45, F-51 |
+| Chat errors / long turns / no provider | F-51 |
