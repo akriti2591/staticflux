@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Instaflow render GPU test</title>
+<!--
+  Real-WebGPU page for render.gpu.test.ts (served from the repo root by testkit's runGpuPage after `pnpm build`).
+  Loads the built render Wasm and the built TypeScript (dist) through this import map, then runs:
+  the RasterBackend contract on Vello, GPU renders of the engine fixtures (GPU-vs-CPU parity), tiled-vs-region
+  parity at two zoom levels, a lifted layer, and the tiled renderer on a real canvas (warm-up, drag, device loss).
+  Publishes globalThis.__sfGpuResult (testkit page protocol).
+-->
+<script type="importmap">
+  {
+    "imports": {
+      "@staticflux/core": "/packages/core/dist/index.js",
+      "@staticflux/platform": "/packages/platform/dist/index.js",
+      "@staticflux/surface/raster": "/packages/surface/dist/raster.js",
+      "mobx": "/packages/core/node_modules/mobx/dist/mobx.esm.production.min.js"
+    }
+  }
+</script>
+<canvas id="c" width="256" height="256"></canvas>
+<script type="module" src="./page.js"></script>

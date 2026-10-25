@@ -51,3 +51,4 @@ export function resourceManagerUnitWith(options: ResourceManagerUnitOptions = {}
 }
 
 export const resourceManagerUnit = resourceManagerUnitWith();
+

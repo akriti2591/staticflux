@@ -1,9 +1,11 @@
 /**
  * `<sf-slider label="Opacity" min="0" max="100" unit="%">` — a labelled native range
- * input (native slider semantics, keyboard and pointer handling for free), themed with
- * the accent. `aria-valuetext` carries the formatted value (`format` or `value + unit`);
- * the visible value is decorative. Fires `sf-input` while dragging and `sf-change` on
- * commit, both with `{ value: number }`.
+ * input (native slider semantics, keyboard and pointer handling for free): a thin
+ * `neutral7` track, the filled part and the thumb ring in the accent, a `surface3` thumb,
+ * and the value in a mono pill next to the label (`value` slot to replace it; inline with
+ * the track when `label-hidden`). `aria-valuetext` carries the formatted value (`format`
+ * or `value + unit`); the visible value is decorative. Fires `sf-input` while dragging and
+ * `sf-change` on commit, both with `{ value: number }`. Forced colors use the native look.
  */
 import { component, defineComponent, SfElement } from '@staticflux/ui';
 import { css, html, LitElement, nothing, type TemplateResult } from 'lit';
@@ -29,6 +31,13 @@ export function snapToStep(value: number, min: number, max: number, step: number
   return Number(Math.min(snapped, max).toFixed(decimals));
 }
 
+/** Filled share of the track in percent (0–100, rounded to 0.1) for `value` in `min…max` (pure). */
+export function sliderFill(value: number, min: number, max: number): number {
+  if (!(max > min) || !Number.isFinite(value)) return 0;
+  const share = (Math.min(Math.max(value, min), max) - min) / (max - min);
+  return Math.round(share * 1000) / 10;
+}
+
 export class SfSliderElement extends SfElement<typeof sliderSpec> {
   static override readonly spec = sliderSpec;
   static override shadowRootOptions: ShadowRootInit = { ...LitElement.shadowRootOptions, delegatesFocus: true };
@@ -52,22 +61,81 @@ export class SfSliderElement extends SfElement<typeof sliderSpec> {
         display: grid;
         grid-template-columns: 1fr auto;
         align-items: center;
-        column-gap: ${t.space.sm.css};
+        gap: ${t.space.xs.css} ${t.space.sm.css};
         min-inline-size: 120px;
       }
       .label {
-        grid-column: 1 / -1;
         font-size: ${t.type.sizeSm.css};
         font-weight: ${t.font.weightMedium.css};
         color: ${t.color.textMuted.css};
       }
+      .value {
+        grid-area: 1 / 2;
+        min-inline-size: 4ch;
+        padding: 2px ${t.space.sm.css};
+        border-radius: ${t.radius.full.css};
+        background: ${t.color.neutral3.css};
+        color: ${t.color.text.css};
+        font-family: ${t.font.familyMono.css};
+        font-size: ${t.type.sizeSm.css};
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+      }
       input {
+        grid-column: 1 / -1;
+        -webkit-appearance: none;
+        appearance: none;
         inline-size: 100%;
         margin: 0;
         min-block-size: ${t.size.controlSm.css};
-        accent-color: ${t.color.accent.css};
         background: transparent;
         cursor: pointer;
+      }
+      input.inline {
+        grid-area: 1 / 1;
+      }
+      input::-webkit-slider-runnable-track {
+        block-size: 4px;
+        border-radius: 2px;
+        background:
+          linear-gradient(var(--kit-fill-color), var(--kit-fill-color)) 0 0 / var(--kit-fill) 100% no-repeat,
+          ${t.color.neutral7.css};
+      }
+      input:dir(rtl)::-webkit-slider-runnable-track {
+        background-position: 100% 0;
+      }
+      input::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        box-sizing: border-box;
+        inline-size: 18px;
+        block-size: 18px;
+        margin-block-start: -7px;
+        border-radius: 50%;
+        background: ${t.color.surface3.css};
+        border: 2px solid var(--kit-fill-color);
+        box-shadow: ${t.shadow.level1.css};
+      }
+      input::-moz-range-track {
+        block-size: 4px;
+        border-radius: 2px;
+        background: ${t.color.neutral7.css};
+      }
+      input::-moz-range-progress {
+        block-size: 4px;
+        border-radius: 2px;
+        background: var(--kit-fill-color);
+      }
+      input::-moz-range-thumb {
+        box-sizing: border-box;
+        inline-size: 18px;
+        block-size: 18px;
+        border-radius: 50%;
+        background: ${t.color.surface3.css};
+        border: 2px solid var(--kit-fill-color);
+      }
+      input {
+        --kit-fill-color: ${t.color.accent.css};
       }
       input:focus-visible {
         outline: 2px solid ${t.color.focusRing.css};
@@ -76,13 +144,13 @@ export class SfSliderElement extends SfElement<typeof sliderSpec> {
       }
       input:disabled {
         cursor: not-allowed;
-        accent-color: ${t.color.textDisabled.css};
+        --kit-fill-color: ${t.color.textDisabled.css};
       }
-      .value {
-        min-inline-size: 4ch;
-        text-align: end;
-        font-variant-numeric: tabular-nums;
-        color: ${t.color.textMuted.css};
+      @media (forced-colors: active) {
+        input {
+          -webkit-appearance: auto;
+          appearance: auto;
+        }
       }
     `,
   ];
@@ -121,6 +189,11 @@ export class SfSliderElement extends SfElement<typeof sliderSpec> {
     return this.format?.(this.value) ?? `${this.value}${this.unit}`;
   }
 
+  /** How much of the track is filled, 0–100 (pure view of `value` in `min…max`). */
+  get fillPercent(): number {
+    return sliderFill(this.value, this.min, this.max);
+  }
+
   private read(event: Event): number {
     return snapToStep(Number((event.target as HTMLInputElement).value), this.min, this.max, this.step);
   }
@@ -134,6 +207,8 @@ export class SfSliderElement extends SfElement<typeof sliderSpec> {
         min=${this.min}
         max=${this.max}
         step=${this.step}
+        class=${this.labelHidden ? 'inline' : ''}
+        style=${`--kit-fill:${this.fillPercent}%`}
         aria-valuetext=${this.valueText}
         ?disabled=${this.disabled}
         .value=${live(String(this.value))}
@@ -145,7 +220,7 @@ export class SfSliderElement extends SfElement<typeof sliderSpec> {
           this.value = this.read(e);
           emit(this, 'sf-change', { value: this.value });
         }}
-      />${this.showValue ? html`<span class="value" aria-hidden="true">${this.valueText}</span>` : nothing}`;
+      />${this.showValue ? html`<span class="value" part="value" aria-hidden="true"><slot name="value">${this.valueText}</slot></span>` : nothing}`;
   }
 }
 

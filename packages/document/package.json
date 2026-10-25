@@ -17,6 +17,14 @@
     "./loro-crdt": {
       "types": "./dist/loro-crdt.d.ts",
       "import": "./dist/loro-crdt.js"
+    },
+    "./render-projection": {
+      "types": "./dist/render-projection.d.ts",
+      "import": "./dist/render-projection.js"
+    },
+    "./spatial-index": {
+      "types": "./dist/spatial-index.d.ts",
+      "import": "./dist/spatial-index.js"
     }
   },
   "files": [
@@ -36,6 +44,7 @@
     "@staticflux/core": "workspace:*",
     "@staticflux/worker": "workspace:*",
     "loro-crdt": "1.17.1",
+    "rbush": "4.0.1",
     "yjs": "13.6.33"
   },
   "repository": {
@@ -59,5 +68,8 @@
   ],
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/rbush": "4.0.0"
   }
 }

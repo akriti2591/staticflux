@@ -1,6 +1,6 @@
 [package]
 name = "render"
-description = "Instaflow render engine (Vello GPU). Stub until A6."
+description = "Instaflow render engine: scene IR, Vello GPU tiles and lifted layers, our WGSL compositor (IF-7.4, IF-7.5)."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,3 +11,17 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = { workspace = true }
+vello_common = { workspace = true }
+
+# The GPU path exists only in the Wasm build (WebGPU in the render worker).
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+vello_gpu = { workspace = true }
+wgpu = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true }
+
+# The CPU reference rasterizer (CI goldens, GPU-vs-CPU parity) never ships in the Wasm.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+vello_cpu = { workspace = true }
+png = { workspace = true }

@@ -18,13 +18,13 @@ export const fieldStyles = css`
     align-items: center;
     gap: ${t.space.xs.css};
     padding-inline: ${t.space.sm.css};
+    border-radius: ${t.radius.md.css};
     background: ${t.color.surfaceSunken.css};
-    border: 1px solid ${t.color.borderStrong.css};
+    border: 1px solid ${t.color.controlEdge.css};
   }
   .field:focus-within {
     outline: 2px solid ${t.color.focusRing.css};
-    outline-offset: -1px;
-    border-color: transparent;
+    outline-offset: 2px;
   }
   :host([invalid]) .field {
     border-color: ${t.color.danger.css};

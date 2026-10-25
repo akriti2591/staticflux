@@ -41,8 +41,9 @@ R12.13–R12.16, R12.19 (placeholders), R15.5, invariant I-11.
 - `theme.ts` (subpath `@staticflux/ui/theme`) — the **theme contract** (R13.11–R13.14):
   - `theme-tokens.ts` — `defineTokens(prefix, { group: ['name', …] })` → typed `ThemeToken`s (`property`, `ref`, `css`), `TokenValues`,
     `PartialTokenValues`, `tokenSetOf`, `tokenProperty`, `kebabCase`, `valueOf`.
-  - `theme-contract.ts` — `themeTokens` (THE token set: color ramp/surfaces/text/borders/accent/semantic/focus, font, type, space
-    (4 px grid), size (density), radius, shadow, motion, z), `legacyAliases` (pre-contract `--sf-*` names), types `ThemeValues`, `PartialThemeValues`.
+  - `theme-contract.ts` — `themeTokens` (THE token set: color ramp/surfaces/text/borders + `controlEdge`/accent/agent (`agent`,
+    `agentHover`, `onAgent`, `agentSoft`, `agentInk`)/semantic/focus, font (+ `familyDisplay`, `weightDisplay`), type, space
+    (4 px grid), size (density), radius (+ `control`: pressable controls), shadow, motion, z; per-size control `type.control*` and `size.controlPad*`), `legacyAliases` (pre-contract `--sf-*` names), types `ThemeValues`, `PartialThemeValues`.
   - `theme-contrast.ts` — `TEXT_CONTRAST_PAIRS` (4.5:1), `UI_CONTRAST_PAIRS` (3:1) for the testkit theme contract (not runtime).
   - `theme-define.ts` — `defineTheme({ id, tokens, values, dark, contrast, density, reducedMotion, aliases })`, `extendTheme(base, overrides)`,
     `validateTheme` (SF-UI-008), `resolveThemeValues`, `themeValue`, `compileTheme(theme, { selector })`, `APPEARANCE_ATTRS`, `DENSITIES`.
@@ -52,6 +53,7 @@ R12.13–R12.16, R12.19 (placeholders), R15.5, invariant I-11.
   - `theme-units.ts` — `ThemesToken` (multi), `AppearanceToken`, `AppearanceStoreToken`, `themeContribution(theme, { order })`,
     `appearanceUnitWith({ theme, initial, media, restore: 'init' | 'manual' })`, `appearanceUnit`.
 - `default-theme.ts` (subpath `@staticflux/ui/default-theme`) — `defaultTheme` (`sf/default`: brand-neutral, WCAG 2.2 AA, light/dark,
+  deep-teal agent actions, `radius.control` = `radius.md`, `controlEdge` = `borderStrong`,
   contrast-more, Focus/Standard/Pro, reduced motion), `defaultThemeContribution` (order −100: any app theme wins).
 
 ## Semantics to know
@@ -73,7 +75,8 @@ R12.13–R12.16, R12.19 (placeholders), R15.5, invariant I-11.
   that `appearance.apply` keeps in sync after boot. Dark + more re-resolves every contrast key against the dark values.
 - Active theme: the `theme` id option, else the last contributed theme. Brand themes: `extendTheme(defaultTheme, { id, values, dark })`
   contributed with a higher `order`; run `runThemeContract` (testkit) on them.
-- Boot cost (Studio): contract + appearance + default theme ≈ 3.3 KB gzip net of the shell theme controller they replace.
+- Boot cost (Studio): contract + appearance + default theme ≈ 3.4 KB gzip net of the shell theme controller they replace
+  (DS1's control/agent/display/sizing tokens added ≈ 0.18 KB).
 
 ## Rules
 - Components extend `SfElement` only (no further inheritance); no decorators (R2.14).

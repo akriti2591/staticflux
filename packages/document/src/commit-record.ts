@@ -7,7 +7,7 @@
  * update bytes…`, header = `{ peer, meta, parts: [[partId, length]…], inverse }`.
  */
 import { err, ok, type Result, toSfError } from '@staticflux/core';
-import type { PartOp, PeerId, TransactionMeta } from './crdt-v2.js';
+import type { Frontier, PartOp, PeerId, TransactionMeta } from './crdt-v2.js';
 import { InvalidUpdateError } from './errors.js';
 import type { PartId } from './store.js';
 
@@ -20,6 +20,11 @@ export interface CommitRecord {
   readonly updates: Readonly<Record<PartId, Uint8Array>>;
   /** Inverse ops per touched part (apply all, as one transaction, to undo). */
   readonly inverse: Readonly<Record<PartId, readonly PartOp[]>>;
+  /**
+   * Frontier of each touched part right after this commit, on the committing peer. Undo services use it to detect a
+   * later overwrite by someone else (`changedSince(after)`, D14). Absent on records written before it existed.
+   */
+  readonly after?: Readonly<Record<PartId, Frontier>>;
 }
 
 const MAGIC = [0x53, 0x46, 0x43, 0x01] as const;
@@ -31,11 +36,18 @@ interface Header {
   readonly meta: TransactionMeta;
   readonly parts: readonly (readonly [PartId, number])[];
   readonly inverse: Readonly<Record<PartId, readonly PartOp[]>>;
+  readonly after?: Readonly<Record<PartId, Frontier>>;
 }
 
 export function encodeCommitRecord(record: CommitRecord): Uint8Array {
   const parts = Object.entries(record.updates);
-  const header: Header = { peer: record.peer, meta: record.meta, parts: parts.map(([id, bytes]) => [id, bytes.byteLength] as const), inverse: record.inverse };
+  const header: Header = {
+    peer: record.peer,
+    meta: record.meta,
+    parts: parts.map(([id, bytes]) => [id, bytes.byteLength] as const),
+    inverse: record.inverse,
+    ...(record.after === undefined ? {} : { after: record.after }),
+  };
   const json = encoder.encode(JSON.stringify(header));
   const total = MAGIC.length + 4 + json.byteLength + parts.reduce((n, [, b]) => n + b.byteLength, 0);
   const out = new Uint8Array(total);
@@ -74,7 +86,14 @@ export function decodeCommitRecord(bytes: Uint8Array, seq?: number): Result<Comm
     updates[id] = bytes.slice(offset, offset + size);
     offset += size;
   }
-  return ok({ ...(seq === undefined ? {} : { seq }), peer: header.peer, meta: header.meta, updates, inverse: header.inverse ?? {} });
+  return ok({
+    ...(seq === undefined ? {} : { seq }),
+    peer: header.peer,
+    meta: header.meta,
+    updates,
+    inverse: header.inverse ?? {},
+    ...(header.after === undefined ? {} : { after: header.after }),
+  });
 }
 
 /** Rough in-memory size of a record (log-size accounting for compaction triggers). */

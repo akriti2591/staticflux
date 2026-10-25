@@ -26,6 +26,12 @@ export const TEXT_CONTRAST_PAIRS: readonly (readonly [ThemeToken, ThemeToken])[]
   [c.infoText, c.surface1],
   [c.infoText, c.infoSubtle],
   [c.textOnAccent, c.danger],
+  [c.onAgent, c.agent],
+  [c.onAgent, c.agentHover],
+  [c.agentInk, c.agentSoft],
+  [c.agentInk, c.surface1],
+  [c.text, c.neutral3],
+  [c.textMuted, c.neutral3],
 ];
 
 /** Non-text pairs that must reach 3:1 (SC 1.4.11 controls, SC 2.4.13 focus, placeholder text). */
@@ -38,4 +44,8 @@ export const UI_CONTRAST_PAIRS: readonly (readonly [ThemeToken, ThemeToken])[] =
   [c.accent, c.surface1],
   [c.textSubtle, c.surface1],
   [c.textSubtle, c.surfaceSunken],
+  [c.controlEdge, c.canvas],
+  [c.controlEdge, c.surface1],
+  [c.controlEdge, c.surfaceSunken],
+  [c.agent, c.surface1],
 ];

@@ -1,11 +1,14 @@
 /**
  * `<sf-button>` — WAI-ARIA APG button on the host (`role="button"`): text in the default
- * slot, optional `start` / `end` slots (icons, kbd), variants `secondary` (default),
- * `primary`, `ghost`, `danger`, sizes `sm | md | lg` (density-aware heights), `pressed`
- * for toggle buttons, `type="submit|reset"` inside forms.
+ * slot, optional `start` / `end` slots (icons, kbd), variants `secondary` (default, the
+ * control edge), `primary` (the one main action), `agent` (hands work to an agent),
+ * `agent-soft` (an agent action inside a toolbar), `ghost`, `danger`; sizes `sm | md | lg`
+ * (density-aware heights); shape from `radius.control`; `pressed` for toggle buttons,
+ * `type="submit|reset"` inside forms.
  *
  * ```html
  * <sf-button variant="primary" @click=${save}>Save</sf-button>
+ * <sf-button variant="agent" @click=${startMaking}>✦ Start making</sf-button>
  * <sf-button .pressed=${bold} @click=${toggleBold}>Bold</sf-button>
  * ```
  */
@@ -15,7 +18,7 @@ import { buttonStyles, type ControlSize, pressedConverter } from './internal/but
 import { PressController } from './internal/press.js';
 import { baseStyles, controlStyles, focusRing } from './internal/styles.js';
 
-export type ButtonVariant = 'secondary' | 'primary' | 'ghost' | 'danger';
+export type ButtonVariant = 'secondary' | 'primary' | 'agent' | 'agent-soft' | 'ghost' | 'danger';
 export type { ControlSize };
 
 const buttonSpec = component({

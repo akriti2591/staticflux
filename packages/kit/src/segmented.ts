@@ -54,10 +54,9 @@ export class SfSegmentedElement extends SfElement<typeof segmentedSpec> {
       .track {
         display: inline-flex;
         gap: 2px;
-        padding: 2px;
-        border-radius: ${t.radius.md.css};
-        background: ${t.color.surfaceSunken.css};
-        border: 1px solid ${t.color.border.css};
+        padding: 3px;
+        border-radius: ${t.radius.control.css};
+        background: ${t.color.neutral3.css};
       }
       [role='radio'] {
         all: unset;
@@ -67,7 +66,8 @@ export class SfSegmentedElement extends SfElement<typeof segmentedSpec> {
         gap: ${t.space.xs.css};
         min-block-size: calc(var(--kit-height) - 6px);
         padding-inline: var(--kit-pad-inline);
-        border-radius: ${t.radius.sm.css};
+        font-size: var(--kit-font-size);
+        border-radius: max(0px, calc(${t.radius.control.css} - 3px));
         color: ${t.color.textMuted.css};
         font-weight: ${t.font.weightMedium.css};
         cursor: pointer;
@@ -81,19 +81,20 @@ export class SfSegmentedElement extends SfElement<typeof segmentedSpec> {
       [role='radio'][aria-checked='true'] {
         background: ${t.color.surface3.css};
         color: ${t.color.text.css};
-        box-shadow:
-          ${t.shadow.level1.css},
-          inset 0 0 0 1px ${t.color.border.css};
+        box-shadow: ${t.shadow.level1.css};
       }
       [role='radio']:focus-visible {
         outline: 2px solid ${t.color.focusRing.css};
-        outline-offset: 1px;
+        outline-offset: 2px;
       }
       [role='radio'][aria-disabled='true'] {
         color: ${t.color.textDisabled.css};
         cursor: not-allowed;
       }
       @media (forced-colors: active) {
+        .track {
+          border: 1px solid ButtonText;
+        }
         [role='radio'][aria-checked='true'] {
           background: Highlight;
           color: HighlightText;

@@ -18,6 +18,7 @@ import { createNoopTelemetry, type Telemetry, watch } from '@staticflux/core';
 import type { FeatureId } from './feature.js';
 import type { FeatureHost, FeatureInfo } from './feature-host.js';
 import { LOGIC_ALIVE_STATES } from './machines.js';
+import type { MemoryBudgetManager } from './memory-budgets.js';
 import { RUNTIME_SUBSYSTEMS, runtimeMetrics } from './telemetry.js';
 
 const SUB = RUNTIME_SUBSYSTEMS.resources;
@@ -73,6 +74,11 @@ export interface ResourceManagerOptions {
   readonly timers?: Timers;
   /** Demotion log length kept for devtools (default 50). */
   readonly historyLimit?: number;
+  /**
+   * Cache ledger (SF-Δ29): every policy run first evicts caches down to their pressure budgets,
+   * then demotes features.
+   */
+  readonly memory?: Pick<MemoryBudgetManager, 'relieve'>;
 }
 
 export interface ResourceManager {
@@ -242,6 +248,8 @@ export function createResourceManager(options: ResourceManagerOptions): Resource
   };
 
   const enforceOnce = async (): Promise<readonly Demotion[]> => {
+    // Caches go first: evicting textures and decoded frames is cheaper than demoting a feature.
+    options.memory?.relieve({ reason: 'pressure' });
     const done: Demotion[] = [];
     const attempted = new Set<string>();
     const limit = host.list().length * 4 + 4;

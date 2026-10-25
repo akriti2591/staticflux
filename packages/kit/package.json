@@ -30,6 +30,10 @@
       "types": "./dist/slider.d.ts",
       "import": "./dist/slider.js"
     },
+    "./tag": {
+      "types": "./dist/tag.d.ts",
+      "import": "./dist/tag.js"
+    },
     "./color-field": {
       "types": "./dist/color-field.d.ts",
       "import": "./dist/color-field.js"

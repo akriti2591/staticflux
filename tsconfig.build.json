@@ -108,6 +108,12 @@
     },
     {
       "path": "packages/kit"
+    },
+    {
+      "path": "packages/stage"
+    },
+    {
+      "path": "apps/instaflow"
     }
   ]
 }

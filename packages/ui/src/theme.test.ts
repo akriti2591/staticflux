@@ -27,11 +27,13 @@ import {
   resolveAppearance,
   resolveThemeValues,
   sanitizeAppearance,
+  TEXT_CONTRAST_PAIRS,
   themeContribution,
   themeTokens,
   themeValue,
   tokenProperty,
   tokenSetOf,
+  UI_CONTRAST_PAIRS,
   validateTheme,
   valueOf,
 } from './theme.js';
@@ -183,6 +185,39 @@ describe('themes', () => {
     expect(brand.dark.color?.canvas).toBe(defaultTheme.dark.color?.canvas);
     expect(brand.aliases).toBe(defaultTheme.aliases);
     expect(defaultTheme.values.color.accent).toBe('#3a5bd9');
+  });
+
+  it('declares control shape, control edge, agent and display tokens; the default keeps its look', () => {
+    const c = themeTokens.color;
+    expect(themeTokens.radius.control.property).toBe('--sf-radius-control');
+    expect(c.controlEdge.property).toBe('--sf-color-control-edge');
+    expect([c.agent, c.agentHover, c.onAgent, c.agentSoft, c.agentInk].map((tk) => tk.property)).toEqual([
+      '--sf-color-agent',
+      '--sf-color-agent-hover',
+      '--sf-color-on-agent',
+      '--sf-color-agent-soft',
+      '--sf-color-agent-ink',
+    ]);
+    expect(themeTokens.font.familyDisplay.property).toBe('--sf-font-family-display');
+    // Same shape as before the token existed; control edges reuse the ≥ 3:1 strong border.
+    expect(defaultTheme.values.radius.control).toBe(defaultTheme.values.radius.md);
+    expect(defaultTheme.values.color.controlEdge).toBe(defaultTheme.values.color.borderStrong);
+    expect(defaultTheme.dark.color?.controlEdge).toBe(defaultTheme.dark.color?.borderStrong);
+    expect(defaultTheme.values.font.familyDisplay).toBe(defaultTheme.values.font.family);
+    // Per-size control padding and font size keep the pre-token look: space steps and type.sizeMd, in every density.
+    const v = defaultTheme.values;
+    expect([v.size.controlPadSm, v.size.controlPad, v.size.controlPadLg]).toEqual([v.space.sm, v.space.md, v.space.lg]);
+    expect([v.type.controlSm, v.type.control, v.type.controlLg]).toEqual([v.type.sizeMd, v.type.sizeMd, v.type.sizeMd]);
+    for (const density of ['focus', 'pro'] as const) {
+      const d = defaultTheme.density[density];
+      expect([d.size?.controlPadSm, d.size?.controlPad, d.size?.controlPadLg]).toEqual([d.space?.sm, d.space?.md, d.space?.lg]);
+    }
+    // Agent actions: a deep teal, never violet.
+    expect(defaultTheme.values.color.agent).toBe('#0f766e');
+    const ui = UI_CONTRAST_PAIRS.map(([fg, bg]) => `${fg.name}/${bg.name}`);
+    expect(ui).toEqual(expect.arrayContaining(['color.controlEdge/color.surface1', 'color.controlEdge/color.canvas', 'color.agent/color.surface1']));
+    const text = TEXT_CONTRAST_PAIRS.map(([fg, bg]) => `${fg.name}/${bg.name}`);
+    expect(text).toEqual(expect.arrayContaining(['color.onAgent/color.agent', 'color.agentInk/color.agentSoft', 'color.textMuted/color.neutral3']));
   });
 
   it('compiles to CSS that honors platform preferences before JS and explicit attributes after', () => {

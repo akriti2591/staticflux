@@ -139,3 +139,19 @@ export const NodeExistsError = defineError(
   'A node with this id already exists in the part.',
   'Generate a fresh id (`createIdGenerator`) or update the existing node; ids are asset-local and never reused.',
 );
+
+// Render projection (SF-Δ25, Instaflow M1 A7)
+
+export const ProjectionMismatchError = defineError(
+  'SF-DOC-020',
+  'invariant',
+  'A render projection payload was written with another projection (id, kinds, fields or version) than the scene store reading it.',
+  'Use the same `defineRenderProjection()` value in the editor and render modules and deploy both bundles together; bump `version` on breaking field changes.',
+);
+
+export const ProjectionPayloadError = defineError(
+  'SF-DOC-021',
+  'invariant',
+  'A render projection payload is truncated or references an unknown kind or an out-of-range slot.',
+  'Payloads must come from `createRenderProjector` unchanged; if the delta stream delivered it, request a resnapshot and report the payload.',
+);

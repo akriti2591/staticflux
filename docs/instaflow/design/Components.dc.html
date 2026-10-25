@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clean Pop components</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+button{cursor:pointer}
+:focus-visible{outline:2px solid #CF3D17;outline-offset:2px}
+.sf-range{-webkit-appearance:none;appearance:none;width:100%;height:20px;margin:0;background:transparent}
+.sf-range::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(#CF3D17,#CF3D17) 0 0/var(--p,50%) 100% no-repeat,#C3CCD7}
+.sf-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;background:#FFFFFF;border:2px solid #CF3D17;box-shadow:0 1px 3px rgba(22,21,26,.22)}
+.sf-range::-moz-range-track{height:4px;border-radius:2px;background:#C3CCD7}
+.sf-range::-moz-range-progress{height:4px;border-radius:2px;background:#CF3D17}
+.sf-range::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#FFFFFF;border:2px solid #CF3D17}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1100px; background: #F1F4F7; color: #16151A; font-family: 'Geist', system-ui, sans-serif; font-size: 14px; line-height: 1.45; padding: 48px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 36px">
+
+<header style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 40px; letter-spacing: -0.03em">Clean Pop components</h1>
+<p style="margin: 0; color: #56606C">Every screen is built only from these. Pills for anything you press, soft cards for anything that holds content.</p>
+</header>
+
+<section aria-labelledby="buttons" style="display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DCE3EA">
+<h2 id="buttons" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Buttons</h2>
+<div style="display: grid; grid-template-columns: 120px repeat(3, minmax(0, 1fr)); gap: 14px; align-items: center">
+<span></span><span style="color: #56606C; font-size: 12px">Large · 42</span><span style="color: #56606C; font-size: 12px">Medium · 34</span><span style="color: #56606C; font-size: 12px">Small · 28</span>
+<sc-for list="{{variants}}" as="v" hint-placeholder-count="5">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">{{v.name}}</span><span style="color: #56606C; font-size: 12px">{{v.use}}</span></span>
+<span><button type="button" style="{{v.lg}}">{{v.label}}</button></span>
+<span><button type="button" style="{{v.md}}">{{v.label}}</button></span>
+<span><button type="button" style="{{v.sm}}">{{v.label}}</button></span>
+</sc-for>
+</div>
+<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding-top: 6px">
+<span style="font-weight: 600; width: 120px">With a lens</span>
+<button type="button" style="{{ui.secondaryMd}}"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: #FF5C39"></span>Open in Studio</button>
+<button type="button" style="{{ui.secondaryMd}}"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #FFC23D"></span>Edit photo</button>
+<button type="button" style="{{ui.secondaryMd}}"><span aria-hidden="true" style="width: 14px; height: 9px; border-radius: 3px; background: #3D5AFE"></span>Trim reel</button>
+<span style="color: #56606C; font-size: 12.5px">A coloured shape says which editor opens. The button itself stays secondary.</span>
+</div>
+<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+<span style="font-weight: 600; width: 120px">Icon</span>
+<button type="button" aria-label="Undo" style="{{ui.iconSecondary}}">↶</button>
+<button type="button" aria-label="Redo" style="{{ui.iconSecondary}}">↷</button>
+<button type="button" aria-label="More actions" style="{{ui.iconGhost}}">⋯</button>
+<button type="button" aria-label="Play" style="{{ui.iconPrimary}}">▶</button>
+</div>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+<section aria-labelledby="chips" style="display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DCE3EA">
+<h2 id="chips" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Tags and chips</h2>
+<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+<span style="{{ui.chip}}">Brand · Night Market</span>
+<span style="{{ui.chipAgent}}">✦ Claude · Accept edits</span>
+<span style="{{ui.tagLayout}}">Layout</span>
+<span style="{{ui.tagPixel}}">Pixel</span>
+<span style="{{ui.tagVideo}}">Video</span>
+<span style="{{ui.tagFlow}}">Flow</span>
+<span style="{{ui.code}}">@display</span>
+</div>
+<span style="color: #56606C; font-size: 12.5px">Tags label things and are not pressable. Suggestions you can press are small secondary buttons.</span>
+</section>
+
+<section aria-labelledby="fields" style="display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DCE3EA">
+<h2 id="fields" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Fields</h2>
+<label for="f1" style="display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 13px">Name</span><input id="f1" type="text" value="Night Market Flyer" style="{{ui.field}}"></label>
+<label for="f2" style="display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 13px">Search</span><input id="f2" type="text" placeholder="Filter layers" style="{{ui.field}}"></label>
+</section>
+
+<section aria-labelledby="choices" style="display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DCE3EA">
+<h2 id="choices" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Segmented and tabs</h2>
+<div role="group" aria-label="Mode" style="{{ui.seg}}">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="4">
+<button type="button" aria-pressed="{{m.pressed}}" style="{{m.style}}"><span aria-hidden="true" style="{{m.shape}}"></span>{{m.label}}</button>
+</sc-for>
+</div>
+<span style="color: #56606C; font-size: 12.5px">One pattern for modes, dock tabs and options: a mist track with a white selected pill.</span>
+</section>
+
+<section aria-labelledby="slider" style="display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DCE3EA">
+<h2 id="slider" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Slider</h2>
+<label for="s1" style="display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; justify-content: space-between"><span style="font-weight: 600; font-size: 13px">Warmth</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #E7ECF2">+{{warmth}}</span></span>
+<input id="s1" class="sf-range" type="range" min="0" max="50" value="{{warmth}}" onInput="{{ setWarmth }}" style="--p: {{warmthPct}}">
+</label>
+<span style="color: #56606C; font-size: 12.5px">Thin track, tangerine fill, white thumb with a tangerine ring. Value in a mist pill.</span>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { warmth: 18 }; }
+  renderVals() {
+    const C = { ink: '#16151A', muted: '#56606C', mist2: '#E7ECF2', edge: '#7D8897', primary: '#CF3D17', agent: '#D6265F', agentSoft: '#FDE8EF', agentInk: '#B3174C' };
+    const base = 'display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 999px; font-weight: 600; font-family: inherit; line-height: 1; white-space: nowrap; text-decoration: none; box-sizing: border-box';
+    const size = { lg: 'height: 42px; padding: 0 20px; font-size: 15px', md: 'height: 34px; padding: 0 14px; font-size: 13.5px', sm: 'height: 28px; padding: 0 12px; font-size: 12.5px' };
+    const look = {
+      primary: 'background: ' + C.primary + '; color: #FFFFFF; border: 0',
+      agent: 'background: ' + C.agent + '; color: #FFFFFF; border: 0',
+      secondary: 'background: #FFFFFF; color: ' + C.ink + '; border: 1px solid ' + C.edge,
+      ghost: 'background: transparent; color: ' + C.ink + '; border: 0',
+      soft: 'background: ' + C.agentSoft + '; color: ' + C.agentInk + '; border: 0'
+    };
+    const btn = (v, s) => base + '; ' + size[s] + '; ' + look[v];
+    const variants = [
+      { name: 'Primary', use: 'The one main action', label: 'Share', v: 'primary' },
+      { name: 'Claude', use: 'Hands work to the agent', label: '✦ Start making', v: 'agent' },
+      { name: 'Claude soft', use: 'Agent action in a toolbar', label: '✦ Rewrite', v: 'soft' },
+      { name: 'Secondary', use: 'Everything else', label: 'Milestone', v: 'secondary' },
+      { name: 'Ghost', use: 'Toolbars, dense rows', label: 'Fit to box', v: 'ghost' }
+    ].map((x) => ({ ...x, lg: btn(x.v, 'lg'), md: btn(x.v, 'md'), sm: btn(x.v, 'sm') }));
+    const icon = (l) => 'display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; box-sizing: border-box; font-size: 15px; ' + l;
+    const chipBase = 'display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap';
+    const ui = {
+      secondaryMd: btn('secondary', 'md'),
+      iconSecondary: icon(look.secondary), iconGhost: icon(look.ghost), iconPrimary: icon(look.primary),
+      chip: chipBase + '; background: ' + C.mist2 + '; color: ' + C.ink,
+      chipAgent: chipBase + '; background: ' + C.agentSoft + '; color: ' + C.agentInk + '; font-weight: 600',
+      tagLayout: chipBase + '; background: #FF5C39; color: #16151A; font-weight: 600',
+      tagPixel: chipBase + '; background: #FFC23D; color: #16151A; font-weight: 600',
+      tagVideo: chipBase + '; background: #3D5AFE; color: #FFFFFF; font-weight: 600',
+      tagFlow: chipBase + '; background: #00B37E; color: #16151A; font-weight: 600',
+      code: chipBase + '; background: ' + C.mist2 + '; color: ' + C.ink + "; font-family: 'Geist Mono', monospace",
+      field: 'height: 36px; padding: 0 12px; border-radius: 12px; border: 1px solid ' + C.edge + '; background: #FFFFFF; color: ' + C.ink + '; font: inherit; font-size: 13.5px; box-sizing: border-box; width: 100%',
+      seg: 'display: inline-flex; align-self: flex-start; gap: 2px; padding: 3px; border-radius: 999px; background: ' + C.mist2
+    };
+    const shapes = { Canvas: 'width: 10px; height: 10px; border-radius: 3px; background: #FF5C39', Pixel: 'width: 10px; height: 10px; border-radius: 50%; background: #FFC23D', Timeline: 'width: 14px; height: 9px; border-radius: 3px; background: #3D5AFE', Flow: 'width: 14px; height: 9px; border-radius: 999px; background: #00B37E' };
+    const modes = ['Canvas', 'Pixel', 'Timeline', 'Flow'].map((label, i) => ({ label, pressed: i === 0 ? 'true' : 'false', shape: shapes[label], style: base + '; ' + size.sm + '; ' + (i === 0 ? 'background: #FFFFFF; color: #16151A; border: 0; box-shadow: 0 1px 2px rgba(22,21,26,.14)' : 'background: transparent; color: #56606C; border: 0') }));
+    const warmth = this.state.warmth;
+    return { variants, ui, modes, warmth, warmthPct: Math.round((warmth / 50) * 100) + '%', setWarmth: (e) => this.setState({ warmth: Number(e.target.value) }) };
+  }
+}
+</script>
+</body>
+</html>

@@ -49,6 +49,12 @@
     },
     {
       "path": "../ui"
+    },
+    {
+      "path": "../stage"
+    },
+    {
+      "path": "../surface"
     }
   ]
 }

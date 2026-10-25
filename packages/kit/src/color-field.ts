@@ -68,7 +68,7 @@ export class SfColorFieldElement extends SfElement<typeof colorFieldSpec> {
       }
       .swatch:focus-within {
         outline: 2px solid ${t.color.focusRing.css};
-        outline-offset: 1px;
+        outline-offset: 2px;
       }
       .hex {
         font-family: ${t.font.familyMono.css};

@@ -108,7 +108,7 @@ describe('defineKit', () => {
     defineKit();
     defineKit();
     for (const tag of [
-      'sf-button', 'sf-icon-button', 'sf-segmented', 'sf-text-field', 'sf-slider', 'sf-color-field', 'sf-popover', 'sf-tooltip',
+      'sf-button', 'sf-icon-button', 'sf-segmented', 'sf-text-field', 'sf-slider', 'sf-tag', 'sf-color-field', 'sf-popover', 'sf-tooltip',
       'sf-menu', 'sf-menu-item', 'sf-tabs', 'sf-tab', 'sf-tab-panel', 'sf-surface-layer', 'sf-dialog', 'sf-toast', 'sf-toolbar',
       'sf-dock', 'sf-panel', 'sf-inspector-group', 'sf-inspector-row', 'sf-tree', 'sf-capability-palette',
     ]) {

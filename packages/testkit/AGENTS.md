@@ -5,7 +5,7 @@
 
 `worker`, `router`, `urlstate`, `blob`; `vitest` is a **peer** and is never imported at runtime (contract suites take
 
-`worker`, `router`, `urlstate`, `ui` (theme contract); `vitest` is a **peer** and is never imported at runtime (contract suites take
+`worker`, `router`, `urlstate`, `ui` (theme contract), `surface` (raster contract, types only); `vitest` is a **peer** and is never imported at runtime (contract suites take
 `describe`/`it` as parameters). Never import testkit from app or package source — only from `*.test.ts`.
 **Budget:** none (not shipped to browsers).
 
@@ -52,6 +52,12 @@ comparison, golden render snapshots, a real-GPU runner (Chromium on SwiftShader 
   `documentCrdtContractCases`: deterministic cases plus the **N-peer convergence property** (fast-check: move, reorder,
   text, marks, set, create, delete under random partitions and heals → identical canonical bytes, valid tree, handles released).
   Reproduce a failure with the printed `seed`.
+- `undo-service-contract.ts` (Instaflow M1 A8) — `runUndoServiceContract(name, { store, repo(store), service(doc) }, runner,
+  { numRuns, maxSteps, seed, skip })`, `undoServiceContractCases` (stage `UndoService`: one step per commit / gesture /
+  invocation, per-actor stacks, 200-step default, flagged undo over a later overwrite and its resolutions, persistence
+  across reload and compaction, peers converging) plus two **fast-check properties** with two humans and an agent on
+  three peers: an exact model under immediate delivery, and own-edits-only plus convergence under random partitions.
+  `contractHumanA`, `contractHumanB`, `contractAgent` actors.
 
 - `blob-store-contract.ts` — `runBlobStoreContract(name, factory() → { store, corrupt?, cleanup? }, runner, { skip })`,
   `blobStoreContractCases` (`@staticflux/blob` `BlobStore`: digests, dedupe, chunking above 8 MiB, ranges, encoding,
@@ -106,6 +112,15 @@ Node only (`@staticflux/testkit/node`):
   ports `BrowserLauncher` / `BrowserLike` / `PageLike` (the slice of Playwright used).
 - `gpu-cli.ts` — `sf-gpu-run` / `pnpm gpu:run`: `parseGpuCliArgs`, `gpuCliMain(argv, io)`.
 
+### Render contract suite (IF-7.4, SF-Δ23/Δ24, Instaflow M1 A6)
+- `raster-backend-contract.ts` — `runRasterBackendContract(name, factory → { backend, scene: { add, set, remove },
+  nodeOf?, tolerance?, cleanup? }, runner, { skip })`, `rasterBackendContractCases()`: attach + facts + loss on
+  destroy, dirty rects for add/move/remove, tiles composite to the scene and equal a direct region render, lifted nodes
+  leave the tiles and come back, abort and size limits, typed errors (SF-SURF-014) for unknown slots/layers and after
+  dispose, tile byte accounting, the scene surviving a re-attach (retained IR, IF-7.11), warm-up and snapshots. Runs on
+  `createMemoryRasterBackend` in `raster-contracts.test.ts` and on Vello in Chromium
+  (`apps/instaflow/src/render/gpu-page`, imported from `dist/` — the cases never import Vitest).
+
 ### Pipeline contract suites (SF-Δ17–Δ19, Instaflow M1 A5)
 One file per port; each suite runs the same cases on every pipe medium (`local` colocated, `shared` SharedArrayBuffer,
 `message` postMessage) or link transport (in-process pair, MessageChannel). `pipeline-contracts.test.ts` runs them all.
@@ -124,6 +139,18 @@ Cross-thread concurrency (torn reads, real respawn) is tested in `packages/worke
   `brokeredPeerSetup(transport)` (re-wire on respawn: generations, surviving listeners, `onConnect` cleanups).
 - `windowed-replica-contract.ts` — `runWindowedReplicaContract(transport, driver, runner)`, `windowedReplicaContractCases`,
   `memoryWindowedDriver` (a store's own `WindowedSource` plugs in through `WindowedSourceDriver`).
+
+### Sequencing oracle (Instaflow M1 A7: IF-7.3, D15; the S2 spike's oracle)
+- `sequencing-oracle-contract.ts` — `runSequencingOracleContract(name, subject, runner, { gestures, seed, configs, faultConfigs,
+  view, timeoutMs, skip })`, `sequencingOracleCases`; `generateSequencingScript(reference, { gestures, seed, view })` (G-1…G-6
+  pan/zoom/drag one/drag 100/marquee/nudge, remote moves and deletes incl. mid-drag, Esc; the display after every input),
+  `checkPresentedFrames(script, frames, final)` (snap-back / double draw / camera / monotonic / torn / final state),
+  `driveSequencingScript(pipeline, script, { maxBurst, vsyncEvery })`, `sequencingRandom(seed)`, `SEQUENCING_GESTURES`,
+  `SEQUENCING_GESTURE_MIX`. Ports: `SequencingSubject { reference(), boot({ config, remote }) }`, `SequencingReference`,
+  `SequencingPipelineUnderTest` (`push`, `vsync`, `settled`, `presented`, `finish`, `dispose`), `SequencingConfig` (topology ×
+  pipe medium × input medium, `dropDeltaEvery`). Remote updates are scheduled "after input n", so the expected display is a
+  pure function of the frame's `inputSeq`. Scripts are memoized per subject. The subject for Instaflow lives in
+  `apps/instaflow/src/sequencing/testing/oracle-subject.ts` (structurally typed; apps never import testkit at runtime).
 
 ## How to test a unit
 Register the unit under test with its real dependencies or overrides; assert on values *and* on telemetry.
@@ -249,12 +276,10 @@ No size budget declared in `.size-limit.json` for this package.
 
 **Layer:** tooling
 
-- Internal: `@staticflux/auth`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/urlstate`, `@staticflux/worker`
+- Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/stage`, `@staticflux/storage`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
+
+- Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/surface`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
 - External: `fast-check` (4.10.2)
-
-- Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/urlstate`, `@staticflux/worker`
-
-- Internal: `@staticflux/auth`, `@staticflux/core`, `@staticflux/data`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
 
 Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.
 <!-- sf:generated:end -->

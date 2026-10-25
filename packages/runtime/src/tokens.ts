@@ -7,6 +7,7 @@ import type { ArchiveStore } from './archive.js';
 import type { FeatureManifest } from './feature.js';
 import type { FeatureHost, FeatureLoader } from './feature-host.js';
 import type { CommandPolicy, PausedRequestPolicy } from './policy.js';
+import type { MemoryBudgetManager } from './memory-budgets.js';
 import type { MemoryPressure, ReactiveInput, ResourceManager } from './resource-manager.js';
 import type { FrameScheduler } from './scheduler.js';
 import type { Subsystem } from './subsystem.js';
@@ -29,6 +30,8 @@ export const ResourceManagerToken = /* @__PURE__ */ token('runtime/resource-mana
 export const ArchiveStoreToken = /* @__PURE__ */ token('runtime/archive-store').type<ArchiveStore>();
 /** Reactive memory-pressure fact (the platform package binds the real one). */
 export const MemoryPressureToken = /* @__PURE__ */ token('runtime/memory-pressure').type<ReactiveInput<MemoryPressure>>();
+/** Cache memory ledger (SF-Δ29): GPU and media caches register bytes and eviction callbacks. One per thread. */
+export const MemoryBudgetsToken = /* @__PURE__ */ token('runtime/memory-budgets').type<MemoryBudgetManager>();
 
 /** Shell-provided policy deciding feature command requests (R4.5). Optional; default policy otherwise. */
 export const CommandPolicyToken = /* @__PURE__ */ token('runtime/command-policy').type<CommandPolicy>();

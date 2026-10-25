@@ -36,6 +36,49 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(@types/node@22.20.5)(happy-dom@21.0.4)(vite@8.3.5(@types/node@22.20.5)(yaml@2.9.1))
 
+  apps/instaflow:
+    dependencies:
+      '@lit/context':
+        specifier: 1.1.6
+        version: 1.1.6
+      '@staticflux/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@staticflux/document':
+        specifier: workspace:*
+        version: link:../../packages/document
+      '@staticflux/kit':
+        specifier: workspace:*
+        version: link:../../packages/kit
+      '@staticflux/platform':
+        specifier: workspace:*
+        version: link:../../packages/platform
+      '@staticflux/surface':
+        specifier: workspace:*
+        version: link:../../packages/surface
+      '@staticflux/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@staticflux/worker':
+        specifier: workspace:*
+        version: link:../../packages/worker
+      lit:
+        specifier: 3.3.3
+        version: 3.3.3
+    devDependencies:
+      '@staticflux/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@staticflux/testkit':
+        specifier: workspace:*
+        version: link:../../packages/testkit
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(@types/node@22.20.5)(yaml@2.9.1)
+
   apps/studio:
     dependencies:
       '@lit/context':
@@ -248,9 +291,16 @@ importers:
       loro-crdt:
         specifier: 1.17.1
         version: 1.17.1
+      rbush:
+        specifier: 4.0.1
+        version: 4.0.1
       yjs:
         specifier: 13.6.33
         version: 13.6.33
+    devDependencies:
+      '@types/rbush':
+        specifier: 4.0.0
+        version: 4.0.0
 
   packages/gate:
     dependencies:
@@ -415,6 +465,22 @@ importers:
         specifier: 3.3.3
         version: 3.3.3
 
+  packages/stage:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/document':
+        specifier: workspace:*
+        version: link:../document
+    devDependencies:
+      '@staticflux/capabilities':
+        specifier: workspace:*
+        version: link:../capabilities
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
+
   packages/storage:
     dependencies:
       '@staticflux/core':
@@ -426,9 +492,19 @@ importers:
       '@staticflux/core':
         specifier: workspace:*
         version: link:../core
+      '@staticflux/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@staticflux/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@staticflux/worker':
         specifier: workspace:*
         version: link:../worker
+    devDependencies:
+      '@staticflux/testkit':
+        specifier: workspace:*
+        version: link:../testkit
 
   packages/testkit:
     dependencies:
@@ -456,9 +532,15 @@ importers:
       '@staticflux/runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@staticflux/stage':
+        specifier: workspace:*
+        version: link:../stage
       '@staticflux/storage':
         specifier: workspace:*
         version: link:../storage
+      '@staticflux/surface':
+        specifier: workspace:*
+        version: link:../surface
       '@staticflux/ui':
         specifier: workspace:*
         version: link:../ui
@@ -858,6 +940,9 @@ packages:
   '@types/node@22.20.5':
     resolution: {integrity: sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==}
 
+  '@types/rbush@4.0.0':
+    resolution: {integrity: sha512-+N+2H39P8X+Hy1I5mC6awlTX54k3FhiUmvt7HWzGJZvF+syUAAxP/stwppS8JE84YHqFgRMv6fCy31202CMFxQ==}
+
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
@@ -1218,6 +1303,12 @@ packages:
 
   pure-rand@8.4.2:
     resolution: {integrity: sha512-vvuOGgcuPJAirlHvuQw1TrOiw7ptaIXXmIbNuiNOY6lNGJJH49PQ1Kj4nd783nPdQhQdicgOjVI2yI/9BD6/Ng==}
+
+  quickselect@3.0.0:
+    resolution: {integrity: sha512-XdjUArbK4Bm5fLLvlm5KpTFOiOThgfWWI4axAZDWg4E/0mKdZyI9tNEfds27qCi1ze/vwTR16kvmmGhRra3c2g==}
+
+  rbush@4.0.1:
+    resolution: {integrity: sha512-IP0UpfeWQujYC8Jg162rMNc01Rf0gWMMAb2Uxus/Q0qOFw4lCcq6ZnQEZwUoJqWyUGJ9th7JjwI4yIWo+uvoAQ==}
 
   rechoir@0.8.0:
     resolution: {integrity: sha512-/vxpCXddiX8NGfGO/mTafwjq4aFa/71pvamip0++IQk3zG8cbCj0fifNPrjjF1XMXUne91jL9OoxmdykoEtifQ==}
@@ -1658,6 +1749,8 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/rbush@4.0.0': {}
+
   '@types/trusted-types@2.0.7': {}
 
   '@types/whatwg-mimetype@3.0.2': {}
@@ -1961,6 +2054,12 @@ snapshots:
       sisteransi: 1.0.5
 
   pure-rand@8.4.2: {}
+
+  quickselect@3.0.0: {}
+
+  rbush@4.0.1:
+    dependencies:
+      quickselect: 3.0.0
 
   rechoir@0.8.0:
     dependencies:

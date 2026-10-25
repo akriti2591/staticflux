@@ -13,6 +13,10 @@
     "./input-ring": {
       "types": "./dist/input-ring.d.ts",
       "import": "./dist/input-ring.js"
+    },
+    "./raster": {
+      "types": "./dist/raster.d.ts",
+      "import": "./dist/raster.js"
     }
   },
   "files": [
@@ -29,7 +33,12 @@
   },
   "dependencies": {
     "@staticflux/core": "workspace:*",
+    "@staticflux/platform": "workspace:*",
+    "@staticflux/runtime": "workspace:*",
     "@staticflux/worker": "workspace:*"
+  },
+  "devDependencies": {
+    "@staticflux/testkit": "workspace:*"
   },
   "repository": {
     "type": "git",

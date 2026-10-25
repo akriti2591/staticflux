@@ -177,3 +177,64 @@ Two consumers, so the kit stays generic: Studio (migrated, every control) and In
   action); density Focus (default, dock collapsed to a rail) / Standard / Pro; motion 120–200 ms, none when reduced;
   one accent for generative ✦ and calm neutrals; the **Instaflow brand theme** from the design track is
   `extendTheme(defaultTheme, …)` contributed with a higher order and must pass the shared theme contract suite.
+
+### stage, attribution, undo (Instaflow editor, M1 · A8)
+Consumer: the Instaflow editor worker (`docs/instaflow/`), over `@staticflux/document/v2` (R11.8k–R11.8s).
+- Inspector and agents: "why is this value here?" — `stage.explain(node, path)` names the layer, arc and source (local,
+  `format=story` variant, brand class, instance source) and what it beat (`agent/explain`, IF-4.6).
+- Variants (format, theme, locale): the session's variant selection switches what every node shows without writing the
+  document (`session.select('format', 'story')`); previews and solo/mute are session opinions (`session.set`).
+- Brand kits and templates (B1, B5): classes via `style.inherit`, final paths that brand rules keep, policy locks that
+  agents can never remove (`checkWrite`, `stageWriteGuard` on every write, IF-4.7, IF-CS-004/013).
+- Instances and embedded designs: pinned (milestone) or following (Latest) references composed as proxies; a change in a
+  followed brand kit or component recomposes only what reads it (`onInvalidate` drives the render projection).
+- Undo (IF-4.13, D9, D14): Mod+Z / Shift+Mod+Z per actor (`undo.undo(actor)`), one step per gesture, per capability
+  invocation and per accepted change set; the UI shows a flagged undo ("Agent changed this after you — restore yours /
+  keep theirs") from the typed `conflict`; the agent's own undo (`agent/undo`, M2) uses the same service.
+- History and attribution badges: every commit's actor record (`actorOf(meta)`), from capability runs
+  (`metaForRun(attribution, run, label)`), WebMCP clients named by their client name.
+- Proposals (M2): a `proposal/<id>` layer plugs into `stage.addLayer`; accepting it is one undo step via `changeSet`.
+
+### document render projection + spatial index, sequencing oracle (Instaflow M1 A7: SF-Δ25, D15)
+- The editor module sends the render module only what it draws, as compact binary deltas with array slots instead of
+  node ids, and a snapshot after a gap (`defineRenderProjection`, `createRenderProjector`: `project(change, { supersedes })`,
+  `snapshot()`; render side `createSceneStore`: `apply(payload)`, `column(field)`, `forEach`).
+- A drag's overlay disappears in exactly the frame that shows its commit: the delta lists the gesture ids it supersedes.
+- Hit tests and marquee selection look up candidates by ink bounds without scanning the page (`bindSpatialIndex({ part,
+  bounds, paths })`: `rebuild`, `apply(change)`, `follow`; `createSpatialIndex`: `hit`, `search`; `inkBox`).
+- One worker or two for editor and render is a boot setting, and the S2 correctness check runs on every topology and
+  medium in CI (`runSequencingOracleContract(name, subject, runner, { gestures, configs, faultConfigs })`,
+  `generateSequencingScript`, `checkPresentedFrames`, `driveSequencingScript`).
+
+### render: raster backends, GPU device lifecycle, headless, cache budgets (Instaflow M1 A6)
+- **Instaflow canvas** (render worker): pan, zoom and drag 100 elements on a 10k-element page within 8.3 ms p95
+  (S1) → `createTiledRenderer` over the Vello `RasterBackend` (512 px tiles per √2 level, idle-lane tile prep, the
+  previous level while sharpening, a lifted layer for the selection being dragged).
+- **Instaflow boot**: the first canvas frame ≤ 500 ms warm while Vello's first render compiles pipelines (S1: ≈ 1 s)
+  → `renderer.warmUp` during document load plus `showSnapshot(captureSnapshot())` from the previous session;
+  `render/first-sharp-frame` in the perf lab.
+- **Instaflow resilience**: a GPU reset must not lose the document or reload the tab (IF-7.11) →
+  `createGpuDevice({ provider, restore })` re-attaches from the retained scene; `deviceRestored()` re-renders.
+- **Instaflow export (C1) and agent screenshots**: PNG at print resolution beyond the texture limit →
+  `createHeadlessSurface({ backend }).render({ world, width, height, signal })`.
+- **Instaflow memory** (IF-15.7: GPU caches ≤ 512 MiB): tiles and media frames register with
+  `createMemoryBudgets` (`MemoryBudgetsToken` in workers); pressure evicts caches before features are demoted.
+- **Tests**: Studio and Instaflow render code is tested in Node against `createMemoryRasterBackend` and testkit's
+  GPU fake; real pixels through `pnpm test:gpu`.
+
+### theme contract: control shape, control edge, agent actions, tag, slider (Instaflow design track · DS1)
+Consumer: the Instaflow **Clean Pop** theme (`apps/instaflow/src/theme`, `docs/instaflow/design/README.md`) and any app
+that themes the kit (R13.21–R13.23).
+- "Anything you press is a pill", but cards stay 18 px and fields 12 px: one shape token for pressables
+  (`radius.control`) that buttons, icon buttons, switchers and tags read; fields keep `radius.md`.
+- Secondary buttons and fields need an edge that reads as a control (≥ 3:1) while dividers stay hairline:
+  `color.controlEdge` next to `color.border`. Switchers are a borderless mist track with a white selected pill.
+- Buttons 42 / 34 / 28 px with 15 / 13.5 / 12.5 px text and 20 / 14 / 12 px padding: per-size `type.control*` and
+  `size.controlPad*` tokens (other themes keep their own).
+- "Claude" actions (Start making, Send, Accept) and "✦ Rewrite" in toolbars look different from the one primary action:
+  `<sf-button variant="agent">` / `variant="agent-soft"` over `color.agent*` tokens; agent tags use the same soft pair.
+- Headings use a display face (Bricolage Grotesque in Instaflow): `font.familyDisplay`, `font.weightDisplay`.
+- Labels that are not pressable — brand kit, "✦ Claude · Accept edits", lens type (solid lens colour), tokens (mono):
+  `<sf-tag tone .color .ink mono>`; the lens colours stay in the app's typed lens palette (`lensTag(lens)`).
+- Dials (Warmth, Exposure): `<sf-slider>` with a thin track, filled part, ringed thumb and the value in a pill.
+

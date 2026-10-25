@@ -17,7 +17,7 @@ export const buttonStyles = css`
     vertical-align: middle;
     cursor: pointer;
     user-select: none;
-    border-radius: ${t.radius.md.css};
+    border-radius: ${t.radius.control.css};
   }
   .control {
     display: inline-flex;
@@ -26,9 +26,10 @@ export const buttonStyles = css`
     justify-content: center;
     gap: ${t.space.xs.css};
     padding-inline: var(--kit-pad-inline);
+    font-size: var(--kit-font-size);
     font-weight: ${t.font.weightMedium.css};
     white-space: nowrap;
-    border: 1px solid ${t.color.border.css};
+    border: 1px solid ${t.color.controlEdge.css};
     background: ${t.color.surface1.css};
     color: ${t.color.text.css};
   }
@@ -48,6 +49,22 @@ export const buttonStyles = css`
   }
   :host([variant='primary']:active) .control {
     background: ${t.color.accentActive.css};
+  }
+  :host([variant='agent']) .control {
+    background: ${t.color.agent.css};
+    border-color: transparent;
+    color: ${t.color.onAgent.css};
+  }
+  :host([variant='agent']:hover) .control {
+    background: ${t.color.agentHover.css};
+  }
+  :host([variant='agent-soft']) .control {
+    background: ${t.color.agentSoft.css};
+    border-color: transparent;
+    color: ${t.color.agentInk.css};
+  }
+  :host([variant='agent-soft']:hover) .control {
+    box-shadow: inset 0 0 0 1px ${t.color.agentInk.css};
   }
   :host([variant='danger']) .control {
     background: ${t.color.danger.css};

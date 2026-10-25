@@ -2,7 +2,8 @@
 
 **Layer:** vertical (depends on `@staticflux/core`, `@staticflux/worker`, `yjs` 13.6.33, `loro-crdt` 1.17.1).
 **Entry points:** `.` (v1 ECS engine, Yjs; used by Studio), `./v2` (DocumentCRDT v2 port, DocumentRepo, components,
-canonical parts; no engine), `./loro-crdt` (the Loro engine; worker only; Wasm in its own `wasm` budget category).
+canonical parts; no engine), `./loro-crdt` (the Loro engine; worker only; Wasm in its own `wasm` budget category), `./render-projection` (binary
+render projection, SF-Δ25: editor and render workers), `./spatial-index` (rbush spatial index system, SF-Δ25: editor worker).
 **Budget:** heavy-feature territory, worker only. The main thread needs only `projection.ts` + `presence.ts` types.
 Keep `yjs` and `loro-crdt` out of main-thread chunks; load the Loro Wasm in the background while the shell paints.
 
@@ -61,8 +62,10 @@ Keep `yjs` and `loro-crdt` out of main-thread chunks; load the Loro Wasm in the 
 - `store.ts` — **`DocumentStore` port** (`readHead`, `writeHead(asset, head, expectedGeneration)` CAS, `putBlob`,
   `getBlob`, `appendLog`, `readLog`, `truncateLog`), `DocumentHead`, `BlobRef`, `createMemoryDocumentStore()`
   (`stats`, `failNext` fault injection). `@staticflux/blob` (A3) adapts its `BlobStore` to this port.
-- `commit-record.ts` — `CommitRecord { seq?, peer, meta, updates: { [part]: bytes }, inverse: { [part]: ops } }`,
-  `encodeCommitRecord`, `decodeCommitRecord`, `commitRecordSize`.
+- `commit-record.ts` — `CommitRecord { seq?, peer, meta, updates: { [part]: bytes }, inverse: { [part]: ops }, after?:
+  { [part]: frontier } }`, `encodeCommitRecord`, `decodeCommitRecord`, `commitRecordSize`. `after` (each touched part's
+  frontier right after the commit, also on `UndoEntry`) lets the undo service (`@staticflux/stage`, A8) detect a later
+  overwrite with `changedSince(after)` and a fork at `after`, even after compaction and reload.
 - `components.ts` — **`defineComponent(id, schema, { version, migrations, defaults })`** (v2; plain identifier ids),
   field types `f64 i32 u8 bool string json ticks color vec2 richtext` + `field.enum([...])`, `field.ref('node' | 'asset')`,
   `field.map(spec)`, `field.list(spec)`; `isFieldValueV2`, `fieldStorage`, `fieldJsonSchema`, `componentJsonSchema`,
@@ -77,6 +80,19 @@ Keep `yjs` and `loro-crdt` out of main-thread chunks; load the Loro Wasm in the 
 ### Loro engine (`@staticflux/document/loro-crdt`)
 - `loro-crdt.ts` — `createLoroEngine({ marks })` → `CrdtEngine` (`loro/1`); `loroLiveHandles()`, `loroWasmMemoryBytes()`.
   **The only file importing `loro-crdt`.**
+
+### Render projection and spatial index (SF-Δ25; Instaflow M1 A7)
+- `render-projection.ts` (`@staticflux/document/render-projection`) — `defineRenderProjection({ id, version, kinds, fields })`
+  (fields: `{ path, type: f64|f32|i32|u32, default }`; hash checked on both ends), `createRenderProjector(projection, part,
+  { include })` → `snapshot()`, `project(change, { supersedes })` (undefined when nothing projected changed), `slotOf`,
+  `nodeOf`, `values`; `createSceneStore(projection, { capacity })` → `apply(payload)` → `{ kind, upserts, deletes,
+  supersedes }`, `column(field)`, `alive`, `kindOf`, `parentOf`, `idOf`, `orderOf`, `forEach`, `slots`, `count`, `layout`
+  (bumped on reallocation), `clear`; `projectValue`, `NO_SLOT`, `PROJECTION_*` constants. Wire format in the file header.
+  Errors `SF-DOC-020` (other projection), `SF-DOC-021` (malformed payload).
+- `spatial-index.ts` (`@staticflux/document/spatial-index`) — `createSpatialIndex<K>({ maxEntries })` (rbush: `set`, `delete`,
+  `get`, `has`, `search(box)`, `hit(x, y, tolerance)` half-open on max, `load`, `clear`, `size`), `bindSpatialIndex({ part,
+  bounds, paths, index })` → `rebuild()`, `apply(change)`, `follow()` (part change feed), `stats`; `inkBox(box, outset)`,
+  `isValidBox`, `Box`, `Outset`. **The only file importing `rbush`.**
 
 ## Typical topology
 - **Studio (v1):** worker `runWorker` → engine (rehydrated from `runtime.rehydrate` archive) → `runtime.publish(createPublisher({
@@ -100,11 +116,15 @@ Keep `yjs` and `loro-crdt` out of main-thread chunks; load the Loro Wasm in the 
 - **Write through the repo.** Edits to a repo part go through `doc.commit` / `doc.gesture`, never `part.transact`
   directly, or they are not persisted. A cross-page move is `doc.moveAcross` (one record, both parts).
 - Inverse ops are anchored (text cursors, `after` siblings) so concurrent edits survive an undo. Whether an undo over
-  another actor's later overwrite is applied, skipped or flagged is the undo service's policy (D14: flagged; SF-Δ9).
+  another actor's later overwrite is applied, skipped or flagged is the undo service's policy (D14: flagged; SF-Δ9,
+  implemented by `createUndoService` in `@staticflux/stage`).
 - Compaction `history: 'shallow'` makes older bases unavailable (`SF-DOC-010`); use it only when no peer may hold
   unsynced edits from before it (e.g. on close of the last tab).
 - The world (v1) and any v2 index are materialized views: only the engine writes them, always from CRDT state.
 - Presence and UI state never go into the CRDT.
+- Render projection payloads are views into pipe memory (often a SharedArrayBuffer): copy before keeping or decoding text
+  (browsers' `TextDecoder` refuses shared views). Deletes apply before upserts; a freed slot is reused only by a later change.
+- The spatial index is a materialized view like the world: only the system writes it, from CRDT state and `PartChange`s.
 - Component ids and field names are part of the persisted format (IF-4.14): additive changes, or a version bump with a
   migration. `defineComponent` throws at definition time for malformed definitions (a programmer error, like `token()`).
 - Transports must deliver each peer's updates in order (v1), or resync by version vector (v2 imports are idempotent).
@@ -126,6 +146,8 @@ parts, commit records, repo). Contract suites live in testkit (`runDocumentStore
 | @staticflux/document/v2 (DocumentRepo, components, canonical parts; no engine) | 12 KB | packages/document/dist/v2.js |
 | @staticflux/document/loro-crdt (adapter glue, excl. loro-crdt) | 9 KB | packages/document/dist/loro-crdt.js |
 | loro-crdt Wasm [wasm budget category; worker only, IF-15.1 ≤ 1.25 MB gzip] | 1.21 MB | packages/document/node_modules/loro-crdt/bundler/loro_wasm_bg.wasm |
+| @staticflux/document/render-projection (binary render projection, SF-Δ25) | 4.25 KB | packages/document/dist/render-projection.js |
+| @staticflux/document/spatial-index (spatial index system incl. rbush, SF-Δ25) | 2.9 KB | packages/document/dist/spatial-index.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 
@@ -134,7 +156,7 @@ Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a r
 **Layer:** vertical
 
 - Internal: `@staticflux/core`, `@staticflux/worker`
-- External: `loro-crdt` (1.17.1), `yjs` (13.6.33)
+- External: `loro-crdt` (1.17.1), `rbush` (4.0.1), `yjs` (13.6.33)
 
 Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.
 <!-- sf:generated:end -->

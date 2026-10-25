@@ -309,3 +309,61 @@ Topology-neutral pipes between the editor and render modules (D15). Every machin
 
 | `kit/resize` | idle → resizing (pointer drag, `move` repeats) → idle (`end` commits one `sf-resize`, `cancel` restores the size); keyboard steps commit directly | `packages/kit/src/internal/resize.ts` |
 | `kit/tree-drag` | idle → dragging (`over` repeats, drop target filtered by `canDrop`, never into the own subtree) → idle (`drop` fires cancelable `sf-reorder`, `cancel` on dragend) | `packages/kit/src/tree.ts` |
+
+
+## 18. Stage and undo (`@staticflux/stage`; SF-Δ7, Δ9, Δ10; Instaflow M1 A8)
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `stage/undo-step` (one step of one actor) | done (on the undo stack) → undone (applied undo; on the redo stack) → done (applied redo); done → dropped (beyond the per-actor limit, 200); undone → dropped (a new edit by the same actor clears redo). A `conflict` outcome is not a transition: the step stays where it is until the user retries with `overwrite` or `keep-theirs`. A `keep-theirs` undo that restores nothing drops the step (nothing to redo) | `packages/stage/src/undo.ts` |
+| `stage/composition` (one cached stage node) | absent → cached (first `read`) → absent (a dependency changed: raw node, layer entry, variant selection, resolved reference, another composition); all → absent on `addLayer` / layer removal; any → disposed | `packages/stage/src/stage.ts` |
+
+| ID | Invariant | Error |
+|---|---|---|
+| U-1 | Undo and redo apply only the acting actor's own steps (stacks keyed by `meta.actor.id`), as ONE new commit by that actor; other actors' edits are never reverted | — |
+| U-2 | An undo or redo over a target changed after the step (by anyone) is flagged as a typed `conflict` and writes nothing, unless the caller chose `overwrite` or `keep-theirs` (D14) | — (typed outcome) |
+| U-3 | Stacks are a pure function of the actor's persisted history (`undoOf` / `redoOf` links in commit meta), so a reload rebuilds the same stacks up to the repo's undo horizon | — |
+| U-4 | Every write through the undo service (edit, gesture, undo, redo) passes the write guard (locks, final paths) | SF-STAGE-001…003 |
+| S-1 | A stage read equals a fresh composition: invalidation removes every cached composition that read a changed dependency, transitively | — |
+| S-2 | Final paths and policy locks win regardless of strength; the opinions they beat are reported as `ignored` | — |
+
+## 19. Editor ↔ render sequencing (Instaflow M1 A7; D15, ARCHITECTURE §4)
+
+Editor and render are modules behind fixed ports (input ring, scene deltas, view-state frames, optional main tick cell).
+One worker (`colocated`, default) or two (`split`) is a boot setting; both run the same module code and the same oracle suite.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/render-module` | waiting → presenting (first consistent frame drawn) \| holding; presenting → holding (frame ahead of the deltas, or the delta reader resyncing); holding → presenting; any → disposed | `apps/instaflow/src/sequencing/render-module.ts` |
+| Boot (`bootSequencing`, not a machine) | plan (topology → workers + media) → create input ring and tick cell → spawn workers → `start` each with its roles → (split) relay the editor's pipe endpoints to the render worker (`attach`) → running; any failure stops every worker (IF-SEQ-001) | `apps/instaflow/src/sequencing/boot.ts`, `host.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| E-1 | Ordered apply: deltas apply in increasing `docVersion`; a gap or epoch change resyncs from a snapshot and the last good frame stays | P-1; oracle fault cases (every 25th delta lost) |
+| E-2 | Atomic supersede: the render applies deltas only up to the frame's `docVersion` and draws only at equality, so overlay `g` disappears in the frame that applies the delta superseding `g` | `overlayAfterCommit` = 0 in every oracle run |
+| E-3 | Overlays are offsets over committed state; a remote move of a target composes; a remote delete of a target cancels the gesture | IF-ENG-001 (value, toast) |
+| E-4 | A hit test uses the camera after exactly the inputs before it (the view frame carries `inputSeq`) | oracle camera equality |
+| E-5 | One transaction per gesture (pointerup) or per nudge; moves never write the CRDT | oracle commit counts |
+| E-6 | Animation is an override (no playback path in M1; enforced when M3 adds it) | — |
+| Q-1 | Deltas are published before the view frame that references them; a resnapshot is answered at a step boundary with a fresh frame | `editor-module.test.ts` |
+| Q-2 | The render port is called at most once per new (viewSeq, docVersion) and only with a consistent pair | IF-SEQ-003 on draw failure (last good frame kept) |
+
+## 18. Render: GPU devices, tiles, layers, cache budgets (SF-Δ23, Δ24, Δ29; Instaflow M1 A6)
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `surface/gpu-device` | idle → attaching → running; attaching → failed; running → lost (`device.lost`, any reason but our own dispose) → attaching (fresh adapter + `restore`) → running; attaching → failed → attaching (next recovery attempt, back-off); failed → attaching (manual retry); * → disposed | `packages/surface/src/gpu-device.ts` |
+| renderer phase | cold → warming (`warmUp`) → ready; warming → cold (warm-up failed) | `packages/surface/src/tiled-renderer.ts` |
+| tile (cache entry) | absent → fresh (rendered) → stale (an edit hit it; still drawn) → fresh (re-rendered into the same slot); any → evicted (LRU, budget or pressure; never while pinned by the frame); all → forgotten (device lost) | `packages/surface/src/raster-tile-cache.ts` |
+| lifted layer | lifted (`lift`: nodes leave the tiles) → dragging (quad moves, no raster) → dropping (`drop`: nodes back in the tiles, texture still drawn) → released (every visible tile under it fresh) | `packages/surface/src/tiled-renderer.ts` |
+| cache registration (memory ledger) | registered → reporting ⇄ evicting (budget or pressure) → disposed | `packages/runtime/src/memory-budgets.ts` |
+
+| ID | Invariant | Error |
+|---|---|---|
+| G-1 | A lost device is never reused: recovery always requests a new adapter and rebuilds from the retained CPU-side scene, never the document | SF-SURF-011 |
+| G-2 | Recovery time is reported; over its budget (1 s) it is flagged but completes | SF-SURF-012 |
+| G-3 | No holes: a visible tile is drawn from its stale copy, another level or the snapshot until it is fresh | — |
+| G-4 | In-frame raster starts only while the in-frame budget is left; the rest goes to the idle lane | — |
+| G-5 | A dropped layer is drawn until the tiles under it are fresh (overlay off and committed on in one frame, E-2) | — |
+| G-6 | Frames never rasterize before warm-up (cold pipelines); the snapshot is drawn instead | — |
+| G-7 | Caches are evicted before features are demoted; pinned (visible) tiles are never evicted | SF-MEM-001 |

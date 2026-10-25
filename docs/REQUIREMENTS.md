@@ -308,6 +308,9 @@
 - **R13.18** **Accessibility per WAI-ARIA APG** (button, radio group, tabs, menu button, toolbar, tooltip, dialog, tree view, combobox, window splitter, disclosure): roving tabindex, focus management (into overlays, back to triggers), ARIA id references never cross a shadow boundary, every drag has a keyboard equivalent. Component tests use `@staticflux/testkit/a11y` (composed-tree audit + keyboard helpers).
 - **R13.19** The **command palette** lists runnable capabilities from `@staticflux/capabilities` (implemented, no required input), searches them, shows their shortcuts (contributions), and runs them through the capability pipeline (subject `user`). Client gating is UX, not security (R6.16).
 - **R13.20** Kit strings are a typed i18n catalog (`kit` namespace) with source-text fallback when no `I18n` is bound; component props override catalog text.
+- **R13.21** The contract carries **control shape and edges** apart from containers and dividers: `radius.control` (every pressable control — button, icon button, segmented track and segments, tag; a theme makes them pills without rounding cards) and `color.controlEdge` (secondary buttons, fields; ≥ 3:1 on canvas, surface and field backgrounds), distinct from the hairline `color.border`; switcher tracks are a borderless tint (`neutral3`) with a raised selected segment. Per-size control **font size and inline padding** are tokens (`type.controlSm | control | controlLg`, `size.controlPadSm | controlPad | controlPadLg`), so themes set button typography without app CSS. *(Instaflow DS1)*
+- **R13.22** **Agent actions** have their own tokens and button variants: `color.agent` / `agentHover` / `onAgent` (solid: hands work to an agent) and `color.agentSoft` / `agentInk` (soft: an agent action inside a toolbar, agent tags), `<sf-button variant="agent | agent-soft">`; every theme defines them at AA (text 4.5:1, fill 3:1 on surfaces). A **display** type family and weight (`font.familyDisplay`, `font.weightDisplay`) serve headings. *(Instaflow DS1)*
+- **R13.23** Kit **tag** (`<sf-tag>`): a non-interactive label pill (no role, not focusable) with tones neutral and agent and a caller-supplied custom colour pair; the **slider** draws a thin track, a filled part, a ringed thumb and a value slot over native range semantics and keyboard (native look in forced colors). *(Instaflow DS1)*
 
 ## 14. Localization (base requirement)
 
@@ -570,3 +573,79 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
 - **R11.42** Cross-thread behaviour is tested with real concurrency (Node `worker_threads` or Chromium): torn-read detection,
   gap → resnapshot, lossless rings under back-pressure, re-wire after a real worker respawn. No wall-clock assertions in
   unit tests.
+
+## 24. Stage, attribution and undo (SF-Δ7 local + session, Δ9, Δ10; Instaflow M1 · A8; extends R11.8)
+
+- **R11.8k** **Composed stage** (`@staticflux/stage`): a layer stack (`session` > `proposal/*` > `local`, proposal layers
+  pluggable with `addLayer`), arcs `variant` > `inherit` > `reference` under direct opinions, `read(node)` with per-value
+  provenance and `explain(node, path)` (winner, overridden, ignored), over per-node reads of `DocumentCRDTv2` parts.
+- **R11.8l** **References** are pinned (milestone) or following (Latest) and resolve through a `StageAssets` port;
+  instances show the referenced asset as proxies (`<instance>/<source>`, nested), with per-source overrides as local opinions.
+- **R11.8m** **Final paths and policy locks** win regardless of strength; beaten opinions are flagged. Missing targets and
+  arc cycles are flagged, never thrown.
+- **R11.8n** **Incremental composition**: a dependency index (raw nodes, layer entries, variant selection, resolved
+  references, other compositions) invalidates exactly the dependents of a change and reports the stage nodes to redraw.
+- **R11.8o** **Locks** (`position | content | all`) apply to a node and its subtree and are enforced on writes
+  (`checkWrite`, `SF-STAGE-001`); policy locks are removable only by a human with explicit confirmation
+  (`SF-STAGE-002`); writes to final paths are rejected (`SF-STAGE-003`). Client gating is UX, not security.
+- **R11.8p** **Attribution**: every transaction carries an actor record `{ kind: human | agent | flow, id, displayName,
+  model?, via, invocationId?, onBehalfOf? }` resolved from a capability run by an attribution port
+  (`createAttributionPort`, `metaForRun`), with a transaction id for undo.
+- **R11.8q** **Undo service**: per actor, transaction-grouped (one commit, gesture, capability invocation or change set =
+  one step with a readable label), inverse-op based, 200 steps per actor, rebuilt after reload from the persisted history
+  up to the undo horizon. Commit records carry each part's `after` frontier.
+- **R11.8r** **Undo over another actor's later overwrite is flagged** as a typed conflict (target, expected, current,
+  restore, by) and writes nothing unless the caller resolves it (`overwrite` | `keep-theirs`); trimmed history is
+  `history-unavailable`, never guessed.
+- **R11.8s** **Contract suite** `runUndoServiceContract` in testkit, including fast-check properties over random
+  interleavings of two humans and an agent on separate peers (own edits only, conflicts flagged, convergence).
+
+## 23.1 Render projection, spatial index and the sequencing oracle (Instaflow M1 A7: SF-Δ25, D15, IF-7.1–7.3)
+
+- **R11.50** **Binary render projection** (`@staticflux/document/render-projection`): `defineRenderProjection({ id, kinds,
+  fields })` declares which node kinds are drawn and which numeric property paths become columns; a projector over a
+  `DocumentCRDTv2` part turns each `PartChange` into one compact binary payload (dense slots reused after delete, deletes
+  before upserts, structure records with id, parent slot and order key, the gesture ids the delta supersedes) and encodes
+  snapshots; a scene store on the render side decodes payloads into SoA columns. Both ends check the projection hash
+  (SF-DOC-020); malformed payloads fail with SF-DOC-021. Payloads may be views into shared memory.
+- **R11.51** **Spatial index system** (`@staticflux/document/spatial-index`): an R-tree (`rbush`) over ink bounds (geometry
+  grown by stroke and effect outsets), bulk-built from a part and kept current from `PartChange`s (re-index only nodes whose
+  bounds paths changed); point hits half-open on the max side, box search for marquee; precise tests run on the candidates.
+- **R11.52** **Editor and render are modules with fixed ports** (D15): input ring in, scene deltas published before the
+  view frame that references them, view-state frames out. Topology (one worker or two) is a boot setting resolved into a
+  data plan; module code never branches on it. The render module applies deltas only up to the frame's `docVersion`,
+  draws only at equality (otherwise keeps the last good frame), draws on arrival with a small coalescing delay, and is
+  paced by the worker rAF or by a main-thread rAF tick cell (switchable).
+- **R16.30** **Sequencing oracle contract suite** (testkit `runSequencingOracleContract`): scripted gestures G-1…G-6 (pan,
+  zoom, drag one, drag 100, marquee, nudge) plus remote moves and deletes (some mid-drag) and Esc cancels are replayed on a
+  single-threaded reference; every frame a pipeline presents must equal the reference at the input it consumed (no
+  snap-back, no double draw, no torn read, monotonic generations, same camera), and final editor and render states must
+  equal the reference. Runs on every topology × pipe medium (and with lost deltas for E-1) in CI with a fake (digesting)
+  renderer; the checker's own detectors are tested.
+
+## 11.4 Raster backends, GPU devices, headless surfaces, cache memory budgets (Instaflow M1 A6: SF-Δ23, Δ24 headless part, Δ29)
+- **R11.43** **`RasterBackend` port** (`@staticflux/surface/raster`): a rasterizer owns the pixels (scene in its own
+  format, tile and layer textures, a compositor, readback); the framework owns the policy. Every change reports the
+  world rects it dirtied; tiles are rendered over an opaque background into numbered slots; lifted layers take nodes out
+  of the tiles; nothing throws across the port (SF-SURF-014/015). A CPU reference backend and a shared contract suite
+  (`runRasterBackendContract`) run in Node; the GPU backend runs the same suite in Chromium.
+- **R11.44** **GPU device lifecycle** (SF-Δ23): `idle → attaching → running → lost → attaching` on `device.lost`,
+  always with a fresh adapter, re-init from retained CPU-side state through a `restore` hook, attempts with back-off
+  (`failed` with SF-SURF-011 after the last), recovery time reported against a budget (default 1 s, SF-SURF-012),
+  GPU facts (adapter info, granted features and limits). Devices come from a provider port (TypeScript `navigator.gpu`
+  or a backend that owns its device, e.g. wgpu in Wasm).
+- **R11.45** **Tiled renderer**: tiles per √2 zoom level, centre first, an interest ring; tile preparation off the
+  frame (a time budget in-frame for holes only, the rest in an idle lane); other levels and a cached snapshot drawn
+  under missing tiles (never holes); stale-while-revalidate after edits; lifted layers rendered once per zoom and moved
+  by their quad, kept until the tiles under a dropped layer are fresh; pipelines warmed before the first raster; metrics
+  `render/first-frame`, `render/first-sharp-frame`, `render/time-to-sharp`, `render/tiles-rendered`.
+- **R11.46** **Headless surface** (SF-Δ24 headless part): render a world region to RGBA pixels without a canvas, in
+  chunks no larger than the device's texture limit, stitched exactly, cancellable between chunks, with progress and a
+  pixel cap (SF-SURF-013).
+- **R5.10** **Cache memory budgets** (SF-Δ29): one ledger per thread with a byte budget per kind (`gpu`, `media`);
+  caches register an id, a priority and a synchronous eviction callback and report their bytes; over budget the
+  ledger evicts lower priorities first, then the largest cache (SF-MEM-001 on bad registrations).
+- **R5.11** Memory pressure tightens cache budgets (moderate ½, critical ¼ by default) and evicts **before** feature
+  demotion: the ledger reacts to the pressure fact synchronously and the resource manager relieves it first.
+- **R5.12** Caches never evict what the current frame pins (visible tiles); everything else goes least recently used
+  first. Bytes, evictions and over-budget states are telemetry (`runtime/memory-bytes`, `runtime/memory-evicted-bytes`).

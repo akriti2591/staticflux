@@ -18,6 +18,14 @@ describe('commit records', () => {
     expect(commitRecordSize(record)).toBe(4);
   });
 
+  it('round-trips per-part after-frontiers when present', () => {
+    const withAfter: CommitRecord = { ...record, after: { 'page:p1': 'f1' as never, 'page:p2': 'f2' as never } };
+    const decoded = decodeCommitRecord(encodeCommitRecord(withAfter), 3);
+    expect(decoded.ok && decoded.value.after).toEqual({ 'page:p1': 'f1', 'page:p2': 'f2' });
+    const without = decodeCommitRecord(encodeCommitRecord(record));
+    expect(without.ok && 'after' in without.value).toBe(false);
+  });
+
   it('rejects foreign, truncated and malformed bytes', () => {
     const bytes = encodeCommitRecord(record);
     for (const bad of [new Uint8Array([1, 2]), bytes.slice(0, 10), bytes.slice(0, bytes.length - 1)]) {

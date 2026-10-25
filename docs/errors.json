@@ -903,6 +903,18 @@
       "fix": "Generate a fresh id (`createIdGenerator`) or update the existing node; ids are asset-local and never reused."
     },
     {
+      "code": "SF-DOC-020",
+      "kind": "invariant",
+      "summary": "A render projection payload was written with another projection (id, kinds, fields or version) than the scene store reading it.",
+      "fix": "Use the same `defineRenderProjection()` value in the editor and render modules and deploy both bundles together; bump `version` on breaking field changes."
+    },
+    {
+      "code": "SF-DOC-021",
+      "kind": "invariant",
+      "summary": "A render projection payload is truncated or references an unknown kind or an out-of-range slot.",
+      "fix": "Payloads must come from `createRenderProjector` unchanged; if the delta stream delivered it, request a resnapshot and report the payload."
+    },
+    {
       "code": "SF-FT-001",
       "kind": "invariant",
       "summary": "A feature UI was mounted while its logic was not activated (I-5).",
@@ -1285,6 +1297,12 @@
       "kind": "aborted",
       "summary": "The WebMCP publisher was disposed; its tools are no longer registered.",
       "fix": "Expected when the owning scope ends. Agents must re-list tools."
+    },
+    {
+      "code": "SF-MEM-001",
+      "kind": "invariant",
+      "summary": "A cache could not be registered with the memory budget ledger (duplicate id, unknown kind, or the ledger was disposed).",
+      "fix": "Give every cache a unique id (e.g. `render/tiles`), use a kind from `MEMORY_KINDS`, and dispose the old handle before registering again."
     },
     {
       "code": "SF-MSG-001",
@@ -1743,6 +1761,42 @@
       "fix": "Ids are app-unique (`<package>/<name>`); rename one of them."
     },
     {
+      "code": "SF-STAGE-001",
+      "kind": "forbidden",
+      "summary": "The edit targets a locked node or path (position, content or all).",
+      "fix": "Unlock the node first (a UX lock can be removed by anyone with edit rights), or edit a path the lock does not cover. Client-side locks are UX, not security."
+    },
+    {
+      "code": "SF-STAGE-002",
+      "kind": "forbidden",
+      "summary": "A policy lock (brand kit or template) can be removed or changed only by a human with an explicit confirmation.",
+      "fix": "Agents and flows can never remove a policy lock. For a human, ask for confirmation and pass `{ confirmPolicyUnlock: true }` to `stage.checkWrite`."
+    },
+    {
+      "code": "SF-STAGE-003",
+      "kind": "forbidden",
+      "summary": "The path is final in a brand kit or template; local opinions on it are ignored.",
+      "fix": "Edit the brand kit or template instead, or remove the `final` mark there where policy allows it."
+    },
+    {
+      "code": "SF-STAGE-004",
+      "kind": "validation",
+      "summary": "No actor record could be resolved for this run (unknown subject, or an agent without an identity).",
+      "fix": "Give the attribution port an identity for the subject (`createAttributionPort({ human, agent, flow })`); agent runs need `origin.details` naming the agent or a resolver that knows it."
+    },
+    {
+      "code": "SF-STAGE-005",
+      "kind": "aborted",
+      "summary": "The stage or undo service is disposed.",
+      "fix": "Create a new one for the open document; do not keep references past its scope."
+    },
+    {
+      "code": "SF-STAGE-006",
+      "kind": "unavailable",
+      "summary": "The undo step could not be applied: its inverse no longer validates and could not be repaired.",
+      "fix": "Show the conflict to the user and let them retry with `onConflict: \"keep-theirs\"` (applies only what still validates)."
+    },
+    {
       "code": "SF-STORE-001",
       "kind": "quota",
       "summary": "The storage quota or a configured budget was exceeded; the write was rejected.",
@@ -1843,6 +1897,42 @@
       "kind": "invariant",
       "summary": "The surface is not attached (or was disposed).",
       "fix": "Call `attach(host)` first and wait for it; check `surface.state` before starting the frame loop."
+    },
+    {
+      "code": "SF-SURF-010",
+      "kind": "unavailable",
+      "summary": "No usable WebGPU device: there is no `navigator.gpu`, `requestAdapter()` returned null, or `requestDevice()` failed.",
+      "fix": "Check the `platform/webgpu-adapter` fact before booting a GPU surface and show the unsupported screen (or a CPU fallback) when it is not `available`; inspect `cause` for the browser message."
+    },
+    {
+      "code": "SF-SURF-011",
+      "kind": "unavailable",
+      "summary": "The GPU device was lost and could not be re-attached within the recovery attempts.",
+      "fix": "Usually a driver reset or GPU process crash that keeps failing: offer a reload, and check `details.attempts` and `cause`. Never reload the document to recover; recovery rebuilds from the retained CPU-side scene."
+    },
+    {
+      "code": "SF-SURF-012",
+      "kind": "quota",
+      "summary": "GPU device recovery took longer than its budget (IF-7.11: 1 s).",
+      "fix": "Profile `restore` (pipeline creation, image re-upload); keep scene state on the CPU side so recovery never waits for the document, and warm pipelines asynchronously."
+    },
+    {
+      "code": "SF-SURF-013",
+      "kind": "validation",
+      "summary": "A headless render was asked for an invalid or too large output (zero or non-integer size, or more pixels than the configured maximum).",
+      "fix": "Request a positive integer width and height; split huge exports into pages or lower the scale; raise `maxPixels` only with a memory reason."
+    },
+    {
+      "code": "SF-SURF-014",
+      "kind": "invariant",
+      "summary": "A raster backend call failed or was used out of order (unknown tile slot or layer, not attached, disposed, or the engine threw).",
+      "fix": "Attach the backend (and wait for `running`) before rendering; only composite slots returned by the tile cache; inspect `cause` for an engine panic message."
+    },
+    {
+      "code": "SF-SURF-015",
+      "kind": "unavailable",
+      "summary": "Reading pixels back from the GPU failed (map failed, device lost during readback, or a validation error).",
+      "fix": "Retry after the device is `running` again; readback buffers need COPY_DST | MAP_READ and 256-byte aligned rows."
     },
     {
       "code": "SF-TEST-001",
