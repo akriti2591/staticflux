@@ -14,7 +14,7 @@ import { PressController } from './internal/press.js';
 import { ariaKeyShortcuts, shortcutLabel } from './internal/shortcuts.js';
 import { floatingStyles } from './internal/floating-styles.js';
 import { baseStyles, controlStyles, focusRing } from './internal/styles.js';
-import { TooltipController } from './internal/tooltip-core.js';
+import { composeTooltip, TooltipController } from './internal/tooltip-core.js';
 import { tooltipStyles } from './internal/tooltip-styles.js';
 import type { ButtonVariant } from './button.js';
 
@@ -37,6 +37,8 @@ export class SfIconButtonElement extends SfElement<typeof iconButtonSpec> {
     type: {},
     tooltip: { type: Boolean },
     tooltipSide: { attribute: 'tooltip-side' },
+    reason: {},
+    description: {},
   };
   static override styles = [
     baseStyles,
@@ -62,7 +64,12 @@ export class SfIconButtonElement extends SfElement<typeof iconButtonSpec> {
   declare type: 'button' | 'submit' | 'reset';
   /** Show the label as a tooltip (default true; turn off when a visible label is next to it). */
   declare tooltip: boolean;
+  /** Below by default; the bottom bars and the HUD put it above (OVERLAYS-FEEDBACK §4). */
   declare tooltipSide: Side;
+  /** Disabled reason shown after a `·` in the tooltip. */
+  declare reason: string | undefined;
+  /** Muted second tooltip line (Pro density). */
+  declare description: string | undefined;
   private readonly tip: TooltipController;
 
   constructor() {
@@ -75,7 +82,9 @@ export class SfIconButtonElement extends SfElement<typeof iconButtonSpec> {
     this.pressed = undefined;
     this.type = 'button';
     this.tooltip = true;
-    this.tooltipSide = 'block-start';
+    this.tooltipSide = 'block-end';
+    this.reason = undefined;
+    this.description = undefined;
     new PressController(this);
     this.tip = new TooltipController(this, {
       anchor: () => this,
@@ -97,7 +106,9 @@ export class SfIconButtonElement extends SfElement<typeof iconButtonSpec> {
     const hint = this.shortcut === undefined || this.shortcut === '' ? nothing : html`<kbd>${shortcutLabel(this.shortcut, this.ownerDocument)}</kbd>`;
     // The bubble repeats the accessible name, so it is hidden from assistive technology.
     return html`<span class="control" part="control"><slot></slot></span>${this.tooltip && this.label !== ''
-        ? html`<div class="floating tooltip" part="tooltip" aria-hidden="true" ?data-open=${this.tip.open}>${this.label}${hint}</div>`
+        ? html`<div class="floating tooltip" part="tooltip" aria-hidden="true" ?data-open=${this.tip.open}>${composeTooltip(this.label, this.reason)}${hint}${this.description === undefined || this.description === ''
+              ? nothing
+              : html`<span class="description">${this.description}</span>`}</div>`
         : nothing}`;
   }
 }
