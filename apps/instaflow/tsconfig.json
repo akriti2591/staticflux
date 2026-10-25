@@ -39,6 +39,9 @@
       "path": "../../packages/kit"
     },
     {
+      "path": "../../packages/messaging"
+    },
+    {
       "path": "../../packages/platform"
     },
     {

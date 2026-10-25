@@ -11,6 +11,20 @@ import { trash2Icon } from '@staticflux/kit/icons/trash-2';
 import { defineInlineEdit, type SfInlineEditElement } from '@staticflux/kit/inline-edit';
 import { defineNumberField, type SfNumberFieldElement } from '@staticflux/kit/number-field';
 import { defineSwatch } from '@staticflux/kit/swatch';
+import { defineAlignPopover } from '@staticflux/kit/align-popover';
+import { defineButton } from '@staticflux/kit/button';
+import { defineColorPopover } from '@staticflux/kit/color-popover';
+import { defineConfirmRow } from '@staticflux/kit/confirm-row';
+import { defineCopyField } from '@staticflux/kit/copy-field';
+import { defineDisclosure } from '@staticflux/kit/disclosure';
+import { defineFeedback } from '@staticflux/kit/feedback';
+import { defineFontPicker } from '@staticflux/kit/font-picker';
+import { defineHint } from '@staticflux/kit/hint';
+import { defineMenu, type SfMenuElement } from '@staticflux/kit/menu';
+import { definePopover, type SfPopoverElement } from '@staticflux/kit/popover';
+import { defineSurfaces, type SfDialogElement } from '@staticflux/kit/surfaces';
+import { defineTooltip } from '@staticflux/kit/tooltip';
+import { CLEAN_POP_COLOR_PALETTE } from '../theme/palette.js';
 import { expectNoA11yIssues, press } from '@staticflux/testkit/a11y';
 import { compileTheme, contrastRatio, themeTokens as t, themeValue } from '@staticflux/ui/theme';
 import { mountTestRoot, settle } from '@staticflux/ui/testing';
@@ -26,6 +40,19 @@ beforeAll(() => {
   defineNumberField();
   defineInlineEdit();
   defineSwatch();
+  defineButton();
+  defineMenu();
+  definePopover();
+  defineTooltip();
+  defineColorPopover();
+  defineFontPicker();
+  defineAlignPopover();
+  defineFeedback();
+  defineConfirmRow();
+  defineCopyField();
+  defineDisclosure();
+  defineHint();
+  defineSurfaces();
 });
 afterEach(async () => {
   await dispose?.();
@@ -106,6 +133,68 @@ describe('B11a foundation blocks under Clean Pop', () => {
     expectNoA11yIssues(root);
   });
 
+  it('B11a2 overlays: menu with icons, groups and a submenu; popover; tooltip', async () => {
+    const root = await mount(
+      html`<div>
+        <sf-menu label="More">
+          <sf-button slot="trigger">More</sf-button>
+          <sf-menu-group label="Edit"><sf-menu-item value="copy" .icon=${trash2Icon} shortcut="Mod+C">Copy</sf-menu-item><sf-menu-item type="checkbox" value="snap" checked>Snap</sf-menu-item></sf-menu-group>
+          <sf-menu-item value="arrange">Arrange</sf-menu-item>
+          <sf-menu slot="submenu" label="Arrange"><sf-menu-item value="front">Bring to front</sf-menu-item></sf-menu>
+        </sf-menu>
+        <sf-popover label="Fill colour" outside="pass"><sf-button slot="trigger">Fill</sf-button><sf-color-popover label="Fill" value="#FF5C39" .palette=${CLEAN_POP_COLOR_PALETTE} .documentColors=${[{ hex: '#FFF4E0', uses: 3 }]} .brand=${[{ name: 'cream', hex: '#FFF4E0' }]} .recent=${['#16151A']}></sf-color-popover></sf-popover>
+        <sf-tooltip text="Export" reason="Choose at least one page"><sf-button aria-disabled="true">Export</sf-button></sf-tooltip>
+      </div>`,
+    );
+    expectNoA11yIssues(root);
+    const menu = root.querySelector('sf-menu') as SfMenuElement;
+    menu.show();
+    await settle(2);
+    (menu.querySelector('sf-menu[slot="submenu"]') as SfMenuElement).show();
+    await settle(2);
+    expectNoA11yIssues(root);
+    menu.hide();
+    (root.querySelector('sf-popover') as SfPopoverElement).show();
+    await settle(2);
+    expectNoA11yIssues(root);
+  });
+
+  it('B11a2 pickers: font picker and alignment popover', async () => {
+    const root = await mount(
+      html`<div>
+        <sf-font-picker value="Geist" .fonts=${[{ family: 'Geist', cached: true }, { family: 'Fraunces', token: 'display', cached: false }]} .recent=${['Fraunces']} .inDesign=${['Geist']}></sf-font-picker>
+        <sf-align-popover .count=${3}></sf-align-popover>
+      </div>`,
+    );
+    expectNoA11yIssues(root);
+  });
+
+  it('B11a2 feedback: banner, progress row, confirm row, copy field, disclosure, hint, toast and dialog frames', async () => {
+    const root = await mount(
+      html`<div>
+        <sf-banner tone="warning" message="You're offline. Fonts need a connection; editing works."></sf-banner>
+        <sf-banner tone="danger" message="Storage is full. Nothing is lost until the tab closes." action-label="Open Storage settings"></sf-banner>
+        <sf-progress-row label="Rendering page 2 of 5" .value=${2} .max=${5}></sf-progress-row>
+        <sf-confirm-row message="Delete 'Client v1'?" confirm-label="Delete"></sf-confirm-row>
+        <sf-copy-field label="Link" value="https://instaflow.app/s/abc"></sf-copy-field>
+        <sf-disclosure heading="Effects" summary="Shadow"><p>rows</p></sf-disclosure>
+        <sf-disclosure variant="more" .count=${2}><p>skew</p></sf-disclosure>
+        <div role="dialog" aria-label="Hint"><sf-hint text="Drag to draw a frame. Frames hold other things and clip them."></sf-hint></div>
+        <div role="status"><sf-toast tone="success" .count=${3} .dismissible=${false}>Copied</sf-toast></div>
+        <div role="dialog" aria-label="Share"><sf-dialog heading="Link settings" size="wizard" .step=${2} .steps=${3} dirty><p>Fields</p></sf-dialog></div>
+        <div role="dialog" aria-label="Milestone"><sf-takeover heading="Milestone 'Client v1'" meta="today 14:02 · Read-only"><p>canvas</p></sf-takeover></div>
+        <div role="alertdialog" aria-label="The editor can't start"><sf-blocking-error heading="The editor can't start" message="Reload to try again." fix-label="Back up workspace"></sf-blocking-error></div>
+      </div>`,
+    );
+    expectNoA11yIssues(root);
+    // The held-changes row and the copy failure are states people meet too.
+    const dialog = root.querySelector('sf-dialog') as SfDialogElement;
+    dialog.allowDismiss('escape');
+    await settle(2);
+    expect(dialog.discarding).toBe(true);
+    expectNoA11yIssues(root);
+  });
+
   it('keeps the colours these blocks use readable in Clean Pop (SC 1.4.3, 1.4.11)', () => {
     const v = (token: (typeof t.color)[keyof typeof t.color]): string => themeValue(cleanPopTheme, token, LIGHT);
     const ratio = (a: string, b: string): number => {
@@ -118,6 +207,13 @@ describe('B11a foundation blocks under Clean Pop', () => {
       expect(ratio(v(t.color.dangerText), v(bg)), `danger on ${bg.name}`).toBeGreaterThanOrEqual(4.5);
       expect(ratio(v(t.color.controlEdge), v(bg)), `field edge on ${bg.name}`).toBeGreaterThanOrEqual(3);
     }
+    // B11a2: banner text on its three tints, tooltip text, toast and menu muted text on raised surfaces.
+    for (const bg of [t.color.infoSubtle, t.color.warningSubtle, t.color.dangerSubtle]) {
+      expect(ratio(v(t.color.text), v(bg)), `text on ${bg.name}`).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(ratio(v(t.color.neutral1), v(t.color.neutral12)), 'tooltip').toBeGreaterThanOrEqual(4.5);
+    expect(ratio(v(t.color.textMuted), v(t.color.surface2)), 'muted on raised').toBeGreaterThanOrEqual(4.5);
+    expect(ratio(v(t.color.accentText), v(t.color.surface2)), 'links in popovers').toBeGreaterThanOrEqual(4.5);
     // The swatch ring separates a white swatch from white surfaces.
     expect(ratio(v(t.color.borderStrong), v(t.color.surface2))).toBeGreaterThanOrEqual(3);
   });
