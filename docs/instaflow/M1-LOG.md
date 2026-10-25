@@ -63,6 +63,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** UX spec done (creative director, cdaf58b): `docs/instaflow/ux/` README, FOUNDATIONS (principles, vocabulary,
+  building blocks with a StaticFlux-vs-Instaflow code map), STUDIO / HOME-FILES / CHAT specs, FLOWS. Ten open questions
+  for the owner in STUDIO-UX-SPEC §14. B11 waits for the owner's answers. Logo: owner chose the cursive "if"; rounds 3
+  and 4 (glitch dot × tail) on the logo canvas, waiting for the pick.
 - **2026-10-25** Owner: a loading and performance pass (per-route first-render JS in a production build, DI
   boundaries proven, chunk and feature performance tests with budgets) belongs at the end, in C4. Written into
   M1C-NOTES. Logo: six directions on the "Instaflow Logo" canvas, waiting for the owner's pick.
