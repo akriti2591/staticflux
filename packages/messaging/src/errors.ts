@@ -52,3 +52,11 @@ export const SurfaceLoadFailedError = defineError(
   'The routable dialog’s lazy content failed to load.',
   'Inspect `cause` (chunk load/network). The dialog was not entered; the router should keep the parent path.',
 );
+
+/** OVERLAYS-FEEDBACK §1.7: one modal at a time under the strict surface policy. */
+export const ModalBusyError = defineError(
+  'SF-MSG-008',
+  'conflict',
+  'A dialog was requested while another dialog is open; under the strict surface policy a second modal is refused, never queued or stacked.',
+  'Put the confirmation inline (an inline confirm row) or make the sub-task a step of the open dialog; only a blocking error may replace an open dialog (request it with `replace: true`).',
+);

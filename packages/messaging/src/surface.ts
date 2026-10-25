@@ -75,7 +75,20 @@ export interface SurfaceRenderContext<P, R> {
   readonly titleId: string;
   /** Coach sequences: 1-based step and total (undefined otherwise). */
   readonly step?: { readonly index: number; readonly total: number };
+  /** Deduplicated toasts: how many requests this surface stands for (1 = no repeats; `Copied ×3`). */
+  readonly count?: number;
+  /**
+   * Hold user dismissals (Escape, backdrop, the close button) while `guard(reason)` returns false: a dialog with held
+   * changes shows its inline "Discard changes?" row instead, a wizard step goes back. Returns unregister.
+   */
+  readonly guard?: (guard: DismissGuard) => () => void;
 }
+
+/** Return false to keep the surface open for this user dismissal (OVERLAYS-FEEDBACK §2.3, §2.4). */
+export type DismissGuard = (reason: DismissReason) => boolean;
+
+/** Dismiss reasons a guard can hold (the person asked to close; programmatic and scope ends always close). */
+export const GUARDED_REASONS: readonly DismissReason[] = ['user', 'escape', 'backdrop'];
 
 export interface RoutableSpec<P> {
   /** Dialog key in the URL (`/d/<key>`, `<feature-path>/d/<key>`). App-unique. */
@@ -103,6 +116,10 @@ export interface SurfaceDefInit<P, R> {
   readonly upsell?: SurfaceDef<void, unknown>;
   /** Escape/backdrop dismiss allowed (default true). */
   readonly dismissible?: boolean;
+  /** Modals: a backdrop click dismisses (default: `dismissible`). Destructive confirmations set false. */
+  readonly backdropDismiss?: boolean;
+  /** Modals: `alertdialog` instead of `dialog` (destructive confirmations, blocking errors). */
+  readonly alert?: boolean;
   /** Toasts: auto-dismiss after this long (default 5000 ms; `null` = sticky; urgent toasts default sticky). */
   readonly durationMs?: number | null;
   /** Deduplicate concurrent requests (default: true for banners). Key defaults to the surface id. */

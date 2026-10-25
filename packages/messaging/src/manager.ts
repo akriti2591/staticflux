@@ -41,19 +41,22 @@ import {
   toSfError,
 } from '@staticflux/core';
 import { allowAllDecide, type DecidePort, type GateVerdict, type VisibilityObserver, alwaysVisible } from '@staticflux/ui';
-import { CoachTargetMissingError, SurfaceGatedError, SurfaceOutlivesScopeError } from './errors.js';
+import { CoachTargetMissingError, ModalBusyError, SurfaceGatedError, SurfaceOutlivesScopeError } from './errors.js';
 import { type KeyValuePort, createMemoryKeyValue, type MessagingClock, systemClock } from './ports.js';
 import {
   type AnySurfaceDef,
   type CoachSequence,
   type CoachTarget,
+  type DismissGuard,
   type DismissReason,
+  GUARDED_REASONS,
   MODAL_KINDS,
   priorityRank,
   type SurfaceDef,
   type SurfaceEvent,
   type SurfaceKind,
   surfaceMachine,
+  type SurfaceRenderContext,
   type SurfaceState,
   USER_REASONS,
 } from './surface.js';
@@ -72,7 +75,24 @@ export function ownerOf(injector: Injector): SurfaceOwner {
   return { scope: injector.scope, level: injector.level };
 }
 
-export type RejectReason = 'gated' | 'seen' | 'scope' | 'target-missing' | 'load-failed' | 'cancelled';
+export type RejectReason = 'gated' | 'seen' | 'scope' | 'target-missing' | 'load-failed' | 'cancelled' | 'busy';
+
+/**
+ * Overlay policy (OVERLAYS-FEEDBACK §1.4, §1.7). The default keeps the original arbitration (a second modal queues or
+ * stacks); `strictSurfacePolicy` is the Instaflow / Clean Pop rule set: one modal at a time, one popover at a time,
+ * Escape reaches the newest toast when nothing above it is open.
+ */
+export interface SurfacePolicy {
+  /** `queue`: a second modal waits or stacks. `refuse`: it is rejected (`busy`, SF-MSG-008) unless requested with `replace`. */
+  readonly modals: 'queue' | 'refuse';
+  /** Escape (`dismissTop`) dismisses the newest toast when no popover, tooltip or modal is open. */
+  readonly escapeDismissesToasts: boolean;
+  /** Showing a popover dismisses the other showing popovers (`replaced`). */
+  readonly onePopover: boolean;
+}
+
+export const defaultSurfacePolicy: SurfacePolicy = /* @__PURE__ */ Object.freeze({ modals: 'queue', escapeDismissesToasts: false, onePopover: false });
+export const strictSurfacePolicy: SurfacePolicy = /* @__PURE__ */ Object.freeze({ modals: 'refuse', escapeDismissesToasts: true, onePopover: true });
 
 export interface SurfaceOutcome<R = unknown> {
   readonly state: 'dismissed' | 'rejected';
@@ -101,7 +121,11 @@ export interface SurfaceHandle<P = any, R = any> {
   readonly closed: Promise<SurfaceOutcome<R>>;
   /** Escape/backdrop may dismiss it. */
   readonly dismissible: boolean;
+  /** Reactive. Deduplicated toasts: requests this surface stands for (`Copied ×3`). */
+  readonly count: number;
   dismiss(reason?: DismissReason, result?: R): void;
+  /** Hold user dismissals while `guard` returns false (see `SurfaceRenderContext.guard`). Returns unregister. */
+  guard(guard: DismissGuard): () => void;
 }
 
 type PropsOption<P> = [P] extends [void] ? { readonly props?: undefined } : { readonly props: P };
@@ -110,8 +134,10 @@ export type RequestOptions<P> = {
   readonly owner: SurfaceOwner;
   /** Popovers/tooltips: the element they are anchored to. */
   readonly anchor?: Element;
-  /** Modals: show on top of the current modal regardless of priority (confirmations, pickers). */
+  /** Modals: show on top of the current modal regardless of priority (confirmations, pickers). Ignored by `refuse`. */
   readonly stack?: boolean;
+  /** Modals: dismiss every other modal (`replaced`) and show this one (the blocking error, OVERLAYS-FEEDBACK §1.2). */
+  readonly replace?: boolean;
   /** Toast duration override (ms, `null` = sticky). */
   readonly durationMs?: number | null;
   /** Cancels the request (queued or showing → dismissed `programmatic`). */
@@ -145,6 +171,14 @@ export interface SurfaceManager {
   dismissTop(reason?: DismissReason): boolean;
   /** Mid-task signal: suppresses coach marks while true (R13.7). */
   setUserBusy(busy: boolean): void;
+  /**
+   * Pause every toast timer until the returned release runs (ref-counted: pointer over the stack, a toast focused, the
+   * tab hidden). Timers resume with the time they had left (OVERLAYS-FEEDBACK §3.5).
+   */
+  holdToasts(): () => void;
+  /** Reactive: toast timers are paused. */
+  readonly toastsHeld: boolean;
+  readonly policy: SurfacePolicy;
   readonly userBusy: boolean;
   readonly targets: CoachTargets;
   /** Run a coach-mark tour step by step (seen steps skipped). */
@@ -167,6 +201,8 @@ export interface SurfaceManagerOptions {
   /** Duration of `dismissing` (exit transition). Default 0; reduced motion forces 0. */
   readonly exitMs?: number;
   readonly reducedMotion?: () => boolean;
+  /** Overlay rules (default `defaultSurfacePolicy`). */
+  readonly policy?: SurfacePolicy;
 }
 
 // ---------------------------------------------------------------- implementation
@@ -189,6 +225,13 @@ class Entry<P = unknown, R = unknown> implements SurfaceHandle<P, R> {
   redirectHandle: SurfaceHandle | undefined;
   cleanups: (() => void)[] = [];
   everShown = false;
+  readonly repeats = box(1);
+  guards: DismissGuard[] = [];
+  /** Toast timer: total (`null` = sticky), time left, start of the running stretch, cancel of the running timer. */
+  toastMs: number | null = null;
+  toastLeft = 0;
+  toastStarted: number | undefined;
+  toastCancel: (() => void) | undefined;
 
   constructor(
     readonly def: SurfaceDef<P, R>,
@@ -218,8 +261,24 @@ class Entry<P = unknown, R = unknown> implements SurfaceHandle<P, R> {
     return this.def.dismissible !== false;
   }
 
+  get count(): number {
+    return this.repeats.get();
+  }
+
   dismiss(reason: DismissReason = 'programmatic', result?: R): void {
     this.dismissFn(this as Entry, reason, result);
+  }
+
+  guard(guard: DismissGuard): () => void {
+    this.guards.push(guard);
+    return () => {
+      this.guards = this.guards.filter((g) => g !== guard);
+    };
+  }
+
+  /** A guard holds this user dismissal. */
+  held(reason: DismissReason): boolean {
+    return GUARDED_REASONS.includes(reason) && this.guards.some((guard) => !guard(reason));
   }
 }
 
@@ -235,6 +294,8 @@ export function createSurfaceManager(options: SurfaceManagerOptions = {}): Surfa
   const bannerCap = options.bannerConcurrency ?? 2;
   const defaultToastMs = options.defaultToastMs ?? 5_000;
   const exitMs = (): number => (options.reducedMotion?.() === true ? 0 : (options.exitMs ?? 0));
+  const policy = options.policy ?? defaultSurfacePolicy;
+  const toastHolds = box(0);
 
   const entries = box<readonly Entry[]>([]);
   const busy = box(false);
@@ -303,6 +364,7 @@ export function createSurfaceManager(options: SurfaceManagerOptions = {}): Surfa
       return;
     }
     if (!entry.machine.can('dismiss')) return;
+    if (entry.held(reason)) return;
     const wasShown = entry.everShown;
     entry.reason = reason;
     entry.result = result as never;
@@ -333,12 +395,46 @@ export function createSurfaceManager(options: SurfaceManagerOptions = {}): Surfa
   const byPriorityThenOrder = (a: Entry, b: Entry): number =>
     priorityRank(b.def.priority) - priorityRank(a.def.priority) || a.order - b.order;
 
+  // Toast timers pause while held and resume with the time they had left (OVERLAYS-FEEDBACK §3.5).
+  const startToastTimer = (entry: Entry): void => {
+    if (entry.toastMs === null || entry.toastCancel !== undefined || toastHolds.get() > 0 || entry.state !== 'showing') return;
+    entry.toastStarted = clock.now();
+    entry.toastCancel = clock.after(entry.toastLeft, () => {
+      entry.toastCancel = undefined;
+      dismiss(entry, 'timeout', undefined);
+    });
+  };
+  const pauseToastTimer = (entry: Entry): void => {
+    if (entry.toastCancel === undefined) return;
+    entry.toastCancel();
+    entry.toastCancel = undefined;
+    entry.toastLeft = Math.max(0, entry.toastLeft - (clock.now() - (entry.toastStarted ?? clock.now())));
+    entry.toastStarted = undefined;
+  };
+  const restartToastTimer = (entry: Entry): void => {
+    pauseToastTimer(entry);
+    if (entry.toastMs === null) return;
+    entry.toastLeft = entry.toastMs;
+    startToastTimer(entry);
+  };
+
   const show = (entry: Entry): void => {
     if (!send(entry, 'show')) return;
     if (entry.def.kind === 'toast') {
-      const duration =
+      entry.toastMs =
         entry.durationMs !== undefined ? entry.durationMs : entry.def.durationMs !== undefined ? entry.def.durationMs : entry.def.priority === 'urgent' ? null : defaultToastMs;
-      if (duration !== null) entry.cleanups.push(clock.after(duration, () => dismiss(entry, 'timeout', undefined)));
+      entry.toastLeft = entry.toastMs ?? 0;
+      entry.cleanups.push(() => pauseToastTimer(entry));
+      startToastTimer(entry);
+    }
+    // Layer 3 never stays under layer 4: a modal closes the popovers and tooltips opened before it (§1.1).
+    if (isModal(entry)) {
+      for (const other of live()) {
+        if ((other.def.kind === 'popover' || other.def.kind === 'tooltip') && other.order < entry.order && other.machine.can('dismiss')) dismiss(other, 'replaced', undefined);
+      }
+    }
+    if (entry.def.kind === 'popover' && policy.onePopover) {
+      for (const other of live()) if (other !== entry && other.def.kind === 'popover' && other.state === 'showing') dismiss(other, 'replaced', undefined);
     }
   };
 
@@ -543,6 +639,19 @@ export function createSurfaceManager(options: SurfaceManagerOptions = {}): Surfa
       return entry;
     }
 
+    // One modal at a time (strict policy): refuse, unless this one replaces the others (blocking errors).
+    if (MODAL_KINDS.includes(def.kind)) {
+      const others = live().filter((e) => isModal(e) && LIVE.includes(e.state) && e.state !== 'dismissing');
+      const pending = live().some((e) => isModal(e) && e.state === 'requested');
+      if (requestOptions.replace === true) {
+        for (const other of others) dismiss(other, 'replaced', undefined);
+      } else if (policy.modals === 'refuse' && (others.length > 0 || pending)) {
+        const error = ModalBusyError({ details: { surface: def.id, open: others[0]?.def.id ?? '' } });
+        queueMicrotask(() => reject(entry as Entry, 'busy', error));
+        return entry;
+      }
+    }
+
     // Banner (or opted-in) dedup: answer with the existing live surface.
     const dedupe = def.dedupe ?? def.kind === 'banner';
     if (dedupe !== false) {
@@ -553,6 +662,11 @@ export function createSurfaceManager(options: SurfaceManagerOptions = {}): Surfa
       );
       if (existing !== undefined) {
         telemetry.record(messagingMetrics.deduped, 1, { surface: def.id });
+        // A repeated toast refreshes its timer and counts up instead of stacking (OVERLAYS-FEEDBACK §3.5).
+        if (def.kind === 'toast') {
+          existing.repeats.set(existing.repeats.get() + 1);
+          restartToastTimer(existing);
+        }
         return existing as unknown as Entry<P, R>;
       }
     }
@@ -648,8 +762,9 @@ export function createSurfaceManager(options: SurfaceManagerOptions = {}): Surfa
     dismissTop(reason = 'escape') {
       const showing = entries.get().filter((e) => e.state === 'showing' && e.dismissible);
       // Anchored transient surfaces close before modals; then the newest modal; then the rest.
+      const toastRank = policy.escapeDismissesToasts ? 0.5 : 0;
       const rank = (e: Entry): number =>
-        e.def.kind === 'tooltip' ? 4 : e.def.kind === 'popover' ? 3 : e.def.kind === 'coach-mark' ? 2 : isModal(e) ? 1 : 0;
+        e.def.kind === 'tooltip' ? 4 : e.def.kind === 'popover' ? 3 : e.def.kind === 'coach-mark' ? 2 : isModal(e) ? 1 : e.def.kind === 'toast' ? toastRank : 0;
       const target = showing.filter((e) => rank(e) > 0).sort((a, b) => rank(b) - rank(a) || b.order - a.order)[0];
       if (target === undefined) return false;
       dismiss(target, reason, undefined);
@@ -663,6 +778,21 @@ export function createSurfaceManager(options: SurfaceManagerOptions = {}): Surfa
     get userBusy() {
       return busy.get();
     },
+    holdToasts() {
+      let released = false;
+      toastHolds.set(toastHolds.get() + 1);
+      if (toastHolds.get() === 1) for (const entry of live()) if (entry.def.kind === 'toast') pauseToastTimer(entry);
+      return () => {
+        if (released) return;
+        released = true;
+        toastHolds.set(toastHolds.get() - 1);
+        if (toastHolds.get() === 0) for (const entry of live()) if (entry.def.kind === 'toast') startToastTimer(entry);
+      };
+    },
+    get toastsHeld() {
+      return toastHolds.get() > 0;
+    },
+    policy,
     targets,
     startSequence,
     onTransition(listener) {
@@ -679,4 +809,16 @@ export function createSurfaceManager(options: SurfaceManagerOptions = {}): Surfa
     },
   };
   return manager;
+}
+
+/** The render context of a surface handle (hosts call `def.render(renderContext(handle))`). */
+export function renderContext<P, R>(handle: SurfaceHandle<P, R>): SurfaceRenderContext<P, R> {
+  return {
+    props: handle.props,
+    dismiss: (reason, result) => handle.dismiss(reason ?? 'action', result),
+    titleId: handle.titleId,
+    count: handle.count,
+    guard: (guard) => handle.guard(guard),
+    ...(handle.step === undefined ? {} : { step: handle.step }),
+  };
 }

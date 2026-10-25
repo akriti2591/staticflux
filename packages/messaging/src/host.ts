@@ -18,7 +18,7 @@ import { component, type ComponentHooksOf, defineComponent, SfElement } from '@s
 import { css, html, nothing, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { deepActiveElement, focusFirst, inertSiblings, trapTab } from './focus.js';
-import type { SurfaceHandle, SurfaceManager } from './manager.js';
+import { renderContext, type SurfaceHandle, type SurfaceManager } from './manager.js';
 import { MODAL_KINDS } from './surface.js';
 import { SurfaceManagerToken } from './tokens.js';
 
@@ -36,12 +36,7 @@ function labelOf(handle: SurfaceHandle): string | typeof nothing {
 }
 
 function content(handle: SurfaceHandle): unknown {
-  return handle.def.render({
-    props: handle.props,
-    dismiss: (reason, result) => handle.dismiss(reason ?? 'action', result),
-    titleId: handle.titleId,
-    ...(handle.step === undefined ? {} : { step: handle.step }),
-  });
+  return handle.def.render(renderContext(handle));
 }
 
 export class SfSurfaceHostElement extends SfElement<typeof hostSpec> {
