@@ -282,6 +282,15 @@ async function scenario(page) {
   await page.getByRole('radio', { name: 'Canvas' }).click();
   await page.waitForFunction(() => window.__studio.studio.lens?.id === 'instaflow/lens-canvas', null, { timeout: 10_000 });
   log('lens switch (Canvas → Pages → Canvas) and page switch (p1 → p2 → p1)');
+  // Studio's scope still follows the editor's selection after the switches (no stale selection scope).
+  await page.waitForFunction(() => {
+    const app = window.__studio;
+    const scope = app.studio.spec?.scope;
+    return JSON.stringify(scope?.kind === 'selection' ? scope.nodes : []) === JSON.stringify(app.view?.selection ?? []);
+  }, null, { timeout: 10_000 }).catch(async (e) => {
+    log(`scope ${JSON.stringify(await page.evaluate(() => ({ scope: window.__studio.studio.spec?.scope, lens: window.__studio.studio.lens?.id, selection: window.__studio.view?.selection })))}`);
+    throw e;
+  });
 
   // The canvas drew something (GPU path on SwiftShader): its pixels changed.
   await page.waitForTimeout(1500);

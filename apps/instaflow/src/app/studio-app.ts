@@ -320,15 +320,15 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       scoping = false;
     }
   };
-  let lastScope = '';
+  // Compared with the scope Studio has, not the last one asked for: a lens switch during a scope change cannot leave a
+  // stale selection scope behind.
+  const scopeOf = (nodes: readonly NodeId[]): ScopeRef => (nodes.length === 0 ? { kind: 'asset' } : { kind: 'selection', nodes: [...nodes] });
+  const keyOf = (s: ScopeRef | undefined): string => JSON.stringify(s?.kind === 'selection' ? s.nodes : []);
   watch(
-    () => selection(),
-    (nodes) => {
-      const usable = nodes.slice(0, 1024);
-      const key = usable.join(',');
-      if (key === lastScope) return;
-      lastScope = key;
-      wanted = usable.length === 0 ? { kind: 'asset' } : { kind: 'selection', nodes: usable };
+    () => [keyOf(scopeOf(selection().slice(0, 1024))), keyOf(studio.spec?.scope)] as const,
+    ([want, have]) => {
+      if (want === have || (wanted !== undefined && keyOf(wanted) === want)) return;
+      wanted = scopeOf(selection().slice(0, 1024));
       void applyScope();
     },
     { scope },

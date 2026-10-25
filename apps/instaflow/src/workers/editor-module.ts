@@ -379,18 +379,18 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
   // ---------------------------------------------------------------- view projection
   let lastView = '';
   const projectView = (): ViewProjection => {
-      const t = tabBox.get();
-      return {
-        page: t?.page,
-        pages: document.pages.map((p) => p.id),
-        tool: t?.view.tool ?? toolBox.get() ?? 'instaflow/select',
-        selection: t?.view.selection ?? [],
-        context: t?.view.context,
-        camera: t?.view.camera ?? { tx: 0, ty: 0, zoom: 1 },
-        viewport: t?.view.viewport ?? { width: 0, height: 0 },
-        editing: editingBox.get(),
-        gesture: t?.controller.state ?? 'idle',
-      };
+    const t = tabBox.get();
+    return {
+      page: t?.page,
+      pages: document.pages.map((p) => p.id),
+      tool: t?.view.tool ?? toolBox.get() ?? 'instaflow/select',
+      selection: t?.view.selection ?? [],
+      context: t?.view.context,
+      camera: t?.view.camera ?? { tx: 0, ty: 0, zoom: 1 },
+      viewport: t?.view.viewport ?? { width: 0, height: 0 },
+      editing: editingBox.get(),
+      gesture: t?.controller.state ?? 'idle',
+    };
   };
   const postView = (projection: ViewProjection, force = false): void => {
     const json = JSON.stringify(projection);
