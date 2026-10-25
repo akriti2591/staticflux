@@ -4,7 +4,9 @@
 **Budgets (IF-15.1, `/.size-limit.wasm.json`, brotli):** render Wasm ≤ 300 KB · authoring Wasm ≤ 350 KB.
 Both are `ratchet: false` requirement ceilings; C4 turns ratcheting on.
 **Measured (2026-10-25, A6):** render Wasm **185.7 KB brotli** (511.7 KB raw, 226.8 KB gzip): `vello_gpu` 0.3.0 +
-wgpu 30.0.1 (WebGPU only) + scene IR + compositor; S1's bare Vello module was 158 KB. Authoring is still a stub.
+wgpu 30.0.1 (WebGPU only) + scene IR + compositor; S1's bare Vello module was 158 KB.
+**Measured (2026-10-25, B1):** render Wasm **191.1 KB brotli** with scene IR v2 (filters, stacks, masks); authoring Wasm
+**119.1 KB brotli** (geometry: kurbo 0.13.1 + linesweeper 0.5.0; text arrives with B2).
 
 ## Purpose
 The one Rust workspace for Instaflow engines (IF-2.10, SF-Δ32). Each crate is a `cdylib` loaded in a worker
@@ -13,13 +15,29 @@ through `@staticflux/wasm` (or the app's loader, `apps/instaflow/src/render/rend
 | Crate | Owner WP | Contents |
 |---|---|---|
 | `crates/render` | A6 | Scene IR + retained scene, Vello GPU tiles and lifted layers, our WGSL compositor, readback (ABI 2) |
-| `crates/authoring` | B2 | Parley text layout (stub: `abi_version()`) |
+| `crates/authoring` | B1, B2 | Element geometry (`geometry/`: B1) and Parley text layout (B2) |
+
+## `crates/authoring` geometry (B1; IF-7.8, 7.9, IF-20.10)
+- `geometry/path.rs` — flat path data (the scene IR verb encoding) ⇄ kurbo, SVG path parsing, affines, closing subpaths.
+- `geometry/shapes.rs` — rect (per-corner radii, CSS fitting, ≤ half the shortest side; smooth corners), ellipse, polygon,
+  star (rounded tips and inner vertices), line.
+- `geometry/corners.rs` — rounding the straight vertices of polygons, stars and vector paths (per vertex, smoothing).
+- `geometry/boolean.rs` — linesweeper union / subtract / intersect / exclude over n operands with per-operand fill rules;
+  property tests on random simple and self-intersecting polygons (inside tests and area identities).
+- `geometry/bounds.rs` — exact bounds, stroke outlines (align, joins, caps, dashes), ink bounds with effect outsets (3σ).
+- `geometry/hit.rs` — fill / stroke hits, marquee overlap and containment.
+- `geometry/exports.rs` — the Wasm ABI (`geometry_version()` = 1): `parse_path`, `shape_outline`, `round_path`,
+  `transform_path`, `boolean_op`, `outline_stroke`, `path_bounds`, `ink_bounds_of`, `hit_test`, `intersects`; each has a pure
+  `*_impl` twin for host tests. Additive to the crate ABI (`abi_version()` unchanged).
 
 ## `crates/render` (A6; IF-7.4, 7.5, 7.10, 7.11)
-- `ir.rs` — scene IR wire format v1 (header and grammar in the module docs; the TypeScript writer is
+- `ir.rs` — scene IR wire format **v2** (B1: fill and stroke stacks with opacity and blend, conic gradients, dashes and
+  ring strokes, per-corner rects, image fit, even-odd, effects — drop / inner shadow, layer and background blur — and
+  masks: clip, alpha, luminance, invert; grammar in the module docs; the TypeScript writer is
   `apps/instaflow/src/render/scene-ir.ts`, byte-identical on the `shapes` fixture), `Scene` (node tree, world
   transforms and bounds, retained images, dirty rects per batch), `IrWriter`, `warm_up_batch`.
-- `draw.rs` — `Painter` (Vello GPU `Scene` and Vello CPU `RenderContext` map 1:1) and the one traversal for tiles,
+- `draw.rs` — `Painter` (Vello GPU `Scene` and Vello CPU `RenderContext` map 1:1; filter layers and fill rule added in v2)
+  and the one traversal for tiles,
   lifted layers (`Filter::Only`, ancestors' clips and opacity kept) and regions. Exhaustive matches over geometry,
   paint and clip kinds: a new IR kind does not compile until every backend handles it. Glyph runs are decoded and
   drawn as nothing until B2.
@@ -30,7 +48,8 @@ through `@staticflux/wasm` (or the app's loader, `apps/instaflow/src/render/rend
   re-uploads images; `drop_gpu` after a loss. One submit per Vello render (S1). Premultiplied textures, straight-alpha
   readback. `take_errors()` drains uncaptured wgpu errors.
 - `cpu.rs`, `fixtures.rs` (host only) — `vello_cpu` reference renders and the fixture scenes (`shapes`, `paints`,
-  `layers`, `tiles`). `fixtures/<name>.sfir` + `<name>.cpu.png` are committed; `cargo test` checks they are current.
+  `layers`, `tiles`, `elements`, `appearance`; plus B1's element-pipeline scene under
+  `apps/instaflow/src/elements/__fixtures__`). `fixtures/<name>.sfir` + `<name>.cpu.png` are committed; `cargo test` checks they are current.
   Regenerate after an intended change: `SF_UPDATE_GOLDENS=1 cargo test -p render fixtures`.
 
 ## Build

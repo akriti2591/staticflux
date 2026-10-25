@@ -2,11 +2,18 @@
 //! `RenderContext` have the same method names, so both map 1:1). One traversal for every output:
 //! tiles, lifted layers, headless regions and the CPU reference. Every IR kind is matched
 //! exhaustively here (IF-7.10).
+//!
+//! IR v2 (B1): effects (drop shadows under the fill, inner shadows over it, a layer blur around the node and its
+//! subtree), per-corner rects, image fit, the even-odd fill rule and **masks**: a mask node masks the siblings after
+//! it. The masked run is drawn into an isolated layer, then the mask is composited into it with `DestIn` (or
+//! `DestOut` when inverted), drawn in its mode: clip (geometry only, opaque), alpha (as drawn) or luminance (colours
+//! become alpha = a × luma).
 
-use crate::ir::{Clip, Geometry, Node, Paint, ROOT, Rgba8, Scene, StrokeStyle};
+use crate::ir::{Clip, Effect, Geometry, Node, Paint, ROOT, Rgba8, Scene, StrokeStyle, fit, mask};
 use std::collections::HashSet;
 use vello_common::color::{AlphaColor, Srgb};
-use vello_common::kurbo::{Affine, BezPath, Cap, Ellipse, Join, Rect, RoundedRect, Shape, Stroke};
+use vello_common::filter_effects::{EdgeMode, Filter as Effects, FilterPrimitive};
+use vello_common::kurbo::{Affine, BezPath, Cap, Ellipse, Join, Rect, RoundedRect, RoundedRectRadii, Shape, Stroke};
 use vello_common::paint::{Image, ImageSource, PaintType};
 use vello_common::peniko::{BlendMode, ColorStop, ColorStops, Compose, Extend, Gradient, ImageSampler, Mix};
 
@@ -22,7 +29,10 @@ pub trait Painter {
     fn fill_rect(&mut self, rect: &Rect);
     fn stroke_path(&mut self, path: &BezPath, stroke: &Stroke);
     fn push_layer(&mut self, clip: Option<&BezPath>, blend: BlendMode, opacity: f32);
+    /// A layer whose content goes through a filter (blur, drop shadow) at the current transform.
+    fn push_filter_layer(&mut self, filter: Effects);
     fn pop_layer(&mut self);
+    fn set_even_odd(&mut self, even_odd: bool);
 }
 
 /// Which nodes a pass draws.
@@ -33,8 +43,24 @@ pub enum Filter<'a> {
     Only(&'a HashSet<u32>),
 }
 
+/// How a subtree is drawn: normally, or as a mask.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Mode {
+    Normal,
+    /// Geometry only, opaque (vector mask).
+    Clip,
+    /// Colours mapped to alpha = a × luma (luminance mask).
+    Luminance,
+}
+
 pub fn color(c: Rgba8) -> AlphaColor<Srgb> {
     AlphaColor::from_rgba8(c[0], c[1], c[2], c[3])
+}
+
+/// Rec. 709 luma of an sRGB colour times its alpha, as an alpha-only colour (luminance masks).
+pub fn luma_alpha(c: Rgba8) -> Rgba8 {
+    let y = 0.2126 * c[0] as f64 + 0.7152 * c[1] as f64 + 0.0722 * c[2] as f64;
+    [0, 0, 0, (y * c[3] as f64 / 255.0).round().clamp(0.0, 255.0) as u8]
 }
 
 pub fn blend_mode(blend: u8) -> BlendMode {
@@ -59,8 +85,8 @@ pub fn blend_mode(blend: u8) -> BlendMode {
     BlendMode::new(mix, Compose::SrcOver)
 }
 
-fn stops(list: &[(f32, Rgba8)]) -> ColorStops {
-    let v: Vec<ColorStop> = list.iter().map(|(o, c)| ColorStop::from((*o, color(*c)))).collect();
+fn stops(list: &[(f32, Rgba8)], mode: Mode) -> ColorStops {
+    let v: Vec<ColorStop> = list.iter().map(|(o, c)| ColorStop::from((*o, color(if mode == Mode::Luminance { luma_alpha(*c) } else { *c })))).collect();
     ColorStops::from(v.as_slice())
 }
 
@@ -73,38 +99,78 @@ pub fn outline(geometry: &Geometry) -> Option<BezPath> {
         } else {
             Rect::new(0.0, 0.0, *w, *h).to_path(0.1)
         }),
+        Geometry::RRect { w, h, radii } => {
+            let cap = (w.min(*h) / 2.0).max(0.0);
+            let r = radii.map(|v| v.clamp(0.0, cap));
+            Some(RoundedRect::from_rect(Rect::new(0.0, 0.0, *w, *h), RoundedRectRadii::new(r[0], r[1], r[2], r[3])).to_path(0.1))
+        }
         Geometry::Ellipse { w, h } => Some(Ellipse::from_rect(Rect::new(0.0, 0.0, *w, *h)).to_path(0.05)),
         Geometry::Path(p) => Some(p.clone()),
         Geometry::Image { w, h, .. } => Some(Rect::new(0.0, 0.0, *w, *h).to_path(0.1)),
     }
 }
 
-/// Set `paint` for a shape whose local box is `size`. Returns false when nothing should be drawn.
-fn apply_paint<P: Painter>(p: &mut P, paint: &Paint, size: (f64, f64)) -> bool {
+/// Set `paint` for a shape whose local box is `size`. Returns None when nothing should be drawn, or the rect the
+/// fill must stay inside (image `contain`).
+fn apply_paint<P: Painter>(p: &mut P, paint: &Paint, size: (f64, f64), mode: Mode) -> Option<Option<Rect>> {
+    if mode == Mode::Clip {
+        if *paint == Paint::None {
+            return None;
+        }
+        p.reset_paint_transform();
+        p.set_paint(color([0, 0, 0, 255]).into());
+        return Some(None);
+    }
     match paint {
-        Paint::None => false,
+        Paint::None => None,
         Paint::Solid(c) => {
             p.reset_paint_transform();
-            p.set_paint(color(*c).into());
-            true
+            p.set_paint(color(if mode == Mode::Luminance { luma_alpha(*c) } else { *c }).into());
+            Some(None)
         }
         Paint::Linear { start, end, stops: s } => {
             p.reset_paint_transform();
-            let g = Gradient::new_linear(*start, *end).with_stops(&stops(s)).with_extend(Extend::Pad);
+            let g = Gradient::new_linear(*start, *end).with_stops(&stops(s, mode)).with_extend(Extend::Pad);
             p.set_paint(g.into());
-            true
+            Some(None)
         }
         Paint::Radial { center, radius, stops: s } => {
             p.reset_paint_transform();
-            let g = Gradient::new_radial(*center, *radius as f32).with_stops(&stops(s)).with_extend(Extend::Pad);
+            let g = Gradient::new_radial(*center, *radius as f32).with_stops(&stops(s, mode)).with_extend(Extend::Pad);
             p.set_paint(g.into());
-            true
+            Some(None)
         }
-        Paint::Image(id) => {
-            let Some((source, iw, ih)) = p.image_source(*id) else { return false };
-            p.set_paint_transform(Affine::scale_non_uniform(size.0 / iw as f64, size.1 / ih as f64));
-            p.set_paint(Image { image: source, sampler: ImageSampler::default() }.into());
-            true
+        Paint::Sweep { center, start, end, stops: st } => {
+            p.reset_paint_transform();
+            let g = Gradient::new_sweep(*center, *start as f32, *end as f32).with_stops(&stops(st, mode)).with_extend(Extend::Pad);
+            p.set_paint(g.into());
+            Some(None)
+        }
+        Paint::Image(id, how) => {
+            let (source, iw, ih) = p.image_source(*id)?;
+            let (iw, ih) = (iw as f64, ih as f64);
+            let (w, h) = size;
+            let mut sampler = ImageSampler::default();
+            let mut keep = None;
+            let t = match *how {
+                fit::COVER | fit::CONTAIN => {
+                    let s = if *how == fit::COVER { (w / iw).max(h / ih) } else { (w / iw).min(h / ih) };
+                    let (tx, ty) = ((w - iw * s) / 2.0, (h - ih * s) / 2.0);
+                    if *how == fit::CONTAIN {
+                        keep = Some(Rect::new(tx, ty, tx + iw * s, ty + ih * s));
+                    }
+                    Affine::translate((tx, ty)) * Affine::scale(s)
+                }
+                fit::TILE => {
+                    sampler.x_extend = Extend::Repeat;
+                    sampler.y_extend = Extend::Repeat;
+                    Affine::IDENTITY
+                }
+                _ => Affine::scale_non_uniform(w / iw, h / ih),
+            };
+            p.set_paint_transform(t);
+            p.set_paint(Image { image: source, sampler }.into());
+            Some(keep)
         }
     }
 }
@@ -120,12 +186,17 @@ fn stroke_of(s: &StrokeStyle) -> Stroke {
         2 => Cap::Round,
         _ => Cap::Butt,
     };
-    Stroke::new(s.width).with_join(join).with_caps(cap)
+    let stroke = Stroke::new(s.width).with_join(join).with_caps(cap).with_miter_limit(s.miter as f64);
+    if s.dash.iter().any(|d| *d > 0.0) {
+        stroke.with_dashes(s.dash_offset as f64, s.dash.iter().map(|d| *d as f64))
+    } else {
+        stroke
+    }
 }
 
 fn box_size(node: &Node) -> (f64, f64) {
     match &node.geometry {
-        Geometry::Rect { w, h, .. } | Geometry::Ellipse { w, h } | Geometry::Image { w, h, .. } => (*w, *h),
+        Geometry::Rect { w, h, .. } | Geometry::RRect { w, h, .. } | Geometry::Ellipse { w, h } | Geometry::Image { w, h, .. } => (*w, *h),
         Geometry::Path(p) => {
             let b = p.bounding_box();
             (b.x1.max(1.0), b.y1.max(1.0))
@@ -134,36 +205,146 @@ fn box_size(node: &Node) -> (f64, f64) {
     }
 }
 
-fn draw_leaf<P: Painter>(p: &mut P, node: &Node, transform: Affine) {
+/// Fill `path` with `paint`, inside `keep` when the paint asks for it.
+fn fill_with<P: Painter>(p: &mut P, paint: &Paint, size: (f64, f64), mode: Mode, path: &BezPath) {
+    match apply_paint(p, paint, size, mode) {
+        None => {}
+        Some(None) => p.fill_path(path),
+        Some(Some(keep)) => {
+            p.push_layer(Some(&keep.to_path(0.1)), BlendMode::default(), 1.0);
+            p.fill_path(path);
+            p.pop_layer();
+        }
+    }
+}
+
+fn shadow_filter(dx: f32, dy: f32, blur: f32, color_: Rgba8) -> Effects {
+    Effects::from_primitive(FilterPrimitive::DropShadowOnly { dx, dy, std_deviation: blur / 2.0, color: color(color_), edge_mode: EdgeMode::None })
+}
+
+/// Run `draw` inside a layer when an item has its own opacity or blend (fills and strokes stack).
+fn with_layer<P: Painter>(p: &mut P, opacity: f32, blend: u8, mode: Mode, draw: impl FnOnce(&mut P)) {
+    let own = mode != Mode::Clip && (opacity < 1.0 || blend != 0);
+    if own {
+        p.push_layer(None, blend_mode(blend), opacity);
+    }
+    draw(p);
+    if own {
+        p.pop_layer();
+    }
+}
+
+/// The node's silhouette (filled area, strokes and a spread ring) in an opaque paint: the source of its shadows.
+fn silhouette<P: Painter>(p: &mut P, node: &Node, path: &BezPath, spread: f32) {
+    p.reset_paint_transform();
+    p.set_paint(color([0, 0, 0, 255]).into());
+    if !node.fills.is_empty() {
+        p.fill_path(path);
+    }
+    for s in &node.strokes {
+        match &s.ring {
+            Some(ring) => p.fill_path(ring),
+            None => p.stroke_path(path, &stroke_of(s)),
+        }
+    }
+    if spread > 0.0 {
+        p.stroke_path(path, &Stroke::new(2.0 * spread as f64).with_join(Join::Round));
+    }
+}
+
+fn draw_leaf<P: Painter>(p: &mut P, node: &Node, transform: Affine, mode: Mode) {
     p.set_transform(transform);
+    p.set_even_odd(node.even_odd);
+    let size = box_size(node);
+    let path = outline(&node.geometry);
+    // Drop shadows under the fills (leaves: from the silhouette, so spread works).
+    if mode == Mode::Normal {
+        if let Some(path) = &path {
+            for e in &node.effects {
+                if let Effect::DropShadow { dx, dy, blur, spread, color } = e {
+                    p.push_filter_layer(shadow_filter(*dx, *dy, *blur, *color));
+                    silhouette(p, node, path, *spread);
+                    p.pop_layer();
+                }
+            }
+        }
+    }
     match &node.geometry {
         Geometry::Group => {}
         Geometry::Glyphs(_) => {
             // Glyph runs arrive with B2 (Parley in the authoring module); nothing is drawn yet.
         }
         Geometry::Image { image, w, h } => {
-            if apply_paint(p, &Paint::Image(*image), (*w, *h)) {
+            if apply_paint(p, &Paint::Image(*image, fit::STRETCH), (*w, *h), mode).is_some() {
                 p.fill_rect(&Rect::new(0.0, 0.0, *w, *h));
             }
         }
-        Geometry::Rect { w, h, radius } if *radius <= 0.0 => {
-            if apply_paint(p, &node.fill, (*w, *h)) {
-                p.fill_rect(&Rect::new(0.0, 0.0, *w, *h));
-            }
-        }
-        Geometry::Rect { .. } | Geometry::Ellipse { .. } | Geometry::Path(_) => {
-            if let Some(path) = outline(&node.geometry) {
-                if apply_paint(p, &node.fill, box_size(node)) {
-                    p.fill_path(&path);
+        Geometry::Rect { .. } | Geometry::RRect { .. } | Geometry::Ellipse { .. } | Geometry::Path(_) => {
+            if let Some(path) = &path {
+                if mode == Mode::Clip {
+                    // A vector mask is the shape's geometry, whatever its paints.
+                    fill_with(p, &Paint::Solid([0, 0, 0, 255]), size, mode, path);
+                } else {
+                    let plain_rect = matches!(node.geometry, Geometry::Rect { radius, .. } if radius <= 0.0);
+                    for f in &node.fills {
+                        with_layer(p, f.opacity, f.blend, mode, |p| {
+                            if plain_rect {
+                                match apply_paint(p, &f.paint, size, mode) {
+                                    None => {}
+                                    Some(None) => p.fill_rect(&Rect::new(0.0, 0.0, size.0, size.1)),
+                                    Some(Some(keep)) => p.fill_rect(&keep.intersect(Rect::new(0.0, 0.0, size.0, size.1))),
+                                }
+                            } else {
+                                fill_with(p, &f.paint, size, mode, path);
+                            }
+                        });
+                    }
                 }
             }
         }
     }
-    if let (Some(s), Some(path)) = (&node.stroke, outline(&node.geometry)) {
-        if apply_paint(p, &s.paint, box_size(node)) {
-            p.stroke_path(&path, &stroke_of(s));
+    // Inner shadows over the fills, clipped to the shape: the shadow of everything outside it.
+    if mode == Mode::Normal {
+        if let Some(path) = &path {
+            for e in &node.effects {
+                if let Effect::InnerShadow { dx, dy, blur, spread, color } = e {
+                    let reach = (dx.abs().max(dy.abs()) + 1.5 * blur + spread.max(0.0) + 2.0) as f64;
+                    let mut outside = path.bounding_box().inflate(reach, reach).to_path(0.1);
+                    for el in path.elements() {
+                        outside.push(*el);
+                    }
+                    p.push_layer(Some(path), BlendMode::default(), 1.0);
+                    p.push_filter_layer(shadow_filter(*dx, *dy, *blur, *color));
+                    p.reset_paint_transform();
+                    p.set_paint(self::color([0, 0, 0, 255]).into());
+                    p.set_even_odd(true);
+                    p.fill_path(&outside);
+                    p.set_even_odd(node.even_odd);
+                    if *spread > 0.0 {
+                        p.stroke_path(path, &Stroke::new(2.0 * *spread as f64).with_join(Join::Round));
+                    }
+                    p.pop_layer();
+                    p.pop_layer();
+                }
+            }
         }
     }
+    if let Some(path) = &path {
+        for s in &node.strokes {
+            with_layer(p, s.opacity, s.blend, mode, |p| {
+                if apply_paint(p, &s.paint, size, mode).is_some() {
+                    match &s.ring {
+                        Some(ring) => {
+                            p.set_even_odd(false);
+                            p.fill_path(ring);
+                        }
+                        None => p.stroke_path(path, &stroke_of(s)),
+                    }
+                }
+            });
+        }
+    }
+    p.set_even_odd(false);
 }
 
 /// Draw the scene with `view` (world → target pixels), skipping subtrees outside `cull` (target pixels).
@@ -181,57 +362,156 @@ pub fn draw_scene<P: Painter>(p: &mut P, scene: &Scene, view: Affine, cull: Rect
             set
         }
     };
-    for &id in scene.children(ROOT) {
-        visit(p, scene, id, view, cull, filter, &ancestors, false);
-    }
+    let pass = Pass { scene, view, cull, filter, ancestors: &ancestors, stop: None, stopped: std::cell::Cell::new(false) };
+    pass.children(p, scene.children(ROOT), false, Mode::Normal, false);
 }
 
-#[allow(clippy::too_many_arguments)]
-fn visit<P: Painter>(p: &mut P, scene: &Scene, id: u32, view: Affine, cull: Rect, filter: &Filter<'_>, ancestors: &HashSet<u32>, inside: bool) {
-    let Some(node) = scene.node(id) else { return };
-    if !node.visible {
-        return;
-    }
-    let inside = match filter {
-        Filter::Except(skip) => {
-            if skip.contains(&id) {
-                return;
-            }
-            true
-        }
-        Filter::Only(members) => {
-            if inside || members.contains(&id) {
-                true
-            } else if ancestors.contains(&id) {
-                false
-            } else {
-                return;
-            }
-        }
-    };
-    let Some(bounds) = scene.bounds_of(id) else { return };
-    let device = view.transform_rect_bbox(bounds);
-    if device.x1 <= cull.x0 || device.y1 <= cull.y0 || device.x0 >= cull.x1 || device.y0 >= cull.y1 {
-        return;
-    }
-    let transform = view * scene.world_transform(id);
-    let layered = node.needs_layer();
-    if layered {
+struct Pass<'a> {
+    scene: &'a Scene,
+    view: Affine,
+    cull: Rect,
+    filter: &'a Filter<'a>,
+    ancestors: &'a HashSet<u32>,
+    /// Backdrop pass: draw everything painted before this node, then stop.
+    stop: Option<u32>,
+    stopped: std::cell::Cell<bool>,
+}
+
+impl Pass<'_> {
+    /// Redraw everything painted before `node`, blurred and clipped to its outline.
+    fn backdrop<P: Painter>(&self, p: &mut P, node: u32, transform: Affine, path: &BezPath, radius: f32) {
+        let none = HashSet::new();
+        let everything = Filter::Except(&none);
+        let behind = Pass { scene: self.scene, view: self.view, cull: self.cull, filter: &everything, ancestors: self.ancestors, stop: Some(node), stopped: std::cell::Cell::new(false) };
         p.set_transform(transform);
-        let clip = match &node.clip {
-            Clip::None => None,
-            other => other.path(),
-        };
-        p.push_layer(clip.as_ref(), blend_mode(node.blend), node.opacity);
-    }
-    if inside {
-        draw_leaf(p, node, transform);
-    }
-    for &kid in scene.children(id) {
-        visit(p, scene, kid, view, cull, filter, ancestors, inside);
-    }
-    if layered {
+        p.push_layer(Some(path), BlendMode::default(), 1.0);
+        p.push_filter_layer(Effects::from_primitive(FilterPrimitive::GaussianBlur { std_deviation: radius / 2.0, edge_mode: EdgeMode::Duplicate }));
+        behind.children(p, self.scene.children(ROOT), false, Mode::Normal, false);
         p.pop_layer();
+        p.pop_layer();
+    }
+
+    /// Siblings in paint order; a visible mask node masks the rest of the run.
+    fn children<P: Painter>(&self, p: &mut P, ids: &[u32], inside: bool, mode: Mode, force: bool) {
+        for (i, &id) in ids.iter().enumerate() {
+            if self.stopped.get() || self.stop == Some(id) {
+                self.stopped.set(true);
+                return;
+            }
+            let Some(node) = self.scene.node(id) else { continue };
+            let kind = node.mask & !mask::INVERT;
+            if kind != mask::NONE && node.visible {
+                let rest = &ids[i + 1..];
+                if rest.is_empty() {
+                    return;
+                }
+                let mask_mode = match kind {
+                    mask::CLIP => Mode::Clip,
+                    mask::LUMINANCE => Mode::Luminance,
+                    _ => Mode::Normal,
+                };
+                let compose = if node.mask & mask::INVERT != 0 { Compose::DestOut } else { Compose::DestIn };
+                p.set_transform(self.view);
+                p.push_layer(None, BlendMode::default(), 1.0);
+                self.children(p, rest, inside, mode, force);
+                p.set_transform(self.view);
+                p.push_layer(None, BlendMode::new(Mix::Normal, compose), 1.0);
+                self.visit(p, id, true, mask_mode, true);
+                p.pop_layer();
+                p.pop_layer();
+                return;
+            }
+            self.visit(p, id, inside, mode, force);
+        }
+    }
+
+    fn visit<P: Painter>(&self, p: &mut P, id: u32, inside: bool, mode: Mode, force: bool) {
+        let Some(node) = self.scene.node(id) else { return };
+        if !node.visible {
+            return;
+        }
+        let inside = if force {
+            true
+        } else {
+            match self.filter {
+                Filter::Except(skip) => {
+                    if skip.contains(&id) {
+                        return;
+                    }
+                    true
+                }
+                Filter::Only(members) => {
+                    if inside || members.contains(&id) {
+                        true
+                    } else if self.ancestors.contains(&id) {
+                        false
+                    } else {
+                        return;
+                    }
+                }
+            }
+        };
+        let Some(bounds) = self.scene.bounds_of(id) else { return };
+        let device = self.view.transform_rect_bbox(bounds);
+        let c = self.cull;
+        if device.x1 <= c.x0 || device.y1 <= c.y0 || device.x0 >= c.x1 || device.y0 >= c.y1 {
+            return;
+        }
+        let transform = self.view * self.scene.world_transform(id);
+        let clip_mode = mode == Mode::Clip;
+        let layered = node.needs_layer() && !(clip_mode && node.clip == Clip::None);
+        if layered {
+            p.set_transform(transform);
+            let clip = match &node.clip {
+                Clip::None => None,
+                other => other.path(),
+            };
+            let (blend, opacity) = if clip_mode { (BlendMode::default(), 1.0) } else { (blend_mode(node.blend), node.opacity) };
+            p.push_layer(clip.as_ref(), blend, opacity);
+        }
+        let blur = if clip_mode { None } else { node.layer_blur() };
+        if let Some(radius) = blur {
+            p.set_transform(transform);
+            p.push_filter_layer(Effects::from_primitive(FilterPrimitive::GaussianBlur { std_deviation: radius / 2.0, edge_mode: EdgeMode::None }));
+        }
+        // Groups and frames cast the shadow of their composite (no spread); leaves draw theirs in `draw_leaf`.
+        let group_shadows: Vec<Effects> = if mode == Mode::Normal && outline(&node.geometry).is_none() {
+            node.effects.iter().filter_map(|e| match e {
+                Effect::DropShadow { dx, dy, blur, color, .. } => {
+                    Some(Effects::from_primitive(FilterPrimitive::DropShadow { dx: *dx, dy: *dy, std_deviation: blur / 2.0, color: self::color(*color), edge_mode: EdgeMode::None }))
+                }
+                _ => None,
+            }).collect()
+        } else {
+            Vec::new()
+        };
+        for f in &group_shadows {
+            p.set_transform(transform);
+            p.push_filter_layer(f.clone());
+        }
+        if inside {
+            // Background blur (frosted glass): what is behind the node, blurred, inside its outline.
+            if mode == Mode::Normal && self.stop.is_none() {
+                if let (Some(radius), Some(path)) = (node.effects.iter().find_map(|e| match e {
+                    Effect::BackgroundBlur { radius } if *radius > 0.0 => Some(*radius),
+                    _ => None,
+                }), outline(&node.geometry))
+                {
+                    self.backdrop(p, id, transform, &path, radius);
+                }
+            }
+            draw_leaf(p, node, transform, mode);
+        }
+        self.children(p, self.scene.children(id), inside, mode, force);
+        for _ in &group_shadows {
+            p.pop_layer();
+        }
+        if blur.is_some() {
+            p.pop_layer();
+        }
+        if layered {
+            p.pop_layer();
+        }
     }
 }
 
@@ -276,6 +556,14 @@ mod tests {
         fn pop_layer(&mut self) {
             self.calls.push("pop".into());
         }
+        fn push_filter_layer(&mut self, _filter: Effects) {
+            self.calls.push("filter".into());
+        }
+        fn set_even_odd(&mut self, even_odd: bool) {
+            if even_odd {
+                self.calls.push("even-odd".into());
+            }
+        }
     }
 
     fn scene() -> Scene {
@@ -287,7 +575,7 @@ mod tests {
         a.transform = Affine::translate((5.0, 5.0));
         let mut b = leaf(3, ROOT, Geometry::Ellipse { w: 10.0, h: 10.0 }, Paint::Solid([0, 0, 0, 255]));
         b.transform = Affine::translate((100.0, 0.0));
-        b.stroke = Some(StrokeStyle { width: 1.0, paint: Paint::Solid([9, 9, 9, 255]), join: 1, cap: 0 });
+        b.strokes = vec![StrokeStyle::new(1.0, Paint::Solid([9, 9, 9, 255]), 1, 0)];
         let mut img = leaf(4, ROOT, Geometry::Image { image: 1, w: 8.0, h: 8.0 }, Paint::None);
         img.transform = Affine::translate((200.0, 0.0));
         let missing = leaf(5, ROOT, Geometry::Image { image: 99, w: 8.0, h: 8.0 }, Paint::None);

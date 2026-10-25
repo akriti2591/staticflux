@@ -415,3 +415,24 @@ preset or an agent through validation and (for agents in Plan/Ask) a preview.
 | SP-5 | Port order per apply: unmounts (reverse display order), moves, context, mounts (display order), all started in one task; each step 120–200 ms, 0 under reduced motion | `runSpecRuntimeContract`, `runSpecMountPortContract` |
 | SP-6 | A port's view equals the runtime layout after every apply (insert after `diff.after` anchors) | `runSpecMountPortContract` (layout model, `<if-studio>` DOM) |
 | SP-7 | Proposal routing is data (`PROPOSAL_ROUTES[source][autonomy]`); an agent's spec mounts only in Accept edits or Autopilot, or when the person opens its preview | `proposals.test.ts` |
+
+## 21. Elements, masks, booleans and render resources (Instaflow M1b B1)
+
+Element state is document data (no runtime machines): booleans and masks are **derived** from components, so every
+"transition" is one change set, undoable as one step, and never destroys the operands or the masked content.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| boolean group (data) | plain group ⇄ live boolean (`geometry.boolean` set / `null`); live → released (`releaseBoolean`: operands back in the parent at the same page position, group deleted); live → flattened (`flatten`: one vector with the derived outline, same style and match key; operands deleted) | `apps/instaflow/src/elements/actions.ts` |
+| mask (data) | none → masking (`mask.mode` set; the element stops drawing and masks the later siblings) ⇄ mode / invert changes; masking → none (`releaseMask`: nothing else changes) | `actions.ts`, `scene.ts`, `crates/render/src/draw.rs` |
+| render resource (look, path, ring) | absent → defined (first `intern`, sent in the next resource batch) → defined (more users) → dropped (last `release`, sent as a drop); defined-and-released before a batch is never sent | `apps/instaflow/src/elements/projection.ts` |
+| projected element (render source) | absent → projected (created, or no longer a boolean operand) → projected (moved / updated: only changed render paths) → absent (deleted, or became an operand) | `projection.ts` (`createElementRenderSource`) |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| EL-1 | Every element action and panel edit is one change set = one undo step, checked for value shapes, locks, finals and brand rules before it commits | IF-EL-001, SF-STAGE-001…003, IF-EL-003; `actions.test.ts`, `brand-kit.test.ts` |
+| EL-2 | Boolean results and masks are derived: operands and masked content stay in the document unchanged; release restores the exact previous drawing | `actions.test.ts` (release, operand edit re-derives) |
+| EL-3 | A resource batch reaches the render side before the projection delta that references it (same ordered channel); a look or path that arrives late re-encodes the slot | `projection.test.ts`, `scene.test.ts` |
+| EL-4 | Ink bounds include strokes and effects (shadows, glows, blur), so tiles never clip them; a non-inverted mask clips them | `layout.test.ts`, Rust `ink_bounds` tests |
+| EL-5 | Match keys survive duplication (elements and pages) while node ids stay unique | `actions.test.ts` (duplicate) |
+| EL-6 | Scene IR v2 bytes are identical from TypeScript and Rust; GPU output matches vello_cpu within `gpuVsCpu` | `scene-ir.test.ts`, `render.gpu.test.ts` |

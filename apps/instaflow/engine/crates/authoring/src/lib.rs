@@ -1,5 +1,8 @@
-//! Instaflow authoring engine (Parley text layout). Stub so the Wasm pipeline builds; B2 fills it in.
+//! Instaflow authoring engine: element geometry (`geometry`, B1: kurbo paths, linesweeper booleans, bounds, hit
+//! tests) and text layout (Parley, B2).
 use wasm_bindgen::prelude::*;
+
+pub mod geometry;
 
 /// ABI version of the authoring module's exports. Bump on any breaking export change.
 #[wasm_bindgen]

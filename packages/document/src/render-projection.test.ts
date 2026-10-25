@@ -201,3 +201,15 @@ describe('createRenderProjector + createSceneStore', () => {
     part.dispose();
   });
 });
+
+describe('RenderProjectionSource', () => {
+  it('a projector reads any per-node source, not only a part (e.g. a composed stage view)', () => {
+    const Proj = defineRenderProjection({ id: 'test/source', kinds: ['box'], fields: { x: { path: 'r.x' } } });
+    const records = [{ id: 'a', kind: 'box', parent: null, order: 'a', props: { 'r.x': 7 }, texts: [], lists: [] }];
+    const source = { node: (id: string) => records.find((r) => r.id === id), forEachNode: (visit: (r: (typeof records)[number]) => boolean | void) => records.forEach((r) => visit(r)) };
+    const projector = createRenderProjector(Proj, source);
+    const store = createSceneStore(Proj);
+    expect(store.apply(projector.snapshot()).ok).toBe(true);
+    expect(store.column('x')[projector.slotOf('a') as number]).toBe(7);
+  });
+});

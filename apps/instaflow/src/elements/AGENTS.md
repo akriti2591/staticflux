@@ -1,0 +1,81 @@
+# apps/instaflow/src/elements — AGENTS.md
+
+**Work package:** Instaflow M1b **B1** (elements and styles; IF-4.6–4.7, IF-7.8–7.10, IF-20.1–20.24). **Layer:** app.
+**Exports:** `@instaflow/app/elements` (editor and render workers, plus contributions) and `@instaflow/app/elements/panel`
+(the inspector element, main thread).
+**Depends on:** `@staticflux/core`, `document` (`v2`, `render-projection`, `spatial-index` types), `stage` (composition,
+locks, undo guard), `capabilities` (one capability per action), `ui/theme` (`parseColor`, tokens), `kit` (panel only),
+`lit`; B0's `../spec` (contribution types and ids); `../render/scene-ir` (A6 wire format). Tests also use `loro-crdt`,
+`@staticflux/testkit/a11y`, `@staticflux/ui/testing`, the theme, and the real authoring Wasm (skipped when not built).
+**Budgets:** `.size-limit.json` (elements entry, panel entry); authoring Wasm ≤ 350 KB brotli (measured 119.1 KB).
+
+## Purpose
+Everything a design element is and does, as headless services plus B0 contributions: the document components, brand kits
+and style classes, geometry (Rust), page-space queries for tools, actions (align, distribute, tidy, booleans, flatten,
+outline stroke, masks, tokens, duplicate with match keys), the render projection to the scene IR, and the Fill / Stroke /
+Effects inspector.
+
+## Public API (by file)
+- `components.ts` — v2 components `Spatial`, `Geometry`, `Style` (v2, migration from the DOCUMENT-FORMAT draft), `Frame`,
+  `ImageFit` (`image`), `Source`, `Mask`, `Lineage` (match key), `Lock`, `Policy`, `Layout` (grids), `Brand`;
+  `ELEMENT_COMPONENTS`, `ELEMENT_KINDS`, `ELEMENT_KIND_COMPONENTS`, `ELEMENT_COMMON_COMPONENTS` (B2 reuses), `ELEMENT_ROLES`,
+  `createElementRegistry({ components, kinds, roles, version })`, paths `P`, `CORNER_PATHS`, `tokenPath`, enums
+  (`BLEND_MODE_NAMES`, `SHAPES`, `BOOLEAN_OPS`, `STROKE_*`, `EFFECT_KINDS`, `IMAGE_FIT_NAMES`, `MASK_MODE_NAMES`, …).
+- `values.ts` — value shapes (`PaintValue`, `FillValue`, `StrokeValue`, `EffectValue`, `LayoutGridValue`, `SizeValue`) and
+  checks (`is*`, `checkElementValue`, `validateElementOps` → IF-EL-001), `tokenName`, `colorToRgba`, `rgbaToHex`.
+- `brand-kit.ts` — `brandKitOps(spec)`, `readBrandKit(doc)` → `BrandKitView` (tokens with aliases, classes, rules),
+  `brandTokenRule(kit)`, `elementStageRules(kit)` (pass to `createStage`), `resolveTokens`, `tokenType`, `checkToken`
+  (IF-EL-002), brand rules (`BrandRule`, `brandViolations`, `checkBrandRules` IF-EL-003, `brandRuleGuard`, `composeGuards`,
+  `lintBrandRules`, `ruleValue`, `stageRuleContext`).
+- `styles.ts` — `applyClassOps`, `overridesOf` (local vs class, from provenance), `resetOverrideOps`, `detachClassOps`,
+  `styleSource`.
+- `resolve.ts` — `resolveElement` / `resolveComposed` → `ResolvedElement` (box, transform, geometry, fill/stroke stacks,
+  effects with glows as shadows, mask, match key, issues), `boxTransform`, `readBox`, `fitRadii`, affine helpers.
+- `geometry.ts` — `GeometryWasm` (ABI), `loadAuthoringModule` (manifest; IF-EL-006), `createGeometry` → `GeometryService`
+  (`outline`, `boolean`, `outlineStroke`, `bounds`, `inkBounds`, `hit`, `intersects`, `transform`, `parsePath`, `toSvg`;
+  IF-EL-005), `strokeSpec`, `effectSpec`, `GEOMETRY_VERSION`.
+- `layout.ts` — `ElementContext`; `elementBounds` (geometry, ink, centre, transform), `pageTransform`, `localOutline`
+  (booleans derived), `strokeRing`, `maskOf`, `containerBounds` / `containerOf`, `siblingBounds`, `hitElement`,
+  `gridLines`, `containerGrids`, box helpers.
+- `actions.ts` — `align` (edges × selection | container | page | key), `centerInContainer`, `distribute` (spacing |
+  centers), `tidyUp`, `booleanGroup`, `setBooleanOp`, `releaseBoolean`, `flatten`, `outlineStroke`, `useAsMask`, `setMask`,
+  `releaseMask`, `applyToken` (`TOKEN_TARGETS`), `duplicate` (match keys), `localValues`, **`commitEdit`** (one change set).
+- `projection.ts` — `ElementProjection`, `createElementRenderSource` (stage-backed `RenderProjectionSource`), resources
+  (`createResourceTable`, `Look`, `lookOf`), `RENDER_FLAGS`, `MASK_INVERT_BIT`.
+- `scene.ts` — `createSceneResources`, `createElementSceneEncoder` (diffing; `sceneIdOf`), `lumaToAlpha`,
+  `gridOverlayBatch` (non-printing overlay).
+- `inspector.ts` — `appearanceModel`, `AppearanceEdit`, `appearanceEditOps`, `NEW_ITEMS`, `swatchOf`.
+- `contributions.ts` — `ELEMENT_ACTIONS`, `elementCapabilities`, `elementCapabilityImplementations(env)`, `runElementAction`,
+  `elementHudActions`, `appearancePanel` (`instaflow/appearance`), `elementContributionUnits(env)`, `selectionFacts`.
+- `panel.ts` (entry `elements/panel`) — `<if-paint-inspector>` (`IfPaintInspectorElement`), `definePaintInspector`,
+  `bindPaintInspector(element, source)`, `APPEARANCE_EDIT_EVENT`.
+- `errors.ts` — `IF-EL-001` … `IF-EL-007`.
+- `testing/` (test-only) — `fixtures.ts` (page + brand kit + stage + undo service, real Wasm in Node), `scene-fixture.ts`.
+
+## Wiring (editor worker)
+```ts
+const stage = createStage({ root: pageDoc, session, assets, rules: elementStageRules(kitRef) });
+const undo = createUndoService({ doc, guard: composeGuards(stageWriteGuard(stage), brandRuleGuard(() => stageRuleContext(stage, kit))) });
+const geometry = createGeometry(unwrap(await loadAuthoringModule({ manifestUrl })));
+const source = createElementRenderSource({ stage, geometry, kit, root: pageId, orderOf: (id) => part.node(id)?.order });
+const projector = createRenderProjector(ElementProjection, source);
+// per step: resources first, then the delta (same ordered channel)
+send(source.takeResources()); send(projector.project(source.changes()));
+// render worker: resources.apply(batch); store.apply(payload); renderer.apply(encoder.encode(store, resources));
+```
+
+## Rules
+- Document values are data: no functions, tokens are `@name` strings, stacks are lists with stable item `id`s.
+- Booleans and masks are derived: never write a boolean result or a masked copy into the document.
+- Every action goes through `commitEdit` (or the capability) as one change set; never `part.transact` directly.
+- Resources go down the channel before the delta that uses them. The scene IR is A6's wire format: change `ir.rs` and
+  `scene-ir.ts` together and keep both byte-identity tests green.
+- No `if` on lens or mode: applicability is the contribution's `lenses` / `scopes` plus input validation (IF-EL-004).
+- Panel UI only from kit components under the theme; no colours in code.
+
+## Test
+`npx vitest run apps/instaflow/src/elements` (needs `pnpm build` for the Wasm-backed suites) ·
+`cargo test -p authoring` and `cargo test -p render` in `apps/instaflow/engine` (booleans property tests, element scene vs
+its vello_cpu reference) · `SF_GPU=1 pnpm test:gpu` (GPU vs CPU and goldens incl. `render-gpu-element-scene`).
+Update the projection snapshot with `SF_UPDATE_GOLDENS=1 npx vitest run apps/instaflow/src/elements/projection.test.ts`,
+then `SF_UPDATE_GOLDENS=1 cargo test -p render fixtures` for its CPU reference.

@@ -617,6 +617,10 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
   data plan; module code never branches on it. The render module applies deltas only up to the frame's `docVersion`,
   draws only at equality (otherwise keeps the last good frame), draws on arrival with a small coalescing delay, and is
   paced by the worker rAF or by a main-thread rAF tick cell (switchable).
+- **R11.53** **Projection sources** (`RenderProjectionSource`): a render projector reads any per-node source with
+  `node(id)` and `forEachNode(visit)` — a part, or a composed view such as Instaflow's stage-backed element source (B1),
+  which flattens composed, token-resolved values into numeric render paths and synthesizes `PartChange`s from stage
+  invalidations. Type widening only; the wire format and the part-based behaviour are unchanged.
 - **R16.30** **Sequencing oracle contract suite** (testkit `runSequencingOracleContract`): scripted gestures G-1…G-6 (pan,
   zoom, drag one, drag 100, marquee, nudge) plus remote moves and deletes (some mid-drag) and Esc cancels are replayed on a
   single-threaded reference; every frame a pipeline presents must equal the reference at the input it consumed (no

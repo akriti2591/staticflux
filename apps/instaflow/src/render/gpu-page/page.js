@@ -76,6 +76,8 @@ async function run() {
     ['shapes', [0, 0, 128, 128], 128],
     ['paints', [0, 0, 128, 128], 128],
     ['layers', [0, 0, 128, 128], 128],
+    ['elements', [0, 0, 128, 128], 128],
+    ['appearance', [0, 0, 128, 128], 128],
     ['tiles', [384, 384, 640, 640], 256],
   ];
   for (const [name, [x0, y0, x1, y1], size] of fixtures) {
@@ -83,6 +85,18 @@ async function run() {
     const backend = await headless(wasm, size, size);
     must(backend.apply(await batch(name)), `apply ${name}`);
     keep(`gpu-${name}`, must(await backend.renderRegion({ world: { x0, y0, x1, y1 }, width: size, height: size, background: WHITE }, { signal: signal() }), `region ${name}`));
+    backend.dispose();
+  }
+
+  // 2b. The element pipeline's scene (B1: stage → render projection → scene IR), vs its vello_cpu reference.
+  {
+    step('element scene');
+    const ELEMENTS = '/apps/instaflow/src/elements/__fixtures__/';
+    const load = async (name) => new Uint8Array(await (await fetch(`${ELEMENTS}${name}`)).arrayBuffer());
+    const backend = await headless(wasm, 128, 128);
+    must(backend.apply(await load('elements-scene.sfir')), 'apply element scene');
+    must(backend.apply(await load('elements-images.sfir')), 'apply element images');
+    keep('gpu-element-scene', must(await backend.renderRegion({ world: { x0: 0, y0: 0, x1: 128, y1: 128 }, width: 128, height: 128, background: WHITE }, { signal: signal() }), 'region element scene'));
     backend.dispose();
   }
 

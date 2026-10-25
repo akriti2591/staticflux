@@ -1,7 +1,7 @@
 # Instaflow render module (TypeScript side) — AGENTS.md
 
 **Area:** app (`apps/instaflow/src/render`, export `@instaflow/app/render`). M1 work package A6.
-**Budget:** ≤ 3.5 KB brotli for this folder's JS (measured 3.36 KB; `.size-limit.json`), plus the render Wasm
+**Budget:** ≤ 3.8 KB brotli for this folder's JS (measured 3.74 KB with scene IR v2, B1: raised from 3.5 KB for fill/stroke stacks, effects and masks; `.size-limit.json`), plus the render Wasm
 (≤ 300 KB brotli, measured 185.7 KB; see `../../engine/AGENTS.md`). Render and export workers only.
 **Allowed deps:** `@staticflux/core`, `@staticflux/platform`, `@staticflux/surface/raster` (framework, lower
 layers). Tests may use `@staticflux/testkit` and `@staticflux/runtime/memory`.
@@ -22,8 +22,10 @@ memory budget. This folder only adapts the Wasm engine (`engine/crates/render`) 
   `RENDER_ABI_VERSION`, `loadRenderModule({ manifestUrl, signal })` (reads `sf-wasm-manifest/1`, imports the hashed
   glue, instantiates, checks the ABI).
 - `scene-ir.ts` — `createSceneWriter()` → `clear`, `upsert(node, index)`, `remove`, `image`, `dropImage`, `finish()`;
-  `SceneNode` (transform, opacity, blend, visibility, clip, geometry: group/rect/ellipse/path/image/glyphs, fill,
-  stroke), `BLEND_MODES`, `PATH_VERBS`, `SCENE_IR_VERSION`. Byte-identical with the Rust `IrWriter`.
+  `SceneNode` (transform, opacity, blend, visibility, clip, geometry: group/rect/rrect/ellipse/path/image/glyphs,
+  `fill`/`stroke` or the `fills`/`strokes` stacks, `evenOdd`, `mask`, `effects`), `BLEND_MODES`, `PATH_VERBS`,
+  `IMAGE_FITS`, `MASK_MODES`, `SCENE_IR_VERSION` (2 since B1). Byte-identical with the Rust `IrWriter` (`shapes`,
+  `elements`, `appearance` fixtures).
 
 ## Wiring (A7 does it in the render worker)
 ```ts

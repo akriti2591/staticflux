@@ -168,6 +168,12 @@ export interface PresetUse { preset: AssetRef; duration: Ticks; params?: Record<
 Which components each kind carries is fixed by a per-kind table generated from the component registry (for
 example `video` = `spatial + temporal + source + audioMix + style + matte? + motion? + animation?`).
 
+**As built (M1b B1, IF-20):** `style` is version 2 with appearance **stacks** (`fills`, `strokes`, `effects`: ordered,
+toggleable lists; paints add conic gradients), per-corner `radiusTL/TR/BR/BL`, `radiusInner` and `smoothing`; element kinds
+add `frame`; masks are a `mask` component (`mode: clip | alpha | luminance`, `invert`, optional matte `asset`) on the mask
+element; a boolean is `geometry.boolean` on a group whose children are the operands; the match key is `lineage.key`;
+layout grids are `layout.grids`. `apps/instaflow/src/elements/components.ts` is normative for field names.
+
 ### 3.3 Composition rules (SF-Δ7 `@staticflux/stage`)
 
 - **Layer stack**, strongest first: `session` (ephemeral previews, solo/mute, active variant selection; never

@@ -20,6 +20,14 @@
     "./versioning/ui": {
       "types": "./dist/versioning/ui.d.ts",
       "import": "./dist/versioning/ui.js"
+    },
+    "./elements": {
+      "types": "./dist/elements/index.d.ts",
+      "import": "./dist/elements/index.js"
+    },
+    "./elements/panel": {
+      "types": "./dist/elements/panel.d.ts",
+      "import": "./dist/elements/panel.js"
     }
   },
   "scripts": {
