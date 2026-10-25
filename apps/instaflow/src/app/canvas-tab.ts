@@ -35,7 +35,7 @@ import type { RenderPacing } from '../sequencing/pacing.js';
 import { colorToRgba } from '../elements/values.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
 import { TEXT_KIND } from '../text/model.js';
-import { createToolController, type ToolController, type ToolOutcome, type ToolPointer, type ToolSession } from '../tools/gesture.js';
+import { createToolController, refreshOverlay, type ToolController, type ToolOutcome, type ToolPointer, type ToolSession } from '../tools/gesture.js';
 import { createElementIndex, hitTest } from '../tools/hit-test.js';
 import { bindToolShortcuts, CanvasToolsShortcutScope, createToolCommands, type ToolCommands } from '../tools/keyboard.js';
 import { createSceneWriter } from '../render/scene-ir.js';
@@ -172,6 +172,13 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
   };
   scope.defer(document.view.onInvalidate(publish));
   watch(() => [view.camera, view.selection] as const, publish, { scope });
+  // The selection frame follows selections made outside B3's controller (creation tools, HUD actions, panels,
+  // accessibility focus, undo) and document changes (an inspector edit moves the frame); not during a gesture.
+  const reframe = (): void => {
+    if (controller.state === 'idle' && creation.state === 'idle') refreshOverlay(tools);
+  };
+  watch(() => view.selection, () => schedule(reframe), { scope });
+  scope.defer(document.view.onInvalidate(() => schedule(reframe)));
 
   function pageSize(): { readonly w: number; readonly h: number } {
     const size = part?.prop(page, STRUCTURE_PATHS.pageSize) as { width?: number; height?: number } | undefined;

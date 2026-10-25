@@ -151,12 +151,14 @@ describe('shortcut registry', () => {
     const editable = document.createElement('div');
     editable.setAttribute('contenteditable', 'true');
     const textarea = document.createElement('textarea');
-    document.body.append(input, checkbox, editable, textarea);
+    const host = Object.assign(document.createElement('div'), { editContext: {} });
+    document.body.append(input, checkbox, editable, textarea, host);
     const scope = createScope('t');
     registry.attach(document, scope);
     key('j', {}, input);
     key('j', {}, textarea);
     key('j', {}, editable);
+    key('j', {}, host); // an EditContext host types like a field
     expect(next).not.toHaveBeenCalled();
     key('j', {}, checkbox);
     expect(next).toHaveBeenCalledTimes(1);

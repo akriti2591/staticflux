@@ -192,10 +192,19 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         min-block-size: 0;
         border-radius: ${t.radius.md.css};
       }
+      /*
+       * The kit toolbar is an inline-size container, so it has no intrinsic width (B8): the tools pill gets its width
+       * from its item count; the HUD spans the canvas region and takes at most two rows however many actions a
+       * selection brings (it scrolls, the canvas keeps its size).
+       */
+      .tools {
+        inline-size: calc(var(--if-items, 6) * (${t.size.controlLg.css} + ${t.space.xs.css}) + 2 * ${t.space.sm.css} + 2 * ${t.space.xs.css});
+      }
       .hud {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
+        justify-self: stretch;
+        max-block-size: calc(${t.size.toolbar.css} * 2);
+        overflow-y: auto;
+        scrollbar-width: thin;
       }
       .bottom {
         display: flex;
@@ -457,7 +466,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
   private renderTools(studio: Studio): TemplateResult {
     const entries = studio.port.entries('tool@default');
     const active = studio.activeTool;
-    return html`<sf-toolbar class="tools" label=${studioMessages.tools}>
+    return html`<sf-toolbar class="tools" label=${studioMessages.tools} style=${`--if-items:${entries.length}`}>
       ${entries.map((entry) => {
         const tool = studio.registries.tool(entry.slot.id);
         return html`<sf-icon-button

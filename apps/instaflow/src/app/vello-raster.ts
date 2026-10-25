@@ -55,6 +55,7 @@ export async function createVelloRaster(options: VelloRasterOptions): Promise<Re
   if (!attached.ok) return failed('device', attached.error);
   const lane = manualTilePrepLane();
   let pending = false;
+  let disposed = false;
   let camera: CanvasCamera = { tx: 0, ty: 0, zoom: 1 };
   const created = createTiledRenderer({
     backend,
@@ -71,7 +72,6 @@ export async function createVelloRaster(options: VelloRasterOptions): Promise<Re
   if (!resized.ok) return failed('resize', resized.error);
   const warm = await renderer.warmUp(options.signal);
   if (!warm.ok) return failed('warm-up', warm.error);
-  let disposed = false;
   function schedule(): void {
     if (pending || disposed) return;
     pending = true;
@@ -99,7 +99,10 @@ export async function createVelloRaster(options: VelloRasterOptions): Promise<Re
     resize(w, h) {
       width = w;
       height = h;
-      const r = renderer.resize(Math.max(1, Math.round(w * dpr)), Math.max(1, Math.round(h * dpr)));
+      const pixels = { width: Math.max(1, Math.round(w * dpr)), height: Math.max(1, Math.round(h * dpr)) };
+      // The transferred canvas keeps its pixel size until it is set here; the engine then reconfigures its surface.
+      Object.assign(offscreen as object, pixels);
+      const r = renderer.resize(pixels.width, pixels.height);
       schedule();
       return r;
     },
