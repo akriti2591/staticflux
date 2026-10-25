@@ -26,6 +26,7 @@ export const buttonStyles = css`
     justify-content: center;
     gap: ${t.space.xs.css};
     padding-inline: var(--kit-pad-inline);
+    font-size: var(--kit-font-size);
     font-weight: ${t.font.weightMedium.css};
     white-space: nowrap;
     border: 1px solid ${t.color.controlEdge.css};
@@ -54,8 +55,7 @@ export const buttonStyles = css`
     border-color: transparent;
     color: ${t.color.onAgent.css};
   }
-  :host([variant='agent']:hover) .control,
-  :host([variant='agent']:active) .control {
+  :host([variant='agent']:hover) .control {
     background: ${t.color.agentHover.css};
   }
   :host([variant='agent-soft']) .control {

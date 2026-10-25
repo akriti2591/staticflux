@@ -45,7 +45,10 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 ## Rules
 - Components extend `SfElement` only; reactive properties via `static properties` + `declare` + constructor init; no decorators.
 - Shapes and edges: pressable controls (button, icon button, segmented track + segments) and tags take `radius.control`; fields keep
-  `radius.md`. Secondary buttons, fields and segmented tracks draw `color.controlEdge` (≥ 3:1); `color.border` is for dividers.
+  `radius.md`. Secondary buttons and fields draw `color.controlEdge` (≥ 3:1); `color.border` is for dividers; the segmented track
+  is a borderless `neutral3` fill with a raised `surface3` selected segment. Per-size font size and inline padding come from
+  `type.control*` / `size.controlPad*` (`--kit-font-size`, `--kit-pad-inline` in `controlStyles`). Focus is a 2 px `focusRing`
+  outline at a 2 px offset on every control, fields included.
 - Styles use theme tokens only (`t.color.text.css`), logical properties only, motion on compositor properties via `motion.*` tokens
   (0 under reduced motion); add a `forced-colors` rule for any state shown by color alone.
 - ARIA ids never cross a shadow boundary: label/describe inside one root, or put roles on hosts / light-DOM children

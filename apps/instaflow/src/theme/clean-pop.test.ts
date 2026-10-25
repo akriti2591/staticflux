@@ -72,11 +72,16 @@ describe('Clean Pop: the approved values', () => {
     expect(themeValue(cleanPopTheme, t.font.familyMono, LIGHT)).toMatch(/^"Geist Mono"/);
     expect(themeValue(cleanPopTheme, t.font.weightDisplay, LIGHT)).toBe('800');
     expect([t.size.controlLg, t.size.control, t.size.controlSm].map((token) => themeValue(cleanPopTheme, token, LIGHT))).toEqual(['42px', '34px', '28px']);
+    expect([t.type.controlLg, t.type.control, t.type.controlSm].map((token) => themeValue(cleanPopTheme, token, LIGHT))).toEqual(['15px', '13.5px', '12.5px']);
+    expect([t.size.controlPadLg, t.size.controlPad, t.size.controlPadSm].map((token) => themeValue(cleanPopTheme, token, LIGHT))).toEqual(['20px', '14px', '12px']);
   });
 
-  it('has no purple anywhere and keeps the default theme untouched', () => {
-    const css = compileTheme(cleanPopTheme);
-    expect(css).not.toMatch(/#6847d1|#a48bff/i);
+  it('uses none of the default theme agent colours and keeps the default theme untouched', () => {
+    const css = compileTheme(cleanPopTheme).toLowerCase();
+    for (const token of [c.agent, c.agentHover, c.agentSoft, c.agentInk]) {
+      expect(css).not.toContain(valueOf(defaultTheme.values, token)?.toLowerCase());
+      expect(css).not.toContain(valueOf(defaultTheme.dark, token)?.toLowerCase());
+    }
     expect(valueOf(defaultTheme.values, t.radius.control)).toBe('6px');
     expect(valueOf(defaultTheme.values, c.accent)).toBe('#3a5bd9');
   });

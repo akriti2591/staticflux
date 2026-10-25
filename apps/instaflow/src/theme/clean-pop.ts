@@ -8,7 +8,9 @@
  * - **raspberry** agent actions `#D6265F` (white text 4.88:1), soft `#FDE8EF` with `#B3174C` ink;
  * - **pill** controls (`radius.control`), 18 px cards (`radius.lg`), 12 px fields and previews (`radius.md`);
  * - Bricolage Grotesque (display), Geist (UI, body), Geist Mono (values, codes, tokens);
- * - buttons 42 / 34 / 28 px (`size.controlLg | control | controlSm`, standard density).
+ * - buttons 42 / 34 / 28 px high (`size.controlLg | control | controlSm`, standard density), padded
+ *   20 / 14 / 12 px (`size.controlPad*`), 15 / 13.5 / 12.5 px text (`type.control*`);
+ * - switchers: a borderless tint track with a white selected pill (kit segmented).
  *
  * Lens colours and shapes are not theme tokens: see `./lenses.ts`.
  *
@@ -121,8 +123,8 @@ export const cleanPopTheme: ThemeDef = /* @__PURE__ */ extendTheme(defaultTheme,
       weightSemibold: '600',
       weightDisplay: '800',
     },
-    type: { sizeXs: '11px', sizeSm: '12.5px', sizeMd: '13.5px', sizeLg: '15px', sizeXl: '22px', size2xl: '40px', lineTight: '1.2', lineNormal: '1.45' },
-    size: { controlSm: '28px', control: '34px', controlLg: '42px', row: '32px', toolbar: '48px', icon: '16px', railWidth: '48px' },
+    type: { controlSm: '12.5px', control: '13.5px', controlLg: '15px', sizeXs: '11px', sizeSm: '12.5px', sizeMd: '13.5px', sizeLg: '15px', sizeXl: '22px', size2xl: '40px', lineTight: '1.2', lineNormal: '1.45' },
+    size: { controlSm: '28px', control: '34px', controlLg: '42px', controlPadSm: '12px', controlPad: '14px', controlPadLg: '20px', row: '32px', toolbar: '48px', icon: '16px', railWidth: '48px' },
     radius: { sm: '8px', md: '12px', lg: '18px', full: '9999px', control: '9999px' },
     shadow: shadows,
   },
@@ -130,8 +132,8 @@ export const cleanPopTheme: ThemeDef = /* @__PURE__ */ extendTheme(defaultTheme,
   dark: { color: { ...defaultTheme.values.color, ...colors }, shadow: shadows },
   contrast: { light: moreContrast, dark: moreContrast },
   density: {
-    focus: { size: { controlSm: '32px', control: '38px', controlLg: '46px', row: '36px', toolbar: '52px', icon: '18px', railWidth: '52px' } },
-    pro: { size: { controlSm: '24px', control: '28px', controlLg: '34px', row: '24px', toolbar: '40px', icon: '16px', railWidth: '40px' } },
+    focus: { size: { controlSm: '32px', control: '38px', controlLg: '46px', controlPadSm: '14px', controlPad: '16px', controlPadLg: '22px', row: '36px', toolbar: '52px', icon: '18px', railWidth: '52px' } },
+    pro: { size: { controlSm: '24px', control: '28px', controlLg: '34px', controlPadSm: '10px', controlPad: '12px', controlPadLg: '16px', row: '24px', toolbar: '40px', icon: '16px', railWidth: '40px' } },
   },
 });
 

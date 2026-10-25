@@ -54,19 +54,22 @@ export const focusRing = css`
   }
 `;
 
-/** Control sizing (density-aware through `size.*`) and quiet transitions. */
+/** Control sizing per `size` attribute (height, inline padding, font size; density-aware through `size.*`) and quiet transitions. */
 export const controlStyles = css`
   :host {
     --kit-height: ${t.size.control.css};
-    --kit-pad-inline: ${t.space.md.css};
+    --kit-pad-inline: ${t.size.controlPad.css};
+    --kit-font-size: ${t.type.control.css};
   }
   :host([size='sm']) {
     --kit-height: ${t.size.controlSm.css};
-    --kit-pad-inline: ${t.space.sm.css};
+    --kit-pad-inline: ${t.size.controlPadSm.css};
+    --kit-font-size: ${t.type.controlSm.css};
   }
   :host([size='lg']) {
     --kit-height: ${t.size.controlLg.css};
-    --kit-pad-inline: ${t.space.lg.css};
+    --kit-pad-inline: ${t.size.controlPadLg.css};
+    --kit-font-size: ${t.type.controlLg.css};
   }
   .control {
     box-sizing: border-box;

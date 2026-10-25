@@ -4,9 +4,10 @@
  * accent, calm neutrals with a slight cool bias; light and dark; a `prefers-contrast:
  * more` variant; Focus / Standard / Pro density; motion 120–200 ms, 0 ms when reduced.
  *
- * Agent actions are a quiet violet, distinct from the blue accent; control edges reuse the
- * strong-border step (≥ 3:1), so secondary buttons, fields and segmented tracks read as
- * controls; `radius.control` matches `radius.md`.
+ * Agent actions are a deep teal, distinct from the blue accent; control edges reuse the
+ * strong-border step (≥ 3:1), so secondary buttons and fields read as controls;
+ * `radius.control` matches `radius.md`; control padding and font sizes keep the
+ * pre-token look (space steps, `type.sizeMd`) in every density.
  *
  * Every text/surface pair in `TEXT_CONTRAST_PAIRS` reaches 4.5:1 and every pair in
  * `UI_CONTRAST_PAIRS` 3:1 (WCAG 2.2 AA), checked by the testkit theme contract.
@@ -65,11 +66,11 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
       accentActive: '#2843ad',
       accentSubtle: '#e9eefc',
       accentText: '#2f4fc8',
-      agent: '#6847d1',
-      agentHover: '#5a3bbf',
+      agent: '#0f766e',
+      agentHover: '#115e59',
       onAgent: '#ffffff',
-      agentSoft: '#efeafc',
-      agentInk: '#5232b5',
+      agentSoft: '#e0f2f1',
+      agentInk: '#0d5c56',
       success: '#1f8a55',
       successSubtle: '#e5f4ec',
       successText: '#1c6b43',
@@ -96,6 +97,9 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
       weightDisplay: '600',
     },
     type: {
+      controlSm: '13px',
+      control: '13px',
+      controlLg: '13px',
       sizeXs: '11px',
       sizeSm: '12px',
       sizeMd: '13px',
@@ -106,7 +110,18 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
       lineNormal: '1.5',
     },
     space: { xs: '4px', sm: '8px', md: '12px', lg: '16px', xl: '24px', xxl: '32px' },
-    size: { controlSm: '24px', control: '28px', controlLg: '32px', row: '28px', toolbar: '40px', icon: '16px', railWidth: '44px' },
+    size: {
+      controlSm: '24px',
+      control: '28px',
+      controlLg: '32px',
+      controlPadSm: '8px',
+      controlPad: '12px',
+      controlPadLg: '16px',
+      row: '28px',
+      toolbar: '40px',
+      icon: '16px',
+      railWidth: '44px',
+    },
     radius: { sm: '4px', md: '6px', lg: '10px', full: '9999px', control: '6px' },
     shadow: {
       level1: '0 1px 2px rgba(15, 20, 30, 0.06)',
@@ -151,11 +166,11 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
       accentActive: '#93a9ff',
       accentSubtle: '#1d2843',
       accentText: '#9db2ff',
-      agent: '#a48bff',
-      agentHover: '#b49fff',
-      onAgent: '#140b2e',
-      agentSoft: '#2a2147',
-      agentInk: '#c4b3ff',
+      agent: '#2dd4bf',
+      agentHover: '#5eead4',
+      onAgent: '#042f2e',
+      agentSoft: '#0f2d2b',
+      agentInk: '#7ee0d3',
       success: '#3fb57a',
       successSubtle: '#15291f',
       successText: '#6fd39c',
@@ -207,11 +222,11 @@ export const defaultTheme = /* @__PURE__ */ defineTheme({
   density: {
     focus: {
       space: { xs: '4px', sm: '8px', md: '16px', lg: '20px', xl: '32px', xxl: '40px' },
-      size: { controlSm: '28px', control: '32px', controlLg: '40px', row: '36px', toolbar: '48px', icon: '18px', railWidth: '52px' },
+      size: { controlSm: '28px', control: '32px', controlLg: '40px', controlPadSm: '8px', controlPad: '16px', controlPadLg: '20px', row: '36px', toolbar: '48px', icon: '18px', railWidth: '52px' },
     },
     pro: {
       space: { xs: '4px', sm: '4px', md: '8px', lg: '12px', xl: '16px', xxl: '24px' },
-      size: { controlSm: '24px', control: '24px', controlLg: '28px', row: '24px', toolbar: '36px', icon: '16px', railWidth: '40px' },
+      size: { controlSm: '24px', control: '24px', controlLg: '28px', controlPadSm: '4px', controlPad: '8px', controlPadLg: '12px', row: '24px', toolbar: '36px', icon: '16px', railWidth: '40px' },
     },
   },
   reducedMotion: { motion: { durationFast: '0ms', durationNormal: '0ms', durationSlow: '0ms' } },

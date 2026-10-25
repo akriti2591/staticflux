@@ -123,15 +123,28 @@ describe('<sf-text-field>', () => {
 });
 
 describe('control shapes and edges', () => {
-  it('segmented tracks and segments follow radius.control; the track carries the control edge', () => {
+  it('segmented: a borderless tint track and segments on radius.control, sized by the control tokens', () => {
     const cssText = SfSegmentedElement.styles.map((s) => String(s)).join('\n');
-    expect(cssText).toMatch(/\.track \{[^}]*border-radius: var\(--sf-radius-control\)[^}]*background: var\(--sf-color-neutral-3\)[^}]*border: 1px solid var\(--sf-color-control-edge\)/);
+    const track = /\.track \{([^}]*)\}/.exec(cssText)?.[1] ?? '';
+    expect(track).toContain('border-radius: var(--sf-radius-control)');
+    expect(track).toContain('background: var(--sf-color-neutral-3)');
+    expect(track).not.toContain('border:');
+    expect(cssText).not.toContain('--sf-color-control-edge');
+    expect(cssText).toContain('font-size: var(--kit-font-size)');
     expect(cssText).toContain('max(0px, calc(var(--sf-radius-control) - 3px))');
   });
 
   it('fields keep radius.md and use the control edge', () => {
     const cssText = SfTextFieldElement.styles.map((s) => String(s)).join('\n');
     expect(cssText).toMatch(/\.field \{[^}]*border-radius: var\(--sf-radius-md\)[^}]*border: 1px solid var\(--sf-color-control-edge\)/);
+    // Same focus ring as every control: 2 px outline at a 2 px offset (never inset).
+    expect(cssText).toMatch(/\.field:focus-within \{\s*outline: 2px solid var\(--sf-color-focus-ring\);\s*outline-offset: 2px;\s*\}/);
+  });
+
+  it('control sizes map to per-size padding and font-size tokens', () => {
+    const cssText = SfSegmentedElement.styles.map((s) => String(s)).join('\n');
+    expect(cssText).toMatch(/:host\(\[size='sm'\]\) \{[^}]*--kit-pad-inline: var\(--sf-size-control-pad-sm\);[^}]*--kit-font-size: var\(--sf-type-control-sm\)/);
+    expect(cssText).toMatch(/:host\(\[size='lg'\]\) \{[^}]*--kit-pad-inline: var\(--sf-size-control-pad-lg\);[^}]*--kit-font-size: var\(--sf-type-control-lg\)/);
   });
 });
 

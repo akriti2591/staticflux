@@ -76,10 +76,13 @@ describe('kit buttons under Clean Pop', () => {
     });
   }
 
-  it('sizes 42 / 34 / 28 px at standard density', async () => {
+  it('sizes: 42 / 34 / 28 px high, 15 / 13.5 / 12.5 px text, 20 / 14 / 12 px padding (standard density)', async () => {
     const container = await mount(html`<sf-button size="lg">L</sf-button><sf-button>M</sf-button><sf-button size="sm">S</sf-button>`);
-    const heights = [...container.querySelectorAll('sf-button')].map((b) => control(b).getPropertyValue('min-block-size'));
-    expect(heights).toEqual(['42px', '34px', '28px']);
+    const styles = [...container.querySelectorAll('sf-button')].map((b) => control(b));
+    expect(styles.map((s) => s.getPropertyValue('min-block-size'))).toEqual(['42px', '34px', '28px']);
+    expect(styles.map((s) => s.fontSize)).toEqual(['15px', '13.5px', '12.5px']);
+    // happy-dom keeps the logical shorthand as declared (Chromium would expand it to start/end).
+    expect(styles.map((s) => s.getPropertyValue('padding-inline'))).toEqual(['20px', '14px', '12px']);
   });
 
   it('shows a 2 px deep-tangerine focus ring with a 2 px offset on the pill host', async () => {
@@ -104,7 +107,7 @@ describe('kit buttons under Clean Pop', () => {
 });
 
 describe('switchers, tags and slider under Clean Pop', () => {
-  it('segmented: a mist pill track with the control edge and a white selected pill', async () => {
+  it('segmented: a borderless mist pill track with a white, shadowed selected pill', async () => {
     const options = [
       { value: 'canvas', label: 'Canvas' },
       { value: 'pixel', label: 'Pixel' },
@@ -114,10 +117,12 @@ describe('switchers, tags and slider under Clean Pop', () => {
     const track = getComputedStyle(segmented.shadowRoot?.querySelector('.track') as Element);
     expect(track.borderTopLeftRadius).toBe('9999px');
     expect(hex(track.backgroundColor)).toBe(hex(p.tint));
-    expect(hex(track.borderTopColor)).toBe(hex(p.controlEdge));
+    expect(['', '0px']).toContain(track.borderTopWidth);
+    expect(track.borderTopStyle === '' || track.borderTopStyle === 'none').toBe(true);
     const selected = getComputedStyle(segmented.shadowRoot?.querySelector('[aria-checked="true"]') as Element);
     expect(hex(selected.backgroundColor)).toBe(hex(p.white));
     expect(hex(selected.color)).toBe(hex(p.ink));
+    expect(selected.boxShadow).toContain('rgba(22, 21, 26, 0.14)');
     const other = getComputedStyle(segmented.shadowRoot?.querySelector('[aria-checked="false"]') as Element);
     expect(hex(other.color)).toBe(hex(p.muted));
   });

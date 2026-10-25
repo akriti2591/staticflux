@@ -227,8 +227,10 @@ Consumer: the Instaflow **Clean Pop** theme (`apps/instaflow/src/theme`, `docs/i
 that themes the kit (R13.21–R13.23).
 - "Anything you press is a pill", but cards stay 18 px and fields 12 px: one shape token for pressables
   (`radius.control`) that buttons, icon buttons, switchers and tags read; fields keep `radius.md`.
-- Secondary buttons, fields and switcher tracks need an edge that reads as a control (≥ 3:1) while dividers stay hairline:
-  `color.controlEdge` next to `color.border`.
+- Secondary buttons and fields need an edge that reads as a control (≥ 3:1) while dividers stay hairline:
+  `color.controlEdge` next to `color.border`. Switchers are a borderless mist track with a white selected pill.
+- Buttons 42 / 34 / 28 px with 15 / 13.5 / 12.5 px text and 20 / 14 / 12 px padding: per-size `type.control*` and
+  `size.controlPad*` tokens (other themes keep their own).
 - "Claude" actions (Start making, Send, Accept) and "✦ Rewrite" in toolbars look different from the one primary action:
   `<sf-button variant="agent">` / `variant="agent-soft"` over `color.agent*` tokens; agent tags use the same soft pair.
 - Headings use a display face (Bricolage Grotesque in Instaflow): `font.familyDisplay`, `font.weightDisplay`.

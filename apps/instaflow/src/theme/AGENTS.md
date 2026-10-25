@@ -15,7 +15,7 @@ renders the approved design without app CSS; and the **lens palette**, an Instaf
 - `clean-pop.ts` — `cleanPopTheme` (`instaflow/clean-pop`, `extendTheme(defaultTheme, …)`): mist neutrals, deep tangerine
   accent + focus ring, raspberry agent tokens, pill `radius.control`, 18 px `radius.lg`, 12 px `radius.md` (fields,
   previews), Bricolage Grotesque / Geist / Geist Mono, buttons 42 / 34 / 28 px; `prefers-contrast: more` variant; Focus /
-  Pro densities. `cleanPopThemeContribution` (order 0, above the default's −100). `cleanPopPalette` (design colour names,
+  Pro densities; button text 15 / 13.5 / 12.5 px and padding 20 / 14 / 12 px. `cleanPopThemeContribution` (order 0, above the default's −100). `cleanPopPalette` (design colour names,
   incl. `stage` `#E4E9EF` for the editor canvas, which is not a surface for controls).
 - `lenses.ts` — `LENS_IDS`, `LensId`, `LensShape`, `Lens { id, color, onColor, shape, mark }`, `lensPalette`, `lensOf(id)`,
   `lenses()`, `lensMarkStyle(lens, scale)` (decorative mark), `lensTag(lens)` (`<sf-tag .color .ink>` props).
@@ -29,7 +29,7 @@ renders the approved design without app CSS; and the **lens palette**, an Instaf
 
 ## Rules
 - Never put Instaflow colours in framework packages; new needs go into the contract as generic tokens (as DS1 did:
-  `radius.control`, `color.controlEdge`, `color.agent*`, `font.familyDisplay`, `font.weightDisplay`).
+  `radius.control`, `color.controlEdge`, `color.agent*`, `font.familyDisplay`, `font.weightDisplay`, `type.control*`, `size.controlPad*`).
 - Lens colours are for shapes and tags; primary actions use `accent` (deep tangerine).
 - Every change keeps `clean-pop.test.ts` green: the shared theme contract plus every README contrast pair.
 

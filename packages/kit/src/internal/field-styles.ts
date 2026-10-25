@@ -24,8 +24,7 @@ export const fieldStyles = css`
   }
   .field:focus-within {
     outline: 2px solid ${t.color.focusRing.css};
-    outline-offset: -1px;
-    border-color: transparent;
+    outline-offset: 2px;
   }
   :host([invalid]) .field {
     border-color: ${t.color.danger.css};

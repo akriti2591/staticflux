@@ -46,7 +46,7 @@ export const themeTokens = /* @__PURE__ */ defineTokens('sf', {
     'textOnAccent', // Text and icons on the accent fill
     'border', // Hairline borders and dividers
     'borderStrong', // Strong outlines (≥ 3:1 on surfaces, SC 1.4.11)
-    'controlEdge', // Edge of controls (secondary buttons, fields, segmented tracks); not a divider (≥ 3:1 on surfaces)
+    'controlEdge', // Edge of controls (secondary buttons, fields); not a divider (≥ 3:1 on surfaces)
     'accent', // The single accent: primary actions, selection
     'accentHover', // Accent fill on hover
     'accentActive', // Accent fill when pressed
@@ -83,6 +83,9 @@ export const themeTokens = /* @__PURE__ */ defineTokens('sf', {
     'weightDisplay', // Display headings weight
   ],
   type: [
+    'controlSm', // Font size of small controls (buttons, segments)
+    'control', // Font size of default controls
+    'controlLg', // Font size of large controls
     'sizeXs', // Extra small (captions, badges)
     'sizeSm', // Small (dense UI, secondary)
     'sizeMd', // Body and controls
@@ -104,6 +107,9 @@ export const themeTokens = /* @__PURE__ */ defineTokens('sf', {
     'controlSm', // Small control height (≥ 24 px, SC 2.5.8)
     'control', // Default control height
     'controlLg', // Large control height
+    'controlPadSm', // Inline padding of small controls (buttons, segments)
+    'controlPad', // Inline padding of default controls
+    'controlPadLg', // Inline padding of large controls
     'row', // List, tree and inspector row height
     'toolbar', // Toolbar height
     'icon', // Icon size in controls
