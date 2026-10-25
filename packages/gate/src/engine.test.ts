@@ -435,8 +435,9 @@ describe('gate: layering (R6.13)', () => {
   });
 });
 
-describe('gate: performance sanity', () => {
-  it('10k decisions run in well under the frame budget', () => {
+describe('gate: large policy set', () => {
+  // Correctness only. Timings for this workload live in engine.bench.ts (never asserted in unit tests).
+  it('decides 10k lookups over 500 policies and recomputes after a fact change', () => {
     const policies = Array.from({ length: 500 }, (_, i) =>
       definePolicy({
         id: `perf/p${i}`,
@@ -447,28 +448,19 @@ describe('gate: performance sanity', () => {
     );
     const facts = createManualFactSource('perf/facts');
     const meters = createMeterRegistry({ definitions: [Credits] });
-    const compileStart = performance.now();
     const gate = createGate({ policySets: [definePolicySet('perf/set', policies)], sources: [facts], meters });
-    const compileMs = performance.now() - compileStart;
     facts.setMany([
       [GateFacts.subjectKind, 'user'],
       [GateFacts.authenticated, true],
       [GateFacts.plan, 'free'],
     ]);
     let allowed = 0;
-    const start = performance.now();
     for (let i = 0; i < 10_000; i += 1) {
       const n = i % 520; // includes unmatched ids
       if (gate.decide(n % 2 === 0 ? 'feature' : 'ui-slot', `r${n}`).effect === 'allow') allowed += 1;
     }
-    const decideMs = performance.now() - start;
     expect(allowed).toBeGreaterThan(0);
-    expect(decideMs).toBeLessThan(250) // generous: CI runs many test files in parallel; locally ~5 ms;
-    expect(compileMs).toBeLessThan(500);
-    // Changing one fact recomputes only entries that read it.
-    const recomputeStart = performance.now();
     facts.set(GateFacts.plan, 'pro');
-    expect(performance.now() - recomputeStart).toBeLessThan(250);
     expect(gate.decide('ui-slot', 'r3')).toMatchObject({ effect: 'allow' });
     expect(gate.decide('feature', 'r0')).toMatchObject({ effect: 'deny', reason: 'quota' }); // costed, balance unknown → fail closed
   });
