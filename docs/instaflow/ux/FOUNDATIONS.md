@@ -76,17 +76,13 @@ selection. **Code:** `@staticflux/kit/dock` (`<sf-dock>` splitter, rail, collaps
 
 ### 3.2 Density
 
-Three levels, remembered per device, default **Standard**. Each has a one-line explanation wherever it is chosen:
-
-| Density | One line | Effect |
-|---|---|---|
-| Focus | Just the canvas. Panels open when you need them. | Dock and inspector collapse to rails; a rail click opens a floating 236 px card until the next canvas click. |
-| Standard | Canvas with layers and the inspector. | Docked panels; inspector sections with the essentials; no rulers. |
-| Pro | Everything at once, with rulers and numbers. | Rulers, every section expanded, shortcut hints in tooltips and menus, split dock. |
-
-Switching animates regions (160 ms) and re-centres the camera so the page stays put on screen. **Code:**
-`@staticflux/ui/theme` (`data-sf-density`, per-density tokens), `shell/spec` (`minDensity` collapse), Instaflow `studio.ts`
-`setDensity`. The explanation copy and the View-menu placement are **missing** (Instaflow `src/studio`).
+Three modes, remembered per device, default **Standard**: **Focus** ("Just your work."), **Standard** ("Your work,
+with the panels that explain it."), **Pro** ("Everything, with numbers."). Focus and Standard are the calm pair; Pro
+is the dense one. What each shows, tucks or hides on every surface, the spacing and type tokens per mode, how a person
+moves between them (`View ▾`, Settings, `Mod+.` cycle) and what is remembered: **`DENSITY-DISCLOSURE.md`** §1–7. A
+mode only reveals; it never moves a control. Switching animates regions (160 ms) and re-centres the camera so the page
+stays put. **Code:** `@staticflux/ui/theme` (`data-sf-density`, per-density tokens), `shell/spec` (`minDensity`),
+Instaflow `studio.ts` `setDensity`; **missing** pieces are listed at the end of `DENSITY-DISCLOSURE.md`.
 
 ### 3.3 Spacing, radius, type
 
@@ -322,8 +318,11 @@ intents, copy-link capability and the not-found page (Instaflow `src/home/routes
 
 ### 5.1 Progressive disclosure
 
-Standard shows the essentials; `More ▾` rows, collapsed sections (▸) and the `⋯` menu hold the rest; Pro expands.
-Nothing hidden is unreachable by keyboard. Sections remember their collapsed state per device.
+Standard shows the essentials; `More ▾` rows, collapsed sections (▸ with a one-line **summary** of their non-default
+state), menus, `Advanced ▸` steps and the `⋯` menu hold the rest; Pro expands everything; presets stay visible in
+every mode. Nothing hidden is unreachable by keyboard or the palette. Sections remember their state per device. The
+blocks, their memory rules and the **clutter audit** (what folds in every panel and dialog): `DENSITY-DISCLOSURE.md`
+§2 and §8. **Code:** **missing** `<sf-disclosure>` (StaticFlux kit).
 
 ### 5.2 Contextual vs global actions
 
@@ -393,6 +392,30 @@ as "what happened · what to do"; numbers in Geist Mono where they are values; B
 (colour, centre, favourite); never exclamation marks. Developer text (work-package ids, density words as placeholders,
 "arrives with", capability ids, TODO) is a bug caught by a chrome text test. **Code:** `@staticflux/i18n` messages per
 feature (`kitMessages`, `studioMessages`, `homeMessages`); the forbidden-text test is **missing** (Instaflow `src/a11y`).
+
+### 5.12 Localisation (rules now, languages later)
+
+Instaflow ships English (en-GB spelling) in M1 and is built so a second language is a message file, not a rewrite.
+
+1. **Every string is a message** (`@staticflux/i18n`, `*Messages` per feature) with ICU plurals (`{n, plural, one
+   {# page} other {# pages}}`); never concatenated fragments; placeholders are named (`Deleted '{title}'`).
+2. **Numbers, dates, units** go through `Intl`: thin-space thousands come from the locale's grouping, not a hard-coded
+   space; `today 14:02` is `Intl.DateTimeFormat` relative-then-absolute; units (`px · mm · in · pt`) are not
+   translated but their *labels* are.
+3. **Layout tolerates +40 % text**: labels wrap before they truncate; buttons grow; the inspector's two-column grid
+   falls to one column when a label exceeds 96 px (German, Finnish).
+4. **RTL**: `dir` on the root follows the UI language; the chrome mirrors (dock right, inspector left; chevrons and
+   back arrows flip); the **canvas does not mirror** and neither do X/Y semantics, rotation direction or the Align
+   icons' meaning (left stays left on the page). Mixed-direction text in documents is the text engine's business
+   (D20 covers IME; bidi is Parley's).
+5. **Keyboard**: shortcuts are by key *position* for letters (tools stay on the same physical keys on AZERTY) and by
+   symbol for punctuation (`Mod+=` zooms on every layout via `code` fallback); the cheat sheet shows the person's layout.
+6. **Language setting**: Settings › General › `Language` (`System · English (UK) · …`), applies at once; a document
+   never stores a UI language; the `lang` of document text is per text element (future, Pixel/Timeline captions).
+7. **Icons and colour** carry no language; no flags for languages (names in their own script).
+
+**Code:** `@staticflux/i18n` (messages, ICU); **missing:** the `Intl` number/date adapters in the kit's tag and field,
+the +40 % layout test, the RTL mirror of the Studio regions (Instaflow `src/studio`), the `lang` setting store.
 
 ## 6. Block → code map
 
