@@ -257,3 +257,27 @@ Invariants:
   entries it did not fold into the new snapshots.
 - **I-D4** Engine handles: after `dispose()` / eviction / close, the engine's live handle count returns to its baseline
   (`SF-DOC-018` names a violation).
+
+
+## Blob store (`@staticflux/blob`, Instaflow A3)
+
+```
+blob/store-leader:   waiting → recovering → leading
+                     recovering → waiting            (lead() failed: lock released, retried after retryMs)
+                     any → disposed
+blob/folder-mirror:  idle → scheduled → flushing → idle | scheduled (more changes arrived)
+                     idle | scheduled | flushing → paused     (folder permission lapsed: read-only)
+                     paused → flushing                        (regrant(): full sync, then idle)
+                     any → disposed
+```
+
+| Invariant | Error |
+|---|---|
+| A commit is acknowledged only after its journal record is flushed (sync handle) or published (temp + `move()`) | — |
+| A head is replaced only by temp file + `move()` under `<prefix>:head:<name>`, and only if its `generation` is unchanged | SF-BLOB-003 |
+| A head that fails its checksum is reported, never overwritten by CAS | SF-BLOB-010 |
+| Only the leader opens journals and swaps Latest heads | SF-BLOB-014 |
+| `logFrom` advances only when no dirty part has an uncovered record in an older segment | — |
+| A folder head is swapped only after every object it names is in the folder; while paused nothing is written | SF-BLOB-004 |
+| GC never sweeps with an incomplete mark set and never deletes an object inside the grace period | SF-BLOB-006 / SF-BLOB-007 (run aborted) |
+| An object that fails `verify` is quarantined and no longer served | SF-BLOB-002 |

@@ -2,6 +2,8 @@
 
 **Layer:** tooling (test-only). Depends on `@staticflux/core`, `runtime`, `auth`, `data`, `platform`, `storage`,
 `worker`, `router`, `urlstate`, `document` (v2 entry); `fast-check` drives property suites; `vitest` is a **peer** and is never imported at runtime (contract suites take
+
+`worker`, `router`, `urlstate`, `blob`; `vitest` is a **peer** and is never imported at runtime (contract suites take
 `describe`/`it` as parameters). Never import testkit from app or package source — only from `*.test.ts`.
 **Budget:** none (not shipped to browsers).
 
@@ -48,6 +50,11 @@ comparison, golden render snapshots, a real-GPU runner (Chromium on SwiftShader 
   `documentCrdtContractCases`: deterministic cases plus the **N-peer convergence property** (fast-check: move, reorder,
   text, marks, set, create, delete under random partitions and heals → identical canonical bytes, valid tree, handles released).
   Reproduce a failure with the printed `seed`.
+
+- `blob-store-contract.ts` — `runBlobStoreContract(name, factory() → { store, corrupt?, cleanup? }, runner, { skip })`,
+  `blobStoreContractCases` (`@staticflux/blob` `BlobStore`: digests, dedupe, chunking above 8 MiB, ranges, encoding,
+  quarantine, abort, `putEncoded`, dispose). Runs in Vitest (memory; directory over the memory FS, both write modes)
+  and in Chromium over real OPFS (`blob-store-contract.browser.ts`: main thread + dedicated worker; `pnpm test:browser`).
 - `app.ts` — `bootTestApp({ units, overrides, subsystems, routes, router, initialUrl, session, time, telemetryLevel })` →
   `{ app, injector, router?, history?, session?, time?, get, shutdown, …TestTelemetry }` (boot failure throws SF-TEST-001);
   `fakeFrameSchedulerUnit(time)`.
@@ -138,6 +145,7 @@ import { describe, it } from 'vitest';
 runTransportContract('fetch', (fixture) => createFetchTransport({ baseUrl: '/api', fetch: fakeFetch(fixture) }), { describe, it });
 runHistoryContract('router memory', (url) => createRouterMemoryHistory({ initial: url }), { describe, it }, { level: 'adapter' });
 runStoreContract('memory', () => createMemoryStore(), { describe, it });
+runBlobStoreContract('memory', () => ({ store: createMemoryBlobStore() }), { describe, it });
 ```
 The transport fixture is addressed by path (`/echo`, `/query`, `/status/<n>`, `/hang`, `/stream`, `/stream-hang`, `/stream-fail`);
 the factory adapts it to its wire (see `contracts.test.ts` for a fake `fetch` speaking JSON + NDJSON). Suites use real timers
@@ -210,6 +218,8 @@ No size budget declared in `.size-limit.json` for this package.
 
 - Internal: `@staticflux/auth`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/urlstate`, `@staticflux/worker`
 - External: `fast-check` (4.10.2)
+
+- Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/urlstate`, `@staticflux/worker`
 
 Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.
 <!-- sf:generated:end -->

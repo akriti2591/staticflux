@@ -1,0 +1,56 @@
+{
+  "name": "@staticflux/blob",
+  "version": "0.1.0",
+  "description": "Content-addressed blob store: chunked hashing, OPFS backend with atomic heads, journal and leader tab, folder mirror, zip bundles, catalog-driven GC and quota helpers.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/test-helpers.ts",
+    "!src/browser-tests",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "staticflux": {
+    "layer": "vertical"
+  },
+  "dependencies": {
+    "@staticflux/core": "workspace:*",
+    "@staticflux/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "@staticflux/browser-test": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akriti2591/staticflux.git",
+    "directory": "packages/blob"
+  },
+  "homepage": "https://akriti2591.github.io/staticflux/",
+  "bugs": {
+    "url": "https://github.com/akriti2591/staticflux/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [
+    "staticflux",
+    "typescript",
+    "framework",
+    "client-side"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -123,3 +123,12 @@ Second consumer: the Instaflow editor (`docs/instaflow/`), written against `@sta
 - Change-set validation (B1/agents): component registry validates paths, kinds and values and publishes JSON Schema for
   agent tools (`registry.validateOps`, `registry.pathSchema`, `registry.jsonSchema`).
 - Workspace store (A3): `@staticflux/blob` implements the `DocumentStore` port (head CAS under Web Locks, blobs, log).
+
+### blob (Instaflow workspace store, A3)
+- Store worker: open the OPFS workspace, become leader through a Web Lock, recover Latest from head + journal, ack each edit only once journaled (`createWorkspaceStore`, `createStoreLeader`, `createLatestStore`).
+- Every other tab and worker: commit through the leader and survive its death without losing an acknowledged edit (`leader.commit`, resend until ack).
+- Document engine (`DocumentRepo`, A4): persist CRDT parts as opaque snapshots and records; compact incrementally; keep milestones and pins in the head (`LatestStore.updateHead`).
+- Import/media: hash large files in chunks with progress and cancel; range-read video by byte offset (`put(stream, { onProgress, signal })`, `get(ref, { range })`).
+- Folder mode: mirror the workspace to a picked folder in batches; go read-only with a one-click re-grant when permission lapses; notice external edits on focus (`createFolderMirror`).
+- Storage panel: usage/quota, persistence request, GC of unreferenced blobs after the grace period (`estimateStorage`, `requestPersistence`, `collectGarbage`).
+- `.iflow` export/import (C2): write a bundle with milestone parts copied as stored, read one in place, dedupe on import (`createZipWriter`, `openZip`, `addBlobToZip`, `importZipBlob`).

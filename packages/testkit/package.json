@@ -41,7 +41,11 @@
     "@staticflux/router": "workspace:*",
     "@staticflux/urlstate": "workspace:*",
     "@staticflux/document": "workspace:*",
-    "fast-check": "4.10.2"
+    "fast-check": "4.10.2",
+    "@staticflux/blob": "workspace:*"
+  },
+  "devDependencies": {
+    "@staticflux/browser-test": "workspace:*"
   },
   "peerDependencies": {
     "vitest": ">=5"

@@ -404,5 +404,48 @@
     "rolldown": false,
     "gzip": true,
     "limit": "1.21 MB"
+  },
+  {
+    "name": "@staticflux/blob (store worker: workspace store + Latest + leader)",
+    "path": "packages/blob/dist/index.js",
+    "import": "{ openOpfsDirectory, createWorkspaceStore, createLatestStore, createStoreLeader }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "12 KB"
+  },
+  {
+    "name": "@staticflux/blob (folder mirror)",
+    "path": "packages/blob/dist/index.js",
+    "import": "{ createFolderMirror }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "6.5 KB"
+  },
+  {
+    "name": "@staticflux/blob (zip bundle)",
+    "path": "packages/blob/dist/index.js",
+    "import": "{ createZipWriter, openZip, addBlobToZip, importZipBlob }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "@staticflux/blob (full)",
+    "path": "packages/blob/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "21 KB"
   }
 ]

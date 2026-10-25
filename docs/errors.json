@@ -249,6 +249,90 @@
       "fix": "Await the pending login (or `session.whenSettled()`) instead of starting another."
     },
     {
+      "code": "SF-BLOB-001",
+      "kind": "quota",
+      "summary": "The storage quota was exceeded; the write was rejected and nothing was published.",
+      "fix": "Free space (empty the trash, then run GC), call `requestPersistence()` so the browser does not evict, or move the workspace to a folder. Check `estimateStorage()` before large imports."
+    },
+    {
+      "code": "SF-BLOB-002",
+      "kind": "validation",
+      "summary": "An object does not match its digest; it was moved to quarantine and is no longer served.",
+      "fix": "The bytes were changed outside the store (a folder edited by another program, disk corruption). Re-import the original, or restore the object from another copy; `details.quarantined` names the quarantine path."
+    },
+    {
+      "code": "SF-BLOB-003",
+      "kind": "conflict",
+      "summary": "Head compare-and-swap conflict: the head generation changed since it was read.",
+      "fix": "Re-read the head, re-apply your change to it and retry (`heads.update()` does this). `details.current` holds the generation found."
+    },
+    {
+      "code": "SF-BLOB-004",
+      "kind": "forbidden",
+      "summary": "Write permission for the folder was lost; the store is read-only until permission is granted again.",
+      "fix": "Call `mirror.regrant()` from a user gesture (a button click) to ask for permission again; reads keep working from the OPFS copy meanwhile."
+    },
+    {
+      "code": "SF-BLOB-005",
+      "kind": "not-found",
+      "summary": "No object with this digest (or no file with this name) exists in the store.",
+      "fix": "Show a placeholder and offer to relink the original. A blob referenced by live content should never be missing: check that GC roots include every live head."
+    },
+    {
+      "code": "SF-BLOB-006",
+      "kind": "aborted",
+      "summary": "The blob store operation was aborted; nothing was published.",
+      "fix": "Usually expected (scope disposal, user cancel). Do not retry aborted work."
+    },
+    {
+      "code": "SF-BLOB-007",
+      "kind": "unavailable",
+      "summary": "The file system rejected a read or write.",
+      "fix": "Inspect `cause` and `details.op`/`details.path`. Transient errors (a file busy in another context) can be retried; a persistent failure means the backend is unusable, so degrade to read-only."
+    },
+    {
+      "code": "SF-BLOB-008",
+      "kind": "validation",
+      "summary": "Invalid input: a malformed digest, an out-of-bounds range, an empty name or an oversized record.",
+      "fix": "Digests are `sha256:` plus 64 lowercase hex characters; ranges are `{ start, end }` with 0 <= start <= end <= size; names have no `/`."
+    },
+    {
+      "code": "SF-BLOB-009",
+      "kind": "unavailable",
+      "summary": "A required browser API is missing (OPFS, sync access handles, Web Locks, `FileSystemFileHandle.move`).",
+      "fix": "Feature-detect with `detectOpfs()` before creating an OPFS store. Sync access handles exist only in dedicated workers; use `writeMode: \"writable\"` elsewhere. Chrome desktop supports everything this package needs."
+    },
+    {
+      "code": "SF-BLOB-010",
+      "kind": "validation",
+      "summary": "A head file could not be decoded (bad JSON or checksum); it was not written by an atomic swap.",
+      "fix": "Heads are only replaced by temp file + `move()`, so a torn head means something wrote it in place. Restore it from the folder mirror or a backup; do not CAS over it blindly."
+    },
+    {
+      "code": "SF-BLOB-011",
+      "kind": "validation",
+      "summary": "The input is not a valid zip bundle (missing end of central directory, bad signature, CRC mismatch, or a wrong first `mimetype` entry).",
+      "fix": "Check the file is the bundle you expect; a truncated download also fails this way. `details.reason` says which check failed."
+    },
+    {
+      "code": "SF-BLOB-012",
+      "kind": "invariant",
+      "summary": "The zip uses a feature this reader/writer does not support (zip64, encryption, multi-disk, or a method other than STORED/DEFLATE).",
+      "fix": "Bundles are limited to 65,535 entries and 4 GiB per entry and in total. Split very large exports, or keep large media out of the bundle."
+    },
+    {
+      "code": "SF-BLOB-013",
+      "kind": "invariant",
+      "summary": "The store, journal, leader or mirror was used after `dispose()`.",
+      "fix": "Create these in the owning scope and stop using them once the scope is disposed."
+    },
+    {
+      "code": "SF-BLOB-014",
+      "kind": "invariant",
+      "summary": "A write that only the leader may perform was attempted by a follower (journal append, compaction, head swap of Latest).",
+      "fix": "Send the write through `leader.commit()`; the leader applies it and acknowledges it. Only the leader session opens the journal."
+    },
+    {
       "code": "SF-CAP-001",
       "kind": "not-found",
       "summary": "No capability with this id is declared.",

@@ -8,7 +8,10 @@
     "src"
   ],
   "exclude": [
-    "src/**/*.test.ts"
+    "src/**/*.test.ts",
+    "src/**/*.browser.ts",
+    "src/**/*.worker.ts",
+    "src/**/*.opfs.ts"
   ],
   "references": [
     {
@@ -40,6 +43,9 @@
     },
     {
       "path": "../document"
+    },
+    {
+      "path": "../blob"
     }
   ]
 }

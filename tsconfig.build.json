@@ -102,6 +102,9 @@
     },
     {
       "path": "packages/devtools"
+    },
+    {
+      "path": "packages/blob"
     }
   ]
 }

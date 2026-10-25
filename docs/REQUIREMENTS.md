@@ -499,3 +499,19 @@
 - **R11.8j** The v1 `DocumentCRDT` interface and ECS engine (`@staticflux/document`) stay available and unchanged for existing
   consumers (Studio); `adaptToV1(part)` implements the v1 interface over any v2 part, so a v1 engine can move to Loro by
   configuration.
+
+## 9.3 Content-addressed blob store (`@staticflux/blob`; Instaflow SF-Δ1, SF-Δ2)
+
+- **R9.3a** A `BlobStore` port: `put(stream | bytes, { signal, mime, encoding, onProgress }) → Result<BlobRef>`, `get(digest | ref, { range })`, `stream(ref)`, `has`, `stat`, `verify`, `putEncoded`, `delete` (GC only), `list` (catalog rebuild only). Digests are `sha256:` of the decoded content; writes dedupe by digest.
+- **R9.3b** Chunked hashing: blobs up to 8 MiB are one object; larger blobs are 4 MiB chunk objects plus a canonical chunk manifest whose digest is the blob digest. Boundaries do not depend on how the input stream is split. Hashing is cancellable and reports progress.
+- **R9.3c** Backends implement one small `ObjectStore` port; hashing, chunking, encoding (`deflate-raw`), ranges, streaming and verification are implemented once on top, so every backend passes the same contract suite (memory, OPFS directory, folder).
+- **R9.3d** OPFS backend: objects published by temp file + `FileSystemFileHandle.move()`; `createWritable` for small immutable objects, sync access handles (dedicated worker) for the journal and objects ≥ 1 MiB.
+- **R9.3e** Heads: canonical JSON with a checksum, replaced only by temp + `move()` under a Web Lock with a `generation` compare-and-swap; torn heads are detected; recovery removes temp files under the head's lock.
+- **R9.3f** Journal: append-only framed records (length, CRC-32) in numbered segments; an append resolves only once durable; torn tails are dropped on replay; a reopened journal starts a new segment.
+- **R9.3g** Latest store: part snapshots + journal + head for one asset, engine-agnostic (opaque parts and records); records deduped by id; incremental compaction (at most N parts per head swap); per-part `cover` positions so recovery marks only uncovered parts dirty; a CAS conflict with another head writer is merged.
+- **R9.3h** Leader: one context per workspace holds a Web Lock and owns the writers; other contexts relay commits over BroadcastChannel and resend until acknowledged; the leader acknowledges only durable commits and recovers before accepting new ones.
+- **R9.3i** Folder mirror: in folder mode acknowledgements come from the OPFS journal; a flusher copies new immutable objects and changed log segments, applies deletions and then swaps folder heads, on idle, at most about once per second and always on milestone/close.
+- **R9.3j** Folder permission: a lapse pauses the mirror and makes the store read-only (`SF-BLOB-004`) while reads continue from OPFS; a re-grant from a user gesture runs a full sync; external head changes are detectable on focus.
+- **R9.3k** Garbage collection: mark from registered roots (a failing root aborts the run), sweep from a derived catalog inventory (never a directory listing), with a grace period (default 30 days) refreshed by every write or dedupe hit. The catalog is rebuildable from a listing.
+- **R9.3l** Zip bundles: streaming writer and in-place reader (end record + central directory, `Blob.slice`); STORED and DEFLATE entries; deflate-raw blobs copied without recompression and adopted on import after hashing; OCF-style `mimetype` first entry; no zip64 (explicit error).
+- **R9.3m** Quota and persistence helpers: `requestPersistence()`, `estimateStorage()` (usage, quota, available, persisted), `checkQuota()` pre-flight; quota errors surface as `SF-BLOB-001`.

@@ -1,0 +1,25 @@
+{
+  "name": "@staticflux/browser-test",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal real-browser test harness: serves package sources through Vite and runs *.browser.ts suites and *.scenario.ts scripts in Chromium via Playwright.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "staticflux": {
+    "layer": "tooling"
+  },
+  "dependencies": {
+    "playwright": "1.63.0",
+    "vite": "8.3.5"
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
+}
