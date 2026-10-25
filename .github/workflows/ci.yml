@@ -60,3 +60,7 @@ jobs:
       - run: pnpm test:browser
         env:
           SF_KILLS: '10'
+      # Vitest suites that need a real browser (they skip in the check job, which has no Chromium build).
+      - run: pnpm exec vitest run packages/worker/src/pipeline.chromium.test.ts
+        env:
+          NODE_PATH: ${{ github.workspace }}/tooling/browser-test/node_modules

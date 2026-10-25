@@ -5,12 +5,12 @@
  * and a module worker, plus a SharedArrayBuffer delta stream across them. Node has
  * none of these objects; the contract suites use duck-typed fakes.
  *
- * Skipped when Playwright is not installed (it resolves `playwright` from NODE_PATH
- * or /opt/node-tools/node_modules). A tiny cross-origin-isolated server transpiles the
+ * Skipped when Playwright or its Chromium build is not installed (it resolves `playwright` from NODE_PATH
+ * or /opt/node-tools/node_modules; CI's `check` job has the package via pnpm but no browser). A tiny cross-origin-isolated server transpiles the
  * workspace TypeScript on the fly; module workers get no import maps, so bare
  * specifiers are rewritten to served paths.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { createRequire } from 'node:module';
 import { dirname, join, normalize } from 'node:path';
@@ -23,6 +23,7 @@ const fixtures = join(root, 'packages', 'worker', 'test', 'browser');
 
 interface Playwright {
   chromium: {
+    executablePath(): string;
     launch(options: { args?: string[] }): Promise<{
       newPage(): Promise<{
         goto(url: string): Promise<unknown>;
@@ -38,7 +39,8 @@ function loadPlaywright(): Playwright | undefined {
   const bases = [...(process.env['NODE_PATH']?.split(':') ?? []), '/opt/node-tools/node_modules'].filter((b) => b.length > 0);
   for (const base of bases) {
     try {
-      return createRequire(join(base, 'noop.js'))('playwright') as Playwright;
+      const found = createRequire(join(base, 'noop.js'))('playwright') as Playwright;
+      if (existsSync(found.chromium.executablePath())) return found;
     } catch {
       // try the next location
     }
