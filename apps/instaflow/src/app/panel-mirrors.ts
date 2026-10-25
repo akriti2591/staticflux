@@ -11,10 +11,11 @@ import type { StructureFeed } from '../lenses/structure.js';
 import type { StoryWriter } from '../lenses/story.js';
 import type { RepeatEdit, RepeatModel } from '../repeat/inspector.js';
 import type { TypographyService } from '../text/typography.js';
+import type { TransformBarSource } from '../tools/transform-bar.js';
 import type { LatestService } from '../versioning/latest.js';
 import type { MilestonesPanelPort } from '../versioning/panel-model.js';
 import { type MirrorView, reportFailure } from '../workers/mirror.js';
-import type { AppearanceMirrorShape, LatestMirrorShape, MilestonesMirrorShape, RepeatMirrorShape, StoryMirrorShape, TypographyMirrorShape } from '../workers/mirrors.js';
+import type { AppearanceMirrorShape, LatestMirrorShape, MilestonesMirrorShape, RepeatMirrorShape, StoryMirrorShape, TransformMirrorShape, TypographyMirrorShape } from '../workers/mirrors.js';
 import { DocumentOpenError } from './errors.js';
 
 type Problem = (error: SfError) => void;
@@ -34,6 +35,16 @@ export function repeatSource(view: MirrorView<RepeatMirrorShape>, onProblem: Pro
     model: () => view.read('model'),
     subscribe: (listener) => view.onChange(listener),
     apply: (edit) => reportFailure(view.call('apply', edit), onProblem),
+  };
+}
+
+/** B10a's numeric transform bar source (`bindTransformBar`). */
+export function transformSource(view: MirrorView<TransformMirrorShape>, onProblem: Problem): TransformBarSource {
+  return {
+    model: () => view.read('model'),
+    subscribe: (listener) => view.onChange(listener),
+    apply: (edit) => reportFailure(view.call('apply', edit), onProblem),
+    session: (action) => reportFailure(view.call(action), onProblem),
   };
 }
 

@@ -111,6 +111,10 @@ export interface InspectedElement {
   readonly w: number;
   readonly h: number;
   readonly rotation: number;
+  /** B10a. */
+  readonly skewX: number;
+  readonly flipX: boolean;
+  readonly flipY: boolean;
   readonly text?: string;
 }
 
@@ -124,6 +128,8 @@ export interface StudioInspection {
   readonly editing?: { readonly node: NodeId; readonly text: string };
   /** B3's selection frame corners (page space), when there is one. */
   readonly frame?: readonly (readonly [number, number])[];
+  /** B10a: the transform session's state and the pivot (frame fractions; undefined = the centre). */
+  readonly transform?: { readonly mode: string; readonly pivot?: readonly [number, number] };
   readonly docVersion: number;
   readonly records: number;
   readonly undo: number;

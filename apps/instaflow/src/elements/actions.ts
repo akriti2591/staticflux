@@ -235,7 +235,7 @@ export function tidyUp(ctx: ActionContext, nodes: readonly NodeId[]): Result<Par
 // ---------------------------------------------------------------- local values (copies keep tokens and classes)
 
 const STYLE_PATHS = [P.fills, P.strokes, P.radius, ...CORNER_PATHS, P.smoothing, P.effects, P.inherit] as const;
-const SPATIAL_PATHS = [P.x, P.y, P.w, P.h, P.rotation, P.scaleX, P.scaleY, P.anchorX, P.anchorY, P.opacity, P.blend, P.flipX, P.flipY] as const;
+const SPATIAL_PATHS = [P.x, P.y, P.w, P.h, P.rotation, P.scaleX, P.scaleY, P.anchorX, P.anchorY, P.opacity, P.blend, P.flipX, P.flipY, P.skewX] as const;
 
 /** The node's own (local-layer) opinions: what a copy must carry so it inherits and follows tokens like the source. */
 export function localValues(stage: Pick<Stage, 'read'>, node: NodeId): Record<PropertyPath, JsonValue> {
@@ -329,7 +329,7 @@ export function flatten(ctx: ActionContext, node: NodeId): Result<PartOp[]> {
   if (el.geometry.kind === 'boolean') {
     const b = ctx.geometry.bounds(outline.value, [1, 0, 0, 1, 0, 0]);
     if (!b.ok) return b;
-    const plain = el.box.rotation === 0 && el.box.scaleX === 1 && el.box.scaleY === 1 && !el.box.flipX && !el.box.flipY;
+    const plain = el.box.rotation === 0 && el.box.scaleX === 1 && el.box.scaleY === 1 && !el.box.flipX && !el.box.flipY && el.box.skewX === 0;
     if (plain) {
       const moved = ctx.geometry.transform(outline.value, [1, 0, 0, 1, -b.value.minX, -b.value.minY]);
       if (!moved.ok) return moved;

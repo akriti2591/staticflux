@@ -17,7 +17,7 @@ describe('the tool keymap (no Wasm)', () => {
     expect(checkShortcuts(defs).filter((i) => i.severity === 'error')).toEqual([]);
     expect(TOOL_KEYMAP.find((b) => b.id === 'instaflow/arrow-left-large')?.keys).toEqual(['Shift+ArrowLeft']);
     expect(TOOL_KEYMAP.find((b) => b.id === 'instaflow/resize-up')?.keys).toEqual(['Mod+Alt+ArrowUp']);
-    expect(ARROW_ACTIONS).toEqual({ select: 'nudge', hand: 'pan' });
+    expect(ARROW_ACTIONS).toEqual({ select: 'nudge', hand: 'pan', transform: 'nudge' });
     expect(CanvasToolsShortcutScope.parent?.id).toBe('instaflow/studio');
   });
 });

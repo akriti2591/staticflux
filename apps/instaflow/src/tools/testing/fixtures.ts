@@ -11,6 +11,7 @@ import { brandKitOps, brandRuleGuard, composeGuards, elementStageRules, readBran
 import type { GeometryService } from '../../elements/geometry.js';
 import type { ToolSession } from '../gesture.js';
 import { createElementIndex, type ElementIndex, type ToolContext } from '../hit-test.js';
+import { createTransformMode } from '../transform-mode.js';
 import { createViewState, type ViewState } from '../view-state.js';
 
 export { authoringBuilt, human, agent, PAGE, shape, unwrap } from '../../elements/testing/fixtures.js';
@@ -54,7 +55,8 @@ export async function createToolFixture(ops: readonly PartOp[] = []): Promise<To
   const ctx = { stage, geometry, kit };
   const index = createElementIndex(ctx, 'p1', scope);
   const view = createViewState({ tab: 't1', root: 'p1', viewport: { width: 1000, height: 800 } });
-  const tools: ToolSession = { ctx, target: { undo, stage, part: PAGE }, session, index, view, actor: () => human };
+  const base = { ctx, target: { undo, stage, part: PAGE }, session, index, view, actor: () => human };
+  const tools: ToolSession = { ...base, mode: createTransformMode(base, scope) };
   return {
     doc,
     part,

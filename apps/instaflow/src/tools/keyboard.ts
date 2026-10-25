@@ -12,23 +12,32 @@
  * | Enter / Shift+Enter | enter the selection (select its children) / select the parent |
  * | Escape | clear the selection (and leave the entered container) |
  * | Mod+= / Mod+- / Shift+0 / Shift+1 / Shift+2 | zoom in / out / 100 % / fit everything / fit the selection |
+ * | Shift+H / Shift+V | flip the selection horizontally / vertically over its pivot (B10a) |
+ * | Mod+T | transform mode (B10a): all handles and the pivot; then Enter commits, Escape cancels the whole session |
  *
- * Each nudge, resize or rotate is one change set (one undo step) through B1's `commitEdit`; position-locked elements
- * stay put (IF-TOOL-002 when nothing can move). The arrow keys' meaning per tool is data (`ARROW_ACTIONS`).
+ * Each nudge, resize, rotate or flip is one change set (one undo step) through B1's `commitEdit`, or one step of the
+ * active transform session (`applyTransform`); position-locked elements stay put (IF-TOOL-002 when nothing can move).
+ * Rotation works about the selection's pivot. The arrow keys' meaning per tool is data (`ARROW_ACTIONS`); Enter and
+ * Escape mean commit and cancel while a session is active because its shortcut scope (`TransformModeShortcutScope`, a
+ * child of the canvas scope) is active then (`TRANSFORM_MODE_KEYMAP`), never by a branch.
  */
 import { defineShortcut, defineShortcutScope, type KeyCombo, type ShortcutRegistry } from '@staticflux/a11y';
-import { ok, type Result, type Scope } from '@staticflux/core';
+import { err, ok, type Result, type Scope } from '@staticflux/core';
 import type { NodeId } from '@staticflux/document/v2';
-import { commitEdit } from '../elements/actions.js';
 import { isElement } from '../elements/layout.js';
+import { TransformModeStateError } from './errors.js';
+import { type FlipAxis, flipValues, numericValues, pivotPoint, skewByValues, type TransformEdit } from './free-transform.js';
 import { pruneSelection, refreshOverlay, type ToolBehaviour, TOOL_BEHAVIOURS, type ToolOutcome, type ToolSession } from './gesture.js';
 import { canvasSelectable, elementsInPaintOrder, selectionBounds } from './hit-test.js';
-import { captureTransform, moveValues, resizeByValues, rotateValues, ROTATE_STEP, valuesToOps } from './transform.js';
+import { applyTransform } from './transform-mode.js';
+import { moveValues, resizeByValues, rotateValues, ROTATE_STEP, type SpatialValues, type TransformStart } from './transform.js';
 import { fitCamera, stepZoom } from './view-state.js';
 
 /** Studio's shortcut scope (`StudioShortcutScope`, same id): the canvas scope is its child, so canvas keys win while the canvas has focus. */
 const StudioScope = /* @__PURE__ */ defineShortcutScope('instaflow/studio');
 export const CanvasToolsShortcutScope = /* @__PURE__ */ defineShortcutScope('instaflow/canvas-tools', { parent: StudioScope });
+/** B10a: active while a transform session is (its Enter and Escape shadow the canvas scope's). */
+export const TransformModeShortcutScope = /* @__PURE__ */ defineShortcutScope('instaflow/transform-mode', { parent: CanvasToolsShortcutScope });
 
 export const NUDGE = Object.freeze({ step: 1, large: 10 });
 /** Hand-tool keyboard pan step in screen pixels. */
@@ -38,7 +47,7 @@ export type Direction = 'left' | 'right' | 'up' | 'down';
 const VECTORS: Readonly<Record<Direction, readonly [number, number]>> = Object.freeze({ left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] });
 
 /** What the arrow keys do per tool behaviour (data, rule 4). */
-export const ARROW_ACTIONS: Readonly<Record<ToolBehaviour, 'nudge' | 'pan'>> = Object.freeze({ select: 'nudge', hand: 'pan' });
+export const ARROW_ACTIONS: Readonly<Record<ToolBehaviour, 'nudge' | 'pan'>> = Object.freeze({ select: 'nudge', hand: 'pan', transform: 'nudge' });
 
 export interface ToolCommands {
   arrow(direction: Direction, large: boolean): Result<ToolOutcome>;
@@ -55,9 +64,28 @@ export interface ToolCommands {
   zoomTo(zoom: number): Result<ToolOutcome>;
   fitAll(): Result<ToolOutcome>;
   fitSelection(): Result<ToolOutcome>;
+  /** B10a: flip the selection over its pivot. */
+  flip(axis: FlipAxis): Result<ToolOutcome>;
+  /** B10a: skew the selection by angles (degrees) about its pivot. */
+  skewBy(x: number, y: number): Result<ToolOutcome>;
+  /** B10a: one numeric transform bar edit on the selection (about its pivot). */
+  numeric(edit: TransformEdit): Result<ToolOutcome>;
+  /** B10a: start a transform session on the selection (Mod+T). */
+  transform(): Result<ToolOutcome>;
+  /** B10a: commit the transform session as one undo step (Enter). */
+  commitTransform(): Result<ToolOutcome>;
+  /** B10a: cancel the whole transform session (Escape). */
+  cancelTransform(): Result<ToolOutcome>;
 }
 
 const NONE: ToolOutcome = Object.freeze({ kind: 'none' });
+
+/** Undo labels of the flips. */
+export const FLIP_LABELS: Readonly<Record<FlipAxis, string>> = Object.freeze({ horizontal: 'Flip horizontal', vertical: 'Flip vertical' });
+
+/** Undo labels of the numeric bar's fields. */
+export const NUMERIC_LABELS = Object.freeze({ x: 'Move', y: 'Move', w: 'Resize', h: 'Resize', rotation: 'Rotate', skew: 'Skew' } as const);
+const numericLabel = (edit: TransformEdit): string => ('flip' in edit ? FLIP_LABELS[edit.flip] : NUMERIC_LABELS[edit.field]);
 
 /** The keyboard commands of one tab (see the module header). */
 export function createToolCommands(s: ToolSession): ToolCommands {
@@ -65,15 +93,17 @@ export function createToolCommands(s: ToolSession): ToolCommands {
     refreshOverlay(s);
     return { kind: 'selection', selection: s.view.selection };
   };
-  const commit = (label: string, values: (start: Parameters<typeof valuesToOps>[0]) => Parameters<typeof valuesToOps>[1]): Result<ToolOutcome> => {
+  const commit = (label: string, values: (start: TransformStart) => Result<readonly SpatialValues[]> | readonly SpatialValues[]): Result<ToolOutcome> => {
     pruneSelection(s);
-    const start = captureTransform(s.ctx, s.view.selection);
-    if (!start.ok) return start;
-    const ops = valuesToOps(start.value, values(start.value));
-    if (ops.length === 0) return ok(NONE);
-    const committed = commitEdit(s.target, s.actor(), label, ok(ops));
+    const done = applyTransform(s, label, values);
     refreshOverlay(s);
-    return committed.ok ? ok({ kind: 'committed', label, ops: ops.length }) : committed;
+    return done;
+  };
+  const session = (run: (mode: NonNullable<ToolSession['mode']>) => Result<ToolOutcome>): Result<ToolOutcome> => {
+    if (s.mode === undefined) return err(TransformModeStateError({ message: 'This tab has no transform mode.', details: { state: 'none' } }));
+    const done = run(s.mode);
+    refreshOverlay(s);
+    return done;
   };
   const siblings = (): NodeId[] => s.ctx.stage.children(s.view.context).filter((n) => isElement(s.ctx.stage.read(n)?.kind) && canvasSelectable(s.ctx.stage, n));
   const fit = (box: Parameters<typeof fitCamera>[0] | undefined): Result<ToolOutcome> => {
@@ -96,7 +126,7 @@ export function createToolCommands(s: ToolSession): ToolCommands {
       return r.ok ? ok(NONE) : r;
     },
     resizeBy: (dw, dh) => commit('Resize', (start) => resizeByValues(start, dw, dh)),
-    rotateBy: (degrees) => commit('Rotate', (start) => rotateValues(start, degrees)),
+    rotateBy: (degrees) => commit('Rotate', (start) => rotateValues(start, degrees, pivotPoint(start.frame, s.view.pivot))),
     selectSibling(step, extend) {
       const list = siblings();
       if (list.length === 0) return ok(NONE);
@@ -149,6 +179,16 @@ export function createToolCommands(s: ToolSession): ToolCommands {
       const b = selectionBounds(s.ctx, s.view.selection);
       return b.ok ? fit(b.value) : b;
     },
+    flip: (axis) => commit(FLIP_LABELS[axis], (start) => flipValues(start, axis, s.view.pivot)),
+    numeric: (edit) => commit(numericLabel(edit), (start) => numericValues(start, edit, s.view.pivot)),
+    skewBy: (x, y) => commit('Skew', (start) => skewByValues(start, x, y, s.view.pivot)),
+    transform: () =>
+      session((mode) => {
+        pruneSelection(s);
+        return mode.enter();
+      }),
+    commitTransform: () => session((mode) => mode.commit()),
+    cancelTransform: () => session((mode) => mode.cancel()),
   };
   return commands;
 }
@@ -206,14 +246,29 @@ export const TOOL_KEYMAP: readonly ToolKeyBinding[] = Object.freeze([
   { id: 'instaflow/zoom-100', keys: ['Shift+0'], description: 'Zoom to 100 %', run: (c) => c.zoomTo(1) },
   { id: 'instaflow/zoom-fit', keys: ['Shift+1'], description: 'Zoom to fit everything', run: (c) => c.fitAll() },
   { id: 'instaflow/zoom-selection', keys: ['Shift+2'], description: 'Zoom to the selection', run: (c) => c.fitSelection() },
+  { id: 'instaflow/flip-h', keys: ['Shift+H'], description: 'Flip horizontal', run: (c) => c.flip('horizontal') },
+  { id: 'instaflow/flip-v', keys: ['Shift+V'], description: 'Flip vertical', run: (c) => c.flip('vertical') },
+  // Browsers reserve Mod+T for a new tab outside full screen and installed apps; the HUD's Free transform does the same.
+  { id: 'instaflow/free-transform', keys: ['Mod+T'], description: 'Free transform (Enter applies, Escape cancels)', run: (c) => c.transform() },
+]);
+
+/** B10a: the keys of an active transform session (`TransformModeShortcutScope`). */
+export const TRANSFORM_MODE_KEYMAP: readonly ToolKeyBinding[] = Object.freeze([
+  { id: 'instaflow/transform-commit', keys: ['Enter'], description: 'Apply the transform', run: (c) => c.commitTransform() },
+  { id: 'instaflow/transform-cancel', keys: ['Escape'], description: 'Cancel the whole transform', run: (c) => c.cancelTransform() },
 ]);
 
 /** Register the tool shortcuts for the lifetime of `scope` (the canvas activates `CanvasToolsShortcutScope` while focused). */
 export function bindToolShortcuts(registry: ShortcutRegistry, commands: ToolCommands, scope: Scope, onOutcome: (r: Result<ToolOutcome>) => void = () => undefined): Result<void> {
-  for (const binding of TOOL_KEYMAP) {
-    const def = defineShortcut({ id: binding.id, keys: binding.keys, scope: CanvasToolsShortcutScope, description: binding.description, allowInInputs: false });
-    const registered = registry.register(def, () => onOutcome(binding.run(commands)), { scope });
-    if (!registered.ok) return registered;
+  for (const [bindings, shortcutScope] of [
+    [TOOL_KEYMAP, CanvasToolsShortcutScope],
+    [TRANSFORM_MODE_KEYMAP, TransformModeShortcutScope],
+  ] as const) {
+    for (const binding of bindings) {
+      const def = defineShortcut({ id: binding.id, keys: binding.keys, scope: shortcutScope, description: binding.description, allowInInputs: false });
+      const registered = registry.register(def, () => onOutcome(binding.run(commands)), { scope });
+      if (!registered.ok) return registered;
+    }
   }
   return ok();
 }

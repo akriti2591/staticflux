@@ -106,10 +106,12 @@ export const Spatial = defineComponent(
     blend: field.enum(BLEND_MODE_NAMES),
     flipX: 'bool',
     flipY: 'bool',
+    skewX: 'f64',
   },
   {
-    defaults: { x: 0, y: 0, w: 0, h: 0, rotation: 0, scaleX: 1, scaleY: 1, anchorX: 0.5, anchorY: 0.5, opacity: 1, blend: 'normal', flipX: false, flipY: false },
-    description: 'Box in the parent’s space: x, y = top-left of the unrotated box; rotation (degrees, clockwise) and flips about the anchor (fractions of w, h).',
+    defaults: { x: 0, y: 0, w: 0, h: 0, rotation: 0, scaleX: 1, scaleY: 1, anchorX: 0.5, anchorY: 0.5, opacity: 1, blend: 'normal', flipX: false, flipY: false, skewX: 0 },
+    description:
+      'Box in the parent’s space: x, y = top-left of the unrotated box; rotation (degrees, clockwise), flips and a horizontal skew (degrees, the side edges lean right for positive values; B10a) about the anchor (fractions of w, h).',
   },
 );
 
@@ -288,6 +290,7 @@ export const P = {
   blend: 'spatial.blend',
   flipX: 'spatial.flipX',
   flipY: 'spatial.flipY',
+  skewX: 'spatial.skewX',
   shape: 'geometry.shape',
   sides: 'geometry.sides',
   ratio: 'geometry.ratio',

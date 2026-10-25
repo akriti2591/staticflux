@@ -82,6 +82,8 @@ export function brandTokenRule(kit: AssetRef): TokenRule {
 export function elementStageRules(kit?: AssetRef): Partial<StageRules> {
   return {
     notInherited: [...DEFAULT_STAGE_RULES.notInherited, 'lineage.', 'mask.', 'layout.', 'brand.'],
+    // B10a's skew is part of the position: position locks cover it like rotation and flips.
+    positionPaths: [...DEFAULT_STAGE_RULES.positionPaths, P.skewX],
     ...(kit === undefined ? {} : { token: brandTokenRule(kit) }),
   };
 }

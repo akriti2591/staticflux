@@ -46,6 +46,7 @@ import { createLibraryServices } from '../library/units.js';
 import { REPEAT_PANEL_ID } from '../repeat/contributions.js';
 import { bindRepeatInspector, defineRepeatInspector, type IfRepeatInspectorElement } from '../repeat/panel.js';
 import { editDocumentCapability, proposeSpecCapability } from '../spec/capabilities.js';
+import { StudioIds } from '../spec/studio-ids.js';
 import type { ActionId, PanelContribution, ToolId } from '../spec/contributions.js';
 import { gateSpecDecide } from '../spec/gate.js';
 import type { EditorRegistries } from '../spec/registries.js';
@@ -53,6 +54,8 @@ import type { ScopeRef } from '../spec/schema.js';
 import { createStudio, type Studio } from '../studio/studio.js';
 import { defineStudio, type IfStudioElement } from '../studio/studio-element.js';
 import { TEXT_HUD_COMMANDS } from '../text/commands.js';
+import { TOOL_HUD_COMMANDS } from '../tools/contributions.js';
+import { bindTransformBar, defineTransformBar, type IfTransformBarElement } from '../tools/transform-bar.js';
 import { type TypographyService, TypographyServiceToken } from '../text/typography.js';
 import { defineTypographyPanel } from '../text/typography-panel.js';
 import type { Camera } from '../tools/view-state.js';
@@ -61,12 +64,12 @@ import { defineSaveStatus } from '../versioning/save-status.js';
 import { LatestServiceToken, MilestonesPanelModelToken } from '../versioning/tokens.js';
 import { type BootStudioWorkersOptions, bootStudioWorkers, type StudioWorkers } from '../workers/boot.js';
 import { createMirrorHub, type MirrorHub } from '../workers/mirror.js';
-import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, StoryMirror, TypographyMirror } from '../workers/mirrors.js';
+import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, StoryMirror, TransformMirror, TypographyMirror } from '../workers/mirrors.js';
 import type { InspectedElement, StudioDocumentRef, StudioInspection, StudioMetrics, ViewProjection } from '../workers/protocol.js';
 import { fromWire } from '../workers/wire.js';
 import type { StudioWorkspace } from './document.js';
 import { NoOpenPageError } from './errors.js';
-import { appearanceSource, latestFromMirror, milestonesFromMirror, repeatSource, storyFromMirror, structureFromMirror, typographyFromMirror } from './panel-mirrors.js';
+import { appearanceSource, latestFromMirror, milestonesFromMirror, repeatSource, storyFromMirror, structureFromMirror, transformSource, typographyFromMirror } from './panel-mirrors.js';
 import { studioAppRegistries } from './registries.js';
 import { type CanvasHandoffFactory, type StudioCanvas, studioCanvas } from './studio-canvas.js';
 
@@ -180,7 +183,9 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   // ---------------------------------------------------------------- panel sources
   const appearance = appearanceSource(hub.view(AppearanceMirror), problem);
   const repeat = repeatSource(hub.view(RepeatMirror), problem);
+  const transformBar = transformSource(hub.view(TransformMirror), problem);
   const BINDERS: Readonly<Record<string, (element: Element) => () => void>> = {
+    [StudioIds.panel.transform]: (element) => bindTransformBar(element as IfTransformBarElement, transformBar),
     [APPEARANCE_PANEL_ID]: (element) => bindPaintInspector(element as IfPaintInspectorElement, appearance),
     [REPEAT_PANEL_ID]: (element) => bindRepeatInspector(element as IfRepeatInspectorElement, repeat),
   };
@@ -352,7 +357,8 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   const runHudAction = async (action: ActionId): Promise<Result<unknown>> => {
     const hud = registries.value.hud(action);
     if (hud === undefined) return ok(undefined);
-    if (TEXT_HUD_COMMANDS[action] !== undefined) {
+    // Editor commands behind HUD actions (B2's text commands, B10a's Free transform): no capability, run in the editor.
+    if (TEXT_HUD_COMMANDS[action] !== undefined || TOOL_HUD_COMMANDS[action] !== undefined) {
       const done = await editor.request('hud', { action });
       if (!done.ok) problem(done.error);
       return done;
@@ -429,6 +435,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       defineStudio();
       definePaintInspector();
       defineRepeatInspector();
+      defineTransformBar();
       defineTypographyPanel();
       defineSaveStatus();
       const provided = provideScope(container, { injector, name: 'instaflow/studio' });

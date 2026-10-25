@@ -30,6 +30,8 @@ export const StudioIds = Object.freeze({
     milestones: 'instaflow/milestones',
     appearance: 'instaflow/appearance',
     repeat: 'instaflow/repeat',
+    // B10a: the numeric transform bar.
+    transform: 'instaflow/transform',
   },
   hud: {
     rewrite: 'instaflow/rewrite',

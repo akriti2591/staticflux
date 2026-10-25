@@ -27,6 +27,8 @@ export interface ElementBox {
   readonly anchorY: number;
   readonly flipX: boolean;
   readonly flipY: boolean;
+  /** Horizontal skew in degrees (B10a): local x' = x + tan(skewX)·y before flips, scale and rotation. */
+  readonly skewX: number;
 }
 
 export type GradientStop = readonly [offset: number, color: Rgba8];
@@ -137,7 +139,10 @@ export function applyAffine(t: Affine, x: number, y: number): readonly [number, 
   return [t[0] * x + t[2] * y + t[4], t[1] * x + t[3] * y + t[5]];
 }
 
-/** Local → parent transform of a box: rotation (degrees, clockwise), scale and flips about the anchor. */
+/**
+ * Local → parent transform of a box about the anchor: linear part `R · D · K` with K the horizontal skew
+ * (`[[1, tan skewX], [0, 1]]`, B10a), D the scale and flips, R the rotation (degrees, clockwise).
+ */
 export function boxTransform(box: ElementBox): Affine {
   const ax = box.anchorX * box.w;
   const ay = box.anchorY * box.h;
@@ -146,7 +151,10 @@ export function boxTransform(box: ElementBox): Affine {
   const sin = Math.sin(r);
   const sx = box.scaleX * (box.flipX ? -1 : 1);
   const sy = box.scaleY * (box.flipY ? -1 : 1);
-  const linear: Affine = [cos * sx, sin * sx, -sin * sy, cos * sy, 0, 0];
+  const k = box.skewX === 0 ? 0 : Math.tan((box.skewX * Math.PI) / 180);
+  // R · D = [cos·sx, sin·sx, −sin·sy, cos·sy]; · K adds k × the first column to the second.
+  // Without skew the terms stay exactly B1's (−0 included: scene bytes and goldens do not change).
+  const linear: Affine = k === 0 ? [cos * sx, sin * sx, -sin * sy, cos * sy, 0, 0] : [cos * sx, sin * sx, -sin * sy + k * cos * sx, cos * sy + k * sin * sx, 0, 0];
   const [ox, oy] = applyAffine(linear, -ax, -ay);
   return [linear[0], linear[1], linear[2], linear[3], box.x + ax + ox, box.y + ay + oy];
 }
@@ -164,6 +172,7 @@ export function readBox(values: Readonly<Record<string, JsonValue>>): ElementBox
     anchorY: num(values[P.anchorY], 0.5),
     flipX: values[P.flipX] === true,
     flipY: values[P.flipY] === true,
+    skewX: num(values[P.skewX], 0),
   };
 }
 

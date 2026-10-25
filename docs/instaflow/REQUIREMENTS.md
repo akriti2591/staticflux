@@ -1200,3 +1200,64 @@ Supersedes IF-27.4 (B8's one-realm placement).
 | `IF-WRK-004` | The editor does not implement this capability |
 | `IF-WRK-005` | The store port is closed or did not answer |
 | `IF-WRK-006` | The canvas could not be handed to the render module |
+
+## 34. Transform tools, basics (M1c B10a)
+
+Code: `apps/instaflow/src/tools` (`free-transform.ts`, `transform-mode.ts`, `transform-bar.ts`, and B3's `transform.ts`,
+`gesture.ts`, `keyboard.ts`, `overlay.ts`, `view-state.ts`, `contributions.ts`), the model field in
+`apps/instaflow/src/elements` (`spatial.skewX`), the wiring in `apps/instaflow/src/app` and `apps/instaflow/src/workers`,
+the smoke `apps/instaflow/test/smoke`. Error codes `IF-XF-001…002`. Lifecycle: LIFECYCLES §36. Distort, perspective and
+warp are B10b (early M2).
+
+- **IF-34.1** **Flip horizontal and vertical** (Shift+H, Shift+V, HUD, capabilities `instaflow/flip-horizontal` /
+  `instaflow/flip-vertical`) mirror the selection over its pivot: one element along its own axes (its rotation stays,
+  `flipX` / `flipY` toggles), several along the page axes. Flipping twice is the identity.
+- **IF-34.2** A resize dragged **past the opposite edge** (or the pivot, with Alt) flips the box over the fixed point on that
+  axis instead of stopping at the minimum size; the magnitude is never below 1.
+- **IF-34.3** **Skew**: Mod-drag a side handle — top and bottom lean the frame horizontally, left and right vertically —
+  about the opposite edge (Alt: the pivot). One element skews in its own frame (rotated, flipped and nested elements alike);
+  the steepest lean is ±80°.
+- **IF-34.4** With Shift a skew snaps the edge's lean (the element's existing skew included) to 15° steps.
+- **IF-34.5** The box model carries a horizontal skew, `spatial.skewX` (degrees; local transform rotation · flips and scale ·
+  skew about the anchor); any page-space affine of an element is written back as rotation, skew, flips and size, so every
+  B10a transform composes with B3's. Position locks cover the skew.
+- **IF-34.6** **The pivot (reference point)** is per selection, in selection-frame fractions (default the centre), held in the
+  tab's view state: never in the document or the store; it resets when the selected set changes.
+- **IF-34.7** The pivot handle is shown in transform mode and whenever the pivot is not the centre; dragging it snaps to the
+  frame's nine reference points (Mod: free); Alt prefers it over a resize handle under it; **Alt-click resets it** to the
+  centre. Rotate (pointer, keys, `rotate-by`) and Alt-resize work about it, and keep it fixed.
+- **IF-34.8** **The numeric transform bar** (`instaflow/transform`, a B0 panel contribution in the inspector, first on a
+  selection, Canvas lens) shows X, Y, W, H, the angle and the skew: one element's box in its parent, or several elements'
+  frame on the page.
+- **IF-34.9** A bar edit is one undo step (or one step of the active session); W and H can be linked (the ratio is kept); the
+  bar also flips; out-of-range or non-finite values are `IF-XF-001` (W and H ≥ 1, skew within ±80°).
+- **IF-34.10** The bar is kit components only under Clean Pop and keyboard-first: Enter or leaving a field applies it,
+  ArrowUp / ArrowDown step by 1 (Shift: 10) and apply at once; it passes the full a11y audit.
+- **IF-34.11** The bar runs on main over the editor's `TransformMirror` (reads: the model and whether a session is active;
+  actions: apply, commit, cancel); the editor computes everything (B9's mirror path).
+- **IF-34.12** While a session is active the bar shows Apply and Cancel and says how to finish (Enter / Escape).
+- **IF-34.13** **Mod+T** (and the HUD's Free transform, since browsers reserve Mod+T outside full screen and installed apps)
+  starts a transform session on the selection: all handles, the pivot and a thicker frame.
+- **IF-34.14** In a session every drag, key command and bar edit is a session-layer preview the next one builds on; a press
+  outside the frame rotates; a cancelled step restores the staged previews.
+- **IF-34.15** **Enter commits the whole session as one undo step**; Escape cancels the whole session (nothing written); Undo
+  during a session cancels it; a new selected set commits it; a page switch cancels it. `IF-XF-002` for commit or cancel
+  without a session.
+- **IF-34.16** Enter and Escape mean apply and cancel only while a session is active, through its own shortcut scope (a child
+  of the canvas scope); otherwise they keep B3's meaning (select children, deselect).
+- **IF-34.17** A session stages only the fields that differ from where it started, so it never hides a concurrent change by
+  an agent or a collaborator when it shows its previews again.
+- **IF-34.18** Every transform is a **capability agents can call**: `flip-horizontal`, `flip-vertical`, `skew-by` (x and y in
+  degrees), `set-transform` (X, Y, W, H, angle, skew in that order, linked W/H, one undo step), and B3's `rotate-by`; each
+  takes an optional page `pivot`. Locks apply (`IF-TOOL-002`).
+- **IF-34.19** Skew, flips and the pivot handle live in the editor worker (B9): pointer and keys arrive through the input
+  ring; the overlay (pivot ring and cross hair, the session's frame) travels in the scene record with the content.
+- **IF-34.20** Every transform keeps working on rotated and nested elements (children of rotated frames and groups).
+- **IF-34.21** The smoke test, in both topologies: flip (Shift+H twice is the identity), skew (Mod+Shift-drag the top handle of
+  the rotated rectangle, 15° steps), a numeric-bar edit (W typed + Enter, one undo step) and a transform session (Escape
+  cancels, Enter applies a nudge and a flip as one undo step).
+
+| Code | Meaning |
+|---|---|
+| `IF-XF-001` | A numeric transform value is not a finite number in its range |
+| `IF-XF-002` | A transform session was committed or cancelled while none was active |
