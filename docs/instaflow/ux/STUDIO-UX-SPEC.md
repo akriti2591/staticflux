@@ -52,7 +52,7 @@ The eight principles of `FOUNDATIONS.md` §1 apply unchanged. Studio adds two re
 | Assistant chip | `✦ <provider>` chip (`chipAgent` look). **Not rendered in M1** (no provider runtime). From M2: reads `✦ Set up an assistant` until a provider is configured, then `✦ Claude · Ask` / `✦ Gemini · Accept edits` / `✦ On-device · Ask`. | §2.2. |
 | View menu | `View ▾` ghost button (new) | Zoom to fit `Shift+1`, Zoom to selection `Shift+2`, 100 % `Shift+0`, Zoom in/out; ─; Rulers (Pro); Snap to objects; Snap to grid; ─; **Density: Focus / Standard / Pro** as a radio group with one line each (§2.3); ─; Show layers `Mod+Shift+L`... no: Show dock `Mod+\`, Show inspector `Mod+Alt+\`. |
 | Milestone | Secondary 34 px | Opens the inline milestone form popover (name prefilled `Milestone N`, note optional, Enter creates). Feedback §9. |
-| Overflow | `⋯` icon button | Save as template…, Rename…, Duplicate design, ─, Settings `Mod+,`, Keyboard shortcuts `?`, ─, About. ("Save as template" leaves the top bar: it is rare and had no feedback; it keeps its capability.) |
+| Overflow | `⋯` icon button | Save as template…, Rename…, Duplicate design, Copy link `Mod+Alt+C`, ─, Settings `Mod+,`, Keyboard shortcuts `?`, ─, About. ("Save as template" leaves the top bar: it is rare and had no feedback; it keeps its capability. Copy link: `NAVIGATION-DEEPLINKS.md` §5.) |
 | Export | **Primary** 34 px, labelled `Export` (replaces `Share` in M1) | Opens the Export dialog (`/d/export`, C1). Sharing returns as a tab of this dialog when it exists (D3: no accounts, so no links in M1). Until C1 lands on `main`, the button is **not rendered**; the first C1 PR adds it. |
 
 ### 2.1 Lens model (which lenses show, when)
@@ -175,8 +175,9 @@ canvas to place at the drop point. Context menu: Place, Rename, Trash.
 ### 3.4 Milestones
 
 As built by B5. Add: the top entry "Latest" (unpinnable), the `Milestone` top-bar button focuses this tab's name field
-after creating, and every row's menu has Open (read-only), Compare with Latest, New document from milestone, Rename,
-Pin.
+after creating, and every row's menu has Preview (the read-only takeover), Compare with Latest, Open as new design
+("New document from milestone", D2), Rename, Pin, Copy link, Delete milestone (inline confirm). The list, preview and
+Compare are specified end to end in `OVERLAYS-FEEDBACK.md` §2.3; URLs in `NAVIGATION-DEEPLINKS.md` §2.
 
 ## 4. Canvas chrome
 
@@ -528,6 +529,8 @@ Help (`?`), tooltips and the palette show the same keys. Browser-reserved combos
 | Export | ⌘⇧E | Ctrl+Shift+E | when C1 lands |
 | Settings | ⌘, | Ctrl+, | |
 | Shortcuts help | ? | ? | opens Settings › Shortcuts as a dialog |
+| Copy link to the design / selection | ⌘⌥C | Ctrl+Alt+C | the selection's link when one exists, else the design's (`NAVIGATION-DEEPLINKS.md` §5) |
+| Developer tools | ⌘⇧D | Ctrl+Shift+D | only while Settings › About › Developer tools is on (`DEVTOOLS-UX-SPEC.md`) |
 | **Text editing** (inside a text element) | | | |
 | Bold / Italic / Underline | ⌘B / ⌘I / ⌘U | Ctrl+B/I/U | |
 | Align left / centre / right | ⌘⇧L / ⌘⇧E / ⌘⇧R | Ctrl+Shift+L/E/R | shadows Lock/Rename only while editing text |
@@ -563,15 +566,16 @@ A `sf-menu` at the pointer, kit styling, items with icons and shortcuts; only ap
 | Target | Items |
 |---|---|
 | Empty canvas (nothing selected) | Paste · Paste in place · ─ · Select all · ─ · Zoom to fit · 100 % · ─ · Add page · ─ · Show rulers (Pro) |
-| Element (any) | Cut · Copy · Paste · Duplicate · Delete · ─ · Bring to front · Bring forward · Send backward · Send to back · ─ · Group / Ungroup · Lock / Unlock · Hide · Rename · ─ · Select same ▾ (Fill, Stroke, Font, Kind) · ─ · (kind items) |
+| Element (any) | Cut · Copy · Paste · Duplicate · Delete · ─ · Bring to front · Bring forward · Send backward · Send to back · ─ · Group / Ungroup · Lock / Unlock · Hide · Rename · ─ · Select same ▾ (Fill, Stroke, Font, Kind) · Copy link to selection · ─ · (kind items) |
 | + Shape | Use as mask · Outline stroke · Flatten · Make repeat ▾ |
 | + Text | Edit text · Fit to box · Convert to outlines (M2) |
 | + Image | Crop · Replace image… · Use as mask · Fit ▾ |
 | + Group / Frame | Enter · Ungroup / Unframe · Tidy up · Align children ▾ |
 | + Multi | Align ▾ · Distribute ▾ · Combine ▾ · Group · Frame selection · Make repeat ▾ · Use as mask |
 | + Repeat / Boolean / Mask | Edit · Expand / Release · Flatten |
-| Page label | Rename · Duplicate page · Delete page · Set size ▾ · Export this page… |
+| Page label | Rename · Duplicate page · Delete page · Set size ▾ · Export this page… · Copy link to page |
 | Layers row | Same as the element, plus Expand all / Collapse all |
+| Milestones row | Preview · Compare with Latest · Open as new design · ─ · Rename · Pin / Unpin · Copy link · ─ · Delete milestone (`OVERLAYS-FEEDBACK.md` §2.3) |
 
 ## 9. Conveniences and feedback
 

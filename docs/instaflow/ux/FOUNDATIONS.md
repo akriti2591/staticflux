@@ -5,6 +5,9 @@
 > exercises. Visual source: the approved **Clean Pop · final** (`docs/instaflow/design/README.md`,
 > `Components.dc.html`). Each block ends with **Code**: the `@staticflux/*` piece or Instaflow module that implements it,
 > or **missing** with where it belongs (StaticFlux = generic, Instaflow = app-specific). §6 collects that mapping.
+> Two sibling Layer-1 files hold the primitives in depth: `OVERLAYS-FEEDBACK.md` (overlay system, dialogs and sheets,
+> feedback and errors, tooltips, hints) and `NAVIGATION-DEEPLINKS.md` (the URL scheme, history, fallbacks, copy link).
+> §4.8–4.11 and §4.21–4.23 below are their summaries.
 
 ## 1. Principles
 
@@ -170,40 +173,52 @@ dragging · disabled · focus. Keyboard: arrows 1 step, Shift 10, Home/End. **Co
 ### 4.8 Menu and context menu
 
 Purpose: a list of actions. Anatomy: white card 12 px corners, floating shadow, 32 px rows with a 16 px icon, label,
-right-aligned `kbd`, dividers, group headings (11 px uppercase), submenus (`▸` icon), checkbox / radio rows; a
-**searchable** variant adds a filter field on top (the More menu). States per row: rest · hover (`#E7ECF2`) · pressed ·
-checked · focus; rows that do not apply are **not shown** (never disabled). Behaviour: opens on click / Enter / Space /
-`Shift+F10` / right-click (context); typeahead; Escape closes and restores focus; click outside closes. Context menus
-open at the pointer, clamped to the viewport. Motion: fade + rise 6 px, 120 ms. **Code:** `@staticflux/kit/menu`
-(`<sf-menu>`, `<sf-menu-item>` with `shortcut`), positioned by `kit/position`. **Missing:** submenus, group headings and
-the filter field (StaticFlux kit); the context-menu trigger on the canvas (Instaflow `src/app/studio-canvas.ts`).
+right-aligned `kbd`, dividers, group headings (11 px uppercase), one level of submenu (`▸`), checkbox / radio rows; a
+**searchable** variant adds a filter field on top (the More menu). Rows that do not apply are **not shown** (never
+disabled). Opens on click / Enter / Space / `Shift+F10` / right-click (context) at the pointer; typeahead; Escape closes
+and restores focus; an outside click closes **and is consumed**. Layer 3 of the overlay system. Full rules (nesting,
+Escape order, light dismiss, positioning, roles): `OVERLAYS-FEEDBACK.md` §1. **Code:** `@staticflux/kit/menu`,
+`kit/position`. **Missing:** submenus, group headings, the filter field, the consumed-click option (StaticFlux kit); the
+canvas context-menu trigger (Instaflow `src/app/studio-canvas.ts`).
 
 ### 4.9 Popover and tooltip
 
-Popover: a non-modal card anchored to its trigger (colour picker, milestone form, hints), light-dismiss, focus moves
-in and returns; 12 px corners, 14 px padding. Tooltip: `role=tooltip`, 500 ms delay, 80 ms fade, name + `kbd`, never
-interactive, one at a time, hidden on press. **Code:** `@staticflux/kit/popover`, `kit/tooltip`, `messaging` tooltip
-arbitration.
+Popover: a non-modal anchored card (colour popover, font picker, alignment, milestone form, access menus), 12 px
+corners, 14 px padding, focus moves in when it has a field and returns on close; it may open one menu and **never**
+another popover (it expands or swaps in place); a popover from the HUD or inspector closes on an outside click **and
+lets the click through** (Canva). Tooltip: `role=tooltip`, 500 ms then a 300 ms warm period, name + `kbd` at every
+density, the reason when disabled, never essential, never interactive, one at a time. Full rules: `OVERLAYS-FEEDBACK.md`
+§1 and §4; the colour popover and font picker: `STUDIO-UX-SPEC.md` §4.2.5–4.2.7. **Code:** `@staticflux/kit/popover`,
+`kit/tooltip`, `messaging` arbitration. **Missing:** pass-through dismiss, warm period, disabled-reason composition
+(StaticFlux kit); `<sf-color-popover>`, `<sf-font-picker>`, `<sf-align-popover>` (StaticFlux kit, data from Instaflow).
 
-### 4.10 Toast and inline feedback
+### 4.10 Feedback: toast, banner, inline, blocking
 
-Toast: bottom-centre, above the command bar, ≤ 320 px, white pill-card 18 px corners, 160 ms rise, 5 s (8 s with
-Undo), one action button (`Undo`, `Open`, `View`), Escape dismisses the newest, max 3 stacked, polite live region,
-`data-sf-keep-interactive`. Tones: neutral · success (green dot) · warning · danger (error message + `fix`). Inline
-feedback: a 1-line status under the control (`Saved on this device`), an inline confirm row (`Delete 12? · Delete ·
-Cancel`), a `<sf-status>` dot + words for states. Rules: every non-local action gets a toast (§5.3); errors show
-`message` and `fix`, never a bare code. **Code:** `@staticflux/messaging` (`SurfaceManager`, toast arbitration) rendered
-by `@staticflux/kit/surfaces` (`<sf-toast>`, `defineToastSurface`); `kit/status`. **Missing:** Instaflow has no toasts
-wired (`src/app/studio-app.ts` only speaks to the live region) — a `ToastsToken` adapter over the manager belongs in
-**Instaflow**.
+One hierarchy: inline field error → section / panel error → **toast** → persistent **banner** → blocking full-surface
+error; the lowest level the situation allows, and one place per error. Toast: bottom-centre above the command bar, ≤ 420
+px, 18 px corners, newest at the bottom, max 3, 5 / 8 / 10 s or sticky, paused on hover, one action (`Undo`, `Open`,
+`View`, the `fix`), polite live region. Banner: a 40 px in-flow bar at the top of the region for a lasting condition
+(offline when needed, storage full, read-only, worker restarting). Blocking: one calm card with the fix, `Copy
+diagnostics`, `Reload`. `SfError` maps mechanically: `message` is the line, `fix` the button or link, `code` never shown.
+Inline feedback: a status line, an inline confirm row, `<sf-status>`. Every non-local action gets a toast (§5.3). Full
+rules, progress, retry, offline, crash recovery and the error-copy rules: `OVERLAYS-FEEDBACK.md` §3. **Code:**
+`@staticflux/messaging` + `kit/surfaces` (`<sf-toast>`), `kit/status`, `shell` `<sf-boundary>`, `core` `SfError`.
+**Missing:** `<sf-banner>`, `<sf-blocking-error>`, toast pause and count (StaticFlux); the error → level adapter,
+`ToastsToken` wiring and recovery (Instaflow `src/app/feedback.ts`, `src/app/recovery.ts`).
 
-### 4.11 Dialog and sheet
+### 4.11 Dialog, sheet and takeover
 
-Dialog: modal, native `<dialog>`, 22 px corners, heading (Bricolage 20), body, actions right-aligned (one primary),
-focus trap and restore, Escape closes, backdrop click closes unless destructive. Only Export and Settings (in Studio)
-are dialogs; everything else is inline or a popover. Sheet: a side panel dialog (M2 proposals detail). **Code:**
-`@staticflux/messaging` (`defineSurface kind: dialog`, routable dialog bridge for `/d/export`), `@staticflux/kit/surfaces`
-(`<sf-dialog>`), `@staticflux/a11y` focus trap.
+Types: confirm (rare), destructive (`alertdialog`, focus on Cancel), form (holds changes until its verb), multi-step
+wizard (steps inside one dialog, back chevron, sliding body), full-screen takeover (milestone preview, Compare, the
+blocking error), sheet (non-modal side panel, M2). Native `<dialog>`, 22 px corners, heading (Bricolage 20), actions
+right-aligned with one primary, focus trap and return, Escape closes (or steps back), backdrop click only for
+non-destructive dialogs with nothing held. **One modal at a time; a dialog never opens over a dialog**: confirmations
+are inline rows, sub-tasks are steps. Routable dialogs (`/d/export`, `/d/share`, `/d/settings`) push history when opened
+in-app and replace when deep-linked. Only Export, Settings, the two takeovers and the blocking error are dialogs in M1
+Studio. Full rules and the worked Share and Milestones flows: `OVERLAYS-FEEDBACK.md` §2. **Code:** `@staticflux/messaging`
+(`defineSurface kind: dialog|sheet`, routable bridge), `@staticflux/kit/surfaces` (`<sf-dialog>`), `@staticflux/a11y`
+traps. **Missing:** the wizard step frame, takeover frame and inline confirm row (StaticFlux kit); Export, Settings,
+preview and Compare (Instaflow).
 
 ### 4.12 Tabs and dock panels
 
@@ -272,6 +287,36 @@ focused row (Layers) / `F2` on Windows, `Mod+Shift+R`, menu `Rename`. **Code:** 
 
 Tags are 24 px non-pressable pills: mist (info), raspberry-soft (agent), solid lens colour (kind), mono (tokens,
 codes). Pressable suggestions are small secondary buttons, never tags. **Code:** `@staticflux/kit/tag`.
+
+### 4.21 Contextual HUD (the selection pill)
+
+A floating `toolbar` near the selection showing the **top six controls of the selection kind** plus `⋯`; the inspector
+shows all of them. Both are projections of **one control model** (a control declares its fact, capability, label, icon,
+shortcut, inspector section and HUD rank once), share the colour popover, font picker and alignment popover, and never
+hold logic of their own. Hidden during gestures, frozen while one of its popovers is open, hidden when the selection is
+off-screen. Layer 1 of the overlay system. Contents per selection kind and the popovers: `STUDIO-UX-SPEC.md` §4.2.
+**Code:** `kit/toolbar` (roving, overflow), `kit/position`. **Missing:** the control model and HUD projection
+(Instaflow `src/spec/controls.ts`); pill placement from the selection's screen bounds (Instaflow
+`src/studio/studio-element.ts`).
+
+### 4.22 First-use hint and coach mark
+
+Instaflow uses **first-use hints** only (one sentence, anchored to a tool or region, seen once per device, never
+blocking, at most two per session, suppressed during drags, modals and deep-linked arrivals; `Show first-use hints` and
+`Reset hints` in Settings › General) and **no tours**. Empty states carry the teaching otherwise (§4.15). Full rules:
+`OVERLAYS-FEEDBACK.md` §5. **Code:** `@staticflux/messaging` coach-mark surfaces (`target`, `once`, seen store).
+**Missing:** `<sf-hint>` card (StaticFlux kit); the seen-store adapter, session cap, Settings switch and copy
+(Instaflow `src/studio/hints.ts`).
+
+### 4.23 Deep links and copy link
+
+Every addressable state has one URL: paths for resources (surface, design, milestone, dialog), query for the place
+within (lens, page, dock, selection and inspector intents, dialog step), nothing for the camera. Escape dismisses, Back
+navigates; routable dialogs push in-app and replace from a link; missing targets fall back one level with a neutral
+toast. `Copy link to this` on the design, the selection, a page, a milestone, a dialog, a thread. The scheme, history
+and fallback rules: `NAVIGATION-DEEPLINKS.md`. **Code:** `@staticflux/router` routes and dialogs, `@staticflux/urlstate`
+view bindings, intents and `/d/<key>`, `messaging` routable bridge. **Missing:** the rest of the routes, the URL contract,
+intents, copy-link capability and the not-found page (Instaflow `src/home/routes.ts`, `src/app/url*.ts`, `src/app/links.ts`).
 
 ## 5. Patterns
 
@@ -362,10 +407,16 @@ feature (`kitMessages`, `studioMessages`, `homeMessages`); the forbidden-text te
 | Scrubbable number | — | `src/tools/transform-bar.ts` (typed only) | `<sf-number-field>` (StaticFlux kit) |
 | Colour field | `kit/color-field` | `src/elements/panel.ts` | token/recents/opacity popover (StaticFlux kit), brand row (Instaflow) |
 | Slider | `kit/slider` | — | — |
-| Menu / context menu | `kit/menu`, `kit/position` | — | submenus, headings, filter (StaticFlux kit); canvas right-click (Instaflow) |
-| Popover / tooltip | `kit/popover`, `kit/tooltip`, `messaging` | — | — |
-| Toast / inline | `messaging` + `kit/surfaces`, `kit/status` | — | toast adapter and wiring (Instaflow `src/app`) |
-| Dialog / sheet | `messaging` dialogs + routable bridge, `kit/surfaces`, `a11y` traps | — | Export and Settings dialogs (Instaflow) |
+| **Overlay layering** (6 layers, top-layer order, inert, one modal) | `kit/surfaces` `<sf-surface-layer>`, `messaging` `SurfaceManager`, `ui/theme` `z.*`, `a11y` inert | — | close layer 3 before layer 4, re-assert toasts above modals, trigger-gone focus fallback (StaticFlux kit) |
+| Menu / context menu | `kit/menu`, `kit/position` | — | submenus, headings, filter, consumed outside click, context-menu corner rule, shrink step (StaticFlux kit); canvas right-click (Instaflow) |
+| Popover / tooltip | `kit/popover`, `kit/tooltip`, `messaging` | — | pass-through dismiss, warm period, disabled reason, long-press (StaticFlux kit) |
+| Colour popover / font picker / alignment popover | — | `src/elements/panel.ts` (swatch), `src/app/fonts.ts` (font list) | `<sf-color-popover>`, `<sf-font-picker>`, `<sf-align-popover>` (StaticFlux kit); document colours mirror, brand row, hover-preview wiring (Instaflow) |
+| Toast | `messaging` toast arbitration + `kit/surfaces` `<sf-toast>` | — | pause on hover/focus/hidden, count badge (StaticFlux); `ToastsToken` adapter, Home `Mod+Z` → toast Undo (Instaflow `src/app`, `src/home`) |
+| Banner / blocking error / progress row | `messaging` `banner` kind, `shell` `<sf-boundary>`, `core` `SfError` | — | `<sf-banner>`, `<sf-blocking-error>`, `<sf-progress-row>` (StaticFlux kit); error → level adapter `src/app/feedback.ts`, recovery `src/app/recovery.ts` (Instaflow) |
+| Dialog / sheet / takeover | `messaging` dialogs + routable bridge, `kit/surfaces` `<sf-dialog>`, `a11y` traps | — | wizard step frame, takeover frame, inline confirm row, bottom sheet at < 720 px (StaticFlux kit); Export, Settings, milestone preview, Compare (Instaflow) |
+| Contextual HUD (control model) | `kit/toolbar`, `kit/position` | `src/spec/studio-spec.ts` (per-WP HUD lists today) | `src/spec/controls.ts` control model + ranked projection, pill placement from selection bounds (Instaflow) |
+| Deep links / copy link | `router` routes + dialogs, `urlstate` view/intent/sticky + `/d/<key>`, `messaging` routable bridge | `src/home/routes.ts` (3 routes) | remaining routes, `url-contract.ts`, intents, `links.ts`, not-found page (Instaflow) |
+| DevTools surface | `devtools` collector, views, `<sf-devtools>` panel, `gate.explain()` | — | Instaflow tabs (Explain, Document, Workers, Perf, Errors), tray slot, About switch (Instaflow `src/app/devtools*.ts`) |
 | Tree / list | `kit/tree` | — | row actions + inline rename (StaticFlux kit); Layers mirror + panel (Instaflow) |
 | Card | `kit/card` | `src/home/home-element.ts` | menu slot, checkbox, drag (StaticFlux kit); design card (Instaflow) |
 | Empty / loading / error | `ui` skeleton, `shell` boundary, `core` errors | — | copy per region (Instaflow) |
@@ -379,5 +430,5 @@ feature (`kitMessages`, `studioMessages`, `homeMessages`); the forbidden-text te
 | Icons | — | — | `<sf-icon>` + Lucide modules + custom set (StaticFlux kit); kind table (Instaflow) |
 | Motion | `ui/theme` motion, `a11y` preferences, `shell` transitions | — | — |
 | UI text | `i18n` | `*Messages` per feature | forbidden-text test (Instaflow) |
-| Coach marks / first-use hints | `messaging` coach targets, seen-once | — | hint copy per tool (Instaflow) |
+| First-use hints (no tours) | `messaging` coach-mark surfaces, targets, seen-once | — | `<sf-hint>` (StaticFlux kit); seen-store adapter, session cap, Settings switch, copy (Instaflow `src/studio/hints.ts`) |
 | Settings store | `storage` AsyncStore | — | `src/settings/` (Instaflow) |

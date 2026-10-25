@@ -4,12 +4,17 @@ Three layers. Lower layers never redefine what a higher layer owns.
 
 | Layer | File | Holds |
 |---|---|---|
-| 1 | [`FOUNDATIONS.md`](FOUNDATIONS.md) | Principles, vocabulary, layout primitives, every control and pattern (anatomy, states, keyboard, sizes, motion, accessibility, do/don't), and the **block → code map** (what `@staticflux/*` implements, what is missing and whether it belongs in StaticFlux or Instaflow). |
-| 2 | [`STUDIO-UX-SPEC.md`](STUDIO-UX-SPEC.md) | Studio: canvas model, top bar (lens model, assistant entry, density, Settings), dock, tool picker, selection pill, inspector, direct manipulation, keyboard map, clipboard, context menu, conveniences and feedback, icon rules, plumbing, **gap table**, **open questions**, **live-vs-placeholder inventory** (Appendix A, Home and Studio). |
+| 1 | [`FOUNDATIONS.md`](FOUNDATIONS.md) | Principles, vocabulary, layout primitives, every control and pattern (anatomy, states, keyboard, sizes, motion, accessibility, do/don't), and the **block → code map** (what `@staticflux/*` implements, what is missing and whether it belongs in StaticFlux or Instaflow). §4.8–4.11 and §4.21–4.23 summarise the two files below. |
+| 1 | [`OVERLAYS-FEEDBACK.md`](OVERLAYS-FEEDBACK.md) | The **overlay system** (six layers, nesting, focus, Escape order, light dismiss, positioning, roles), **dialogs and sheets** (types, the Share and Milestones flows worked end to end, unsaved changes), **feedback and errors** (one hierarchy, `SfError` mapping, retry, offline, crash recovery, progress, toasts, copy rules), **tooltips**, **first-use hints** and empty states; **owner questions** at the end. |
+| 1 | [`NAVIGATION-DEEPLINKS.md`](NAVIGATION-DEEPLINKS.md) | One URL scheme for every addressable state (path vs query vs nowhere), history semantics (push/replace, Escape vs Back), missing or forbidden targets, "Copy link to this", cold boot order, and the map to `@staticflux/router` / `urlstate`. |
+| 2 | [`STUDIO-UX-SPEC.md`](STUDIO-UX-SPEC.md) | Studio: canvas model, top bar (lens model, assistant entry, density, Settings), dock, tool picker, **the contextual HUD and its control model** (§4.2: per selection kind, colour popover, font picker, alignment), inspector, direct manipulation, keyboard map, clipboard, context menu, conveniences and feedback, icon rules, plumbing, **gap table**, **owner decisions** (§14, settled), **live-vs-placeholder inventory** (Appendix A). |
 | 2 | [`HOME-FILES-UX-SPEC.md`](HOME-FILES-UX-SPEC.md) | Home, Files, projects, trash, storage, every file operation, plumbing. |
-| 2 | [`CHAT-UX-SPEC.md`](CHAT-UX-SPEC.md) | Chat (M2): entry points, layout, mini editors, proposals and autonomy, handoff, and what M1 must not do. |
-| 3 | [`FLOWS.md`](FLOWS.md) | End-to-end flows F-01…F-46 naming the surfaces and building blocks each exercises; the M1 must-pass set is the end-to-end suite. |
+| 2 | [`CHAT-UX-SPEC.md`](CHAT-UX-SPEC.md) | Chat (M2): entry points, layout, mini editors, proposals and autonomy, handoff, **provider setup**, the no-provider state, **chat errors**, the empty thread, long turns and cancel, deep links, and what M1 must not do. |
+| 2 | [`DEVTOOLS-UX-SPEC.md`](DEVTOOLS-UX-SPEC.md) | The developer surface: Explain (value provenance), Document, Workers, Perf, Errors tabs over `@staticflux/devtools`; how it opens (sticky flag, About switch) and why normal users never see it. |
+| 3 | [`FLOWS.md`](FLOWS.md) | End-to-end flows F-01…F-52 naming the surfaces and building blocks each exercises; the M1 must-pass set is the end-to-end suite. F-47…F-52 exercise the primitives (Share, milestone restore, deep link to a missing element, worker crash, assistant setup, HUD recolour). |
 
-Rules of use for implementers: read `FOUNDATIONS.md` once; read the Layer 2 file of the surface you touch; take the
-F-xx flows that name your area as acceptance tests. If a rule is missing, follow the named convention (Figma, Canva,
-Keynote), say so in your report and propose the change here; never invent silently.
+Rules of use for implementers: read `FOUNDATIONS.md` once, then `OVERLAYS-FEEDBACK.md` and `NAVIGATION-DEEPLINKS.md` if
+you touch any overlay, feedback or URL; read the Layer 2 file of the surface you touch; take the F-xx flows that name
+your area as acceptance tests. If a rule is missing, follow the named convention (Figma, Canva, Keynote, macOS, Linear),
+say so in your report and propose the change here; never invent silently. Handoff for the primitives work:
+`../handoffs/UX-PRIMITIVES.md`.
