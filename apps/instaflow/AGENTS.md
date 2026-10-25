@@ -11,6 +11,8 @@ authoritative; M1-PLAN lists the work packages; `design/` is the approved Clean 
 | `src/render/` | Vello `RasterBackend`, render Wasm loader, scene IR encoder (A6); export `@instaflow/app/render` | `src/render/AGENTS.md` |
 | `src/elements/` | Element components, brand kits and classes, geometry service, actions, render projection → scene IR, Fill/Stroke/Effects panel (B1); exports `@instaflow/app/elements`, `/elements/panel` | `src/elements/AGENTS.md` |
 | `src/sequencing/` | Editor and render **modules** with fixed ports, the topology boot setting, the S2 protocol rules, the oracle subject (A7, D15) | `src/sequencing/AGENTS.md` |
+| `src/text/` | Text (B2): rich text model, Parley layout service over the authoring text Wasm, fonts (LFA, uploads, tokens), TextInput editing session, scene projection, Typography panel and HUD, a11y data, human IME check page; export `@instaflow/app/text` | `src/text/AGENTS.md` |
+| `test/fonts/` | OFL test fonts (Noto subsets, Inter subset) for text tests and goldens | `test/fonts/README.md` |
 | `src/theme/` | Clean Pop theme (`cleanPopTheme`, DS1) and the typed lens palette | `src/theme/AGENTS.md` |
 | `src/versioning/` | Latest save state, milestones, compare, New document from milestone, templates with slots, frozen export snapshot, the Milestones panel / save status / "Milestone" command contributions (B5); exports `@instaflow/app/versioning` and `/versioning/ui` | `src/versioning/AGENTS.md` |
 | `src/spec/` | Editor specs (B0, D16): contribution tokens, `EditorSpec` schema, registries, gate adapter, Studio spec, example mini editor, proposals | `src/spec/AGENTS.md` |

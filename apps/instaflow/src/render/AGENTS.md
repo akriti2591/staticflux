@@ -21,11 +21,12 @@ memory budget. This folder only adapts the Wasm engine (`engine/crates/render`) 
 - `render-module.ts` — `RenderWasm` / `RenderEngineWasm` / `RenderGpuWasm` (the Wasm exports, ABI 2),
   `RENDER_ABI_VERSION`, `loadRenderModule({ manifestUrl, signal })` (reads `sf-wasm-manifest/1`, imports the hashed
   glue, instantiates, checks the ABI).
-- `scene-ir.ts` — `createSceneWriter()` → `clear`, `upsert(node, index)`, `remove`, `image`, `dropImage`, `finish()`;
+- `scene-ir.ts` — `createSceneWriter()` → `clear`, `upsert(node, index)`, `remove`, `image`, `dropImage`, `font(id, sha256,
+  bytes)` / `dropFont` (B2: bytes once per hash, empty bytes = alias), `finish()`;
   `SceneNode` (transform, opacity, blend, visibility, clip, geometry: group/rect/rrect/ellipse/path/image/glyphs,
   `fill`/`stroke` or the `fills`/`strokes` stacks, `evenOdd`, `mask`, `effects`), `BLEND_MODES`, `PATH_VERBS`,
-  `IMAGE_FITS`, `MASK_MODES`, `SCENE_IR_VERSION` (2 since B1). Byte-identical with the Rust `IrWriter` (`shapes`,
-  `elements`, `appearance` fixtures).
+  `IMAGE_FITS`, `MASK_MODES`, `SCENE_IR_VERSION` (2 since B1, 3 since B2: fonts; glyph runs with `embolden`, `skew`, `coords`). Byte-identical with the Rust `IrWriter` (`shapes`,
+  `elements`, `appearance` fixtures; `text` is checked structurally).
 
 ## Wiring (A7 does it in the render worker)
 ```ts

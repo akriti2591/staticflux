@@ -663,3 +663,25 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
 - **R13.28** Changes are applied through a **mount port** in a fixed order (unmounts in reverse display order, moves, context, mounts in display order) started in one task, each with a **120–200 ms motion step** that is 0 ms under reduced motion (`createSpecRuntime`, `specMotionStep`). `createSpecLayoutPort` is a reactive layout model with entering / moving / exiting phases a view renders from.
 - **R13.29** **Pinning**: people pin slots of pinnable sections; a new spec never removes a pinned slot (it is retained after its old predecessor). Gating wins over pinning: a pinned slot that is now denied is dropped and reported. `revalidate()` re-applies the current spec after gate decisions change.
 - **R13.30** Shared contract suites in testkit: `runSpecRuntimeContract` (validation, gating, port order, motion bounds, disposal, and fast-check properties for diff minimality and pin preservation) and `runSpecMountPortContract` (any port — a layout model or an app's DOM — shows exactly the runtime layout after every apply).
+
+## 11.5 Text input for self-drawn text (`@staticflux/surface/text-input`; Instaflow M1b B2, SF-Δ27)
+
+- **R11.54** **`TextInput` port**: editors that draw their own text (canvas, WebGPU) receive typed **text intents** —
+  `insert`, `delete` (collapsed deletes carry a direction and a unit: grapheme, word, line; the editor expands them with its
+  layout), `compose-start`, `compose-update` (text, range, caret), `compose-commit`, `compose-cancel`, `selection`, `key`
+  (Enter, Tab, Escape, arrows, Home/End, Page keys, Select All) and `format` (IME underline styles) — and push back the
+  authoritative state (`setState`), control bounds, selection bounds and per-UTF-16 character bounds; the platform's bounds
+  requests are surfaced (`onBoundsRequest`). All offsets are UTF-16 code units. `applyTextIntent` is the plain-text
+  reference model.
+- **R11.55** **Two implementations**: EditContext (`createEditContextTextInput`; the host element is focusable and owns the
+  `EditContext`, character bounds position the IME candidate window) and a hidden textarea (`createHiddenTextareaTextInput`;
+  `beforeinput` and composition events; the textarea follows the selection bounds so the IME anchors there; composition text
+  is never taken from the textarea value). Unavailable implementations fail with SF-SURF-016.
+- **R11.56** **Variant binding**: `textInputBindings({ editContext })` binds `TextInputFactoryToken` to the hidden textarea and
+  re-binds it to EditContext when the platform fact says so (core `variant`); feature code never branches on the browser.
+- **R11.57** Disposal removes every listener and the hidden textarea and detaches the EditContext; no intent is delivered
+  after `dispose`.
+- **R16.31** **TextInput contract suite** (testkit `runTextInputContract`): typing, selection replace, Backspace/Delete across
+  surrogate pairs, paste, Enter/Select All as key intents, a Japanese composition (one commit), a cancelled Korean
+  composition, RTL text, IME anchoring at the caret and at composition character bounds, and dispose — run against both
+  implementations through drivers (`FakeEditContext`, Firefox-style events on the hidden textarea).

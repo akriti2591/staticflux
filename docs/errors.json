@@ -1977,6 +1977,12 @@
       "fix": "Retry after the device is `running` again; readback buffers need COPY_DST | MAP_READ and 256-byte aligned rows."
     },
     {
+      "code": "SF-SURF-016",
+      "kind": "unavailable",
+      "summary": "The requested TextInput implementation cannot run here (no EditContext, or no document for the hidden textarea).",
+      "fix": "Bind `TextInputFactoryToken` with `textInputBindings({ editContext })` so the platform fact picks the implementation; create inputs on the main thread."
+    },
+    {
       "code": "SF-TEST-001",
       "kind": "invariant",
       "summary": "`bootTestApp` could not boot the app.",

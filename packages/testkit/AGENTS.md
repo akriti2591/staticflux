@@ -122,6 +122,12 @@ Node only (`@staticflux/testkit/node`):
 - `gpu-cli.ts` — `sf-gpu-run` / `pnpm gpu:run`: `parseGpuCliArgs`, `gpuCliMain(argv, io)`.
 
 ### Render contract suite (IF-7.4, SF-Δ23/Δ24, Instaflow M1 A6)
+- `text-input-contract.ts` (Instaflow M1b B2, R16.31) — `runTextInputContract(name, { create() → { input, driver,
+  dispose } }, runner, { skip })`, `textInputContractCases`: typing, selection replace, Backspace/Delete across surrogate
+  pairs, paste, Enter / Select All as key intents, a Japanese composition with one commit, a cancelled Korean
+  composition, RTL text, IME anchoring (selection and character bounds), dispose. Drivers: `editContextContractSubject()`
+  over `FakeEditContext` (Chromium-like buffer, composition and bounds events) and `hiddenTextareaContractSubject()`
+  (Firefox-style `beforeinput` and composition events); both need a DOM (happy-dom or a browser).
 - `raster-backend-contract.ts` — `runRasterBackendContract(name, factory → { backend, scene: { add, set, remove },
   nodeOf?, tolerance?, cleanup? }, runner, { skip })`, `rasterBackendContractCases()`: attach + facts + loss on
   destroy, dirty rects for add/move/remove, tiles composite to the scene and equal a direct region render, lifted nodes

@@ -50,5 +50,5 @@ export * from './raster-backend-contract.js';
 export * from './spec-runtime-contract.js';
 export * from './spec-mount-port-contract.js';
 
-// TextInput contract suite (Instaflow M1b B2: SF-Δ27, R11.54–R11.57).
+// TextInput contract suite (Instaflow M1b B2: SF-Δ27, R16.31).
 export * from './text-input-contract.js';

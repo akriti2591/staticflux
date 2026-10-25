@@ -893,7 +893,7 @@
     "limit": "2 KB"
   },
   {
-    "name": "@instaflow/app/render (Vello RasterBackend + scene IR v2 + Wasm loader; worker only; +0.3 KB for B1 stacks, effects, masks)",
+    "name": "@instaflow/app/render (Vello RasterBackend + scene IR v3 + Wasm loader; worker only; +0.3 KB for B1 stacks, effects, masks; +0.1 KB for B2 font ops and glyph synthesis)",
     "path": "apps/instaflow/dist/render/index.js",
     "ignore": [
       "mobx",
@@ -901,7 +901,7 @@
       "@staticflux/platform",
       "@staticflux/surface/raster"
     ],
-    "limit": "3.8 KB"
+    "limit": "3.9 KB"
   },
   {
     "name": "@staticflux/kit/tag",
@@ -1036,5 +1036,41 @@
       "@staticflux/kit/text-field"
     ],
     "limit": "6.25 KB"
+  },
+  {
+    "name": "@staticflux/surface/text-input (TextInput port: EditContext + hidden textarea, variant binding; main thread, with text editing)",
+    "path": "packages/surface/dist/text-input.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "3.75 KB"
+  },
+  {
+    "name": "@instaflow/app/text (rich text, layout service, fonts, session, scene projection, typography panel, contributions; excl. framework and Wasm)",
+    "path": "apps/instaflow/dist/text/index.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/document/v2",
+      "@staticflux/kit/button",
+      "@staticflux/kit/color-field",
+      "@staticflux/kit/inspector",
+      "@staticflux/kit/menu",
+      "@staticflux/kit/segmented",
+      "@staticflux/kit/slider",
+      "@staticflux/i18n",
+      "@staticflux/a11y",
+      "@staticflux/capabilities",
+      "@staticflux/shell/spec",
+      "@staticflux/gate",
+      "@staticflux/stage",
+      "@staticflux/document/render-projection"
+    ],
+    "limit": "17.5 KB"
   }
 ]

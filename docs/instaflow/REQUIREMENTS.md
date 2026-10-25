@@ -677,3 +677,82 @@ in `crates/render` + `src/render/scene-ir.ts`. Error codes `IF-EL-001…007`.
 | `IF-EL-005` | Geometry engine rejected the input |
 | `IF-EL-006` | Authoring Wasm missing or wrong geometry version |
 | `IF-EL-007` | Style class or brand kit unavailable |
+
+## 21. Text (M1b B2)
+
+Code: `apps/instaflow/src/text` (TypeScript), `apps/instaflow/engine/crates/authoring/src/text` (Parley), glyph drawing and
+fonts in `crates/render` (scene IR v3), the `TextInput` port in `@staticflux/surface/text-input` (SF-Δ27, R11.54–R11.57).
+Error codes `IF-TXT-001…010`. Lifecycles: LIFECYCLES §22. Implements IF-7.6 and IF-7.7.
+
+- **IF-21.1** **Text element**: node kind `text` with B1's common element components (spatial, style, mask, lineage, lock)
+  plus `text` (`content` rich text, `box`: auto-width / auto-height / fixed, `align`, `verticalAlign`).
+- **IF-21.2** **Rich text** is CRDT text with A4 v2 marks: `bold`, `italic`, `underline`, `strike`, `size`, `weight`,
+  `letterSpacing`, `color` (CSS colour or `{ token }`), `font` (`{ font: sha256 }` asset or `{ token }`), `link`
+  (`{ href }`: http(s), mailto, #). Values are validated (IF-TXT-001).
+- **IF-21.3** **Paragraph styles** (`align`, `list`, `lineHeight`, `spaceBefore`, `spaceAfter`, first-line `indent`) are marks on
+  each paragraph's terminating break; the content always ends with a break. Enter copies the paragraph style; deleting a
+  break keeps the first paragraph's style.
+- **IF-21.4** **Anchored ranges**: selections and comments anchor to text (`anchorRange` / `resolveRange`) and survive
+  concurrent edits; concurrent rich-text edits converge with marks covering the same characters (property-tested).
+- **IF-21.5** **Mark expansion** is one table (`TEXT_MARK_EXPAND`): style marks grow when typing at their end, links and
+  paragraph marks never grow. Every peer uses it.
+- **IF-21.6** **Brand tokens** in colour and font marks resolve through the brand kit at layout time; an unresolved token
+  falls back to the element default and is reported (IF-TXT-009), never fatal.
+- **IF-21.7** **Layout**: Parley 0.12 (HarfRust shaping, ICU4X bidi and line breaking) in the `authoring-text` Wasm, no system
+  fonts. Paragraphs are laid out separately (own alignment) and stacked. Per-script fallback families (S3).
+- **IF-21.8** **Shaping parity**: glyph ids and positions equal HarfBuzz on 40 Arabic and 40 Devanagari strings (100%),
+  with a negative control.
+- **IF-21.9** **Layout output** is one encoded array: paragraphs, lines (bounds, baseline), glyph runs (font, size, brush,
+  direction, synthetic bold/italic, variation coordinates, glyphs), clusters, words, decorations (underline, strikethrough).
+- **IF-21.10** **Caret and selection**: hit test, caret rect (with affinity), selection rects (bidi aware), per-UTF-16 character
+  bounds (for the IME), word at offset, caret motions (visual left/right, words, line start/end, up/down with a sticky
+  column, grapheme boundaries). Caret → hit test round-trips for every offset.
+- **IF-21.11** **Complex scripts**: dictionary line breaking (Thai, Lao, Khmer, Myanmar) is a lazy `authoring-text-complex`
+  chunk loaded only when the text needs it; it gets the same fonts, fallbacks and font ids.
+- **IF-21.12** **Animation addressing**: `clusters()`, `words()` and `lines()` of a layout have stable indices for a given text
+  and layout (clusters in logical order, words between UAX #29 word starts), with bounds; glyphs name their cluster. No
+  animation is built here (M4 Auto Animate uses it).
+- **IF-21.13** **Scene projection**: a text element becomes a group with one glyph leaf per run (fill from the run's brush)
+  and one rect per decoration (`textSceneNodes`).
+- **IF-21.14** **Fonts in the render scene** are retained by content hash (scene IR v3 `FONT`/`DROP_FONT`): bytes once, aliases
+  afterwards, released when no id references them; a resnapshot never resends bytes.
+- **IF-21.15** **Glyph drawing**: Vello fills each run as one path from unhinted outlines (TrueType via skrifa's glyf scaler,
+  CFF/CFF2 via read-fonts), with variation coordinates, synthetic italic (shear) and bold (stroke); GPU output matches
+  vello_cpu for Latin, Arabic and Devanagari (golden render tests).
+- **IF-21.16** **Fonts are assets keyed by sha-256** (the blob digest): uploads (.ttf, .otf, .ttc; WOFF rejected) are stored
+  in the workspace blob store; documents reference fonts by hash and load them from the store.
+- **IF-21.17** **Local Font Access** follows a permission flow (`instaflow/local-fonts`): availability fact, permission
+  state, request from a user gesture, denied state with guidance (IF-TXT-007/008); picked faces are copied into the
+  workspace so documents work elsewhere.
+- **IF-21.18** **Brand-kit font tokens** resolve to font assets (`BrandTokenSource.font`).
+- **IF-21.19** **Accessibility data** for B6: plain text, paragraphs and lines with bounds, links, the selection while
+  editing, and a role from the element's semantic role (`headline` → heading level 1, …; `textbox` while editing).
+- **IF-21.20** Variable fonts keep their variation coordinates from layout to drawing (S3: CJK fonts default to weight 100).
+- **IF-21.21** **Text input** goes through the `TextInput` port; the implementation (EditContext or hidden textarea) is a
+  variant binding on the `editContext` platform fact. `?input=textarea` style overrides are data, not branches.
+- **IF-21.22** **Editing session**: typing, paste, deletes by grapheme / word / line from the layout, Enter (paragraph split),
+  arrows / Home / End / Select All, typing style (Bold on a collapsed selection), each change one undo step with a label.
+- **IF-21.23** **IME compositions** are local previews (underlined) until commit; the IME is positioned from selection bounds
+  and per-character bounds of the composition (pushed on every update and on request).
+- **IF-21.24** Remote edits refresh the session without losing the selection range.
+- **IF-21.25** **Human IME check** (owner, desktop Chrome, Japanese / Chinese / Korean): candidate window at the composition,
+  following wraps and RTL, under page zoom. **INCONCLUSIVE** until confirmed (`src/text/ime-check/`).
+- **IF-21.26** **Text tool** (`T`, Canvas lens): click places an auto-width text element, drag sets a width (B3 runs the
+  pointer flow; `placeTextOps` creates it).
+- **IF-21.27** **Typography panel** (inspector, Standard density and up) from kit components: font, size, style toggles,
+  alignment, line height, colour (hex and brand tokens), Fit to box; mixed values shown as Mixed.
+- **IF-21.28** **HUD actions** on selected text: Font, Size, Fit to box (scales every run so the laid-out height fits the box).
+- **IF-21.29** **Typography service**: the same commands for the panel, the HUD, shortcuts and agents (one pipeline).
+
+| Code | Meaning |
+|---|---|
+| `IF-TXT-001` | Invalid text style value |
+| `IF-TXT-002` | Not a text node |
+| `IF-TXT-003` | Offset or range outside the text |
+| `IF-TXT-004` | Authoring text Wasm missing or wrong ABI |
+| `IF-TXT-005` | Layout engine rejected a request |
+| `IF-TXT-006` | Not a usable font file |
+| `IF-TXT-007` | Local Font Access refused (permission or gesture) |
+| `IF-TXT-008` | Local Font Access unavailable |
+| `IF-TXT-009` | Brand token unresolved |
+| `IF-TXT-010` | Font blob store failure |

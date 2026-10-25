@@ -281,3 +281,17 @@ Consumer: `apps/instaflow/src/elements` (editor and render workers; inspector pa
 - Element actions reachable from the HUD, the keyboard and agents with one pipeline → one capability per action
   (`@staticflux/capabilities`) plus B0's `HudActionContribution`; the panel is a `PanelContribution` built from kit
   components (inspector group/row, colour field, text field, segmented, slider, icon button, menu).
+
+### text: rich text, Parley layout, fonts, text input (Instaflow M1b · B2)
+Consumer: `apps/instaflow/src/text` (editor worker: layout, rich text, session; main: TextInput, Typography panel).
+- Canvas text needs IME, EditContext where available and a Firefox fallback, without browser branches → the
+  `TextInput` port with two implementations and a variant binding on the `editContext` fact (`@staticflux/surface/text-input`,
+  R11.54–R11.57), with a shared contract suite (R16.31).
+- One Rust crate, several Wasm artifacts within their budgets (geometry, text, lazy complex-scripts text) → `sf wasm build`
+  variant entries (`package`, `features`, `defaultFeatures: false`) built in their own cargo invocation so features never
+  unify (`tooling/sf/src/wasm-build.ts`).
+- Fonts drawn by the render module, uploaded once per content hash and kept across resnapshots and device loss → scene IR
+  v3 `FONT` / `DROP_FONT` ops and the retained font table of the render scene (app-level, no framework API).
+- Rich-text marks and paragraph styles that converge under concurrent edits → A4's v2 marks with one mark-expand table
+  (`createLoroEngine({ marks: TEXT_MARK_EXPAND })`); paragraph styles as marks on paragraph breaks (no new framework API).
+- Text exposed to assistive technology through B6 → data in the surface `AccessibleNode` shape (`textAccessibleNode`).

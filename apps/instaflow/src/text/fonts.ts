@@ -1,5 +1,5 @@
 /**
- * Fonts (B2; IF-7.6, IF-21.16–21.20): every font is an **asset keyed by content hash** (sha-256 = the blob store
+ * Fonts (B2; IF-7.6, IF-21.16–21.18, IF-21.20): every font is an **asset keyed by content hash** (sha-256 = the blob store
  * digest), whatever its source:
  *
  * - **Local Font Access** (`queryLocalFonts`): a permission flow (`LocalFontsMachine`, LIFECYCLES §22). Listing needs

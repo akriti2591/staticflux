@@ -1,5 +1,5 @@
 /**
- * Accessibility data for text elements (B2 → B6 seam; IF-7.12, IF-21.30): what the virtualized DOM projection needs to
+ * Accessibility data for text elements (B2 → B6 seam; IF-7.12, IF-21.19): what the virtualized DOM projection needs to
  * expose canvas text to assistive technology — the plain text, paragraphs and lines with bounds (reading order,
  * find-in-page, magnifiers), links as named targets, the selection while editing, and a role (`textbox` while
  * editing, `heading` / `paragraph` from the element's semantic role otherwise). B6 owns the DOM; this module only

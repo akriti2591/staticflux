@@ -58,7 +58,17 @@ A separate entry keeps it out of every main-thread bundle.
   `timerScheduler`, `defaultSurfaceEnvironment`, `absoluteNow`.
 - `units.ts` — `SurfaceEnvironmentToken`, `SurfaceImagePolicyToken`, `SurfaceImageLoaderToken`,
   `HtmlInCanvasSupportToken` (+ units), `surfaceUnit({ id, provides, create })` (disposed with its scope).
-- `errors.ts` — `SF-SURF-001` … `SF-SURF-009`.
+- `errors.ts` — `SF-SURF-001` … `SF-SURF-009`, `SF-SURF-016` (TextInput implementation unavailable).
+
+`@staticflux/surface/text-input` (entry `text-input.ts`; main thread, loaded with text editing; Instaflow M1b B2, SF-Δ27,
+R11.54–R11.57):
+- `text-input.ts` — the **`TextInput` port** (`focus`, `blur`, `composing`, `setState`, `setControlBounds`,
+  `setSelectionBounds`, `setCharacterBounds`, `onIntent`, `onBoundsRequest`, `dispose`), `TextIntent` (insert, delete with
+  direction + unit, compose-start/update/commit/cancel, selection, key, format), `TextInputState`, `ClientRect`;
+  implementations `createEditContextTextInput({ host, EditContext? })` and `createHiddenTextareaTextInput({ host })`;
+  `TextInputFactoryToken`, `textInputBindings({ editContext })` (variant binding on the platform fact),
+  `editContextTextInputUnit`, `hiddenTextareaTextInputUnit`, factories; helpers `applyTextIntent` (plain-text reference
+  model), `codePointBoundary`, `keyIntent`; `TEXT_KEYS`, `DELETE_UNITS`, `UNDERLINE_STYLES`. Errors: `SF-SURF-016`.
 
 `@staticflux/surface/raster` (entry `raster.ts`; render and export workers):
 - `raster-backend.ts` — the `RasterBackend<Delta>` port (`attach`, `warmUp`, `apply` → dirty `WorldRect`s, `bounds`,
@@ -117,6 +127,9 @@ A separate entry keeps it out of every main-thread bundle.
   scene, never from the document. Backends must survive `attach` after a loss with their scene intact.
 - Every GPU cache reports its bytes to the memory ledger (`@staticflux/runtime/memory`); the frame pins what it draws.
 - Every `RasterBackend` passes `runRasterBackendContract` (testkit): the CPU reference in Node, Vello in Chromium.
+- Text input: offsets are UTF-16; the editor owns the text (apply intents, push `setState`); never read composition
+  text from the hidden textarea; which implementation runs is `textInputBindings`' business, never a browser check.
+  Both implementations pass `runTextInputContract` (testkit).
 
 ## Test
 `pnpm vitest run packages/surface` (manual frame scheduler, fake ResizeObserver, fake OffscreenCanvas over an
@@ -134,6 +147,7 @@ renderer and headless surface against `createMemoryRasterBackend` with exact pix
 | @staticflux/surface (full) | 10.5 KB | packages/surface/dist/index.js |
 | @staticflux/surface/input-ring | 1.75 KB | packages/surface/dist/input-ring.js |
 | @staticflux/surface/raster (render and export workers: tiled renderer, GPU device lifecycle, headless) | 9.5 KB | packages/surface/dist/raster.js |
+| @staticflux/surface/text-input (TextInput port: EditContext + hidden textarea, variant binding; main thread, with text editing) | 3.75 KB | packages/surface/dist/text-input.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 
