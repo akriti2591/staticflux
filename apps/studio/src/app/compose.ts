@@ -64,9 +64,11 @@ import {
   frameSchedulerUnit,
   registryArchiveStoreUnit,
 } from '@staticflux/runtime';
-import { shellPresets, ShellPresetToken, themeControllerUnit, workspaceManagerUnit } from '@staticflux/shell';
+import { shellPresets, ShellPresetToken, workspaceManagerUnit } from '@staticflux/shell';
 import { storeFactoryUnit, storeRegistryUnit, type StoreFactory } from '@staticflux/storage';
 import { noIsolationPolicyUnit, renderSchedulerUnit, uiEnvironmentUnit, visibilityObserverUnit } from '@staticflux/ui';
+import { defaultThemeContribution } from '@staticflux/ui/default-theme';
+import { appearanceUnitWith } from '@staticflux/ui/theme';
 import { intentServiceUnit, intentUnit, urlDeclarationRegistryUnit, urlDeclarationUnit, urlSyncUnit } from '@staticflux/urlstate';
 import type { Spawner } from '@staticflux/worker';
 import { routeFocusHookUnit } from '../adapters/a11y-router.js';
@@ -96,7 +98,8 @@ import { dataPauseSubsystemUnit, pauseControlUnit, supervisorEpochSourceUnit } f
 import { reconnectingSurfaceSubsystemUnit } from '../adapters/runtime-messaging.js';
 import { outletFeatureDriverUnit } from '../adapters/runtime-router.js';
 import { runtimeUrlFrameSchedulerUnit } from '../adapters/runtime-urlstate.js';
-import { themePreferenceStoreUnit, workspacePreferenceStoreUnit } from '../adapters/storage-shell.js';
+import { workspacePreferenceStoreUnit } from '../adapters/storage-shell.js';
+import { appearanceStoreUnit } from '../adapters/storage-ui.js';
 import { intentAuthorizePluginUnit, intentCapturePluginUnit, sharedHistoryUnits, urlSyncFlushHookUnit } from '../adapters/urlstate-router.js';
 import { documentRuntimeUnit, documentStoreUnit, presenceFeedUnit } from './document.js';
 import { BFF_ENDPOINTS, CSRF_HEADER, createMockBffTransport } from '../mocks/auth-endpoints.js';
@@ -277,12 +280,14 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
 
   const ui: readonly Registration[] = [renderSchedulerUnit, visibilityObserverUnit, noIsolationPolicyUnit, gateDecidePortUnit, uiEnvironmentUnit];
 
+  // Theme contract (@staticflux/ui/theme): the neutral default theme as a contribution (a brand theme would be
+  // contributed with a higher `order`), appearance remembered per device; restored after first paint (post-boot).
+  const theme: readonly Registration[] = [defaultThemeContribution, appearanceUnitWith({ restore: 'manual' }), appearanceStoreUnit];
+
   const messaging: readonly Registration[] = [reconnectingSurfaceSubsystemUnit];
 
   const shell: readonly Registration[] = [
     workspaceManagerUnit,
-    themeControllerUnit,
-    themePreferenceStoreUnit,
     workspacePreferenceStoreUnit,
     unit({
       id: 'studio/shell-preset-unit',
@@ -321,6 +326,7 @@ export function studioUnits(env: StudioEnvironment, perf: StudioTelemetry): read
     ...a11y,
     ...handoff,
     ...ui,
+    ...theme,
     ...messaging,
     ...shell,
     ...documents,

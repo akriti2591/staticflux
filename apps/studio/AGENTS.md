@@ -1,9 +1,9 @@
 # apps/studio — AGENTS.md
 
 **Layer:** app (may import every `@staticflux/*` package; packages never import the app).
-**Budget (R12.7):** total boot JS ≤ 150 KB gzip — **145.8 KB** (`dist/sf-build-report.json`, entry +
-`bootEntries: ['src/boot-browser.ts']` closure; was 198 KB, see README "Bundle budget"); CI fails the build on a
-regression. Feature chunks ≤ 50 KB counted beyond the boot set (1.5–6 KB gzip each), heavy studio-desktop ≤ 200 KB
+**Budget (R12.7):** total boot JS ≤ 150 KB gzip — **149.1 KB** (`dist/sf-build-report.json`, entry +
+`bootEntries: ['src/boot-browser.ts']` closure; was 198 KB, then 145.8 KB before the theme contract, see README "Bundle budget");
+CI fails the build on a regression. Feature chunks ≤ 50 KB counted beyond the boot set (1.5–6 KB gzip each), heavy studio-desktop ≤ 200 KB
 after authorize (19 KB).
 
 ## Purpose
@@ -27,6 +27,16 @@ ports of two packages; features are manifests + lazily loaded modules.
   (`boot: * … KB`) and that the boot set holds no lazy-only modules.
 - `vite.config.ts` imports `src/app/chunks.ts` — keep that file data-only (loader `chunk()` declarations).
 - Runtime import cycles fail `pnpm lint:boundaries` (dependency-cruiser); type-only cycles are fine.
+
+## UI kit and theme
+- Every control is a `@staticflux/kit` component (`sf-button`, `sf-text-field`, `sf-segmented`, `sf-tabs`, `sf-toolbar`, …); no native
+  `<button>/<input>/<select>/<textarea>` in app code. Styles use `themeTokens` (`@staticflux/ui/theme`), never literal colors or px
+  spacing; the theme is the default theme contribution + `appearanceUnitWith({ restore: 'manual' })` (restored post-boot).
+- Boot modules import no kit element code: app views lazy-load `ui/controls.ts` (elements upgrade in place, `:not(:defined)`
+  styles keep their size); surfaces only boot needs are declared next to their adapter (`runtime-messaging.ts`), not in
+  `app/surfaces.ts` (which imports `@staticflux/kit/surface-defs`).
+- Surfaces render in `<sf-surface-layer>` (kit) from the deferred surfaces chunk; `Mod+K` is the kit capability palette
+  (`deferred/keyboard.ts` binds it as `CommandShortcutBindingsToken`).
 
 ## Files
 See README.md (architecture map + adapter table).

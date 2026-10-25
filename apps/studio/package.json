@@ -48,7 +48,8 @@
     "yjs": "13.6.33",
     "@staticflux/pwa": "workspace:*",
     "@staticflux/hydrate": "workspace:*",
-    "@staticflux/sandbox": "workspace:*"
+    "@staticflux/sandbox": "workspace:*",
+    "@staticflux/kit": "workspace:*"
   },
   "devDependencies": {
     "vite": "8.3.5",

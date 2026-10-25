@@ -9,7 +9,12 @@ import { AnnouncerToken } from '@staticflux/a11y';
 import { SurfaceManagerToken } from '@staticflux/messaging';
 import { RouterToken } from '@staticflux/router';
 import { SurfaceEnvironmentToken } from '@staticflux/surface';
+import { defineButton } from '@staticflux/kit/button';
+import { defineTabs } from '@staticflux/kit/tabs';
+import { defineTextField } from '@staticflux/kit/text-field';
+import { defineToolbar } from '@staticflux/kit/toolbar';
 import { component, type ComponentHooksOf, defineComponent, SfElement } from '@staticflux/ui';
+import { themeTokens as t } from '@staticflux/ui/theme';
 import { css, html, type TemplateResult } from 'lit';
 import { ReadinessToken } from '../../adapters/perf-runtime.js';
 import { CapabilityInvokerToken, DocumentStoreToken, Features, InsertTextCapability, PresenceToken, SummarizeCapability } from '../../app/contracts.js';
@@ -35,15 +40,15 @@ const editorSpec = component({
 export class StudioDesktopEditor extends SfElement<typeof editorSpec> {
   static override readonly spec = editorSpec;
   static override styles = css`
-    :host { display: grid; grid-template-columns: 1fr 170px; gap: var(--sf-space-3, 12px); }
-    header { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    input.title { font-size: 1.4em; flex: 1; min-inline-size: 12ch; }
-    [role='tablist'] { display: flex; gap: 4px; grid-column: 1; }
-    [aria-selected='true'] { font-weight: bold; }
-    .presence { display: flex; gap: 4px; }
-    .chip { padding: 2px 6px; border-radius: 999px; background: var(--sf-color-surface, #eef); font-size: 0.8em; }
-    .minimap { min-block-size: 220px; position: relative; }
-    .status { opacity: 0.7; }
+    :host { display: grid; grid-template-columns: 1fr 170px; gap: ${t.space.md.css}; }
+    header { grid-column: 1 / -1; display: flex; gap: ${t.space.sm.css}; align-items: center; flex-wrap: wrap; }
+    sf-text-field.title { flex: 1; min-inline-size: 12ch; font-size: ${t.type.sizeXl.css}; }
+    sf-toolbar { flex: 1 1 100%; margin-inline: calc(-1 * ${t.space.sm.css}); }
+    .presence { display: flex; gap: ${t.space.xs.css}; }
+    .chip { padding-inline: ${t.space.sm.css}; border-radius: ${t.radius.full.css}; background: ${t.color.accentSubtle.css}; color: ${t.color.accentText.css}; font-size: ${t.type.sizeSm.css}; }
+    .minimap { min-block-size: 220px; position: relative; border: 1px solid ${t.color.border.css}; border-radius: ${t.radius.md.css}; }
+    .status { color: ${t.color.textMuted.css}; font-size: ${t.type.sizeSm.css}; }
+    sf-tabs { margin-block-end: ${t.space.md.css}; }
   `;
 
   private summary = '';
@@ -73,18 +78,20 @@ export class StudioDesktopEditor extends SfElement<typeof editorSpec> {
     const participants = presence.value === undefined ? [] : Object.entries(presence.value.view.participants).filter(([, p]) => !p.local);
     return html`
       <header>
-        <input class="title" aria-label="Title" .value=${doc.title} ?readonly=${doc.readOnly} @change=${(e: Event) => doc.rename((e.target as HTMLInputElement).value)} />
+        <sf-text-field class="title" label="Title" label-hidden .value=${doc.title} ?readonly=${doc.readOnly} @change=${(e: Event) => doc.rename((e.target as HTMLInputElement).value)}></sf-text-field>
         <span class="status" role="status">${doc.readOnly ? 'Read-only' : doc.pendingSave ? 'Saving…' : 'Saved'}</span>
         <span class="presence" aria-label="Co-editors">${participants.map(([id, p]) => html`<span class="chip" title=${id}>${p.state.name ?? id}</span>`)}</span>
-        <button @click=${() => void this.addParagraph()} ?disabled=${doc.readOnly}>Add paragraph</button>
-        <button data-sf-intent=${this.intent('exportPdf')} @click=${() => void this.export()}>Export PDF</button>
-        <button data-testid="summarize" @click=${() => void this.summarize()}>Summarize (Pro)</button>
-        <button @click=${() => void this.deps.router.openDialogRoute(ShareDialogRoute)}>Share</button>
+        <sf-toolbar label="Document actions">
+          <sf-button @click=${() => void this.addParagraph()} ?disabled=${doc.readOnly}>Add paragraph</sf-button>
+          <sf-button data-sf-intent=${this.intent('exportPdf')} @click=${() => void this.export()}>Export PDF</sf-button>
+          <sf-button data-testid="summarize" @click=${() => void this.summarize()}>Summarize (Pro)</sf-button>
+          <sf-button variant="primary" @click=${() => void this.deps.router.openDialogRoute(ShareDialogRoute)}>Share</sf-button>
+        </sf-toolbar>
       </header>
       <div>
-        <div role="tablist" aria-label="Document views">
-          ${TABS.map((t) => html`<button role="tab" aria-selected=${t === tab ? 'true' : 'false'} @click=${() => doc.tab.set(t === 'content' ? undefined : t)}>${t}</button>`)}
-        </div>
+        <sf-tabs label="Document views" .value=${tab} @sf-change=${(e: CustomEvent<{ value: string }>) => doc.tab.set(e.detail.value === 'content' ? undefined : (e.detail.value as Exclude<(typeof TABS)[number], 'content'>))}>
+          ${TABS.map((name) => html`<sf-tab value=${name}>${name}</sf-tab>`)}
+        </sf-tabs>
         ${tab === 'content' ? html`<studio-block-list></studio-block-list>` : html`<p>${tab === 'comments' ? 'No comments yet.' : 'History is kept by the CRDT.'}</p>`}
         ${this.summary === '' ? '' : html`<p class="summary">${this.summary}</p>`}
       </div>
@@ -117,6 +124,10 @@ export class StudioDesktopEditor extends SfElement<typeof editorSpec> {
 }
 
 export function defineDesktopEditor(): void {
+  defineButton();
+  defineTextField();
+  defineToolbar();
+  defineTabs();
   defineBlockList();
   const defined = defineComponent(StudioDesktopEditor);
   if (!defined.ok) throw defined.error;

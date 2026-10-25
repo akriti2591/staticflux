@@ -6,9 +6,23 @@
  * (or earlier, after first paint), never on the boot path.
  */
 import { contribution } from '@staticflux/core';
-import { type SurfaceHandle, SurfaceManagerToken } from '@staticflux/messaging';
+import { defineSurface, type SurfaceHandle, SurfaceManagerToken } from '@staticflux/messaging';
 import { defineSubsystem, SubsystemsToken } from '@staticflux/runtime';
-import { ReconnectingDialog } from '../app/surfaces.js';
+import { html } from 'lit';
+
+/**
+ * Boot names this surface, so it is declared here (a plain `defineSurface` rendering the kit
+ * dialog frame) instead of in `app/surfaces.ts`, which would pull every surface into boot.
+ */
+export const ReconnectingDialog = defineSurface({
+  id: 'studio/reconnecting',
+  kind: 'dialog',
+  scope: 'app',
+  priority: 'urgent',
+  dismissible: false,
+  label: 'Reconnecting',
+  render: () => html`<sf-dialog heading="Reconnecting" .dismissible=${false}><p role="status">Reconnecting… your changes are kept.</p></sf-dialog>`,
+});
 
 export const reconnectingSurfaceSubsystemUnit = contribution({
   id: 'studio/reconnecting-surface-subsystem-unit',

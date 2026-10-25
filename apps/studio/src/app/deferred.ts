@@ -37,7 +37,7 @@ export const surfacesGroup = deferredUnits({
     chunk.defineSurfaceElements();
     return chunk.surfaceUnits;
   },
-  description: 'Messaging surfaces: manager, routable dialogs, <sf-surface-host>.',
+  description: 'Messaging surfaces: manager, routable dialogs, the kit <sf-surface-layer>.',
 });
 
 export const keyboardGroup = deferredUnits({

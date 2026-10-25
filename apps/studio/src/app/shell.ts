@@ -3,11 +3,12 @@
  * workspaces (`default`, `expert` adds the inspector), the outlets features mount
  * into, the assistant panel controller, and the UI root.
  */
-import { box, contribution, ok, type Result, unit, watch } from '@staticflux/core';
+import { box, contribution, createScope, ok, type Result, unit, watch } from '@staticflux/core';
 import { RouterToken } from '@staticflux/router';
 import { FeatureHostToken, defineSubsystem, SubsystemsToken } from '@staticflux/runtime';
 import { defaultWorkspace, defineShell, defineWorkspace, slotContribution, workspaceContribution, WorkspaceManagerToken } from '@staticflux/shell';
 import { gateResource, UiEnvironmentToken } from '@staticflux/ui';
+import { AppearanceToken } from '@staticflux/ui/theme';
 import type { Injector } from '@staticflux/core';
 import { html, render } from 'lit';
 import { defineAppViews } from '../ui/app-views.js';
@@ -105,9 +106,15 @@ export const workspaceSwitchSubsystemUnit = contribution({
 /** Render the UI root into `container` (browser entry and DOM tests). */
 export async function mountStudioUi(container: HTMLElement, injector: Injector): Promise<Result<() => void>> {
   defineShell();
-  defineAppViews(); // <sf-surface-host> is defined by the deferred surfaces chunk
+  defineAppViews(); // <sf-surface-layer> (kit) is defined by the deferred surfaces chunk
   const environment = await injector.get(UiEnvironmentToken);
   if (!environment.ok) return environment;
+  // Theme contract: the compiled theme + resolved appearance attributes on <html> before the first frame.
+  const appearance = await injector.get(AppearanceToken);
+  if (!appearance.ok) return appearance;
+  const themeScope = createScope('app');
+  const applied = appearance.value.apply(container.ownerDocument.documentElement, themeScope);
+  if (!applied.ok) return applied;
   const router = await injector.get(RouterToken);
   if (!router.ok) return router;
   const onNavigate = (event: Event): void => {
@@ -115,9 +122,10 @@ export async function mountStudioUi(container: HTMLElement, injector: Injector):
     void router.value.navigate({ href });
   };
   container.addEventListener('studio-navigate', onNavigate);
-  render(html`<sf-scope name="studio" .injector=${injector} .environment=${environment.value}><sf-shell></sf-shell><sf-surface-host></sf-surface-host></sf-scope>`, container);
+  render(html`<sf-scope name="studio" .injector=${injector} .environment=${environment.value}><sf-shell></sf-shell><sf-surface-layer></sf-surface-layer></sf-scope>`, container);
   return ok(() => {
     container.removeEventListener('studio-navigate', onNavigate);
     render(html``, container);
+    void themeScope.dispose();
   });
 }
