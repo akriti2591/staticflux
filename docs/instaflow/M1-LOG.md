@@ -25,12 +25,12 @@ entries at the top of **Journal**.
 | B1 Elements and styles | Merged | `main` | #12 |
 | B4 Library and lenses | Merged | `main` | #12 |
 | B3 Tools and smart guides | Merged on working branch; PR open | working branch | #13 |
-| B7 Repeat | Done in worktree; merge after B3's PR | `worktree-agent-a495c8fac8b82e2ee` @ 405f7c1 | — |
-| B2 Text | Checkpointed, nearly done (`handoffs/B2.md`); finish with a fresh agent after B7 | `worktree-agent-aee5798a92554cab5` @ a2328e6 | — |
+| B7 Repeat | Done in worktree; merge after B3's PR | `claude/wip-b7-repeat` @ 405f7c1 | — |
+| B2 Text | Checkpointed, nearly done (`handoffs/B2.md`); finish with a fresh agent after B7 | `claude/wip-b2-text` @ a2328e6 | — |
 | B6 Accessibility layer | Not started; after B3, B7, B2 | — | — |
 
-Worktree branches are local to this container. They become durable only once merged onto the working branch and
-pushed; handoff files are copied onto the working branch as soon as they exist.
+Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
+this container.
 
 ## Owed
 - **Owner:** npm Release rerun (9 packages); deprecate `0.0.0-stage`; set up trusted publishing, then delete
@@ -41,6 +41,8 @@ pushed; handoff files are copied onto the working branch as soon as they exist.
   load: Loro leak test, `costs.test.ts`, worker threads, headless surface.
 
 ## Journal
+- **2026-10-25** Owner: one branch per work package for work in progress. Pushed `claude/wip-b2-text` and
+  `claude/wip-b7-repeat`.
 - **2026-10-25** B3 merged on the working branch (full check: 3,994 tests pass), PR #13. B7 done (405f7c1). B2
   checkpointed (a2328e6), handoff saved to the working branch.
 - **2026-10-25** Owner: build slowly, coordinator keeps the log, commit often, handoffs between agent sessions. Set up
