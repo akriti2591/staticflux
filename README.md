@@ -133,7 +133,7 @@ cd staticflux
 pnpm install
 pnpm build          # tsc -b: every package → dist/
 pnpm test           # vitest + happy-dom; tests import packages from source
-pnpm check          # the full CI gate: build, typecheck, test, boundaries, sf lint, error catalog, size budgets
+pnpm check          # the full CI gate: build, typecheck, test, boundaries, sf lint, error catalog, size budgets, licenses
 ```
 
 ### Run the Studio example
@@ -150,7 +150,7 @@ cd ../.. && npx vitest run apps/studio  # headless integration tests
 ```
 
 Try `/studio/doc/1?panel=chat&prompt=Add%20an%20image`, `/onboarding/step/1`, `/settings`, `?sf-mode=web:compact`
-and `?sf-debug`. See [`apps/studio/README.md`](apps/studio/README.md) for the architecture map and its 38 adapters.
+and `?sf-debug`. See [`apps/studio/README.md`](apps/studio/README.md) for the architecture map and its adapters.
 
 ### Run the documentation site
 

@@ -24,7 +24,7 @@
 │                  async primitives · disposal · reactivity port ·      │
 │                  telemetry API · platform facts                       │
 └──────────────────────────────────────────────────────────────────────┘
-tooling/  sf CLI (graph, budgets, manifests) · eslint-plugin · build plugin · testkit
+tooling/  sf CLI (graph, budgets, manifests, lint rules) · build plugins · testkit
 ```
 
 **Dependency rule:** a package may depend only on packages in lower layers, and on *contract* entry points (`@staticflux/x/contract`) of same-layer packages. Enforced by dependency-cruiser tags (`layer:core|runtime|vertical|ui|shell|feature|app`).
@@ -68,7 +68,7 @@ tooling/  sf CLI (graph, budgets, manifests) · eslint-plugin · build plugin ·
 | `@staticflux/surface` | DOM / Canvas2D / WebGL / WebGPU surfaces, render workers, input forwarding; GPU raster backend, text input, image | `RasterBackend`, `TextInput` |
 | `@staticflux/kit` | Themed Lit components (controls, overlays, shell parts, command palette) on `@staticflux/ui` | — |
 | `tooling/sf` | CLI: graph check, budgets, manifest/chunk extraction | — |
-| `tooling/eslint-plugin` | Custom rules (R20.5) | — |
+| `tooling/sf lint` | Custom rules (R20.5), part of the `sf` CLI (`pnpm lint:sf`) | — |
 
 ## 3. Core shapes
 
