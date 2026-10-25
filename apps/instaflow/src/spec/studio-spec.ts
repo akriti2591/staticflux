@@ -22,7 +22,7 @@ const { lens: L, tool: T, panel: P, hud: H } = StudioIds;
 
 /**
  * B8: the M1b HUD actions Studio places on a selection, by feature (ids are their capability ids). Contributed by B1
- * (`elementHudActions`), B7 (`repeatHudActions`), B2 (`textHudActions`), B3 (`toolHudActions`), B6 (`describeHudAction`).
+ * (`elementHudActions`), B7 (`repeatHudActions`), B2 (`textHudActions`), B3 and B10a (`toolHudActions`), B6 (`describeHudAction`).
  * Kept here, not in `StudioIds`, so features that import the ids do not carry them.
  */
 export const STUDIO_SELECTION_HUD = Object.freeze({
@@ -55,7 +55,7 @@ export const STUDIO_SELECTION_HUD = Object.freeze({
   ],
   repeat: ['instaflow/repeat-radial', 'instaflow/repeat-grid', 'instaflow/repeat-mirror', 'instaflow/repeat-edit', 'instaflow/repeat-expand', 'instaflow/repeat-release'],
   text: ['instaflow/text-font', 'instaflow/text-size', 'instaflow/text-fit'],
-  tools: ['instaflow/rotate-90-cw', 'instaflow/rotate-90-ccw'],
+  tools: ['instaflow/rotate-90-cw', 'instaflow/rotate-90-ccw', 'instaflow/flip-horizontal', 'instaflow/flip-vertical', 'instaflow/free-transform-hud'],
   a11y: ['instaflow/describe-canvas'],
 } as const);
 const S = STUDIO_SELECTION_HUD;
@@ -112,6 +112,8 @@ export const STUDIO_SCOPE_HUD: Readonly<Partial<Record<ScopeKind, Readonly<Recor
 export const STUDIO_SCOPE_PANELS: Readonly<Partial<Record<ScopeKind, Readonly<Record<LensContributionId, readonly PanelPlacement[]>>>>> = Object.freeze({
   selection: {
     [L.canvas]: [
+      // B10a: the numeric transform bar first, as in design tools.
+      { panel: P.transform, dock: 'inspector' },
       { panel: P.appearance, dock: 'inspector' },
       { panel: P.repeat, dock: 'inspector' },
     ],

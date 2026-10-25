@@ -9,6 +9,7 @@ import type { AppearanceEdit, AppearanceModel } from '../elements/inspector.js';
 import type { CompositionStructure } from '../lenses/structure.js';
 import type { RepeatEdit, RepeatModel } from '../repeat/inspector.js';
 import type { ColorRef, FontRef, TextAlign } from '../text/model.js';
+import type { TransformEdit, TransformModel } from '../tools/free-transform.js';
 import type { ColorChoice, FontChoice, TypographySummary } from '../text/typography.js';
 import type { CompareSide } from '../versioning/compare.js';
 import type { SaveState } from '../versioning/latest.js';
@@ -48,6 +49,23 @@ export interface RepeatMirrorShape {
   readonly actions: { apply(edit: RepeatEdit): Result<void> };
 }
 export const RepeatMirror = /* @__PURE__ */ defineMirror<RepeatMirrorShape>('instaflow/mirror/repeat', { model: undefined });
+
+/** B10a's numeric transform bar: the selection's X, Y, W, H, angle and skew, and whether a transform session is active. */
+export interface TransformBarModel extends TransformModel {
+  readonly transforming: boolean;
+}
+export interface TransformMirrorShape {
+  readonly reads: { readonly model: TransformBarModel | undefined };
+  readonly actions: {
+    /** One edit (one undo step, or one step of the active session). */
+    apply(edit: TransformEdit): Result<void>;
+    /** Apply the active session (Enter). */
+    commit(): Result<void>;
+    /** Cancel the active session (Escape). */
+    cancel(): Result<void>;
+  };
+}
+export const TransformMirror = /* @__PURE__ */ defineMirror<TransformMirrorShape>('instaflow/mirror/transform', { model: undefined });
 
 /** B5's Milestones panel model (results of open / compare / new document stay with the host: plain outcomes). */
 export interface MilestonesMirrorShape {

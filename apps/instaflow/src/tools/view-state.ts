@@ -1,6 +1,6 @@
 /**
  * Per-tab view state (IF-7.2, IF-24.1): camera (pan and zoom), selection, the entered container, the active tool,
- * hover and the tool overlay. It lives in the tab's editor worker, is never written to the CRDT and never shared
+ * hover, the tool overlay and (B10a) the selection's pivot. It lives in the tab's editor worker, is never written to the CRDT and never shared
  * through the store: two tabs on one document each keep their own camera and selection.
  *
  * - `createViewState({ tab, root })` — one tab's state (reactive reads through `@staticflux/core` boxes).
@@ -83,6 +83,11 @@ export interface ViewState {
   readonly hover: NodeId | undefined;
   readonly overlay: ToolOverlay;
   readonly viewport: { readonly width: number; readonly height: number };
+  /**
+   * B10a: the selection's pivot (reference point) in selection-frame fractions; undefined = the centre. Per selection:
+   * it resets whenever the selected set changes, and never enters the document (IF-34.6).
+   */
+  readonly pivot: readonly [number, number] | undefined;
   setCamera(camera: Camera): Result<void>;
   panBy(dx: number, dy: number): Result<void>;
   /** Zoom by `factor` about the screen point (default the viewport centre). */
@@ -96,6 +101,8 @@ export interface ViewState {
   setTool(tool: string): void;
   setHover(node: NodeId | undefined): void;
   setOverlay(overlay: ToolOverlay): void;
+  /** Move the pivot (undefined: back to the centre). */
+  setPivot(pivot: readonly [number, number] | undefined): void;
 }
 
 const finiteCamera = (c: Camera): boolean => Number.isFinite(c.tx) && Number.isFinite(c.ty) && Number.isFinite(c.zoom) && c.zoom > 0;
@@ -109,6 +116,13 @@ export function createViewState(init: ViewStateInit): ViewState {
   const hover = box<NodeId | undefined>(undefined);
   const overlay = box<ToolOverlay>(EMPTY_OVERLAY);
   const viewport = box(init.viewport ?? { width: 1280, height: 800 });
+  const pivot = box<readonly [number, number] | undefined>(undefined);
+  /** A new selected set drops the pivot (the same set in another order keeps it). */
+  const setSelection = (next: readonly NodeId[]): void => {
+    const current = selection.get();
+    if (next.length !== current.length || next.some((n) => !current.includes(n))) pivot.set(undefined);
+    selection.set(next);
+  };
   const setCamera = (next: Camera): Result<void> => {
     if (!finiteCamera(next)) return err(InvalidViewStateError({ message: 'The camera must be finite with a positive zoom.', details: { camera: next } }));
     if (next.zoom < ZOOM_RANGE.min - 1e-12 || next.zoom > ZOOM_RANGE.max + 1e-12) return err(InvalidViewStateError({ message: `Zoom ${next.zoom} is out of range.`, details: { range: ZOOM_RANGE } }));
@@ -139,6 +153,9 @@ export function createViewState(init: ViewStateInit): ViewState {
     get viewport() {
       return viewport.get();
     },
+    get pivot() {
+      return pivot.get();
+    },
     setCamera,
     panBy(dx, dy) {
       const c = camera.get();
@@ -151,16 +168,17 @@ export function createViewState(init: ViewStateInit): ViewState {
       return setCamera(zoomAbout(c, c.zoom * factor, sx ?? v.width / 2, sy ?? v.height / 2));
     },
     setViewport: (width, height) => viewport.set({ width, height }),
-    select: (nodes) => selection.set([...new Set(nodes)]),
+    select: (nodes) => setSelection([...new Set(nodes)]),
     toggle(node) {
       const current = selection.get();
-      selection.set(current.includes(node) ? current.filter((n) => n !== node) : [...current, node]);
+      setSelection(current.includes(node) ? current.filter((n) => n !== node) : [...current, node]);
     },
-    clear: () => selection.set([]),
+    clear: () => setSelection([]),
     setContext: (container) => context.set(container),
     setTool: (id) => tool.set(id),
     setHover: (node) => hover.set(node),
     setOverlay: (next) => overlay.set(next),
+    setPivot: (next) => pivot.set(next === undefined ? undefined : [next[0], next[1]]),
   };
 }
 

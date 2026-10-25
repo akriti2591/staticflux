@@ -3,6 +3,7 @@
  * equal-spacing distance labels as **editor chrome**. It is encoded into its own non-printing scene (like B1's
  * `gridOverlayBatch`), so export and the document never see it. Colours come from the active theme (Clean Pop
  * `accent` for selection and guides, `surface1` for handle fills, `accentSubtle` for the marquee): never hard-coded.
+ * B10a: the pivot (reference point) is a ring with a cross hair; in transform mode the frame is drawn twice as thick.
  * Distance labels are data for the shell to show with kit tags (`guideLabelTemplate` in `overlay-labels.ts`, main
  * thread only: this file stays Lit-free for the editor worker, B9).
  */
@@ -22,6 +23,8 @@ export interface ToolOverlay {
   readonly marquee?: Box;
   readonly guides: readonly Guide[];
   readonly labels: readonly GuideLabel[];
+  /** B10a: a transform session is active (Mod+T). */
+  readonly transforming?: boolean;
 }
 
 export const EMPTY_OVERLAY: ToolOverlay = Object.freeze({ handles: [], guides: [], labels: [] });
@@ -45,7 +48,7 @@ export function overlayColors(theme: ThemeDef = cleanPopTheme): OverlayColors {
 }
 
 /** Screen-pixel widths of the overlay strokes. */
-export const OVERLAY_WIDTHS = Object.freeze({ frame: 1.5, hover: 1.5, guide: 1, handle: 1.5, tick: 4 });
+export const OVERLAY_WIDTHS = Object.freeze({ frame: 1.5, transformFrame: 3, hover: 1.5, guide: 1, handle: 1.5, tick: 4, pivotCross: 1 });
 
 const translate = (x: number, y: number): SceneTransform => [1, 0, 0, 1, x, y];
 
@@ -114,10 +117,21 @@ export function toolOverlayBatch(
     for (let i = 0; i < 4; i++) {
       const a = edges[i] as readonly [number, number];
       const b = edges[i + 1] as readonly [number, number];
-      line(a[0], a[1], b[0], b[1], OVERLAY_WIDTHS.frame * s, colors.selection);
+      line(a[0], a[1], b[0], b[1], (overlay.transforming === true ? OVERLAY_WIDTHS.transformFrame : OVERLAY_WIDTHS.frame) * s, colors.selection);
     }
   }
   for (const h of overlay.handles) {
+    if (h.kind === 'pivot') {
+      put({
+        transform: translate(h.x - h.radius, h.y - h.radius),
+        geometry: { kind: 'ellipse', w: 2 * h.radius, h: 2 * h.radius },
+        stroke: { width: OVERLAY_WIDTHS.handle * s, paint: { kind: 'solid', color: colors.selection } },
+      });
+      const arm = h.radius * 1.8;
+      line(h.x - arm, h.y, h.x + arm, h.y, OVERLAY_WIDTHS.pivotCross * s, colors.selection);
+      line(h.x, h.y - arm, h.x, h.y + arm, OVERLAY_WIDTHS.pivotCross * s, colors.selection);
+      continue;
+    }
     if (h.kind !== 'resize') continue;
     put({
       transform: translate(h.x - h.radius, h.y - h.radius),

@@ -35,7 +35,8 @@ Editor side (imported by the worker; DOM-free, Lit-free):
 - `images.ts` — `createImageUploads` (asset section + image table), `placeImageOps`.
 - `canvas-tab.ts` — **`openCanvasTab`** (per tab and page, in the editor: B3 view/index/tool session/controller/commands,
   shortcuts on the editor's registry, the overlay as the record's overlay section, creation, text layer and editing over
-  the host port, B6's editor side with snapshots out, labels out; Undo/Redo/Delete/Duplicate), `OVERLAY_FIRST_ID`,
+  the host port, B6's editor side with snapshots out, labels out; Undo/Redo/Delete/Duplicate; B10a: the tab's transform
+  session, its shortcut scope while active, Undo cancels a session), `OVERLAY_FIRST_ID`,
   `DUPLICATE_OFFSET`.
 - `canvas-shortcuts.ts` — `canvasShortcutDefs()` (B3's keymap + Undo, Redo, Delete, Duplicate as data), the four defs.
 
@@ -44,7 +45,7 @@ Main side:
   text-host events filtered, pointer capture and focus, canvas shortcuts registered with no-op handlers and the canvas scope
   on focus, `mountCanvasA11y` for snapshots, the text host bridge, labels, resize / DPR / visibility to both modules,
   `showPage`), `offscreenHandoff`, `CanvasHandoffFactory`.
-- `panel-mirrors.ts` — panel models over the editor's mirrors: `appearanceSource`, `repeatSource`, `typographyFromMirror`,
+- `panel-mirrors.ts` — panel models over the editor's mirrors: `appearanceSource`, `repeatSource`, `transformSource` (B10a), `typographyFromMirror`,
   `milestonesFromMirror`, `latestFromMirror`, `structureFromMirror`, `storyFromMirror`.
 - `registries.ts` — `replaceById`, `studioContributions(bindPanel)`, `studioAppRegistries`.
 - `studio-app.ts` — **`createStudioApp`** (boots the workers, store side on main, mirrors and panel services in the UI

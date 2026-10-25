@@ -9,7 +9,7 @@ import type { CanvasSnapshot } from '../a11y/projection.js';
 import { commitEdit } from '../elements/actions.js';
 import { P } from '../elements/components.js';
 import { createTextOps, readTextBlock } from '../text/rich-text.js';
-import { CanvasToolsShortcutScope } from '../tools/keyboard.js';
+import { CanvasToolsShortcutScope, TransformModeShortcutScope } from '../tools/keyboard.js';
 import { toScreen } from '../tools/view-state.js';
 import { attachCanvasRender, type CanvasRender, createCanvasPipes, createElementSceneSide, decodeSceneRecord } from './canvas-pipeline.js';
 import { type CanvasTab, OVERLAY_FIRST_ID, openCanvasTab } from './canvas-tab.js';
@@ -260,6 +260,43 @@ describe.skipIf(!authoringBuilt)('canvas tab in the editor module: B3 tools, cre
     render.stop();
     pipes.close();
     await scope.dispose();
+    await f.scope.dispose();
+  });
+
+  it('B10a: Mod+T activates the transform-mode scope on the editor registry; Enter applies, undo cancels a session; the pivot travels in the overlay', async () => {
+    const f = await createStudioFixture();
+    const registry = createShortcutRegistry({ isMac: false });
+    const r = await rig(f, { tool: () => 'instaflow/select', shortcuts: registry });
+    registry.activate(CanvasToolsShortcutScope, r.scope);
+    unwrap(commitEdit(f.document.target('p1'), person, 'Seed', ok([rect('a', 100, 100)])));
+    r.tab.view.select(['a']);
+    const key = (k: string, mods: { ctrlKey?: boolean; shiftKey?: boolean } = {}) => registry.handle({ key: k, code: '', ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, defaultPrevented: false, target: null, preventDefault: () => undefined, ...mods } as unknown as KeyboardEvent);
+    const undoDepth = (): number => f.document.undo.history(person.id).undo.length;
+    const u0 = undoDepth();
+    expect(key('t', { ctrlKey: true })).toBe(true);
+    expect(r.tab.tools.mode?.state).toBe('active');
+    expect(registry.activeScopes).toContain(TransformModeShortcutScope.id);
+    // The pivot handle and the thick frame are part of the overlay the record carries.
+    r.draw();
+    expect(r.tab.view.overlay.handles.some((h) => h.kind === 'pivot')).toBe(true);
+    expect(r.records.at(-1)?.overlay).toBeGreaterThan(0);
+    key('ArrowRight');
+    key('H', { shiftKey: true });
+    expect(f.document.view.value('a', P.flipX)).toBe(true); // a preview
+    expect(undoDepth()).toBe(u0);
+    expect(key('Enter')).toBe(true);
+    expect(r.tab.tools.mode?.state).toBe('idle');
+    expect(registry.activeScopes).not.toContain(TransformModeShortcutScope.id);
+    expect(undoDepth()).toBe(u0 + 1);
+    expect(f.document.view.value('a', P.x)).toBe(101);
+    // Undo during a session cancels the session only.
+    key('t', { ctrlKey: true });
+    key('ArrowRight');
+    unwrap(await r.tab.undo());
+    expect(r.tab.tools.mode?.state).toBe('idle');
+    expect(f.document.view.value('a', P.x)).toBe(101);
+    expect(undoDepth()).toBe(u0 + 1);
+    await r.scope.dispose();
     await f.scope.dispose();
   });
 });

@@ -48,7 +48,9 @@ import type { ToolId } from '../spec/contributions.js';
 import { TEXT_HUD_COMMANDS } from '../text/commands.js';
 import { readTextBlock } from '../text/rich-text.js';
 import { createTypographyService, type TypographyService } from '../text/typography.js';
-import { toolCapabilityImplementations } from '../tools/contributions.js';
+import { TOOL_HUD_COMMANDS, toolCapabilityImplementations } from '../tools/contributions.js';
+import { transformModel } from '../tools/free-transform.js';
+import { captureTransform } from '../tools/transform.js';
 import { CanvasToolsShortcutScope } from '../tools/keyboard.js';
 import type { GuideLabel } from '../tools/snapping.js';
 import { type Camera, toPage } from '../tools/view-state.js';
@@ -56,7 +58,7 @@ import { implementCreateMilestone } from '../versioning/command.js';
 import { createVersioningServices } from '../versioning/units.js';
 import { CapabilityNotServedError, WorkerBootError } from './errors.js';
 import { createMirrorServers, type MirrorCall, type MirrorServers, type MirrorUpdate } from './mirror.js';
-import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, StoryMirror, TypographyMirror } from './mirrors.js';
+import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, StoryMirror, type TransformBarModel, TransformMirror, TypographyMirror } from './mirrors.js';
 import type { InspectedElement, StudioDocumentRef, StudioInspection, StudioStarted, ViewProjection } from './protocol.js';
 import { createRemoteTextHost, type TextHostCommand, type TextHostEvent } from './text-port.js';
 
@@ -304,6 +306,32 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
     },
     scope,
   );
+  // B10a: the numeric transform bar reads the selection as it is shown (a transform session's staged values included).
+  const transformBar = (): TransformBarModel | undefined => {
+    const t = tab();
+    if (t === undefined || t.view.selection.length === 0) return undefined;
+    const start = captureTransform(t.tools.ctx, t.view.selection);
+    return start.ok ? { ...transformModel(start.value), transforming: t.tools.mode?.state === 'active' } : undefined;
+  };
+  const onTab = <T>(run: (t: CanvasTab) => Result<T>): Result<void> => {
+    const t = tab();
+    if (t === undefined) return err(NoOpenPageError());
+    const r = run(t);
+    return r.ok ? ok() : r;
+  };
+  mirrors.serve(
+    TransformMirror,
+    {
+      reads: { model: transformBar },
+      actions: {
+        apply: (edit) => onTab((t) => t.commands.numeric(edit)),
+        commit: () => onTab((t) => t.commands.commitTransform()),
+        cancel: () => onTab((t) => t.commands.cancelTransform()),
+      },
+      changes: docChanges,
+    },
+    scope,
+  );
   const plain = async (run: Promise<Result<unknown>>): Promise<Result<void>> => {
     const r = await run;
     return r.ok ? ok() : r;
@@ -442,7 +470,20 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       if (record === undefined) return;
       const part = document.part(page());
       const block = record.kind === 'text' && part !== undefined ? readTextBlock(part, n) : undefined;
-      out.push({ id: n, kind: record.kind, parent: record.parent ?? undefined, x: num(n, P.x), y: num(n, P.y), w: num(n, P.w), h: num(n, P.h), rotation: num(n, P.rotation), ...(block?.ok === true ? { text: block.value.text } : {}) });
+      out.push({
+        id: n,
+        kind: record.kind,
+        parent: record.parent ?? undefined,
+        x: num(n, P.x),
+        y: num(n, P.y),
+        w: num(n, P.w),
+        h: num(n, P.h),
+        rotation: num(n, P.rotation),
+        skewX: num(n, P.skewX),
+        flipX: document.view.value(n, P.flipX) === true,
+        flipY: document.view.value(n, P.flipY) === true,
+        ...(block?.ok === true ? { text: block.value.text } : {}),
+      });
     };
     if (nodes !== undefined) nodes.forEach(one);
     else {
@@ -526,6 +567,8 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       return r.ok ? ok() : r;
     },
     hud(action) {
+      const tool = TOOL_HUD_COMMANDS[action];
+      if (tool !== undefined) return onTab((t) => tool(t.commands));
       const command = TEXT_HUD_COMMANDS[action];
       return command === undefined ? ok() : command(typography);
     },
@@ -539,6 +582,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
         textNodes: t?.text.nodes ?? [],
         ...(editing === undefined ? {} : { editing: { node: editing.node, text: editing.session.state.model.text } }),
         ...(frameCorners === undefined ? {} : { frame: frameCorners.map((c) => [c[0], c[1]] as const) }),
+        ...(t === undefined ? {} : { transform: { mode: t.tools.mode?.state ?? 'idle', ...(t.view.pivot === undefined ? {} : { pivot: t.view.pivot }) } }),
         docVersion: options.publisher.docVersion,
         records: options.publisher.records,
         undo: doc.undoHistory().length,

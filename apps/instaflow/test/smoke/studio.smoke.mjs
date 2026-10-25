@@ -7,6 +7,9 @@
 // move, resize and rotate by pointer; the overlay matches the content during a paused drag (pixels and the editor's
 // state); the tab hidden then visible keeps its state and draws again; lens switch and page switch; IME composition
 // through Chrome's IME path (CDP) on Studio's text host with character bounds inside the text box.
+// B10a (IF-34.21): flip (Shift+H twice is the identity), skew (Mod+Shift-drag the top handle of the rotated element:
+// 15° steps), a numeric-bar edit (W typed + Enter) and transform mode (Mod+T: Escape cancels the session, Enter
+// applies a nudge and a flip as one undo step).
 //
 // Starts the Studio dev server (dev/studio/vite.config.ts) on a free port, drives the page by role and name (the same
 // paths a person and a screen reader use), and reads the editor through `window.__studio.inspect()`. Options:
@@ -189,6 +192,82 @@ async function scenario(page) {
   const rotated = await screenBox(rect);
   if (!(Math.abs(rotated.rotation) > 20)) fail(`rotate: rotation ${rotated.rotation}`);
   log(`rotate by the corner zone (${Math.round(rotated.rotation)}°)`);
+
+  // ---------------------------------------------------------------- B10a: flip, skew, numeric bar, transform mode
+  /** Page point → screen point (the surface moves when the selection HUD mounts). */
+  const toScreen = async ([px, py]) => {
+    const b = await surface.boundingBox();
+    const c = (await inspect()).view.camera;
+    return [b.x + px * c.zoom + c.tx, b.y + py * c.zoom + c.ty];
+  };
+  const undoDepth = async () => (await inspect()).undo;
+  const el = async () => (await inspect([rect])).elements[0];
+  // Flip (Shift+H on the focused canvas): along the element's own axes, so the rotation stays; twice restores it.
+  await surface.focus();
+  const u0 = await undoDepth();
+  await page.keyboard.press('Shift+H');
+  await page.waitForFunction(async (n) => (await window.__studio.inspect([n])).value?.elements[0]?.flipX === true, rect, { timeout: 10_000, polling: 100 });
+  const flipped = await el();
+  if (!near(flipped.rotation, rotated.rotation, 0.01) || !near(flipped.x, rotated.e.x, 0.01) || (await undoDepth()) !== u0 + 1) fail(`flip: ${JSON.stringify({ before: rotated.e, after: flipped, undo: [u0, await undoDepth()] })}`);
+  await page.keyboard.press('Shift+H');
+  await page.waitForFunction(async (n) => (await window.__studio.inspect([n])).value?.elements[0]?.flipX === false, rect, { timeout: 10_000, polling: 100 });
+  const unflipped = await el();
+  if (!near(unflipped.x, rotated.e.x, 0.01) || !near(unflipped.y, rotated.e.y, 0.01) || !near(unflipped.w, rotated.e.w, 0.01)) fail(`flip twice is not the identity: ${JSON.stringify({ before: rotated.e, after: unflipped })}`);
+  log(`flip horizontal and back (Shift+H twice: flipX on, then off; rotation ${Math.round(flipped.rotation)}° kept; one undo step each)`);
+
+  // Skew: Mod-drag the top side handle of the rotated element along its top edge; Shift snaps to 15° steps.
+  const corners = (await inspect([rect])).frame;
+  const topMid = await toScreen([(corners[0][0] + corners[1][0]) / 2, (corners[0][1] + corners[1][1]) / 2]);
+  const tl = await toScreen(corners[0]);
+  const tr = await toScreen(corners[1]);
+  const len = Math.hypot(tr[0] - tl[0], tr[1] - tl[1]);
+  const along = [(tr[0] - tl[0]) / len, (tr[1] - tl[1]) / len];
+  const u1 = await undoDepth();
+  await page.mouse.move(topMid[0], topMid[1]);
+  await page.keyboard.down('Control');
+  await page.keyboard.down('Shift');
+  await page.mouse.down();
+  for (let i = 1; i <= 5; i++) await page.mouse.move(topMid[0] + along[0] * 8 * i, topMid[1] + along[1] * 8 * i);
+  await page.mouse.up();
+  await page.keyboard.up('Shift');
+  await page.keyboard.up('Control');
+  await waitSettled();
+  const skewed = await el();
+  if (!(Math.abs(skewed.skewX) > 5) || !near(skewed.skewX / 15, Math.round(skewed.skewX / 15), 1e-6) || (await undoDepth()) !== u1 + 1) fail(`skew: ${JSON.stringify({ skewed, undo: [u1, await undoDepth()] })}`);
+  log(`skew by Mod-dragging the top handle of a rotated element (${Math.round(skewed.skewX)}°, snapped to 15° with Shift; one undo step)`);
+
+  // Numeric bar (the Transform panel): type a width, Enter applies it as one undo step.
+  const bar = page.locator('if-transform-bar');
+  const width = bar.getByRole('textbox', { name: 'Width', exact: true });
+  await width.waitFor({ timeout: 20_000 });
+  const u2 = await undoDepth();
+  await width.fill('150');
+  await width.press('Enter');
+  await page.waitForFunction(async (n) => Math.abs(((await window.__studio.inspect([n])).value?.elements[0]?.w ?? 0) - 150) < 0.01, rect, { timeout: 10_000, polling: 100 });
+  if ((await undoDepth()) !== u2 + 1) fail(`numeric bar: ${u2} → ${await undoDepth()} undo steps`);
+  log('numeric bar: W = 150 typed and applied (one undo step)');
+
+  // Transform mode: Mod+T, steps are previews; Escape cancels the whole session, Enter applies it as one undo step.
+  await surface.focus();
+  const session0 = await el();
+  const u3 = await undoDepth();
+  await page.keyboard.press('Control+T');
+  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.transform?.mode === 'active', null, { timeout: 10_000, polling: 100 });
+  for (const key of ['ArrowRight', 'ArrowRight', 'ArrowDown']) await page.keyboard.press(key);
+  await page.waitForFunction(async ([n, y]) => Math.abs(((await window.__studio.inspect([n])).value?.elements[0]?.y ?? 0) - y - 1) < 0.01, [rect, session0.y], { timeout: 10_000, polling: 100 });
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.transform?.mode === 'idle', null, { timeout: 10_000, polling: 100 });
+  const cancelled = await el();
+  if (!near(cancelled.x, session0.x, 0.01) || !near(cancelled.y, session0.y, 0.01) || (await undoDepth()) !== u3 || (await page.evaluate(() => window.__studio.tab.view.selection.length)) !== 1) fail(`transform mode Escape: ${JSON.stringify({ session0, cancelled, undo: [u3, await undoDepth()] })}`);
+  await page.keyboard.press('Control+T');
+  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.transform?.mode === 'active', null, { timeout: 10_000, polling: 100 });
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Shift+H');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.transform?.mode === 'idle', null, { timeout: 10_000, polling: 100 });
+  const applied = await el();
+  if (!(applied.flipX === !session0.flipX) || (await undoDepth()) !== u3 + 1) fail(`transform mode Enter: ${JSON.stringify({ session0, applied, undo: [u3, await undoDepth()] })}`);
+  log('transform mode (Mod+T): Escape cancelled the session, Enter applied a nudge and a flip as one undo step');
 
   // ---------------------------------------------------------------- B8: type text
   await page.getByRole('button', { name: 'Text', exact: true }).click();

@@ -591,3 +591,25 @@ input flows in through A5's ring; the store side answers on the store port.
 | WRK-6 | Every capability run, panel action and Place goes to the editor; main forwards only ids the editor reported | IF-WRK-003, IF-WRK-004; `host.test.ts`, `mirror.test.ts` |
 | WRK-7 | The worker import graph has no Lit, kit, UI runtime or main-thread module | `worker-imports.test.ts` |
 | WRK-8 | A page switch replaces the scene with a snapshot of the new page (the publisher outlives tabs) | `canvas-tab.test.ts` |
+
+## 36. Transform tools: Free Transform session (Instaflow M1c B10a)
+
+Photoshop-style Free Transform basics on top of B3's gestures (§25), in the editor worker. Mod+T (or the HUD's Free
+transform) starts a session on the selection; until Enter every step (a drag, a key command, a numeric-bar edit) is a
+session-layer preview the next step builds on. The pivot is view state per selection, never the document.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/transform-session` (one per tab) | idle → active (`enter`: Mod+T or Free transform on a selection with something movable; IF-TOOL-002 otherwise; a no-op when active); active → active (`stage`: a step joined the session, its values shown in the session layer); active → idle (`commit`: Enter, Apply, or a new selected set — one change set for every staged value, IF-TOOL-004 when every target vanished; `cancel`: Escape, Cancel, Undo, or the tab scope ending — nothing written, previews cleared). `commit` / `cancel` while idle is IF-XF-002 | `apps/instaflow/src/tools/transform-mode.ts` |
+| `instaflow/tool-gesture` (B3, §25) | adds pressed → skewing (`skew`: a side handle pressed with Mod) and pressed → pivoting (`pivot`: the pivot handle; Alt prefers it over a resize handle); both → idle (`release` \| `cancel`). While a session is active the behaviour is `transform` (`MODE_BEHAVIOURS`): a press outside the frame rotates, a release stages instead of committing (`SINKS`), a cancelled step restores the staged previews | `apps/instaflow/src/tools/gesture.ts` |
+| pivot (view state, per tab) | undefined (the frame centre) → a frame fraction (`setPivot`: dragged, snapping to the nine reference points; Mod: free) → undefined (Alt-click on it, or the selected set changes) | `apps/instaflow/src/tools/view-state.ts` |
+| transform-mode shortcut scope | inactive → active while a session is (`TransformModeShortcutScope`, a child of the canvas scope: its Enter and Escape shadow the canvas scope's select-children and deselect) | `apps/instaflow/src/app/canvas-tab.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| XF-1 | A whole session is one change set = one undo step on commit; nothing is written before; cancel writes nothing and clears every preview | IF-XF-002; `transform-mode.test.ts`, `canvas-tab.test.ts`, smoke |
+| XF-2 | Flip, skew, rotate, scale and the numeric bar are each one change set outside a session; position-locked elements never move | IF-TOOL-002; `transform-mode.test.ts`, `contributions.test.ts` |
+| XF-3 | Flipping twice is the identity; skew then the inverse skew restores; rotating or scaling about the pivot keeps it fixed (rotated, skewed and nested elements) | `free-transform.test.ts` (fast-check) |
+| XF-4 | Any non-singular page affine decomposes into the box (rotation · flips and scale · horizontal skew) and lands every corner where the affine sends it; a flip stays a flip | `free-transform.test.ts` (fast-check) |
+| XF-5 | A session stages only the fields that differ from its base, so restoring its previews never hides a concurrent change by someone else | `contributions.test.ts` |
+| XF-6 | The pivot never enters the CRDT or the store; it resets when the selected set changes | `transform-mode.test.ts` |
