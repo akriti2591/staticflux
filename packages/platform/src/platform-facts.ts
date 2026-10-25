@@ -50,6 +50,7 @@ import {
   readNetwork,
   readPreferences,
 } from './facts.js';
+import { readWebApis, type WebApiFacts } from './web-apis.js';
 
 export const FACTS_SUBSYSTEM = 'platform/facts' as const;
 
@@ -116,6 +117,7 @@ export interface PlatformFactsSource {
   readonly host: HostFacts;
   readonly capabilities: CapabilityFacts;
   readonly ai: AiFacts;
+  readonly apis: WebApiFacts;
   /** `listening` until disposed. Reactive. */
   readonly state: 'listening' | 'disposed';
   readonly aiProbeState: AiProbeState;
@@ -187,6 +189,7 @@ export function createPlatformFacts(options: PlatformFactsOptions): PlatformFact
     host: box(readHost(env), shallowEqual),
     capabilities: box(readCapabilities(env), shallowEqual),
     ai: box(readAiPresence(env), shallowEqual),
+    apis: box(readWebApis(env), shallowEqual),
   };
 
   const snapshot = (): PlatformFacts =>
@@ -199,6 +202,7 @@ export function createPlatformFacts(options: PlatformFactsOptions): PlatformFact
       host: boxes.host.get(),
       capabilities: boxes.capabilities.get(),
       ai: boxes.ai.get(),
+      apis: boxes.apis.get(),
     }));
 
   const update = <K extends FactGroup>(group: K, next: PlatformFacts[K]): void => {
@@ -285,6 +289,7 @@ export function createPlatformFacts(options: PlatformFactsOptions): PlatformFact
         host: boxes.host.get(),
         capabilities: boxes.capabilities.get(),
         ai: boxes.ai.get(),
+        apis: boxes.apis.get(),
       };
     },
     get input() {
@@ -311,6 +316,9 @@ export function createPlatformFacts(options: PlatformFactsOptions): PlatformFact
     get ai() {
       return boxes.ai.get();
     },
+    get apis() {
+      return boxes.apis.get();
+    },
     get state() {
       return lifecycle.state;
     },
@@ -323,6 +331,7 @@ export function createPlatformFacts(options: PlatformFactsOptions): PlatformFact
         refreshMedia();
         refreshNetwork();
         update('capabilities', readCapabilities(env));
+        update('apis', readWebApis(env));
       });
     },
     async probeAi(signal = scope.signal) {

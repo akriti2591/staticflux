@@ -8,6 +8,7 @@
  */
 import { isEmbedded, mediaMatches, type PlatformEnv, readGlobal } from './env.js';
 import { detectPwa, detectWebviewAndroid, detectWebviewIos, isIosLike } from './detect-mode.js';
+import { readWebApis, type WebApiFacts } from './web-apis.js';
 
 export type DeviceClass = 'mobile' | 'tablet' | 'desktop';
 export type OsName = 'ios' | 'android' | 'windows' | 'macos' | 'linux' | 'chromeos' | 'unknown';
@@ -112,6 +113,8 @@ export interface PlatformFacts {
   readonly host: HostFacts;
   readonly capabilities: CapabilityFacts;
   readonly ai: AiFacts;
+  /** Web platform API presence (WebGPU, WebCodecs, OPFS, File System Access, EditContext, …; SF-Δ26). */
+  readonly apis: WebApiFacts;
 }
 
 // ---------------------------------------------------------------- readers
@@ -349,5 +352,6 @@ export function readPlatformFacts(env: PlatformEnv): PlatformFacts {
     host: readHost(env),
     capabilities: readCapabilities(env),
     ai: readAiPresence(env),
+    apis: readWebApis(env),
   };
 }

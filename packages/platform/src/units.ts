@@ -3,7 +3,8 @@
  * units individually); host modes and form factors are multi-token
  * contributions so plugin packages add modes without touching this package.
  */
-import { token, unit, type AnyUnit, type TokenId } from '@staticflux/core';
+import { ok, token, unit, type AnyUnit, type TokenId } from '@staticflux/core';
+import { type AsyncFactDefinition, type AsyncFactLane, createAsyncFactLane } from './async-facts.js';
 import type { DetectedMode, ModeOverride } from './detect-mode.js';
 import { browserEnv, type PlatformEnv } from './env.js';
 import { BUILT_IN_FORM_FACTORS, type FormFactorDefinition } from './form-factor.js';
@@ -31,6 +32,8 @@ export const HostModesToken = /* @__PURE__ */ token('platform/host-modes').multi
 export const FormFactorsToken = /* @__PURE__ */ token('platform/form-factors').multi<FormFactorDefinition>();
 export const PlatformFactsToken = /* @__PURE__ */ token('platform/facts').type<PlatformFactsSource>();
 export const AppProfileToken = /* @__PURE__ */ token('platform/app-profile').type<AppProfileSource>();
+/** Async fact lane (GPU adapter, codec matrix, OPFS sync handles; SF-Δ26). */
+export const AsyncFactLaneToken = /* @__PURE__ */ token('platform/async-fact-lane').type<AsyncFactLane>();
 
 export const browserEnvUnit = unit({
   id: 'platform/browser-env-unit',
@@ -152,4 +155,37 @@ export function platformUnits(options: PlatformOptions = {}, env?: PlatformEnv):
     ...builtInHostModeUnits,
     ...builtInFormFactorUnits,
   ];
+}
+
+export interface AsyncFactLaneUnitOptions {
+  /** Facts `start()` probes on idle (opt-in: nothing is probed unless declared). */
+  readonly facts?: readonly AsyncFactDefinition<unknown>[];
+  /** Call `lane.start()` when the unit initializes (default true). Never blocks boot. */
+  readonly start?: boolean;
+  /** Reuse a lane created before boot (e.g. by the baseline check), so settled facts are not probed twice. */
+  readonly lane?: AsyncFactLane;
+}
+
+/** The async fact lane as a unit. Not part of `platformUnits()`: apps opt in with the facts they need. */
+export function asyncFactLaneUnit(options: AsyncFactLaneUnitOptions = {}): AnyUnit {
+  const contribution = unit({
+    id: 'platform/async-fact-lane-unit',
+    provides: AsyncFactLaneToken,
+    scope: 'app',
+    deps: { required: { env: PlatformEnvToken } },
+    description: 'Async platform facts probed off the boot path (idle), single-flight and cached.',
+    create: ({ env }, context) =>
+      options.lane ??
+      createAsyncFactLane({
+        env,
+        scope: context.scope,
+        telemetry: context.telemetry,
+        ...(options.facts === undefined ? {} : { facts: options.facts }),
+      }),
+    init: (lane) => {
+      if (options.start !== false) lane.start();
+      return ok();
+    },
+  });
+  return contribution;
 }

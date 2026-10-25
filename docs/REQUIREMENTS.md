@@ -377,6 +377,13 @@
 ### 18.2 Experience types (validation targets)
 - **R18.12** The primitives must support, without special cases: **chat** (headless agent + chat UI + streamed resources), **wizard** (steps as sub-routes, exit-guard validation, persisted progress), **complex editor** (document worker, projection UI, lazy panels, archive), **co-editing** (CRDT + collaboration transport + presence). A needed special case indicates a missing primitive.
 
+### 18.3 Platform baseline, web API facts and async facts (SF-Δ26)
+- **R18.13** **Web API facts** (`facts.apis`): synchronous presence of WebGPU, OffscreenCanvas transfer, WebCodecs, OPFS and OPFS sync access handles, File System Access (`showDirectoryPicker`, `FileSystemFileHandle.move`), EditContext, Local Font Access, Compression Streams (incl. `deflate-raw`), cross-origin isolation, SharedArrayBuffer, Wasm SIMD, AudioWorklet, Web Locks, BroadcastChannel. Probes never throw (at import or at read); a throwing API is "absent".
+- **R18.14** **Async fact lane:** facts that need a round trip (WebGPU adapter with info, features and limits; WebCodecs codec matrix; OPFS sync handles asked from a worker) are typed definitions probed on idle, off the boot path, single-flight, cached, under a timeout and an `AbortSignal`; a failed probe is a `failed` fact (`SF-PLAT-009`), never an exception.
+- **R18.15** **Required baseline:** an app declares the capabilities it cannot run without (sync API facts and async facts), each with the app's own stable code and fix. A synchronous miss is decided inline before boot and probes nothing else.
+- **R18.16** **Unsupported boot:** a failed baseline selects the `unsupported` host mode (a plugin, R18.3a) and the unsupported boot plan, which loads one small screen naming each missing capability with its code and fix and nothing else. No feature code branches on support.
+- **R18.17** Enhancements (EditContext, Local Font Access, folders) are facts that select variant bindings (R18.5), never baseline failures.
+
 ## 19. Handoff
 
 - **R19.1** State that survives boundaries: reload, deep link, login redirect, tab/window, host↔embed; cross-device as a client contract only.

@@ -229,3 +229,5 @@ Every `SfError` carries: `code` (stable), `message` (one line), `units` involved
 | `sandbox/plugin` | loading → handshaking → running ⇄ restarting → failed \| killed \| stopped | `packages/sandbox/AGENTS.md` |
 | `pwa/sw-lifecycle` | installing → installed → activating → activated → redundant | `packages/pwa/AGENTS.md` |
 | `pwa/update` | idle → checking → available → activating → activated \| failed; reload fallback on framework-major change | `packages/pwa/AGENTS.md` |
+| `platform/async-fact` | idle → probing → settled \| failed (`SF-PLAT-009`: throw, timeout); probing → idle when every caller aborted; settled \| failed → probing on `refresh`; any → disposed (scope) | `packages/platform/src/async-facts.ts` |
+| `platform/baseline` (verdict, not a machine) | pending → supported \| unsupported; a synchronous miss is `unsupported` at once and probes nothing; `unsupported` boots only the unsupported plan (`SF-PLAT-010`) | `packages/platform/src/baseline.ts` |

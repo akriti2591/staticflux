@@ -296,6 +296,10 @@ importers:
       '@staticflux/core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
+      '@staticflux/loader':
+        specifier: workspace:*
+        version: link:../loader
 
   packages/pwa:
     dependencies:

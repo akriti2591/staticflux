@@ -1347,6 +1347,18 @@
       "fix": "Popups that need `window.opener` (OAuth, payments) must use `postMessage` via a same-origin relay or `BroadcastChannel`; or serve the popup flow with `Cross-Origin-Opener-Policy: same-origin-allow-popups` (not isolated)."
     },
     {
+      "code": "SF-PLAT-009",
+      "kind": "unavailable",
+      "summary": "An async platform fact probe threw, timed out or was aborted.",
+      "fix": "Treat the fact as unavailable (`lane.read(fact).state === \"failed\"`); call `lane.probe(fact, { refresh: true })` to retry. Probes must catch their own API errors and return a value describing absence."
+    },
+    {
+      "code": "SF-PLAT-010",
+      "kind": "unavailable",
+      "summary": "A required platform baseline capability is missing.",
+      "fix": "Boot the unsupported plan (`unsupportedHostMode(verdict)` + `unsupportedBootPlan(...)`) and show `verdict.missing` with each app code and fix; never load the regular app on top of a failed baseline."
+    },
+    {
       "code": "SF-PWA-001",
       "kind": "unavailable",
       "summary": "Service workers are not available here (unsupported browser, insecure context, or an embedded host mode).",

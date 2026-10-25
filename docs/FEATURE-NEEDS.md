@@ -77,3 +77,9 @@
 ### ai / webmcp / advisors
 - Advisor: predict next feature to warm (statistical default).
 - WebMCP: expose `agent/insert-image`, `studio/summarize` capabilities as tools (gated, confirmed).
+
+### platform: baseline, web API facts, async facts (Instaflow M1 A1, SF-Δ26)
+- Instaflow boot (IF-2.2–2.4): declare a required baseline (WebGPU + an adapter, OffscreenCanvas transfer, WebCodecs, OPFS + sync handles, Wasm SIMD, cross-origin isolation + SharedArrayBuffer, AudioWorklet, Compression Streams incl. `deflate-raw`, Web Locks, BroadcastChannel) with app codes `IF-PLAT-001` (use Chrome), `-002` (no GPU adapter), `-003` (not isolated) → `defineBaseline`, `requireApi`, `requireFact`, `checkBaseline`.
+- Instaflow unsupported screen: Safari or a blocklisted GPU boots one screen with the missing capabilities, codes and fixes, and nothing else → `unsupportedHostMode`, `unsupportedBootPlan`, `unsupportedUnits`, `mountUnsupportedScreen`.
+- Instaflow variant bindings (IF-2.3, IF-2.5): `TextInput` picks EditContext vs hidden textarea, font source picks Local Font Access vs uploads, workspace home picks folders (`showDirectoryPicker`, `FileSystemFileHandle.move`) vs OPFS + zip → `facts.apis`.
+- Instaflow render and media modules: the WebGPU adapter's info, features and limits (sizing tiles, fallback-adapter warning) and the WebCodecs codec matrix (export formats) without delaying boot → `createAsyncFactLane`, `webGpuAdapterFact`, `codecSupportFact`, `asyncFactLaneUnit`.

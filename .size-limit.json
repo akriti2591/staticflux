@@ -338,7 +338,7 @@
       "mobx",
       "@staticflux/core"
     ],
-    "limit": "14 KB"
+    "limit": "15 KB"
   },
   {
     "name": "@staticflux/devtools (collector; dev only)",
@@ -355,5 +355,26 @@
       "@staticflux/devtools/panel"
     ],
     "limit": "17.5 KB"
+  },
+  {
+    "name": "@staticflux/platform baseline (inline pre-boot check: web API facts + verdict)",
+    "path": "packages/platform/dist/baseline.js",
+    "import": "{ checkBaseline, checkBaselineSync, defineBaseline, requireApi, requireFact }",
+    "limit": "1.3 KB"
+  },
+  {
+    "name": "@staticflux/platform unsupported screen (the unsupported boot plan's only chunk)",
+    "path": "packages/platform/dist/unsupported-screen.js",
+    "limit": "750 B"
+  },
+  {
+    "name": "@staticflux/platform async fact lane + built-in probes",
+    "path": "packages/platform/dist/index.js",
+    "import": "{ createAsyncFactLane, webGpuAdapterFact, codecSupportFact, opfsSyncAccessFact }",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "3.75 KB"
   }
 ]
