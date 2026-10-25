@@ -570,3 +570,29 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
 - **R11.42** Cross-thread behaviour is tested with real concurrency (Node `worker_threads` or Chromium): torn-read detection,
   gap → resnapshot, lossless rings under back-pressure, re-wire after a real worker respawn. No wall-clock assertions in
   unit tests.
+
+## 24. Stage, attribution and undo (SF-Δ7 local + session, Δ9, Δ10; Instaflow M1 · A8; extends R11.8)
+
+- **R11.8k** **Composed stage** (`@staticflux/stage`): a layer stack (`session` > `proposal/*` > `local`, proposal layers
+  pluggable with `addLayer`), arcs `variant` > `inherit` > `reference` under direct opinions, `read(node)` with per-value
+  provenance and `explain(node, path)` (winner, overridden, ignored), over per-node reads of `DocumentCRDTv2` parts.
+- **R11.8l** **References** are pinned (milestone) or following (Latest) and resolve through a `StageAssets` port;
+  instances show the referenced asset as proxies (`<instance>/<source>`, nested), with per-source overrides as local opinions.
+- **R11.8m** **Final paths and policy locks** win regardless of strength; beaten opinions are flagged. Missing targets and
+  arc cycles are flagged, never thrown.
+- **R11.8n** **Incremental composition**: a dependency index (raw nodes, layer entries, variant selection, resolved
+  references, other compositions) invalidates exactly the dependents of a change and reports the stage nodes to redraw.
+- **R11.8o** **Locks** (`position | content | all`) apply to a node and its subtree and are enforced on writes
+  (`checkWrite`, `SF-STAGE-001`); policy locks are removable only by a human with explicit confirmation
+  (`SF-STAGE-002`); writes to final paths are rejected (`SF-STAGE-003`). Client gating is UX, not security.
+- **R11.8p** **Attribution**: every transaction carries an actor record `{ kind: human | agent | flow, id, displayName,
+  model?, via, invocationId?, onBehalfOf? }` resolved from a capability run by an attribution port
+  (`createAttributionPort`, `metaForRun`), with a transaction id for undo.
+- **R11.8q** **Undo service**: per actor, transaction-grouped (one commit, gesture, capability invocation or change set =
+  one step with a readable label), inverse-op based, 200 steps per actor, rebuilt after reload from the persisted history
+  up to the undo horizon. Commit records carry each part's `after` frontier.
+- **R11.8r** **Undo over another actor's later overwrite is flagged** as a typed conflict (target, expected, current,
+  restore, by) and writes nothing unless the caller resolves it (`overwrite` | `keep-theirs`); trimmed history is
+  `history-unavailable`, never guessed.
+- **R11.8s** **Contract suite** `runUndoServiceContract` in testkit, including fast-check properties over random
+  interleavings of two humans and an agent on separate peers (own edits only, conflicts flagged, convergence).

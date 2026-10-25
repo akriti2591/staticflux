@@ -842,5 +842,16 @@
       "@staticflux/capabilities"
     ],
     "limit": "22.5 KB"
+  },
+  {
+    "name": "@staticflux/stage (stage, attribution, undo service; excl. framework)",
+    "path": "packages/stage/dist/index.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/document",
+      "@staticflux/document/v2"
+    ],
+    "limit": "9.5 KB"
   }
 ]

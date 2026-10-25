@@ -415,6 +415,22 @@ importers:
         specifier: 3.3.3
         version: 3.3.3
 
+  packages/stage:
+    dependencies:
+      '@staticflux/core':
+        specifier: workspace:*
+        version: link:../core
+      '@staticflux/document':
+        specifier: workspace:*
+        version: link:../document
+    devDependencies:
+      '@staticflux/capabilities':
+        specifier: workspace:*
+        version: link:../capabilities
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
+
   packages/storage:
     dependencies:
       '@staticflux/core':
@@ -456,6 +472,9 @@ importers:
       '@staticflux/runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@staticflux/stage':
+        specifier: workspace:*
+        version: link:../stage
       '@staticflux/storage':
         specifier: workspace:*
         version: link:../storage

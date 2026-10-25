@@ -309,3 +309,20 @@ Topology-neutral pipes between the editor and render modules (D15). Every machin
 
 | `kit/resize` | idle → resizing (pointer drag, `move` repeats) → idle (`end` commits one `sf-resize`, `cancel` restores the size); keyboard steps commit directly | `packages/kit/src/internal/resize.ts` |
 | `kit/tree-drag` | idle → dragging (`over` repeats, drop target filtered by `canDrop`, never into the own subtree) → idle (`drop` fires cancelable `sf-reorder`, `cancel` on dragend) | `packages/kit/src/tree.ts` |
+
+
+## 18. Stage and undo (`@staticflux/stage`; SF-Δ7, Δ9, Δ10; Instaflow M1 A8)
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `stage/undo-step` (one step of one actor) | done (on the undo stack) → undone (applied undo; on the redo stack) → done (applied redo); done → dropped (beyond the per-actor limit, 200); undone → dropped (a new edit by the same actor clears redo). A `conflict` outcome is not a transition: the step stays where it is until the user retries with `overwrite` or `keep-theirs`. A `keep-theirs` undo that restores nothing drops the step (nothing to redo) | `packages/stage/src/undo.ts` |
+| `stage/composition` (one cached stage node) | absent → cached (first `read`) → absent (a dependency changed: raw node, layer entry, variant selection, resolved reference, another composition); all → absent on `addLayer` / layer removal; any → disposed | `packages/stage/src/stage.ts` |
+
+| ID | Invariant | Error |
+|---|---|---|
+| U-1 | Undo and redo apply only the acting actor's own steps (stacks keyed by `meta.actor.id`), as ONE new commit by that actor; other actors' edits are never reverted | — |
+| U-2 | An undo or redo over a target changed after the step (by anyone) is flagged as a typed `conflict` and writes nothing, unless the caller chose `overwrite` or `keep-theirs` (D14) | — (typed outcome) |
+| U-3 | Stacks are a pure function of the actor's persisted history (`undoOf` / `redoOf` links in commit meta), so a reload rebuilds the same stacks up to the repo's undo horizon | — |
+| U-4 | Every write through the undo service (edit, gesture, undo, redo) passes the write guard (locks, final paths) | SF-STAGE-001…003 |
+| S-1 | A stage read equals a fresh composition: invalidation removes every cached composition that read a changed dependency, transitively | — |
+| S-2 | Final paths and policy locks win regardless of strength; the opinions they beat are reported as `ignored` | — |

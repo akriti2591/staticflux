@@ -108,6 +108,9 @@
     },
     {
       "path": "packages/kit"
+    },
+    {
+      "path": "packages/stage"
     }
   ]
 }

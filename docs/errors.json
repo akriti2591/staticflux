@@ -1743,6 +1743,42 @@
       "fix": "Ids are app-unique (`<package>/<name>`); rename one of them."
     },
     {
+      "code": "SF-STAGE-001",
+      "kind": "forbidden",
+      "summary": "The edit targets a locked node or path (position, content or all).",
+      "fix": "Unlock the node first (a UX lock can be removed by anyone with edit rights), or edit a path the lock does not cover. Client-side locks are UX, not security."
+    },
+    {
+      "code": "SF-STAGE-002",
+      "kind": "forbidden",
+      "summary": "A policy lock (brand kit or template) can be removed or changed only by a human with an explicit confirmation.",
+      "fix": "Agents and flows can never remove a policy lock. For a human, ask for confirmation and pass `{ confirmPolicyUnlock: true }` to `stage.checkWrite`."
+    },
+    {
+      "code": "SF-STAGE-003",
+      "kind": "forbidden",
+      "summary": "The path is final in a brand kit or template; local opinions on it are ignored.",
+      "fix": "Edit the brand kit or template instead, or remove the `final` mark there where policy allows it."
+    },
+    {
+      "code": "SF-STAGE-004",
+      "kind": "validation",
+      "summary": "No actor record could be resolved for this run (unknown subject, or an agent without an identity).",
+      "fix": "Give the attribution port an identity for the subject (`createAttributionPort({ human, agent, flow })`); agent runs need `origin.details` naming the agent or a resolver that knows it."
+    },
+    {
+      "code": "SF-STAGE-005",
+      "kind": "aborted",
+      "summary": "The stage or undo service is disposed.",
+      "fix": "Create a new one for the open document; do not keep references past its scope."
+    },
+    {
+      "code": "SF-STAGE-006",
+      "kind": "unavailable",
+      "summary": "The undo step could not be applied: its inverse no longer validates and could not be repaired.",
+      "fix": "Show the conflict to the user and let them retry with `onConflict: \"keep-theirs\"` (applies only what still validates)."
+    },
+    {
       "code": "SF-STORE-001",
       "kind": "quota",
       "summary": "The storage quota or a configured budget was exceeded; the write was rejected.",

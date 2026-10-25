@@ -177,3 +177,20 @@ Two consumers, so the kit stays generic: Studio (migrated, every control) and In
   action); density Focus (default, dock collapsed to a rail) / Standard / Pro; motion 120–200 ms, none when reduced;
   one accent for generative ✦ and calm neutrals; the **Instaflow brand theme** from the design track is
   `extendTheme(defaultTheme, …)` contributed with a higher order and must pass the shared theme contract suite.
+
+### stage, attribution, undo (Instaflow editor, M1 · A8)
+Consumer: the Instaflow editor worker (`docs/instaflow/`), over `@staticflux/document/v2` (R11.8k–R11.8s).
+- Inspector and agents: "why is this value here?" — `stage.explain(node, path)` names the layer, arc and source (local,
+  `format=story` variant, brand class, instance source) and what it beat (`agent/explain`, IF-4.6).
+- Variants (format, theme, locale): the session's variant selection switches what every node shows without writing the
+  document (`session.select('format', 'story')`); previews and solo/mute are session opinions (`session.set`).
+- Brand kits and templates (B1, B5): classes via `style.inherit`, final paths that brand rules keep, policy locks that
+  agents can never remove (`checkWrite`, `stageWriteGuard` on every write, IF-4.7, IF-CS-004/013).
+- Instances and embedded designs: pinned (milestone) or following (Latest) references composed as proxies; a change in a
+  followed brand kit or component recomposes only what reads it (`onInvalidate` drives the render projection).
+- Undo (IF-4.13, D9, D14): Mod+Z / Shift+Mod+Z per actor (`undo.undo(actor)`), one step per gesture, per capability
+  invocation and per accepted change set; the UI shows a flagged undo ("Agent changed this after you — restore yours /
+  keep theirs") from the typed `conflict`; the agent's own undo (`agent/undo`, M2) uses the same service.
+- History and attribution badges: every commit's actor record (`actorOf(meta)`), from capability runs
+  (`metaForRun(attribution, run, label)`), WebMCP clients named by their client name.
+- Proposals (M2): a `proposal/<id>` layer plugs into `stage.addLayer`; accepting it is one undo step via `changeSet`.

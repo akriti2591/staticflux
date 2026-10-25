@@ -27,6 +27,7 @@ export * from './media-fake.js';
 export * from './document-store-contract.js';
 export * from './document-repo-contract.js';
 export * from './document-crdt-contract.js';
+export * from './undo-service-contract.js';
 
 // Pipeline contract suites (Instaflow M1 A5: SF-Δ17–Δ19).
 export * from './pipe-contract-support.js';

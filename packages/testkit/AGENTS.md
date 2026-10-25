@@ -52,6 +52,12 @@ comparison, golden render snapshots, a real-GPU runner (Chromium on SwiftShader 
   `documentCrdtContractCases`: deterministic cases plus the **N-peer convergence property** (fast-check: move, reorder,
   text, marks, set, create, delete under random partitions and heals → identical canonical bytes, valid tree, handles released).
   Reproduce a failure with the printed `seed`.
+- `undo-service-contract.ts` (Instaflow M1 A8) — `runUndoServiceContract(name, { store, repo(store), service(doc) }, runner,
+  { numRuns, maxSteps, seed, skip })`, `undoServiceContractCases` (stage `UndoService`: one step per commit / gesture /
+  invocation, per-actor stacks, 200-step default, flagged undo over a later overwrite and its resolutions, persistence
+  across reload and compaction, peers converging) plus two **fast-check properties** with two humans and an agent on
+  three peers: an exact model under immediate delivery, and own-edits-only plus convergence under random partitions.
+  `contractHumanA`, `contractHumanB`, `contractAgent` actors.
 
 - `blob-store-contract.ts` — `runBlobStoreContract(name, factory() → { store, corrupt?, cleanup? }, runner, { skip })`,
   `blobStoreContractCases` (`@staticflux/blob` `BlobStore`: digests, dedupe, chunking above 8 MiB, ranges, encoding,
@@ -249,12 +255,8 @@ No size budget declared in `.size-limit.json` for this package.
 
 **Layer:** tooling
 
-- Internal: `@staticflux/auth`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/urlstate`, `@staticflux/worker`
+- Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/document`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/stage`, `@staticflux/storage`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
 - External: `fast-check` (4.10.2)
-
-- Internal: `@staticflux/auth`, `@staticflux/blob`, `@staticflux/core`, `@staticflux/data`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/urlstate`, `@staticflux/worker`
-
-- Internal: `@staticflux/auth`, `@staticflux/core`, `@staticflux/data`, `@staticflux/platform`, `@staticflux/router`, `@staticflux/runtime`, `@staticflux/storage`, `@staticflux/ui`, `@staticflux/urlstate`, `@staticflux/worker`
 
 Anything else is a boundary violation (`pnpm lint:boundaries`). Adding a dependency needs a reviewed reason.
 <!-- sf:generated:end -->
