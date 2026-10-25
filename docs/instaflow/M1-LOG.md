@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** B11a2 merged on the working branch (2b9c860; 21 squash-trap conflicts resolved by side-unchanged rule;
+  size entries all renames). Full check (4506 tests), smokes and agents:check green. Kit full budget 27.5 → 42.5 KB
+  (overlays, dialogs, pickers): C4 checks first-paint loading. PR opened. Next: appearance pass → B11b.
 - **2026-10-25** #28 merged. Text UX done → PR #29 (TEXT-FONTS-UX-SPEC, F-60–F-64, Q1–Q10 asked). Engine text bugs to
   schedule before or with B11b (M1, spec §11.2 T-1–T-9): Mac caret word/line keys, fixed box + vertical align never
   laid out, undo per keystroke, no tofu for missing glyphs, WOFF2 rejected by fonts.ts, sub/superscript, soft break,
