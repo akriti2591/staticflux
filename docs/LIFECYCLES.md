@@ -656,3 +656,21 @@ session-layer preview the next step builds on. The pivot is view state per selec
 | XF-4 | Any non-singular page affine decomposes into the box (rotation · flips and scale · horizontal skew) and lands every corner where the affine sends it; a flip stays a flip | `free-transform.test.ts` (fast-check) |
 | XF-5 | A session stages only the fields that differ from its base, so restoring its previews never hides a concurrent change by someone else | `contributions.test.ts` |
 | XF-6 | The pivot never enters the CRDT or the store; it resets when the selected set changes | `transform-mode.test.ts` |
+
+## 37. Foundations: kit building blocks (Instaflow M1c B11a)
+
+The non-overlay building blocks of `docs/instaflow/ux/FOUNDATIONS.md` that Studio and Home compose. Both machines live in
+the element and end with it; neither writes anywhere: the app turns each `sf-change` into one undo step.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `kit/number-scrub` (per number field) | idle → pressed (`press`: primary button on the label, scrub on, not disabled; typed text is committed first and a refusal stops the press); pressed → scrubbing (`move`: ≥ 2 px of travel; every step change emits `sf-input`); pressed → idle (`release` without travel: focus moves to the field); scrubbing → idle (`release`: one `sf-change` when the delta is not 0; `cancel`: Escape or `pointercancel`, `sf-input` back to the start value, no `sf-change`) | `packages/kit/src/number-field.ts` |
+| `kit/inline-edit` (per inline edit) | viewing → editing (`start`: `edit()`, the trigger, or the app setting `editing`; focus in, text selected; `sf-edit-start`); editing → editing (`refuse`: empty or too long, inline error); editing → viewing (`commit`: Enter or blur with a valid name, `sf-change` only when it changed; `cancel`: Escape, or a blur after a refusal, `sf-cancel`) | `packages/kit/src/inline-edit.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| FND-1 | One scrub or one typed commit is one `sf-change`; live previews are `sf-input` only | `number-field.test.ts` |
+| FND-2 | A typed value that does not parse never changes the value; Escape restores it | SF-KIT-001; `number-field.test.ts` |
+| FND-3 | A refused name never reaches the app; leaving the field restores the previous name | SF-KIT-002; `inline-edit.test.ts` |
+| FND-4 | Icons are data: only allowed SVG tags and attributes render, and the generated modules match Lucide and the custom SVGs | `icon.test.ts` |
+| FND-5 | Every B11a block passes the full audit under Clean Pop | `apps/instaflow/src/a11y/foundations.test.ts`, guarded by `chrome.test.ts` |

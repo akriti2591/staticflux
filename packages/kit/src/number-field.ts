@@ -465,15 +465,16 @@ export class SfNumberFieldElement extends SfElement<typeof numberFieldSpec> {
     const start = this.scrubStart;
     if (start === undefined || event.pointerId !== start.pointer) return;
     const wasScrubbing = this.scrubbing.is('scrubbing');
+    const result = this.scrubValue(event.clientX - start.x, event);
     this.scrubbing.send('release');
     this.scrubStart = undefined;
     this.text = undefined;
+    this.lastDelta = 0;
     if (!wasScrubbing) {
       this.focus();
       return;
     }
-    const { value, delta } = this.scrubValue(event.clientX - start.x, event);
-    if (delta !== 0) this.finish(value, delta, 'scrub', 'sf-change');
+    if (result.delta !== 0) this.finish(result.value, result.delta, 'scrub', 'sf-change');
   }
 
   /** Cancel a drag in progress: the start value comes back (`sf-input` with delta 0). */

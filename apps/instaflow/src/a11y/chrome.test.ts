@@ -43,6 +43,19 @@ describe('chrome audit coverage', () => {
   });
 });
 
+/** Kit building blocks B11a added for Studio and Home (FOUNDATIONS §6): each runs the full audit under Clean Pop. */
+const FOUNDATION_BLOCKS = ['sf-icon', 'sf-number-field', 'sf-inline-edit', 'sf-swatch'] as const;
+
+describe('foundation blocks audit coverage', () => {
+  it.each(FOUNDATION_BLOCKS)('%s is mounted and audited under Clean Pop in a11y/foundations.test.ts', (tag) => {
+    const test = readFileSync(join(SRC, 'a11y', 'foundations.test.ts'), 'utf8');
+    expect(test).toContain(`<${tag}`);
+    expect(test).toContain('compileTheme(cleanPopTheme)');
+    expect(test).toMatch(/expectNoA11yIssues\(/);
+    expect(test).not.toMatch(/(expectNoA11yIssues|auditA11y)\([^)]*rules:/);
+  });
+});
+
 describe('theme facts (Clean Pop)', () => {
   it('keeps every control and row at least 24 × 24 px in every density (SC 2.5.8)', () => {
     for (const density of DENSITIES) {

@@ -14,6 +14,22 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 ## Public API (entry point → exports)
 - `button` — `<sf-button>` (`variant: secondary|primary|agent|agent-soft|ghost|danger`, `size: sm|md|lg`, `disabled`, `pressed`, `type`), `defineButton`.
   `agent` hands work to an agent (`color.agent`/`onAgent`), `agent-soft` is an agent action in a toolbar (`agentSoft`/`agentInk`).
+- `icon` — `<sf-icon .icon=${trash2Icon} size=16|18|24 label>` (inline SVG in `currentColor`, decorative unless `label`; `name` reflects the
+  icon), `defineIcon(name, nodes, source)` (data), `IconDef`, `IconNode`, `iconElement`, `iconProblems`, `iconStrokeWidth`, `ICON_SIZES`,
+  `defineIconElement`. *(B11a)*
+- `icons` / `icons/<name>` — the icon set as typed values: `@staticflux/kit/icons/trash-2` → `trash2Icon` (Lucide ISC, see `src/icons/LICENSE`)
+  and the custom gap icons (`booleanUnionIcon`, `maskIcon`, `skewIcon`, `pivotIcon`, `repeatRadialIcon`, …); the `icons` barrel has all.
+  **Generated**: add a Lucide name to `src/icons/icons.json` or an SVG to `src/icons/custom/`, run `node packages/kit/scripts/generate-icons.mjs`
+  (`--check` is what the test runs). Import single modules in boot paths. *(B11a)*
+- `number-field` — `<sf-number-field label label-hidden unit .units .value mixed min max step precision wrap=angle percent-of scrub>`
+  (APG spinbutton; `sf-input` live while scrubbing, `sf-change` `NumberChangeDetail { value, delta, source }` once per commit; `commitText()`,
+  `restore()`, `cancelScrub()`), `parseNumberInput` (→ `Result`, SF-KIT-001), `scrubDelta`, `stepMultiplier`, `clampNumber`, `normalizeAngle`,
+  `roundTo`, `formatNumberValue`, `numberScrubMachine` (`kit/number-scrub`), `defineNumberField`. *(B11a)*
+- `inline-edit` — `<sf-inline-edit label .value placeholder required maxlength trigger=dblclick|click|none editing>` (`edit()`, `save()`,
+  `cancel()`; `sf-edit-start`, `sf-change` `{ value, previous }`, `sf-cancel`), `validateName` (SF-KIT-002), `inlineEditMachine`
+  (`kit/inline-edit`), `defineInlineEdit`. *(B11a)*
+- `swatch` — `<sf-swatch color opacity unresolved size=16|24>` (decorative colour chip; hatched when unresolved), `swatchColor`,
+  `swatchOpacity`, `defineSwatch`. *(B11a)*
 - `icon-button` — `<sf-icon-button label shortcut>` (label = name + tooltip; `aria-keyshortcuts`), `defineIconButton`.
 - `segmented` — `<sf-segmented label .options .value>` (APG radio group, `sf-change`), `SegmentOption`, `defineSegmented`.
 - `text-field` — `<sf-text-field label label-hidden hint error multiline>` (`input` composed, `change` + `sf-change`), `defineTextField`.
@@ -44,7 +60,8 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
   `openCapabilityPalette`, `bindCapabilityPalette`, `bindCapabilityShortcuts`.
 - `roving` — `rovingNextIndex`, `RovingFocusController`, `isRovingDisabled`, `isTextEditing`.
 - `position` — `computePosition`, `anchorFloating` (CSS anchor positioning or JS fallback), `supportsAnchorPositioning`, `positionArea`.
-- root (`.`) — everything above + `kitMessages` / `kitText` (i18n), `resizeMachine` (`kit/resize`), `sizeFromDrag`, `sizeFromKey`, `clampSize`, `defineKit()`.
+- `errors` (root) — `InvalidNumberInputError` (SF-KIT-001), `InvalidNameError` (SF-KIT-002).
+- root (`.`) — everything above (except the icon modules) + `kitMessages` / `kitText` (i18n), `resizeMachine` (`kit/resize`), `sizeFromDrag`, `sizeFromKey`, `clampSize`, `defineKit()`.
 
 ## Rules
 - Components extend `SfElement` only; reactive properties via `static properties` + `declare` + constructor init; no decorators.
@@ -63,6 +80,7 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 - Shared internals are small single-purpose modules (`internal/*.ts`): bundlers place whole modules, so a broad helper module
   shared by a boot entry and a lazy entry ends up in boot.
 - Kit strings: add to `kitMessages`; props override them.
+- Icons: never a text glyph or emoji as an icon; use `<sf-icon>` with a module from `./icons/` (generated; never edit by hand).
 
 ## Test
 `npx vitest run packages/kit` · `npx tsc -p packages/kit --noEmit` (after `npx tsc -b packages/ui packages/messaging`)
@@ -87,16 +105,22 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 | @staticflux/kit/surfaces | 8.25 KB | packages/kit/dist/surfaces.js |
 | @staticflux/kit/surface-defs | 0.5 KB | packages/kit/dist/surface-defs.js |
 | @staticflux/kit/toolbar | 2.5 KB | packages/kit/dist/toolbar.js |
-| @staticflux/kit/dock | 7 KB | packages/kit/dist/dock.js |
-| @staticflux/kit/inspector | 1.85 KB | packages/kit/dist/inspector.js |
-| @staticflux/kit/tree | 4.4 KB | packages/kit/dist/tree.js |
+| @staticflux/kit/dock (raised 7 → 7.5 KB by B11a: chevrons are <sf-icon> + Lucide modules, no text glyphs) | 7.5 KB | packages/kit/dist/dock.js |
+| @staticflux/kit/inspector (raised 1.85 → 2.65 KB by B11a: the group chevron is <sf-icon>) | 2.65 KB | packages/kit/dist/inspector.js |
+| @staticflux/kit/tree (raised 4.4 → 5 KB by B11a: the twisty is <sf-icon>) | 5 KB | packages/kit/dist/tree.js |
 | @staticflux/kit/command-palette | 3.6 KB | packages/kit/dist/command-palette.js |
 | @staticflux/kit/roving | 1.25 KB | packages/kit/dist/roving.js |
 | @staticflux/kit/position | 1.5 KB | packages/kit/dist/position.js |
-| @staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component) | 22.6 KB | packages/kit/dist/index.js |
+| @staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27 KB by B11a: icon element, number field, inline edit, swatch) | 27 KB | packages/kit/dist/index.js |
 | @staticflux/kit/tag | 1.1 KB | packages/kit/dist/tag.js |
 | @staticflux/kit/status | 1.1 KB | packages/kit/dist/status.js |
 | @staticflux/kit/card | 1.1 KB | packages/kit/dist/card.js |
+| @staticflux/kit/icon (<sf-icon> + icon data helpers; B11a) | 1.65 KB | packages/kit/dist/icon.js |
+| @staticflux/kit/icons (the whole kit icon set: 89 Lucide + 15 custom; well under STUDIO-UX-SPEC §10.2's 20 KB cap for Studio's set; B11a) | 5 KB | packages/kit/dist/icons/index.js |
+| @staticflux/kit/icons/trash-2 (one icon module ≈ 0.2 KB, STUDIO-UX-SPEC §10.2; B11a) | 0.3 KB | packages/kit/dist/icons/trash-2.js |
+| @staticflux/kit/number-field (<sf-number-field>: expressions, units, scrub, mixed; B11a) | 4.7 KB | packages/kit/dist/number-field.js |
+| @staticflux/kit/inline-edit (<sf-inline-edit>; B11a) | 2.75 KB | packages/kit/dist/inline-edit.js |
+| @staticflux/kit/swatch (<sf-swatch>; B11a) | 1.3 KB | packages/kit/dist/swatch.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 
