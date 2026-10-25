@@ -34,14 +34,14 @@ entries at the top of **Journal**.
 | B10a Transform tools, basics | Merged | `main` | #23 |
 | C0 Home route | PR open (full check 4,314 tests; Studio and Home smokes green) | working branch | #24 |
 
-| C1 Export | Merged on the working branch (full check pending at handoff); PR next | working branch | — |
+| C1 Export | Full check + smokes green on the working branch; PR open | working branch | — |
 | UX spec | Done, on the working branch | `docs/instaflow/ux/` | — |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
 
 ## Next (one work package at a time; order, scope and IDs in M1C-NOTES.md)
-1. Confirm C1's full check and smokes on the working branch, then open the C1 PR (C1 + UX docs + brand assets + notes).
+1. Owner merges the C1 PR (C1 + UX docs + brand assets + notes); then reset the working branch and start B11a.
 2. **B11a** foundations, then **B11b** Studio and Home surfaces (UX docs, owner decisions in STUDIO-UX-SPEC §14, logo).
 3. C2 Import → C3 Modes and identity → C4 Hardening (end-to-end checkpoint in CI, performance and loading pass).
 4. B10b distort / perspective / warp: early M2.
@@ -68,6 +68,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** C1 full check: three guard lists didn't know C1's additions (export Wasm crate, its 230 KB brotli
+  budget, the Export panel in the chrome audit coverage). Lists updated; check, smokes (both topologies) and Home smoke
+  green. C1 PR opened.
 - **2026-10-25** Owner decisions on the UX spec: **all ten recommendations accepted** (rotate handle below + corner
   zones; Standard density; density in a View menu and Settings; Share hidden until Export, then Export; raspberry as
   the agent role colour for any provider; Canvas + Pages lenses always, others with content; white frames with a

@@ -43,10 +43,9 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
 
 ## Where things are (2026-10-25, end of day)
 - `main`: M1a, M1b (B0–B7), B8 Studio integration, B9 editor in workers, B10a transform basics, site refresh, C0 Home.
-- **Working branch** `claude/affectionate-ramanujan-wbyz2g`: C1 Export merged (full check was running at handoff:
-  log `scratchpad/check-c1.log`; rerun if unsure), the UX spec (`docs/instaflow/ux/`), the brand assets
-  (`apps/instaflow/brand/`), docs updates. **Next action: confirm C1's full check + smokes, then open the C1 PR**
-  (C1 + UX spec + brand assets + notes), subscribe, and once merged start **B11a**.
+- **Working branch** `claude/affectionate-ramanujan-wbyz2g`: C1 Export merged and green (full check + smokes), the UX spec (`docs/instaflow/ux/`), the brand assets
+  (`apps/instaflow/brand/`), docs updates. **C1 PR is open** (C1 + UX spec + brand assets + notes); once the owner
+  merges it, reset the working branch and start **B11a**.
 - **Next work, in order:** B11a (foundations: kit building blocks, `<sf-icon>` with Lucide, toasts, menus, number
   field, inline edit) → B11b (Studio and Home surfaces per the UX docs, logo wiring, nothing inert) → C2 Import →
   C3 Modes and identity → C4 Hardening (end-to-end checkpoint in CI, performance and loading pass, exit criteria).
@@ -63,6 +62,7 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
 - Tests can pass while a person can't use the product. Acceptance comes from `docs/instaflow/ux/FLOWS.md`, written from
   the user's side of the screen.
 - Agents' scoped checks must include `pnpm typecheck` (build skips tests).
+- Guard tests pin lists (Wasm crates, Wasm budgets, audited elements); a package that adds one must update them.
 - Size-limit entries are keyed by name; a renamed entry merges as a stale duplicate.
 - Pre-assigned IDs per package prevent collisions; check `grep` before adding framework IDs.
 - `pnpm check` once per merge, by the coordinator; agents never run the full suite.
