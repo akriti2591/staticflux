@@ -26,6 +26,8 @@ export interface CanvasRaster {
   present(): Result<void>;
   /** The scene was replaced (device loss, resnapshot): tile caches are stale. */
   reset?(): void;
+  /** The canvas changed size (CSS px). */
+  resize?(width: number, height: number): Result<void>;
   dispose(): void;
 }
 

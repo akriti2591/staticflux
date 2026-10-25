@@ -31,6 +31,8 @@ import { createElementRenderSource, ElementProjection } from '../elements/projec
 import type { ToolId } from '../spec/contributions.js';
 import { STRUCTURE_PATHS } from '../lenses/structure.js';
 import type { RenderPacing } from '../sequencing/pacing.js';
+import { colorToRgba } from '../elements/values.js';
+import { cleanPopTheme } from '../theme/clean-pop.js';
 import { TEXT_KIND } from '../text/model.js';
 import { createToolController, type ToolController, type ToolOutcome, type ToolPointer, type ToolSession } from '../tools/gesture.js';
 import { createElementIndex, hitTest } from '../tools/hit-test.js';
@@ -38,7 +40,8 @@ import { bindToolShortcuts, CanvasToolsShortcutScope, createToolCommands, type T
 import { createSceneWriter } from '../render/scene-ir.js';
 import { guideLabelTemplate, toolOverlayBatch } from '../tools/overlay.js';
 import { createViewState, fitCamera, type TabId, type ViewState } from '../tools/view-state.js';
-import { type CanvasPipeline, createElementSceneSide, startCanvasPipeline } from './canvas-pipeline.js';
+import { type CanvasPipeline, createElementSceneSide, type SceneIrSource, startCanvasPipeline } from './canvas-pipeline.js';
+import type { ImageUploads } from './images.js';
 import { type CreateOutcome, createCreationController, type CreationController } from './creation.js';
 import type { StudioDocument } from './document.js';
 import { type CanvasRaster, createElementRenderPort } from './element-port.js';
@@ -72,6 +75,8 @@ export interface CanvasTabOptions {
   /** Coalesces publishes and projection flushes (default microtask; `requestAnimationFrame` in a browser). */
   readonly schedule?: (fn: () => void) => void;
   readonly pacing?: RenderPacing;
+  /** Image uploads (library Place): their asset section and the encoder's image lookup. */
+  readonly images?: Pick<ImageUploads, 'changes' | 'images'>;
   readonly onProblem?: (error: SfError) => void;
   readonly scope: Scope;
 }
@@ -112,6 +117,9 @@ const microtask = (fn: () => void): void => queueMicrotask(fn);
 /** Overlay scene ids (above B1's even element ids and the text layer's odd ids). */
 export const OVERLAY_FIRST_ID = 0x4000_0001;
 
+/** The page edge colour (Clean Pop `border`). */
+const PAGE_EDGE = /* @__PURE__ */ colorToRgba(String(cleanPopTheme.values.color['border'])) ?? [0, 0, 0, 40];
+
 const chain = (first: Result<void>, next: () => Result<void>): Result<void> => (first.ok ? next() : first);
 
 /** Open the tool session of one tab on one page (see the module header). */
@@ -134,8 +142,16 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
   const projector = createRenderProjector(ElementProjection, source);
   const text = createTextLayer({ document, page, fonts: options.fonts, scope });
   const side = createElementSceneSide();
-  const port = createElementRenderPort({ side, raster: options.raster });
-  const pipeline = await startCanvasPipeline({ source, projector, ir: text, side, port, view: () => ({ camera: view.camera, selection: view.selection }), signal: scope.signal, ...(options.pacing === undefined ? {} : { pacing: options.pacing }) });
+  const port = createElementRenderPort({ side, raster: options.raster, ...(options.images === undefined ? {} : { images: options.images.images }) });
+  const images = options.images;
+  const ir: SceneIrSource = {
+    changes(full) {
+      const uploads = images?.changes(full);
+      const glyphs = text.changes(full);
+      return uploads === undefined && glyphs === undefined ? undefined : { ...uploads, ...glyphs };
+    },
+  };
+  const pipeline = await startCanvasPipeline({ source, projector, ir, side, port, view: () => ({ camera: view.camera, selection: view.selection }), signal: scope.signal, ...(options.pacing === undefined ? {} : { pacing: options.pacing }) });
   if (!pipeline.ok) return pipeline;
   scope.defer(() => pipeline.value.stop());
   let queued = false;
@@ -150,20 +166,38 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
   scope.defer(document.view.onInvalidate(publish));
   watch(() => [view.camera, view.selection] as const, publish, { scope });
 
+  function pageSize(): { readonly w: number; readonly h: number } {
+    const size = part?.prop(page, STRUCTURE_PATHS.pageSize) as { width?: number; height?: number } | undefined;
+    return { w: typeof size?.width === 'number' ? size.width : 1080, h: typeof size?.height === 'number' ? size.height : 1350 };
+  }
+
   // Overlay (B3): redrawn when the overlay or the camera changes, into the overlay raster's scene (the content
   // raster in the browser: the canvas is opaque) under ids of its own; labels as kit tags.
   let overlayIds: number[] = [];
+  let labelled = false;
   const drawOverlay = (): void => {
     const removed = createSceneWriter();
     for (const id of overlayIds) removed.remove(id);
     overlayIds = [];
+    // The page edge (the page itself is the raster background), then B3's overlay.
+    const size = pageSize();
+    const edge = createSceneWriter().upsert({
+      id: OVERLAY_FIRST_ID - 2,
+      transform: [1, 0, 0, 1, 0, 0],
+      geometry: { kind: 'rect', w: size.w, h: size.h },
+      stroke: { width: 1 / view.camera.zoom, paint: { kind: 'solid', color: PAGE_EDGE } },
+    });
+    overlayIds.push(OVERLAY_FIRST_ID - 2);
     const batch = toolOverlayBatch(view.overlay, view.camera.zoom, { clear: false, firstId: OVERLAY_FIRST_ID, ids: overlayIds });
-    const applied = removed.ops === 0 ? options.overlay.apply(batch) : chain(options.overlay.apply(removed.finish()), () => options.overlay.apply(batch));
+    const applied = chain(removed.ops === 0 ? ok() : options.overlay.apply(removed.finish()), () => chain(options.overlay.apply(edge.finish()), () => options.overlay.apply(batch)));
     if (!applied.ok) return options.onProblem?.(applied.error);
     options.overlay.setCamera(view.camera);
     const presented = options.overlay.present();
     if (!presented.ok) options.onProblem?.(presented.error);
-    if (options.labels !== undefined) renderLit(guideLabelTemplate(view.overlay.labels, view.camera), options.labels);
+    // Distance labels as kit tags (rendered only while there are labels, or to clear the last ones).
+    const labels = view.overlay.labels;
+    if (options.labels !== undefined && (labels.length > 0 || labelled)) renderLit(guideLabelTemplate(labels, view.camera), options.labels);
+    labelled = labels.length > 0;
   };
   watch(() => [view.overlay, view.camera] as const, () => schedule(drawOverlay), { scope, fireImmediately: true });
   scope.defer(() => options.overlay.dispose());
@@ -281,9 +315,7 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
   const routes = (): { pointer(e: ToolPointer): Result<ToolOutcome | CreateOutcome> } => (creation.handles(view.tool as ToolId) || creation.state !== 'idle' ? creation : controller);
 
   const fit = (): void => {
-    const size = part.prop(page, STRUCTURE_PATHS.pageSize) as { width?: number; height?: number } | undefined;
-    const w = typeof size?.width === 'number' ? size.width : 1080;
-    const h = typeof size?.height === 'number' ? size.height : 1350;
+    const { w, h } = pageSize();
     void view.setCamera(fitCamera({ minX: 0, minY: 0, maxX: w, maxY: h }, view.viewport));
   };
   fit();
