@@ -535,15 +535,69 @@ Clean Pop sizes: toolbar 56, dock 236, inspector 264, pill items 28/34, fields 3
 section padding 14. Focus removes the dock and inspector (rails 44); Pro adds rulers (20 px) and expands sections. No
 region changes size on selection change; the selection pill and menus float.
 
-### 10.2 Icon set
+### 10.2 Icons (hard rules)
 
-Clean Pop has no icons; today the UI shows glyph characters (`↖ # ▢ T ✒ ✋ ⋯`). Decision: **Lucide** (ISC licence,
-`lucide.dev`, 1,500+ icons, 24 px grid, 2 px stroke, matches Geist's geometry; static SVG, tree-shakeable). Render at
-16 px in rows and menus, 18 px in the tool picker, stroke 1.75. Alternatives considered: Phosphor (MIT, heavier set),
-Tabler (MIT, 1.5 px stroke feels thin at 16 px). Use glyph text only for `✦` (the agent mark) and `⋯` is Lucide
-`ellipsis`. Kind icons: frame → `frame`, group → `group`, rectangle → `square`, ellipse → `circle`, polygon →
-`pentagon`, star → `star`, line → `minus`, path → `pen-tool`, image → `image`, text → `type`, repeat → `copy`,
-boolean → `combine`, mask → `scissors`... use `layers` for mask. Licence text ships in Settings › About.
+Clean Pop has no icon set; today Studio draws glyph characters and an emoji (`↖`, `#`, `▢`, `T`, `✒`, `✋`, `⇴`, `▾`,
+`⋯`). These rules are normative.
+
+1. **One set, one style, everywhere.** Tool picker, selection pill, More menu, context menus, inspector, layers, top
+   bar, Home, Settings, toasts: the same set, the same outline style, the same stroke, the same grid and optical size.
+   No outline mixed with solid, no second set, no icon drawn ad hoc outside the rules in point 4.
+2. **No emoji and no text glyphs as icons.** Not in buttons, menus, rows or tags. The only typographic marks allowed
+   are `✦` (the agent mark, a real glyph in Geist, used as text next to a label, never alone as an icon), `×` inside a
+   close button when the set's `x` icon is not used, and `kbd` text. Chevrons (`▾`), ellipsis (`⋯`), arrows and hands
+   are icons from the set.
+3. **The set is Lucide** (ISC licence, `lucide.dev`, 24 px grid, 2 px stroke, round caps and joins, 1,500+ icons,
+   actively maintained, static SVG per icon, tree-shakeable). Why not the others: Phosphor (MIT) has six weights and
+   its Regular weight is thinner than Geist's strokes at 16 px; Tabler (MIT) is 1.5 px and reads thin on mist; Lucide's
+   geometry sits closest to Geist and Bricolage. Attribution (ISC text) ships in Settings › About.
+4. **Coverage and custom icons.** Lucide covers: pointer (`mouse-pointer-2`), hand (`hand`), frame (`frame`),
+   rectangle (`square`), ellipse (`circle`), polygon (`pentagon`), star (`star`), line (`minus` rotated 45°), text
+   (`type`), pen (`pen-tool`), bezier (`spline`), image (`image`), crop (`crop`), group (`group`), ungroup
+   (`ungroup`), layers (`layers`), lock / unlock (`lock`, `lock-open`), eye / eye-off, rotate (`rotate-cw`,
+   `rotate-ccw`), flip (`flip-horizontal-2`, `flip-vertical-2`), align left / centre / right / top / middle / bottom
+   (`align-start-vertical` family), distribute (`align-horizontal-space-around`, `align-vertical-space-around`),
+   bring forward / backward / to front / to back (`bring-to-front`, `send-to-back`, `arrow-up-to-line`,
+   `arrow-down-to-line`), tidy up (`layout-grid`), fit to box (`maximize-2`), font (`type`), bold / italic /
+   underline (`bold`, `italic`, `underline`), colour (`palette`), stroke (`pen-line`), glow (`sun-medium`), blur
+   (`droplet`), undo / redo
+   (`undo-2`, `redo-2`), more (`ellipsis`), chevron (`chevron-down`), settings (`settings`), export (`download`),
+   milestone (`flag`), template (`layout-template`), trash (`trash-2`), restore (`archive-restore`), folder
+   (`folder`, `folder-plus`), search (`search`), zoom (`zoom-in`, `zoom-out`), rulers (`ruler`), page
+   (`file`), duplicate page (`copy`).
+   **Gaps, to be drawn as custom icons on the same 24 px grid, 2 px stroke, round caps:** boolean union, subtract,
+   intersect, exclude (two overlapping rounded squares with the result region filled at 20 %); clip / alpha /
+   luminance mask (a square behind a circle with a dashed intersection); skew (a parallelogram with a small arrow);
+   pivot (a ring with a crosshair); repeat radial (five dots on an arc), repeat grid (3 × 3 dots), repeat mirror (a
+   shape and its mirror with a dashed axis); drop shadow (a square with an offset dashed square); smooth corner; auto
+   width / auto height / fixed text box. They live in `packages/kit/src/icons/custom/` as SVG files with the same viewBox and attributes as
+   Lucide's, reviewed against Lucide's design guide.
+5. **Packaging.** Each icon is a module exporting its SVG path data (`packages/kit/src/icons/<name>.ts`, generated from
+   Lucide's JSON by a script, plus the custom folder); `<sf-icon name>` renders inline SVG with `currentColor`, `fill:
+   none`, `stroke-width` from a token, `aria-hidden="true"`. Only imported icons ship (tree-shaken); no sprite sheet,
+   no icon font, no runtime fetch. Budget: an icon ≈ 0.2 KB; Studio's set ≤ 20 KB brotli.
+6. **Sizes per density.** Menus, rows, inspector, tags: 16 px (stroke 1.75 at that size via `stroke-width: 1.75` on the
+   24-unit viewBox). Tool picker and icon buttons: 18 px. Home cards and empty states: 24 px. Focus and Pro use the
+   same sizes; Pro only adds shortcut text. Icons never scale with text zoom below 16 px.
+7. **Icon buttons in Clean Pop terms** (`<sf-icon-button>`, round, 34 px in the tool picker and top bar, 28 px in pills):
+   - *Rest:* transparent, icon `#16151A` (ghost) or white with the control edge (secondary).
+   - *Hover:* background `#E7ECF2` (mist tint), icon ink; 80 ms.
+   - *Pressed:* background `#DCE3EA`, icon ink; no scale change.
+   - *Selected / active* (the owner's liked treatment, kept): background `#FFE9E2` (soft tangerine), icon `#B53A17`;
+     `aria-pressed="true"`. The same pair marks the active lens, an active toggle (Clip, Lock, Bold) and a sticky tool
+     (plus a 4 px `#CF3D17` dot below the icon for stickiness).
+   - *Disabled:* icon `#7D8897` at 60 % opacity, no hover; `aria-disabled`. Used only in dialogs and forms; pills and
+     menus hide instead of disabling.
+   - *Focus-visible:* the 2 px `#CF3D17` ring, 2 px offset, on top of any state.
+   - *Agent variants:* soft `#FDE8EF` / `#B3174C` (rest), `#F9D3DE` (hover).
+8. **Every icon-only control has a tooltip (name + shortcut) and an accessible name**; the tooltip text is the
+   accessible name; shortcuts go in `aria-keyshortcuts`. A control with a visible text label uses the icon as
+   decoration (`aria-hidden`).
+9. **Lens colours and shapes stay accents.** The tangerine square, sunflower circle, blue frame and mint pill mark
+   lenses and tags; they are never used in place of an icon (a lens button in the switcher has its shape *and* a text
+   label; a kind icon in Layers is a Lucide icon, not a coloured shape).
+10. **Logo slot.** The Instaflow logo is designed separately. The top bar reserves a 26 × 26 px slot at the left (link
+    to Home) and Home's header a 28 px logo + wordmark slot; both take the final logo without layout changes.
 
 ### 10.3 Motion
 
