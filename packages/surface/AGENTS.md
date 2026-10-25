@@ -22,9 +22,16 @@ layer for pure-canvas content; per-surface frame metrics with budgets; CORS-clea
   `RenderContext`, `SURFACE_KINDS`, `acquireContext` (WebGL2 → WebGL), `supportsOffscreenCanvas`, `supportsWebGpu`,
   `backingSize`.
 - `frame-loop.ts` — `createFrameLoop({ scheduler, now, onFrame, metrics })`, `FrameLoopLifecycle`.
-- `input.ts` — `createInputForwarder({ target, env, sink })` (pointer/wheel/key → `CompactInputEvent`, absolute
-  `ts = timeOrigin + timeStamp`, move coalescing, microtask batches), `InputCode`, `InputModifier`, `PointerKind`,
-  `mapInputToIntents`, `oldestTimestamp`.
+- `input.ts` — `createInputForwarder({ target, env, sink | sinks, coalescedEvents })` (pointer/wheel/key →
+  `CompactInputEvent`, absolute `ts = timeOrigin + timeStamp`, microtask batches with a monotonic `inputSeq`).
+  **Fidelity (SF-Δ22):** every `getCoalescedEvents()` sample (flag `coalesced`), pen `pr/tp/tx/ty/tw/w/h`, `isPrimary`,
+  flagged predicted samples (`getPredictedEvents()`, only for sinks with `predicted: true`); several `InputSink`s with
+  `coalesce` chosen per sink (`sink` keeps the old coalesced default). `coalesceInput`, `InputCode`, `InputModifier`,
+  `PointerKind`, `InputFlag`, `mapInputToIntents`, `oldestTimestamp`.
+- `input-ring.ts` (entry `@staticflux/surface/input-ring`, for workers) — the binary input ring: `InputRecordLayout`
+  (80 B, `defineLayout`, Rust/C mirrors), `defineInputRing({ id, capacity, readers })` (a worker record ring),
+  `inputRingSink(ring)` (lossless forwarder sink), `drainInputRing(reader, { coalesce, predicted, max })` (coalescing
+  per consumer), `encodeInputRecord`/`decodeInputRecord`, `INPUT_KEY_CODES`/`INPUT_KEY_NAMES` (append-only wire tables).
 - `html-in-canvas.ts` — `detectHtmlInCanvas()` (`layoutsubtree` | `content="drawable"`, `drawElementImage` |
   `drawElement`, `texElementImage2D`, `drawElementImageToTexture` | `copyElementImageToTexture`),
   `createHtmlInCanvas({ canvas, document })` → adapter (`add`, `draw`, `drawToTexture`, `place`, `onPaint`,
@@ -52,6 +59,8 @@ layer for pure-canvas content; per-surface frame metrics with budgets; CORS-clea
   accessible layer unless the HTML-in-Canvas adapter provides the DOM.
 - Input is forwarded, never interpreted on the main thread for worker surfaces; intents are derived where the state
   lives (worker mapper → owner via `replica.intent`).
+- The input ring is lossless: never coalesce before the ring; each reader decides (`drainInputRing({ coalesce })`).
+  Predicted samples may be drawn but never committed. Key tables are wire format: append only.
 - Images for canvases always go through the image loader (CORS, policy credentials); never draw no-cors images.
 - Metrics are reported per window (default 120 frames), not per frame; budget overruns emit `surface.budget-exceeded`.
 - All browser APIs are injected (`SurfaceEnvironment`, ports) so tests run under happy-dom.
@@ -68,6 +77,7 @@ in-memory port pair with `clone: false`).
 | Check | Limit | Measures |
 |---|---|---|
 | @staticflux/surface (full) | 10.5 KB | packages/surface/dist/index.js |
+| @staticflux/surface/input-ring | 1.75 KB | packages/surface/dist/input-ring.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

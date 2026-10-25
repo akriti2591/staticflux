@@ -281,3 +281,28 @@ blob/folder-mirror:  idle → scheduled → flushing → idle | scheduled (more 
 | A folder head is swapped only after every object it names is in the folder; while paused nothing is written | SF-BLOB-004 |
 | GC never sweeps with an incomplete mark set and never deletes an object inside the grace period | SF-BLOB-006 / SF-BLOB-007 (run aborted) |
 | An object that fails `verify` is quarantined and no longer served | SF-BLOB-002 |
+
+
+## 15. Worker pipeline (SF-Δ17–Δ19, Δ22, Δ28; Instaflow M1 A5)
+
+Topology-neutral pipes between the editor and render modules (D15). Every machine below behaves the same on the
+`local`, `shared` and `message` media; the contract suites in `packages/testkit` run each case on all three.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `worker/delta-reader` | awaiting-snapshot → live; live → resyncing (gap, epoch change without snapshot, gone blob) → live (snapshot of a newer epoch); resyncing → resyncing (another gap); any → closed | `packages/worker/src/delta-stream.ts` |
+| `worker/peer-channel` | waiting → connected; connected → connected (re-wire: new generation) \| disconnected → connected; any → closed | `packages/worker/src/peer-channel.ts` |
+| `worker/handle` (ownership of one `Owned`) | live → closed \| sent \| released \| leaked (wrapper collected unclosed, or live at ledger dispose; the handle is closed and reported) | `packages/worker/src/handle-channel.ts` |
+| `worker/seqlock-cell` (one write) | even (stable) → odd (writing) → even; readers retry while odd or changed, return the last good copy marked `stale` after `maxRetries` | `packages/worker/src/seqlock-cell.ts` |
+| `runtime/worker-scheduler` | running ⇄ paused → disposed (queued tasks fail with SF-SCHED-002) | `packages/runtime/src/worker-scheduler.ts` |
+
+| ID | Invariant | Error |
+|---|---|---|
+| P-1 | Ordered apply: deltas apply in `base → version` order; a gap or an epoch change resyncs from a newer-epoch snapshot while the last good state stays (E-1) | SF-WK-034 (writer) |
+| P-2 | No torn reads: a cell read returns the value of exactly one completed write (seqlock; checksum detector in tests) | — |
+| P-3 | Lossless rings: every record pushed after a reader's endpoint is delivered to it once, in order, or the push fails | SF-WK-036 |
+| P-4 | A delta never applies before the blobs it references; a gone blob forces a resnapshot | SF-WK-041 |
+| P-5 | One owner per handle: after send/release the sender cannot use it; a closeable handle is closed once (by its owner, or as a reported leak) | SF-WK-037, SF-WK-038 |
+| P-6 | Peer generations only increase; a re-wire cleans up the previous connection before `onConnect` runs again | SF-WK-040 |
+| P-7 | Supersede-on-ack: an overlay disappears in the step that applies its acked version; a late ack of an older intent never removes a newer overlay (E-2) | — |
+| P-8 | Worker scheduler: nothing runs while paused (I-1); interaction before critical before visible before idle | SF-SCHED-002 |

@@ -38,6 +38,12 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
 - `scheduler.ts` — `createFrameScheduler(env)`: `schedule` (coalesced update jobs), `measure`, `mutate`, `postTask`
   (priorities `interaction | critical | visible | idle`), `yieldToMain`, `idleUntilUrgent`, `flush`, `pause/resume`;
   free `yieldToMain()`, `defaultMacrotask`, `defaultIdle`.
+- `worker.ts` (entry `@staticflux/runtime/worker`, SF-Δ28; inside workers only) — `createWorkerScheduler({ now, macrotask,
+  yield, sliceMs, longTasks, telemetry })`: `postTask(fn, { priority, signal, name })` (`interaction → critical → visible →
+  idle`, slices of `sliceMs` = 8), `yield(signal)` (`scheduler.yield` → `MessageChannel` → `setTimeout`; waits while paused),
+  `shouldYield()`, `pause/resume/dispose` (SF-SCHED-002); `createLongTaskDetector({ thresholdMs = 50, probeIntervalMs })`:
+  timed tasks, `measure`, `record`, event-loop lag probe (`start/stop`), `onLongTask`, metric `runtime/worker-long-task`,
+  event `worker.long-task`; `WorkerSchedulerToken`, `workerSchedulerUnit({ probe })`.
 - `tokens.ts` — `SupervisorToken`, `AppInjectorToken` (both provided by `bootApp`), `FrameSchedulerToken`,
   `FeatureHostToken`, `FeatureLoaderToken` (optional; `featureHostUnit` loads modules through it when bound, e.g. the
   loader package's chunk loader — else `manifest.load`), `ResourceManagerToken`, `ArchiveStoreToken`, `MemoryPressureToken`, `CommandPolicyToken`,
@@ -46,10 +52,13 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
   `featureHostUnit`, `frameSchedulerSubsystem`.
 - `resource-units.ts` — `nominalMemoryPressureUnit`, `resourceManagerUnit`, `resourceManagerUnitWith(budgets)` (own module: not
   needed for the first frame, deferrable).
-- `errors.ts` — `SF-APP-001…007`, `SF-FT-001…009`, `SF-SCHED-001`.
+- `errors.ts` — `SF-APP-001…007`, `SF-FT-001…009`, `SF-SCHED-001`, `SF-SCHED-002` (worker scheduler disposed).
 - `telemetry.ts` — `RUNTIME_SUBSYSTEMS` (`runtime/app|feature|resources|scheduler`), `runtimeMetrics`, `traceMachine`.
 
 ## Semantics to know
+- Worker scheduler (`@staticflux/runtime/worker`): only the synchronous part of a task is timed and sliced; async tasks
+  call `shouldYield()` / `yield(signal)` themselves. Long tasks are ≥ 50 ms by default (scheduled tasks, `measure`/`record`,
+  or the lag probe for work that bypasses the scheduler).
 - App state is derived: any subsystem `given-up` → `degraded`; recovers after `reinitialize`.
 - `abort` aborts the current root signal and installs a fresh one (the app keeps running); during `starting` it cancels boot.
 - `refresh` = `injector.refresh('epoch')` + `subsystem.refresh(epoch)` in dependency order; a failed refresh restarts that subsystem.
@@ -77,6 +86,7 @@ Implements REQUIREMENTS §4, §5, R12.1, R12.13–R12.18; LIFECYCLES §1, §2, �
 |---|---|---|
 | @staticflux/runtime (boot: bootApp + supervisor + scheduler) | 8.5 KB | packages/runtime/dist/index.js · import `{ bootApp, createSupervisor, createFrameScheduler }` |
 | @staticflux/runtime (full) | 14.5 KB | packages/runtime/dist/index.js |
+| @staticflux/runtime/worker (worker scheduler + long-task detector) | 3.5 KB | packages/runtime/dist/worker.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

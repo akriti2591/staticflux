@@ -515,3 +515,46 @@
 - **R9.3k** Garbage collection: mark from registered roots (a failing root aborts the run), sweep from a derived catalog inventory (never a directory listing), with a grace period (default 30 days) refreshed by every write or dedupe hit. The catalog is rebuildable from a listing.
 - **R9.3l** Zip bundles: streaming writer and in-place reader (end record + central directory, `Blob.slice`); STORED and DEFLATE entries; deflate-raw blobs copied without recompression and adopted on import after hashing; OCF-style `mimetype` first entry; no zip64 (explicit error).
 - **R9.3m** Quota and persistence helpers: `requestPersistence()`, `estimateStorage()` (usage, quota, available, persisted), `checkQuota()` pre-flight; quota errors surface as `SF-BLOB-001`.
+
+## 11.3 Editor ↔ render pipeline plumbing (Instaflow M1 A5: SF-Δ17–Δ19, Δ22, Δ28)
+
+Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipeline`, `@staticflux/surface` (+ `/input-ring`),
+`@staticflux/runtime/worker`. Lifecycles and invariants P-1…P-8: `LIFECYCLES.md` §15.
+
+- **R11.30** **Topology-neutral pipes** (D15): every pipe runs with both ends in one thread (`local` medium) or across
+  threads (`shared`: SharedArrayBuffer + Atomics; `message`: mirrored memory over postMessage) with the same API and
+  memory format; `selectMedium({ topology, isolation })` picks the medium at boot. Endpoints are structured-cloneable
+  descriptions sent over any link. Each pipe kind has a shared contract suite run on every medium.
+- **R11.31** **Seqlock cells** (latest wins, e.g. the view-state frame): readers get a private stable copy and a
+  generation, never a half-written value; an optional checksum detects torn reads (validation mode without the seqlock);
+  a writer stuck mid-write yields the last good copy marked stale.
+- **R11.32** **Clock cell**: f64 position, state (stopped/playing/paused/seeking), rate, absolute anchor time and epoch in a
+  seqlock cell; readers extrapolate locally (M3 media clock; layout shared with Wasm/AudioWorklet readers).
+- **R11.33** **Record rings**: lossless single-producer / multi-consumer rings of `defineLayout` records with a cursor per
+  reader, a bounded pending queue under back-pressure (SF-WK-036 beyond it), and release of dead readers on respawn.
+- **R11.34** **Sequenced binary delta streams**: versioned records (`epoch`, `version`, `base`, flags, blob refs, payload);
+  ordered apply, apply up to a given version, gap or epoch change → resnapshot (E-1), lossless back-pressure with
+  overflow → snapshot, a reader joining a running stream requests a snapshot.
+- **R11.35** **Content-addressed side channel** for large payloads: blobs travel once per receiver lifetime by digest;
+  receiver LRU budget with eviction notices; missing blobs are re-requested and re-sent, or reported gone (resnapshot);
+  a record never applies before its blobs.
+- **R11.36** **Handle channel**: `VideoFrame`, `AudioData`, `ImageBitmap`, `OffscreenCanvas`, `FileSystemHandle` move
+  with explicit ownership (released on the sender, dev guard SF-WK-037), close accounting per kind in a ledger, leak
+  counters (collected unclosed or live at dispose → closed and reported, SF-WK-038) and live-handle limits.
+- **R11.37** **Brokered peer channels** between workers (open question 4): the main-thread broker wires a channel when
+  both workers announce themselves and re-wires it on every respawn; the worker-side channel object survives re-wires
+  (generations, surviving listeners/handlers, `onConnect` re-runs with cleanup); colocated mode uses a peer pair with
+  the same API.
+- **R11.38** **Optimistic intents with supersede-on-ack**: overlays (ephemeral edits) show immediately, stay until the
+  owner's acked version is applied locally and disappear in that step (E-2); newer intents on a key supersede older ones.
+- **R11.39** **Query / windowed replicas**: replicas holding only the entities inside a window (viewport, subtree, time
+  range); per-peer membership, diffs on window moves and changes, reset on gap or new owner epoch; `WindowedSource` port.
+- **R11.40** **Input forwarding fidelity** (surface): every `getCoalescedEvents` sample, pen pressure/tilt/twist/contact
+  size, flagged predicted samples, several sinks with coalescing and prediction chosen per sink, a batch `inputSeq`, and a
+  lossless binary input ring (`defineLayout` records, append-only key tables) whose readers coalesce on their own.
+- **R11.41** **Worker-side scheduler** (`@staticflux/runtime/worker`): priorities interaction → critical → visible → idle in
+  slices, `scheduler.yield` with a `MessageChannel` fallback, `shouldYield`, pause/resume (I-1); **long-task detector** for
+  workers (timed tasks, explicit measurements, event-loop lag probe; metric and event).
+- **R11.42** Cross-thread behaviour is tested with real concurrency (Node `worker_threads` or Chromium): torn-read detection,
+  gap → resnapshot, lossless rings under back-pressure, re-wire after a real worker respawn. No wall-clock assertions in
+  unit tests.

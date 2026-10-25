@@ -447,5 +447,36 @@
       "@staticflux/storage"
     ],
     "limit": "21 KB"
+  },
+  {
+    "name": "@staticflux/worker/pipeline",
+    "path": "packages/worker/dist/pipeline.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core"
+    ],
+    "limit": "23 KB"
+  },
+  {
+    "name": "@staticflux/runtime/worker (worker scheduler + long-task detector)",
+    "path": "packages/runtime/dist/worker.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/storage"
+    ],
+    "limit": "3.5 KB"
+  },
+  {
+    "name": "@staticflux/surface/input-ring",
+    "path": "packages/surface/dist/input-ring.js",
+    "ignore": [
+      "mobx",
+      "@staticflux/core",
+      "@staticflux/worker",
+      "@staticflux/worker/channels",
+      "@staticflux/worker/pipeline"
+    ],
+    "limit": "1.75 KB"
   }
 ]

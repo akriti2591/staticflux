@@ -10,7 +10,6 @@ export * from './archive.js';
 export * from './feature-host.js';
 export * from './resource-manager.js';
 export * from './scheduler.js';
-export * from './worker-scheduler.js';
 export * from './tokens.js';
 export * from './units.js';
 export * from './resource-units.js';

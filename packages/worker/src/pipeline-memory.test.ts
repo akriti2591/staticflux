@@ -9,6 +9,7 @@ import {
   attachRegion,
   CELL_HEADER_BYTES,
   cellByteLength,
+  checkPipeHeader,
   CLOCK_STATES,
   ClockCellLayout,
   createCell,
@@ -286,6 +287,24 @@ describe('seqlock cells', () => {
     reader.value.close();
     expect(reader.value.closed).toBe(true);
     writer.value.close();
+  });
+
+  it('checkPipeHeader compares magic, format, id and schema version', () => {
+    const region = createRegion({ medium: 'local', byteLength: 32 });
+    if (!region.ok) throw new Error('region');
+    const words = { magic: 0, format: 1, schema: 2, id: 3 };
+    const expected = { id: 'test/pipe' as const, magic: 77, format: 1, schema: 4 };
+    region.value.words.set([77, 1, 4, fnv1aString('test/pipe')]);
+    expect(checkPipeHeader(region.value, expected, words).ok).toBe(true);
+    region.value.words[2] = 5;
+    const version = checkPipeHeader(region.value, expected, words);
+    expect(!version.ok && version.error.details).toMatchObject({ expectedVersion: 4, version: 5 });
+    region.value.words[2] = 4;
+    region.value.words[3] = fnv1aString('test/other');
+    expect(checkPipeHeader(region.value, expected, words).ok).toBe(false);
+    region.value.words[0] = 1;
+    const magic = checkPipeHeader(region.value, expected, words);
+    expect(!magic.ok && magic.error.code).toBe(PipeMismatchError.code);
   });
 
   it('a throwing fill still leaves the sequence even (readers never spin forever)', async () => {

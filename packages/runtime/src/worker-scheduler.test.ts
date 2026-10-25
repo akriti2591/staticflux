@@ -8,7 +8,7 @@ import {
   WorkerSchedulerMetrics,
   WorkerSchedulerToken,
   workerSchedulerUnit,
-} from './index.js';
+} from './worker.js';
 
 /** Deterministic worker environment: macrotasks run only when the test says so; time moves by hand. */
 function fakeEnv() {

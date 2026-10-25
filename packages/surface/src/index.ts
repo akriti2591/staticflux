@@ -4,7 +4,6 @@ export * from './metrics.js';
 export * from './frame-loop.js';
 export * from './engine.js';
 export * from './input.js';
-export * from './input-ring.js';
 export * from './html-in-canvas.js';
 export * from './a11y-layer.js';
 export * from './images.js';

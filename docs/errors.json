@@ -1701,6 +1701,12 @@
       "fix": "Expected during shutdown. Do not schedule work on a disposed scheduler."
     },
     {
+      "code": "SF-SCHED-002",
+      "kind": "aborted",
+      "summary": "The worker scheduler was disposed; the task was dropped.",
+      "fix": "Expected when the worker shuts down (dispose it in onShutdown). Do not post tasks after dispose; long jobs check the abort signal they are given."
+    },
+    {
       "code": "SF-SHELL-001",
       "kind": "not-found",
       "summary": "No workspace with this id is registered.",
@@ -2347,6 +2353,72 @@
       "kind": "invariant",
       "summary": "Two core-context entries for the context hub use the same key.",
       "fix": "Contribute each context key once to `CoreContextsToken` (and not again in `contextHubUnit({ entries })`); the `details` name the key."
+    },
+    {
+      "code": "SF-WK-032",
+      "kind": "invariant",
+      "summary": "A pipe endpoint does not match the definition it is attached with (id, format version, schema version or size).",
+      "fix": "Attach with the same `define…()` value the writer used and deploy both bundles together; bump `version` on breaking layout changes."
+    },
+    {
+      "code": "SF-WK-033",
+      "kind": "aborted",
+      "summary": "The pipe (cell, ring, delta stream or side channel) was closed.",
+      "fix": "Expected during shutdown or respawn. Create a new pipe and re-send its endpoint when the peer reconnects (`peer.onConnect`)."
+    },
+    {
+      "code": "SF-WK-034",
+      "kind": "invariant",
+      "summary": "A delta record was appended with a version that does not increase.",
+      "fix": "Append deltas in increasing `version` order (one per applied transaction); start a new epoch with `snapshot()` after a reset."
+    },
+    {
+      "code": "SF-WK-035",
+      "kind": "validation",
+      "summary": "A record is larger than the pipe can hold.",
+      "fix": "Raise `capacityBytes` (records may use at most half of it), or move large payloads to the blob side channel and reference them by digest."
+    },
+    {
+      "code": "SF-WK-036",
+      "kind": "quota",
+      "summary": "The writer queue overflowed because the reader stopped consuming; queued records were dropped.",
+      "fix": "Lossless pipes queue under back-pressure up to `maxPendingBytes`/`maxPending`. Delta streams recover with a resnapshot; check that the reader is alive and drains every frame."
+    },
+    {
+      "code": "SF-WK-037",
+      "kind": "invariant",
+      "summary": "A transferable handle was used after it was sent, released or closed.",
+      "fix": "After `send()` the handle belongs to the receiver. Keep using only handles you still own (`owned.closed === false`)."
+    },
+    {
+      "code": "SF-WK-038",
+      "kind": "invariant",
+      "summary": "A closeable handle (VideoFrame, AudioData, ImageBitmap) was dropped or its owner disposed without closing it.",
+      "fix": "Call `owned.close()` when done, or dispose the ledger scope that owns it. Leaked GPU/decoder memory stalls decoders."
+    },
+    {
+      "code": "SF-WK-039",
+      "kind": "validation",
+      "summary": "The value is not a handle kind this channel accepts.",
+      "fix": "Send only the kinds declared in `defineHandleChannel({ kinds })` (video-frame, audio-data, image-bitmap, offscreen-canvas, file-system-handle); ArrayBuffers go through a data channel."
+    },
+    {
+      "code": "SF-WK-040",
+      "kind": "unavailable",
+      "summary": "The peer channel is not connected (the other worker is starting or respawning).",
+      "fix": "Wait with `peer.whenConnected(signal)` or pass `{ waitForConnection: true }`; re-send state in `peer.onConnect` after a re-wire."
+    },
+    {
+      "code": "SF-WK-041",
+      "kind": "not-found",
+      "summary": "A content-addressed blob referenced by a record is no longer available on either side.",
+      "fix": "The reader resnapshots automatically. Raise the sender `retainBytes` / receiver `budgetBytes` if this happens during normal editing."
+    },
+    {
+      "code": "SF-WK-042",
+      "kind": "invariant",
+      "summary": "A pipe endpoint was requested or attached twice (each reader index or message endpoint has exactly one reader).",
+      "fix": "Create one endpoint per reader (`ring.endpoint(i)` with distinct `i`); a respawned reader needs a fresh endpoint or a new pipe."
     }
   ]
 }

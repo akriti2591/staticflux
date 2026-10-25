@@ -132,3 +132,26 @@ Second consumer: the Instaflow editor (`docs/instaflow/`), written against `@sta
 - Folder mode: mirror the workspace to a picked folder in batches; go read-only with a one-click re-grant when permission lapses; notice external edits on focus (`createFolderMirror`).
 - Storage panel: usage/quota, persistence request, GC of unreferenced blobs after the grace period (`estimateStorage`, `requestPersistence`, `collectGarbage`).
 - `.iflow` export/import (C2): write a bundle with milestone parts copied as stored, read one in place, dedupe on import (`createZipWriter`, `openZip`, `addBlobToZip`, `importZipBlob`).
+
+### worker pipeline (Instaflow M1: editor ↔ render, SF-Δ17–Δ19, Δ22, Δ28)
+Instaflow's editor and render modules run in one worker or two (D15). Each need names the API that serves it (R11.30–R11.42).
+- Boot picks one worker or two from a setting; feature code never branches on it (`selectMedium`, pipes on `local` / `shared` / `message`).
+- The editor publishes the view-state frame (camera, selection, gesture overlay, `viewSeq`, `docVersion`) and the render
+  draws only whole frames (`defineCell` + `createCell` / `attachCell`, seqlock + checksum).
+- Scene deltas go editor → render in order. The render applies them up to the frame's `docVersion` and recovers from a
+  lost delta or a respawn with a snapshot (`createDeltaStream` / `attachDeltaStream`, `apply({ upTo })`, `onResnapshot`).
+- Geometry, paint and glyph runs are sent once by digest beside the deltas (`createBlobSender` / `createBlobReceiver`).
+- The main thread forwards pen strokes with every coalesced point, pressure and tilt into a binary input ring; the editor
+  reads every sample, and the render's camera fast path reads coalesced ones (`createInputForwarder({ sinks })`,
+  `inputRingSink`, `drainInputRing`).
+- The canvas goes main → render as an `OffscreenCanvas`; the workspace directory goes main → store worker as a
+  `FileSystemHandle`; M3 decoded `VideoFrame`s go to the compositor and must be closed (`createHandleChannel`, `createHandleLedger`).
+- When the render worker crashes, the editor keeps its channel object and re-sends its pipe endpoints on reconnect
+  (`createPeerBroker` + `workerHost`, `acceptPeer`, `peer.onConnect`; colocated: `createPeerPair`).
+- A drag shows immediately and its overlay disappears in exactly the frame that shows the committed move
+  (`createOptimisticIntents`: `stage`, `commit`, `advance`).
+- The accessibility layer on main mirrors only the nodes in the viewport (`createWindowedPublisher` /
+  `createWindowedReplica` over the editor's spatial index as a `WindowedSource`).
+- CRDT merges and index rebuilds in the editor worker yield to input work, and stalls are reported (`createWorkerScheduler`,
+  `scheduler.yield`, `createLongTaskDetector` from `@staticflux/runtime/worker`).
+- M3: the playhead position is shared with the render worker and an AudioWorklet without messages (`defineClockCell`).

@@ -1,23 +1,17 @@
 import { attachRecordRing, createRecordRing, type PipeMedium } from '@staticflux/worker/pipeline';
 import { describe, expect, it } from 'vitest';
 import { flushMicrotasks, hostElement, testEnv } from './fakes.test.js';
+import { coalesceInput, type CompactInputEvent, createInputForwarder, InputCode, InputFlag, InputModifier, PointerKind } from './index.js';
 import {
-  coalesceInput,
-  type CompactInputEvent,
-  createInputForwarder,
   decodeInputRecord,
   defineInputRing,
   drainInputRing,
   encodeInputRecord,
   INPUT_KEY_CODES,
   INPUT_KEY_NAMES,
-  InputCode,
-  InputFlag,
-  InputModifier,
   InputRecordLayout,
   inputRingSink,
-  PointerKind,
-} from './index.js';
+} from './input-ring.js';
 
 function event(type: string, init: Record<string, unknown>): Event {
   const e = new Event(type);

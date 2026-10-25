@@ -27,6 +27,7 @@ import {
   linkHost,
   memoryWire,
   messageChannelWire,
+  type OptimisticAck,
   type OverlayChange,
   PeerChannelLifecycle,
   PeerChannels,
@@ -358,7 +359,7 @@ describe('optimistic intents (supersede-on-ack)', () => {
   it('a late ack of an older intent never removes a newer overlay on the same key', async () => {
     const intents = createOptimisticIntents<string>();
     let releaseOld: (() => void) | undefined;
-    const old = intents.commit('node-1', 'old', () => new Promise((resolve) => (releaseOld = () => resolve(ok({ version: 2 })))));
+    const old = intents.commit('node-1', 'old', () => new Promise<Result<OptimisticAck>>((resolve) => (releaseOld = () => resolve(ok({ version: 2 })))));
     const newer = intents.commit('node-1', 'new', ack(3));
     await newer;
     releaseOld?.();
@@ -376,7 +377,7 @@ describe('optimistic intents (supersede-on-ack)', () => {
     let signal: AbortSignal | undefined;
     const pending = intents.commit('k', 'y', (s) => {
       signal = s;
-      return new Promise((resolve) => s.addEventListener('abort', () => resolve(err(AbortedError()))));
+      return new Promise<Result<OptimisticAck>>((resolve) => s.addEventListener('abort', () => resolve(err(AbortedError()))));
     });
     expect(intents.pending).toBe(1);
     expect(intents.cancel('k')).toBe(true);
@@ -394,7 +395,7 @@ describe('optimistic intents (supersede-on-ack)', () => {
     await intents.commit('a', 'x', ack(9));
     expect(intents.overlays.size).toBe(0);
     intents.stage('drag', 'in progress');
-    void intents.commit('b', 'y', () => new Promise(() => undefined));
+    void intents.commit('b', 'y', () => new Promise<Result<OptimisticAck>>(() => undefined));
     intents.reset(0, { keepStaged: true });
     expect([...intents.overlays.keys()]).toEqual(['drag']);
     expect(intents.version).toBe(0);
@@ -439,7 +440,7 @@ describe('windowed replicas', () => {
 
   it('definition and the memory source', () => {
     expect(Visible).toMatchObject({ kind: 'windowed-replica', id: 'test/visible', channel: 'sf/windowed/test/visible' });
-    const source = createMemoryWindowedSource(inside, [['a', { x: 1 }]]);
+    const source = createMemoryWindowedSource<string, { x: number }, { min: number; max: number }>(inside, [['a', { x: 1 }]]);
     const batches: number[] = [];
     source.onChanges((changes) => batches.push(changes.length));
     source.batch([

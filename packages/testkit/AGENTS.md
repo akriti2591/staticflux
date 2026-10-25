@@ -96,6 +96,25 @@ Node only (`@staticflux/testkit/node`):
   ports `BrowserLauncher` / `BrowserLike` / `PageLike` (the slice of Playwright used).
 - `gpu-cli.ts` — `sf-gpu-run` / `pnpm gpu:run`: `parseGpuCliArgs`, `gpuCliMain(argv, io)`.
 
+### Pipeline contract suites (SF-Δ17–Δ19, Instaflow M1 A5)
+One file per port; each suite runs the same cases on every pipe medium (`local` colocated, `shared` SharedArrayBuffer,
+`message` postMessage) or link transport (in-process pair, MessageChannel). `pipeline-contracts.test.ts` runs them all.
+Cross-thread concurrency (torn reads, real respawn) is tested in `packages/worker` with `worker_threads`.
+- `pipe-contract-support.ts` — `PipeContractMedium`, `PIPE_CONTRACT_MEDIA`, `availablePipeMedia()`, `mediumOptions`,
+  `LinkContractTransport`, `inProcessLinks`, `messageChannelLinks`, `availableLinkTransports()`, `settle`, `eventually`.
+- `seqlock-cell-contract.ts` — `runSeqlockCellContract(medium, runner)`, `seqlockCellContractCases`.
+- `clock-cell-contract.ts` — `runClockCellContract(medium, runner)`, `clockCellContractCases`.
+- `record-ring-contract.ts` — `runRecordRingContract(medium, runner)`, `recordRingContractCases` (lossless SPMC, back-pressure, release).
+- `delta-stream-contract.ts` — `runDeltaStreamContract(medium, runner)`, `deltaStreamContractCases` (oracle: ordered apply,
+  `upTo`, gap → resnapshot, overflow healing, blob refs, respawned reader).
+- `blob-side-channel-contract.ts` — `runBlobSideChannelContract(transport, runner)`, `blobSideChannelContractCases`.
+- `handle-channel-contract.ts` — `runHandleChannelContract(transport, runner, { makeHandle })`, `handleChannelContractCases`,
+  `createFakeHandle(kind)` (duck-typed ownership fakes; pass real handles via `makeHandle` in a browser).
+- `peer-channel-contract.ts` — `runPeerChannelContract(factory, runner)`, `peerChannelContractCases`, `colocatedPeerSetup`,
+  `brokeredPeerSetup(transport)` (re-wire on respawn: generations, surviving listeners, `onConnect` cleanups).
+- `windowed-replica-contract.ts` — `runWindowedReplicaContract(transport, driver, runner)`, `windowedReplicaContractCases`,
+  `memoryWindowedDriver` (a store's own `WindowedSource` plugs in through `WindowedSourceDriver`).
+
 ## How to test a unit
 Register the unit under test with its real dependencies or overrides; assert on values *and* on telemetry.
 ```ts

@@ -2,7 +2,8 @@
 
 **Layer:** vertical (depends on `@staticflux/core` only; never imports `@staticflux/runtime`).
 **Budget:** not on the boot path — loaded with the first feature that spawns a worker. Target ≤ 12 KB brotli for
-main-thread usage (supervisor + link + replication); worker-side (`runWorker`) ships in the worker bundle.
+main-thread usage (supervisor + link + replication); worker-side (`runWorker`) ships in the worker bundle. The
+pipeline entry (`@staticflux/worker/pipeline`, 23 KB) loads only with an editor/render pipeline and is tree-shaken per use.
 
 ## Purpose
 Everything that crosses a thread boundary: typed envelopes, ports, typed protocols, supervised workers
@@ -52,6 +53,51 @@ leader election and SharedWorker helpers (R11.9). Requirements: R11.1–R11.7, R
 - `coordinator-fakes.ts` — test-only (not exported): `createMemoryLocks` (per-tab views, `crashTab`), `createMemoryBroadcastHub`
   (per-tab `freeze/thaw`, `crashTab`, `inject`), `createFakeTabLifecycle`.
 
+## Pipeline plumbing (`@staticflux/worker/pipeline`, SF-Δ17–Δ19; Instaflow M1 A5)
+Topology-neutral ports for the editor ↔ render pipeline (D15: one worker or two is a boot-time setting). Every
+pipe runs on three **media** with the same code and the same contract suites (testkit):
+`local` (both ends in one thread, plain ArrayBuffer), `shared` (SharedArrayBuffer + Atomics, isolated pages) and
+`message` (no shared memory: each side mirrors the region, changes are posted in order). Message-based ports run over
+any `Link` (in-process port pair or MessageChannel).
+- `region.ts` — `selectMedium({ topology: 'colocated' | 'split', isolation })`, `createRegion({ medium, byteLength })` →
+  `OwnedRegion` (`endpoint()`), `attachRegion(endpoint)`, `RegionSide` (`words`, `bytes`, `publish(words, ranges)`,
+  `wait`, `waitSync`, `onRemote`), `regionTransferList`, `isRegionEndpoint`, `isMessagePortLike`, `toPort`.
+- `seqlock-cell.ts` — `defineCell({ id, layout | bytes, checksum, version })`, `createCell` → `CellWriter`
+  (`write(fill)`), `attachCell(def, endpoint, { maxRetries, seqlock })` → `CellReader` (`read()` private stable copy,
+  `latest`, `wait`, `stats { retries, torn, contended }`); `checkPipeHeader`, `cellByteLength`. The view-state frame.
+- `clock-cell.ts` — `defineClockCell`, `createClockCell` (`publish({ position, state, rate, anchor, epoch })`),
+  `attachClockCell` (`sample(now)`), `extrapolateClock`, `ClockCellLayout`, `CLOCK_STATES` (for M3).
+- `record-ring.ts` — `defineRecordRing({ id, layout, capacity, readers })`, `createRecordRing` (`push(fill)` →
+  `written | queued`, `flush`, `endpoint(i)`, `release(i)`), `attachRecordRing` (`drain`, `wait`, `waitSync`): lossless SPMC.
+- `delta-stream.ts` — `defineDeltaStream({ id, capacityBytes, version })`, `createDeltaStream` (`append({ version, base,
+  payload, refs })`, `snapshot()`, `onResnapshot`, `flush`), `attachDeltaStream` (`apply(handler, { upTo, max, blobs })`,
+  `peek`, `requestResnapshot`, `state`), `DeltaReaderLifecycle`, `BlobResolver`.
+- `side-channel.ts` — `defineBlobChannel`, `createBlobSender(link, def)` (`put` → digest, dedupe, re-send, `gone`),
+  `createBlobReceiver` (LRU `budgetBytes`, `request`, `waitFor`, `clear`), `digestBytes` (MurmurHash3 x86-128).
+- `handle-channel.ts` — `createHandleLedger({ devGuards, limits, onLeak })` (`own`, `live`, `totals`, `dispose`),
+  `Owned<T>` (`value`, `close`, `release`, `Symbol.dispose`), `defineHandleChannel({ id, kinds })`, `createHandleChannel`
+  (`send` all-or-nothing, `on`), `classifyHandle`, `HANDLE_KINDS`, `HandleMetrics`.
+- `peer-channel.ts` — `definePeer(id)`, `acceptPeer(link, def)` (worker side), `createPeerPair(def)` (colocated),
+  `createPeerBroker({ wire })` → `connect(def, hostA, hostB)` (main side), `workerHost(supervisedWorker)`, `linkHost`,
+  `messageChannelWire`, `memoryWire`, `PeerChannel` (`send/on/handle/request`, `onConnect`, `whenConnected`),
+  `PeerChannelLifecycle`, `PeerChannels`.
+- `optimistic.ts` — `createOptimisticIntents<O>()` (`stage`, `commit(key, overlay, send)`, `advance(version)`, `cancel`,
+  `reset`, `overlays`), `replicaSender`, `followReplica`.
+- `windowed-replica.ts` — `defineWindowedReplica(id).type<E, W, K>()`, `createWindowedPublisher({ definition, source })`,
+  `createWindowedReplica(def)` (`setWindow`, `entries`), `WindowedSource` port, `createMemoryWindowedSource`.
+- `hash.ts` — `fnv1aWords`, `fnv1aString`, `murmur3x86_128`. `pipeline-errors.ts` — `SF-WK-032` … `SF-WK-042`.
+
+Pipeline rules:
+- Publish order: store data, then `Atomics.store` the control word, then `region.publish()`. Deltas before the view frame.
+- Readers never trust a value outside the seqlock: `seqlock: false` exists only to prove the detector (S2 `seqlock=0`).
+- Delta records are ordered by `base → version`; a gap or epoch change resyncs from a snapshot (E-1). Large payloads go
+  through the blob side channel by digest; a record never applies before its blobs.
+- Each pipe endpoint has one reader (record rings: one per reader index); a respawned reader gets a fresh endpoint
+  (`ring.release(i)` frees a dead reader's index; a re-attached delta reader asks for a snapshot).
+- Re-send pipe endpoints in `peer.onConnect` — it runs on every (re)connection; returned cleanups run on disconnect.
+- Handles: every platform handle a thread holds is `Owned` in a ledger; dispose ledgers with their scope (leaks are
+  reported and closed). In-memory transports pass handles by reference; the ownership rule is the same.
+
 ## Lifecycle (LIFECYCLES §3, as implemented)
 `idle → spawning → handshaking → ready ⇄ busy`; `ready|busy → unresponsive → crashed` (and `unresponsive → ready`
 when a heartbeat recovers); `crashed → respawning → spawning` with backoff; `crashed → failed` when restarts in
@@ -83,8 +129,18 @@ closed); `leader → stepping-down → candidate` (`stepDown()`, `freeze`/`pageh
 - Feature-detect `Worker`, `SharedWorker`, `navigator.locks`, `requestAnimationFrame`; always offer a fallback.
 - Client gating is UX, not security: the broker's server re-checks every call.
 
+## Pipeline machines (mirror of docs/LIFECYCLES.md §15)
+- `worker/delta-reader`: `awaiting-snapshot → live`; `live → resyncing` (gap, epoch change, gone blob) `→ live` (snapshot of a
+  newer epoch); `* → closed`.
+- `worker/peer-channel`: `waiting → connected`; `connected → connected` (re-wire, new generation) `| disconnected → connected`;
+  `* → closed`.
+- Handle ownership (`Owned`): `live → closed | sent | released | leaked` (collected unclosed, or still live at ledger dispose).
+
 ## Test
-`pnpm vitest run packages/worker` (in-memory ports; no real workers needed).
+`pnpm vitest run packages/worker` (in-memory ports; no real workers needed). `pipeline.threads.test.ts` runs the
+cross-thread paths in Node `worker_threads`: fixtures in `test/threads/` load the TypeScript sources through a module hook
+(`ts-hooks.mjs`), so no build is needed. Contract suites for every pipeline port live in `packages/testkit`
+(`pipeline-contracts.test.ts` runs them on every medium and link transport).
 
 <!-- sf:generated:start -->
 <!-- Generated by `sf agents` from package.json and .size-limit.json. Do not edit between these markers. -->
@@ -96,6 +152,7 @@ closed); `leader → stepping-down → candidate` (`stepDown()`, `freeze`/`pageh
 | @staticflux/worker (full) | 14 KB | packages/worker/dist/index.js |
 | @staticflux/worker/channels | 9.5 KB | packages/worker/dist/channels.js |
 | @staticflux/worker/coordinator | 14 KB | packages/worker/dist/coordinator-entry.js |
+| @staticflux/worker/pipeline | 23 KB | packages/worker/dist/pipeline.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 
