@@ -1,7 +1,0 @@
-open http://localhost:5684/web/index.html?runs=u2netp:webgpu:3&seqs=static
-[page log] env: {"ua":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36","crossOriginIsolated":true,"cores":4,"deviceMemoryGB":16,"webgpu":true,"smooth":{"ema":0.3,"motion":0.04,"gfR":6,"gfEps":0.001,"guided":true},"seqs":["static"],"frameSize":"1280x720","date":"2026-10-24T20:26:20.178Z","adapter":{"vendor":"google","architecture":"swiftshader","description":"","f16":false,"maxBufferMB":1024,"maxStorageBufferMB":1024}}
-[page log] run u2netp on webgpu, 3 frames x static
-[page log]   loaded u2netp/webgpu: 4.57 MB, create 3367 ms, first run 142737 ms
-[page log]   static: {"fpsEndToEndMedian":0.01,"totalMsMedian":103929,"totalMsP95":104789,"inferMsMedian":103340,"inferMsP95":104545,"fpsInferOnly":0.01,"smoothMsMedian":195,"flickerRaw":0.0009,"flickerSmoothed":0.0009,"flickerRawEdge":0.0206,"flickerSmoothedEdge":0.0179,"maeRaw":0.0081,"maeSmoothed":0.009,"maeRawEdge":0.1907,"maeSmoothedEdge":0.1939,"iouRaw":0.9709,"iouSmoothed":0.9756}
-[page log] done
-wrote /home/user/staticflux/apps/instaflow/spikes/s9-matte/results/u2netp-webgpu.json
