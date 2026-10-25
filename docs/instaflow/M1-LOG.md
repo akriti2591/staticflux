@@ -38,6 +38,7 @@ Each work package's work in progress is pushed to its own branch `claude/wip-<wp
 this container.
 
 ## Next (one work package at a time; order, scope and IDs in M1C-NOTES.md)
+Now: C1 Export (running) and the UX spec (running, docs only). Then **B11 Studio basics and polish**, then C2 → C3 → C4.
 B9 Editor in the worker → site refresh → B10a Transform basics → C0 → C1 → C2 → C3 → C4. B10b (distort, perspective,
 warp) early M2.
 
@@ -62,6 +63,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** #24 (C0) merged. Owner's first hands-on session: no visible delete or rotate, no clipboard, UI
+  unpolished, while all tests passed. Owner's call: a UX analyst (Fable, medium effort) writes a Markdown UX spec and
+  end-to-end flows for agents first (`docs/instaflow/ux/`, branch `claude/wip-ux-spec`); then B11 Studio basics and
+  polish implements it with end-to-end tests in CI. M1-BRIEF now requires the spec for any UI work. C1 continues.
 - **2026-10-25** #23 (B10a) merged. C0 done (b176c83): Home at `/`, recents, templates, quick actions as capabilities;
   designs persist (IndexedDB adapter passing the store contract). Full check caught one gap: B6's audit-coverage guard
   didn't list the new Home element (its own test already audits it). Registered; all checks pass. Next: C1 Export.

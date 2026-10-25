@@ -21,6 +21,7 @@ the M1c work packages, their pre-assigned IDs and their order.
 | B8 Studio integration | IF-27.1–27.29 | §29 | IF-INT-001… | `claude/wip-b8-studio` |
 | B9 Editor in the worker | IF-33.1–33.29 | §35 | IF-WRK-001… | `claude/wip-b9-worker` |
 | B10a Transform tools, basics | IF-34.1–34.29 | §36 | IF-XF-001… | `claude/wip-b10a-transform` |
+| B11 Studio basics and polish | IF-35.1–35.29 | §37 | IF-POL-001… | `claude/wip-b11-polish` |
 | C0 Home route | IF-28.1–28.29 | §30 | IF-HOME-001… | `claude/wip-c0-home` |
 | C1 Export | IF-29.1–29.29 | §31 | IF-EXP-001… | `claude/wip-c1-export` |
 | C2 Import | IF-30.1–30.29 | §32 | IF-IMP-001… | `claude/wip-c2-import` |
@@ -65,6 +66,14 @@ Photoshop-style Free Transform basics on top of B3: flip horizontal / vertical (
 (Mod-drag a side handle) with snapping, a draggable pivot (reference point) used by rotate and scale, a numeric
 transform bar (X, Y, W, H, angle, skew) as a B0 contribution, and Mod+T to enter transform mode. Every transform is one
 undo step, works on rotated and nested elements, and is a capability agents can call.
+
+## UX spec first, then B11 (owner, 2026-10-25)
+The owner's first hands-on session found missing basics (no visible delete or rotate, no clipboard) and an unpolished
+UI, while every test passed: tests checked plumbing, not what a person expects. So:
+1. A UX analyst writes `docs/instaflow/ux/STUDIO-UX-SPEC.md` and `STUDIO-FLOWS.md` (plain Markdown, for agents).
+2. **B11 Studio basics and polish** implements the spec's gap table and turns the M1 must-pass flows into end-to-end
+   tests in CI (both topologies), written from the user's side of the screen (find controls as a person would).
+3. C2–C4 follow; every later WP that touches UI reads the spec and flows (M1-BRIEF reading list item 5).
 
 ## C-stage specifics
 - **C0** boots with no engine or GPU (D17): check with a size budget and a test that the Home entry imports neither.

@@ -9,7 +9,12 @@ spike. You start fresh: everything you need is in files, not in anyone's convers
 3. The stage notes for your WP: `docs/instaflow/M1B-NOTES.md` (all of M1b and the rules that still apply) and
    `docs/instaflow/M1C-NOTES.md` (B8 and M1c). They hold your **pre-assigned IDs** and your WIP branch name.
 4. Your WP row in `docs/instaflow/M1-PLAN.md`; `docs/instaflow/DECISIONS.md` (D1–D19, plus any later ones).
-5. Your handoff, if one exists: `docs/instaflow/handoffs/<WP>.md`.
+5. **Any WP that touches Studio or Home UI or interaction:** `docs/instaflow/ux/STUDIO-UX-SPEC.md` (how every region,
+   handle, shortcut, menu and panel must behave and be arranged) and `docs/instaflow/ux/STUDIO-FLOWS.md` (end-to-end
+   flows F-xx that are your acceptance tests). They outrank your own taste. If your WP needs something they don't
+   cover, follow established editor conventions (Figma, Canva, Keynote), say so in your report, and propose the spec
+   change; never invent silently.
+6. Your handoff, if one exists: `docs/instaflow/handoffs/<WP>.md`.
 6. The `AGENTS.md` of every package or app folder you touch. Framework shapes (tokens, units, `requires`/`provides`,
    scopes, variant bindings, `Result`/`SfError`): `docs/ARCHITECTURE.md` §3 and `packages/core/AGENTS.md`.
 
