@@ -30,7 +30,8 @@ entries at the top of **Journal**.
 | B6 Accessibility layer | Merged; not yet wired to Studio's live canvas | `main` | #17 |
 | B8 Studio integration | Merged; editor on the main thread until B9 | `main` | #20 |
 | B9 Editor in the worker | Merged; owner IME re-check pending | `main` | #21 |
-| Site refresh | In progress (fresh agent, docs site only) | `claude/wip-site-refresh` | — |
+| Site refresh | Merged | `main` | #22 |
+| B10a Transform tools, basics | PR open (full check 4,241 tests; smoke green in both topologies) | working branch | #23 |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
@@ -60,6 +61,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** #22 (site refresh) merged. B10a done (03116b4): flip, skew, pivot, numeric transform bar, Mod+T session
+  (plus a "Free transform" HUD action: Chrome reserves Mod+T in a normal window). Mod on a side handle now skews
+  (B3 change). Next: C0 Home.
 - **2026-10-25** #21 (B9) merged: Studio's editor and renderer run in workers. Site refresh started (docs site only).
 - **2026-10-25** B9 smoke failure root-caused (not Shift, not a flake): the selection HUD grew from one to two rows and
   moved the canvas 40 px under a drag. HUD now has a fixed height (test fails without it); smoke 30/30 per topology.
