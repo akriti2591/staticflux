@@ -45,6 +45,16 @@ palette, recent, inline custom square + hue. B11a2 builds it (today's kit `sf-co
 `input[type=color]`). The appearance pass must checklist it against Figma/Canva/Adobe: colour models (HEX/RGB/HSB/
 HSL/OKLCH), alpha slider, gradient mode in the same popover, contrast check, colour names, saved palettes.
 
+## Backgrounds and bevels (owner asked, 2026-10-25)
+- Shapes: colour, linear/radial/conic gradients and images (cover/contain/stretch/tile) as a stack with per-fill
+  opacity and blend all render today; the fill-stack UI is missing (appearance pass).
+- **Page background** is a single colour in the spec and a solid colour in the renderer. The owner wants image,
+  gradient and colour like shapes. Appearance pass decides: the same fill stack on pages (engine work) or a locked
+  bottom "Background" layer presented as the page's background, and specs it.
+- **Bevel/emboss**: not an effect today (effects: drop/inner shadow, outer/inner glow, layer/background blur; stroke
+  `join: bevel` is the corner join, not a 3D edge). Appearance pass decides: a `Bevel` preset from inner shadow +
+  inner glow now, and/or a real bevel-and-emboss effect (engine work, milestone).
+
 ## Queued UX passes (one Fable at a time)
 1. Text and fonts (running, `claude/wip-ux-text`).
 2. Appearance (fills, gradients and the gradient editor, strokes, effects, colour picker depth), transforms, groups
