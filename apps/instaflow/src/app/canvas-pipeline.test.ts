@@ -11,7 +11,7 @@ import { createTextOps } from '../text/rich-text.js';
 import { createElementSceneSide, decodeSceneRecord, encodeSceneRecord, startCanvasPipeline } from './canvas-pipeline.js';
 import { createElementRenderPort, createRecordingRaster } from './element-port.js';
 import { createTextLayer } from './text-layer.js';
-import { authoringBuilt, createStudioFixture, person, unwrap } from './testing/fixtures.js';
+import { authoringBuilt, createStudioFixture, person, unwrap } from './test-helpers.js';
 
 const rect = (node: string, x: number, y: number) => ({ op: 'create' as const, node, kind: 'shape', parent: 'p1', props: { [P.x]: x, [P.y]: y, [P.w]: 100, [P.h]: 80, [P.fills]: [{ paint: '#ff5c39' }] } });
 

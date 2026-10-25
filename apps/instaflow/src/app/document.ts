@@ -131,8 +131,8 @@ export interface StudioDocument {
   /** B1/B7 action context (fresh ids from `newId`). */
   context(): RepeatContext;
   newId(): NodeId;
-  /** Commit raw ops on a page as one undo step (text edits; element edits use `target`). */
-  commitOps(page: NodeId, actor: Actor, label: string, ops: readonly PartOp[]): Result<void>;
+  /** Commit raw ops on a page as one undo step (text edits; element edits use `target`). Same `changeSet`: same step. */
+  commitOps(page: NodeId, actor: Actor, label: string, ops: readonly PartOp[], options?: { readonly changeSet?: string }): Result<void>;
 }
 
 /** Open an existing Studio document: attach its page parts to one stage, repeat view and undo service. */
@@ -182,11 +182,11 @@ export async function openStudioDocument(options: StudioDocumentOptions): Promis
     target: (page) => ({ undo, stage: view, part: pagePart(page) }),
     context: () => ({ stage: view, geometry, kit, newId }),
     newId,
-    commitOps(page, actor, label, ops) {
+    commitOps(page, actor, label, ops, options = {}) {
       if (ops.length === 0) return ok();
       const checked = view.checkWrite(ops, { actor });
       if (!checked.ok) return checked;
-      const committed = undo.commit(actor, label, { [pagePart(page)]: ops });
+      const committed = undo.commit(actor, label, { [pagePart(page)]: ops }, options.changeSet === undefined ? {} : { changeSet: options.changeSet });
       return committed.ok ? ok() : committed;
     },
   };
