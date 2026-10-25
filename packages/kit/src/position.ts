@@ -38,6 +38,11 @@ export interface PositionResult {
   readonly y: number;
   /** The side actually used (after flipping). */
   readonly side: Side;
+  /**
+   * Shrink step (OVERLAYS-FEEDBACK §1.5): set when the floating box is taller than the room it has, so lists scroll
+   * inside instead of leaving the viewport. Undefined when it fits.
+   */
+  readonly maxHeight?: number;
 }
 
 const OPPOSITE: Readonly<Record<Side, Side>> = { 'block-start': 'block-end', 'block-end': 'block-start', 'inline-start': 'inline-end', 'inline-end': 'inline-start' };
@@ -74,20 +79,61 @@ export function computePosition(input: PositionInput): PositionResult {
   const p = physical(side, rtl);
   let x: number;
   let y: number;
+  // Shrink: above or below the anchor the box gets the room on its side; beside it, the viewport height.
+  const room = p === 'top' || p === 'bottom' ? space[p] - offset : v.height - 2 * pad;
+  const maxHeight = f.height > room ? Math.max(0, Math.floor(room)) : undefined;
+  const height = maxHeight ?? f.height;
   if (p === 'top' || p === 'bottom') {
-    y = p === 'bottom' ? a.y + a.height + offset : a.y - f.height - offset;
+    y = p === 'bottom' ? a.y + a.height + offset : a.y - height - offset;
     const startX = rtl ? a.x + a.width - f.width : a.x;
     const endX = rtl ? a.x : a.x + a.width - f.width;
     x = align === 'center' ? a.x + (a.width - f.width) / 2 : align === 'start' ? startX : endX;
     x = clamp(x, pad, v.width - f.width - pad);
-    y = clamp(y, pad, v.height - f.height - pad);
+    y = clamp(y, pad, v.height - height - pad);
   } else {
     x = p === 'right' ? a.x + a.width + offset : a.x - f.width - offset;
-    y = align === 'center' ? a.y + (a.height - f.height) / 2 : align === 'start' ? a.y : a.y + a.height - f.height;
-    y = clamp(y, pad, v.height - f.height - pad);
+    y = align === 'center' ? a.y + (a.height - height) / 2 : align === 'start' ? a.y : a.y + a.height - height;
+    y = clamp(y, pad, v.height - height - pad);
     x = clamp(x, pad, v.width - f.width - pad);
   }
-  return { x: Math.round(x), y: Math.round(y), side };
+  return maxHeight === undefined ? { x: Math.round(x), y: Math.round(y), side } : { x: Math.round(x), y: Math.round(y), side, maxHeight };
+}
+
+export interface PointPositionInput {
+  readonly point: { readonly x: number; readonly y: number };
+  readonly floating: { readonly width: number; readonly height: number };
+  readonly viewport: { readonly width: number; readonly height: number };
+  /** Minimum distance to the viewport edge (px). Default 8. */
+  readonly padding?: number;
+}
+
+/**
+ * Context-menu placement (OVERLAYS-FEEDBACK §1.5): the top-left corner on the pointer; a menu that would overflow
+ * right or bottom opens to the left or upwards from the pointer (never shifted under it), then clamps; a menu taller
+ * than the viewport shrinks (`maxHeight`) and scrolls inside.
+ */
+export function computePointPosition(input: PointPositionInput): PositionResult {
+  const { point, floating: f, viewport: v } = input;
+  const pad = input.padding ?? 8;
+  const maxHeight = f.height > v.height - 2 * pad ? Math.max(0, v.height - 2 * pad) : undefined;
+  const height = maxHeight ?? f.height;
+  const x = point.x + f.width + pad > v.width ? point.x - f.width : point.x;
+  const y = point.y + height + pad > v.height ? point.y - height : point.y;
+  const result = { x: Math.round(clamp(x, pad, v.width - f.width - pad)), y: Math.round(clamp(y, pad, v.height - height - pad)), side: 'block-end' as Side };
+  return maxHeight === undefined ? result : { ...result, maxHeight };
+}
+
+/** Place a `position: fixed` element at a viewport point with the context-menu corner rule (JS; measured once). */
+export function placeAtPoint(floating: HTMLElement, point: { readonly x: number; readonly y: number }): PositionResult {
+  const view = floating.ownerDocument.defaultView ?? globalThis;
+  floating.style.removeProperty('max-block-size');
+  const own = floating.getBoundingClientRect();
+  const result = computePointPosition({ point, floating: { width: own.width, height: own.height }, viewport: { width: view.innerWidth, height: view.innerHeight } });
+  floating.style.left = `${result.x}px`;
+  floating.style.top = `${result.y}px`;
+  if (result.maxHeight !== undefined) floating.style.setProperty('max-block-size', `${result.maxHeight}px`);
+  floating.dataset['side'] = result.side;
+  return result;
 }
 
 interface CssLike {
@@ -165,6 +211,8 @@ export function anchorFloating(anchor: Element, floating: HTMLElement, options: 
   let frame: number | undefined;
   const update = (): void => {
     const rect = anchor.getBoundingClientRect();
+    // Measure the natural height (a previous shrink must not stick once there is room again).
+    floating.style.removeProperty('max-block-size');
     const own = floating.getBoundingClientRect();
     const result = computePosition({
       anchor: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
@@ -178,6 +226,8 @@ export function anchorFloating(anchor: Element, floating: HTMLElement, options: 
     floating.style.left = `${result.x}px`;
     floating.style.top = `${result.y}px`;
     floating.dataset['side'] = result.side;
+    if (result.maxHeight === undefined) floating.style.removeProperty('max-block-size');
+    else floating.style.setProperty('max-block-size', `${result.maxHeight}px`);
   };
   const schedule = (): void => {
     if (frame !== undefined) return;

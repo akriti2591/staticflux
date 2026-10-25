@@ -11,6 +11,22 @@ export const InvalidNumberInputError = defineError(
   'Type a number (`120`), an expression (`+10`, `*2`, `(100 + 20) / 2`), a percentage when the field has `percentOf`, or a unit listed in the field’s `units` (`2in`, `10mm`).',
 );
 
+/** OVERLAYS-FEEDBACK §1.2: the nesting table is enforced, not only documented. */
+export const OverlayNestingError = defineError(
+  'SF-KIT-003',
+  'invariant',
+  'An overlay was opened inside a parent that may not hold it (a popover from a popover or a menu, a submenu inside a submenu); it was not opened.',
+  'Grow or swap the open popover in place, close the menu and anchor the popover to the menu’s trigger (`menu.trigger`), or turn a third menu level into a searchable menu or a dialog step (OVERLAYS-FEEDBACK §1.2).',
+);
+
+/** The copy field could not write to the clipboard (permission refused, insecure context, no Clipboard API). */
+export const ClipboardWriteError = defineError(
+  'SF-KIT-004',
+  'forbidden',
+  'The text could not be copied: the browser refused clipboard access or has no Clipboard API here.',
+  'Serve the page over HTTPS and copy from a user gesture; people can allow clipboard access in site settings or select the field and copy by hand.',
+);
+
 export const InvalidNameError = defineError(
   'SF-KIT-002',
   'validation',
