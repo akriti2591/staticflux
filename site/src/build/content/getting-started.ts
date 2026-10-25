@@ -2,6 +2,7 @@ import { callout, code, h3, readMore, sh, step } from '../components.js';
 import { html, md, paras, type Raw } from '../html.js';
 import type { Page } from '../layout.js';
 import { GITHUB, gh, href } from '../site.js';
+import { loadAdapters } from './example.js';
 
 function body(): Raw {
   return html`
@@ -19,10 +20,10 @@ ${step(
     git clone ${GITHUB}.git
     cd staticflux
     pnpm install
-    pnpm build        # tsc -b: every package → dist/
+    pnpm build        # tsc -b: every package → dist/ (+ Wasm engines when Rust is installed)
     pnpm test         # vitest (happy-dom), tests import packages from source
   `)}
-  <p>${md('Run the full gate the CI runs — build, typecheck, tests, boundaries, StaticFlux lint, error catalog and size budgets — with `pnpm check`. Then boot the example app:')}</p>
+  <p>${md('Rust is optional: without it the Wasm build is skipped with a warning (`SF_REQUIRE_RUST=1` makes it required, as in CI). Run the full gate the CI runs — build, typecheck, tests, boundaries, StaticFlux lint, error catalog, size budgets and licenses — with `pnpm check`; `pnpm test:browser` runs the real-Chromium suites (Playwright). Then boot the example app:')}</p>
   ${sh(`
     cd apps/studio
     npx vite          # http://localhost:5173 — packages resolve from source, no build needed
@@ -280,7 +281,7 @@ ${step(
 <ul class="cards">
   <li><a class="card" href="${href('guides/core-di/')}"><h3>Core &amp; DI</h3><p>Dependency kinds, init timing, hooks, scopes, variants and the compile-time checks.</p></a></li>
   <li><a class="card" href="${href('guides/lifecycles/')}"><h3>Lifecycles</h3><p>App, subsystem, feature and unit state machines, and their invariants.</p></a></li>
-  <li><a class="card" href="${href('example/')}"><h3>The Studio example</h3><p>Six features and 38 adapters composing every package.</p></a></li>
+  <li><a class="card" href="${href('example/')}"><h3>The Studio example</h3><p>Six features and ${loadAdapters().length} adapters composing every package.</p></a></li>
   <li><a class="card" href="${gh('CONTRIBUTING.md')}"><h3>Contributing</h3><p>Repo layout, rules, adding a package, the <code>pnpm check</code> gate.</p></a></li>
 </ul>
 ${readMore('core', 'runtime', 'router', 'ui', 'testkit')}

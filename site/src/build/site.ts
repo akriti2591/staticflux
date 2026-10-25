@@ -17,7 +17,7 @@ export function gh(path: string): string {
 }
 
 export function agentsMd(pkg: string): string {
-  const group = ['sf', 'vite-plugin', 'rspack-plugin'].includes(pkg) ? 'tooling' : 'packages';
+  const group = ['sf', 'vite-plugin', 'rspack-plugin', 'browser-test'].includes(pkg) ? 'tooling' : 'packages';
   return gh(`${group}/${pkg}/AGENTS.md`);
 }
 

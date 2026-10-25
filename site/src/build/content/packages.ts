@@ -38,6 +38,8 @@ function card(pkg: PackageInfo): Raw {
 </li>`;
 }
 
+const tools = (packages: readonly PackageInfo[]): number => packages.filter((p) => p.group === 'tooling').length;
+
 function body(): Raw {
   const packages = loadPackages(repoRoot);
   const byLayer = LAYER_ORDER.map((layer) => ({ layer, items: packages.filter((p) => p.layer === layer) })).filter((g) => g.items.length > 0);
@@ -63,6 +65,8 @@ ${island(Islands.packages, inner, { hydrate: 'visible', props: { counts } })}
 `;
 }
 
+const all = loadPackages(repoRoot);
+
 export const packagesPage: Page = {
   path: 'packages/',
   title: 'Packages',
@@ -73,7 +77,7 @@ export const packagesPage: Page = {
   hero: {
     eyebrow: 'Reference',
     title: 'Every building block.',
-    lede: 'Thirty-one packages and three tools, grouped by layer. Filter by layer or search by name, purpose or export.',
+    lede: `${all.length - tools(all)} packages and ${tools(all)} tools, grouped by layer. Filter by layer or search by name, purpose or export.`,
   },
   body,
 };

@@ -14,7 +14,7 @@ interface Adapter {
 }
 
 /** The adapter table is read from apps/studio/README.md at build time, so it always matches the app. */
-function loadAdapters(): readonly Adapter[] {
+export function loadAdapters(): readonly Adapter[] {
   const readme = readFileSync(`${repoRoot}apps/studio/README.md`, 'utf8');
   const start = readme.indexOf('| File | Bridges | What |');
   if (start === -1) return [];
@@ -25,6 +25,13 @@ function loadAdapters(): readonly Adapter[] {
     if (file !== undefined && bridges !== undefined && what !== undefined) rows.push({ file, bridges, what });
   }
   return rows;
+}
+
+/** The measured boot JS, read from apps/studio/AGENTS.md (`**Budget (R12.7):** … — **149.1 KB**`). */
+function bootJs(): string {
+  const agents = readFileSync(`${repoRoot}apps/studio/AGENTS.md`, 'utf8');
+  const measured = /^\*\*Budget[^\n]*?\*\*(\d+(?:\.\d+)?) KB\*\*/m.exec(agents)?.[1];
+  return measured === undefined ? 'see the build report' : `${measured} KB at the last measurement`;
 }
 
 const FEATURES: readonly { readonly id: string; readonly kind: string; readonly weight: string; readonly text: string }[] = [
@@ -55,6 +62,7 @@ ${h2('Try it')}
   <li>${md('`/onboarding/step/1` — wizard steps as view sub-routes.')}</li>
   <li>${md('`/settings` — theme, language incl. Arabic / RTL, the expert workspace.')}</li>
   <li>${md('`?sf-mode=web:compact` — the mobile editor variant · `?sf-flag=studio/ai-suggestions:false` — a local flag override · `?sf-debug` — the console telemetry sink.')}</li>
+  <li>${md('`Ctrl/⌘+K` — the capability palette from `@staticflux/kit` · `/settings` density Focus / Standard / Pro — the kit restyled through the theme contract.')}</li>
 </ul>
 
 ${h2('Six features')}
@@ -108,11 +116,11 @@ ${h2('What it proves')}
   <li>${md('**Free vs premium, guest vs logged-in, expert workspace, embedded mode** — all as policies, bindings and per-mode features; no feature reads a flag or a mode.')}</li>
   <li>${md('**Mock services only.** No network, no real auth. Client gating is UX, not security: the mock backend re-checks plan and credits.')}</li>
 </ul>
-${callout('note', 'Budgets, honestly', 'Studio’s `AGENTS.md` records its boot JS against the 150 KB budget from the build report — currently over, and tracked. Feature chunks are budgeted beyond the boot set; the heavy editor is exempted up to 200 KB, loaded only after authorize.')}
+${callout('note', 'Budgets, honestly', `Studio’s \`AGENTS.md\` records its boot JS against the 150 KB gzip budget from the build report — ${bootJs()}, and CI fails the build on a regression. Feature chunks are budgeted beyond the boot set; the heavy editor is exempted up to 200 KB, loaded only after authorize.`)}
 <ul class="cards">
   <li><a class="card" href="${gh('apps/studio/README.md')}"><h3>Studio README</h3><p>Run commands, architecture map and the full adapter table.</p></a></li>
   <li><a class="card" href="${gh('apps/studio/src/app/compose.ts')}"><h3>compose.ts</h3><p>The single place every package is wired.</p></a></li>
-  <li><a class="card" href="${href('before-after/')}"><h3>Before / After</h3><p>Ten patterns lifted from Studio, side by side.</p></a></li>
+  <li><a class="card" href="${href('before-after/')}"><h3>Before / After</h3><p>Patterns lifted from Studio, side by side.</p></a></li>
 </ul>
 ${readMore('runtime', 'router', 'gate', 'worker', 'document')}
 `;

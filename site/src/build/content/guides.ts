@@ -131,7 +131,7 @@ const lifecycles: Guide = {
   slug: 'lifecycles',
   title: 'Lifecycles & the runtime',
   short: 'Lifecycles',
-  summary: 'App supervisor, subsystems with restart policies, features with independent logic/UI lifetimes, retention and the frame scheduler.',
+  summary: 'App supervisor, subsystems with restart policies, features with independent logic/UI lifetimes, retention, the frame scheduler, worker scheduling and memory ledgers.',
   packages: ['runtime'],
   lede: 'Every lifecycle in StaticFlux is a typed finite state machine. The runtime supervises the app, its subsystems and its features — and the state you are in decides which operations even exist.',
   body: () => html`
@@ -176,6 +176,17 @@ ${paras(
 
 ${h2('Frame scheduler')}
 <p>${md('`createFrameScheduler()` coalesces updates into one flush per frame, separates `measure` and `mutate` phases (no layout thrashing), runs prioritized `postTask` work (`interaction | critical | visible | idle`), offers `yieldToMain` and `idleUntilUrgent`, and falls back where `scheduler.postTask` / `yield` are missing (Safari).')}</p>
+
+${h2('Workers: scheduling and memory ledgers')}
+<p>${md('Inside workers, `@staticflux/runtime/worker` gives the same priorities without frames: `createWorkerScheduler()` slices synchronous work into 8 ms tasks (`postTask`, `yield`, `shouldYield`), and `createLongTaskDetector` reports tasks over 50 ms. `@staticflux/runtime/memory` is a per-thread **cache memory ledger** for render, media and export workers: caches register with an `evict` callback and report their bytes; over budget — or when memory pressure rises — the ledger evicts lower priorities first, synchronously, before the resource manager demotes any feature.')}</p>
+${code(`
+  import { createMemoryBudgets, MiB } from '@staticflux/runtime/memory';
+
+  const memory = createMemoryBudgets({ budgets: { gpu: 512 * MiB }, pressure });
+  const tiles = memory.register({ id: 'render/tiles', kind: 'gpu', evict: (bytes) => cache.evict(bytes) });
+  if (!tiles.ok) return tiles;
+  tiles.value.report(cache.bytes);            // after every change; headroom() before a big allocation
+`)}
 ${callout('note', 'Invariants', 'I-1 nothing executes in `paused` except the resume path · I-5 mounted ⇒ activated · I-6 a feature cannot deactivate while a dependent is mounted. Each has an error code (`SF-APP-001`, `SF-FT-001`, `SF-FT-002`).')}
 <p><a class="link-arrow" href="${gh('docs/LIFECYCLES.md')}">All lifecycles, transitions and invariants</a></p>
 ${readMore('runtime', 'core')}
@@ -419,7 +430,7 @@ ${code(`
   });
   // AsyncStore: get · set · delete · has · clear · seek · batch · watch — all Promise<Result>
 `)}
-<p>${md('Adapters: memory, localStorage / sessionStorage, cookies, IndexedDB, OPFS, remote. Middleware returns the same interface: `namespaced`, `withTtl`, `withCodec` (JSON, versioned envelope, binary), `encrypted` (AES-GCM, key rotation), `withBudget`, `withTelemetry`, `tiered` (write-through / write-back), `fallback`. Slices, handoff, feature archives and advisor history all accept an `AsyncStore` through their `*FromStore` adapters.')}</p>
+<p>${md('Adapters: memory, localStorage / sessionStorage, cookies, IndexedDB, OPFS, remote. Middleware returns the same interface: `namespaced`, `withTtl`, `withCodec` (JSON, versioned envelope, binary), `encrypted` (AES-GCM, key rotation), `withBudget`, `withTelemetry`, `tiered` (write-through / write-back), `fallback`. Slices, handoff, feature archives and advisor history all accept an `AsyncStore` through their `*FromStore` adapters. Large immutable content — images, video, document parts — goes to the content-addressed `@staticflux/blob` store instead (see the editors guide).')}</p>
 ${callout('rule', 'No synchronous storage', 'There is no synchronous storage API anywhere in the framework, so any layer can be swapped later. Never store tokens or secrets in cookies or Web Storage — encryption at rest is not protection from page script.')}
 ${readMore('data', 'storage', 'handoff')}
 `,
@@ -465,7 +476,8 @@ ${list([
 ])}
 
 ${h2('The document engine')}
-<p>${md('`@staticflux/document` runs inside the document worker: an ECS world (entities, structure-of-arrays component stores, queries, systems) materialized from a `DocumentCRDT` (Yjs behind an interface), a `DocumentEngine` that is itself a replicable store, presence, a collaboration transport contract with an in-memory mock, and snapshot / restore for archives and respawn. The main thread holds only a projection — no Yjs in the main bundle.')}</p>
+<p>${md('`@staticflux/document` runs inside the document worker. **v1** (used by Studio): an ECS world (entities, structure-of-arrays component stores, queries, systems) materialized from a `DocumentCRDT` (Yjs behind an interface), a `DocumentEngine` that is itself a replicable store, presence, a collaboration transport contract with an in-memory mock, and snapshot / restore for archives and respawn. **v2** (`@staticflux/document/v2`): one CRDT document per page behind the engine-neutral `DocumentCRDTv2` port, a `DocumentRepo` with one commit per gesture, versioned components, a Loro engine, a binary render projection and a spatial index. The main thread holds only a projection — no CRDT library in the main bundle.')}</p>
+<p><a class="link-arrow" href="${href('guides/editors/')}">Document v2, the stage and the editor ↔ render pipeline</a></p>
 
 ${h2('Wasm as worker-scoped units')}
 ${code(`
@@ -481,9 +493,152 @@ ${code(`
 <p>${md('Feature facts (SIMD, threads, memory64, exceptions, GC) come from `WebAssembly.validate` probes plus cross-origin isolation; threaded builds are picked only when shared memory is actually usable, otherwise the next variant. Instantiation is the unit’s `init` (`compileStreaming`, with an ArrayBuffer fallback). Main-thread Wasm needs an explicit `allowMainThread: { reason, budgetMs }`.')}</p>
 
 ${h2('Rich surfaces')}
-<p>${md('`@staticflux/surface` gives DOM, Canvas2D, WebGL, WebGPU and HTML-in-Canvas one `Surface` contract. Engines (`RenderEngine`: `init`, `frame`, `resize`, `input`, `dispose`) never touch the DOM, so the same engine runs in a render worker via a transferred `OffscreenCanvas` (`createWorkerSurface` / `hostRenderSurfaces`) or on the main thread. Input is forwarded as compact timestamped events and becomes intents where the state lives; pure-canvas content gets a parallel accessible DOM layer; per-surface frame metrics carry budgets.')}</p>
+<p>${md('`@staticflux/surface` gives DOM, Canvas2D, WebGL, WebGPU and HTML-in-Canvas one `Surface` contract. Engines (`RenderEngine`: `init`, `frame`, `resize`, `input`, `dispose`) never touch the DOM, so the same engine runs in a render worker via a transferred `OffscreenCanvas` (`createWorkerSurface` / `hostRenderSurfaces`) or on the main thread. Input is forwarded as compact timestamped events and becomes intents where the state lives; pure-canvas content gets a parallel accessible DOM layer; per-surface frame metrics carry budgets. Tiled GPU raster (`/raster`), canvas text input (`/text-input`) and image scaling (`/image`) are separate entries, covered in the editors guide.')}</p>
 ${callout('note', 'Isolation is a per-app choice', 'Apps declare `isolation: required | preferred | off`. Channels, Wasm builds and features select shared-memory or transfer paths automatically; embedded hosts always fall back. See `@staticflux/platform` isolation and the Vite plugin’s dev COOP/COEP headers.')}
 ${readMore('worker', 'document', 'wasm', 'surface', 'platform')}
+`,
+};
+
+// ------------------------------------------------------------------ editors
+
+const editors: Guide = {
+  slug: 'editors',
+  title: 'Editors: pipeline, documents, stage, blobs & raster',
+  short: 'Editors & canvases',
+  summary: 'The editor ↔ render pipeline, document v2 with one CRDT doc per page, the composed stage and per-actor undo, a content-addressed blob store, GPU raster, text input and images.',
+  packages: ['worker', 'document', 'stage', 'blob', 'surface'],
+  lede: 'The ports a local-first editor with a GPU canvas needs, as framework packages: a pipeline between editor and renderer, documents split into parts, a composed stage with per-actor undo, and a content-addressed store underneath. Instaflow drove them; none of them knows about it.',
+  body: () => html`
+${h2('The editor ↔ render pipeline')}
+${paras(
+  '`@staticflux/worker/pipeline` is a set of topology-neutral pipes. Every pipe runs on three **media** with the same code: `local` (both ends in one worker), `shared` (SharedArrayBuffer + Atomics, isolated pages) and `message` (each side mirrors the region, changes are posted in order). `selectMedium({ topology })` picks one, so one worker or two is a boot setting, not a code path.',
+  'Deltas are sequenced: each record carries `base → version`, and the reader applies them in order. A gap, an epoch change or a missing blob moves the reader to `resyncing` and asks the writer for a snapshot; the writer answers in `onResnapshot`. The renderer draws what has arrived — it never waits on, or guesses past, a hole.',
+)}
+${code(`
+  import { acceptPeer, attachDeltaStream, createDeltaStream, createPeerBroker, defineDeltaStream, definePeer,
+    isRegionEndpoint, selectMedium, workerHost } from '@staticflux/worker/pipeline';
+
+  export const EditorRender = definePeer('app/editor-render');
+  export const Scene = defineDeltaStream({ id: 'app/scene', capacityBytes: 1 << 20 });
+  const SceneEndpoint = 'app/scene-endpoint' as const;
+
+  // editor worker: owns the stream, re-sends its endpoint on every (re)connection
+  const deltas = createDeltaStream(Scene, { medium: selectMedium({ topology: boot.topology }) });
+  if (!deltas.ok) return deltas;
+  deltas.value.onResnapshot(() => deltas.value.snapshot({ version, payload: encodeScene() }));
+  deltas.value.append({ version: ++version, payload: encodeChange(change) });
+  acceptPeer(runtime.link, EditorRender).onConnect((link) => {
+    const endpoint = deltas.value.endpoint();
+    if (endpoint.ok) link.send(SceneEndpoint, endpoint.value);
+  });
+
+  // render worker: attach, then apply up to the version the view-state frame shows
+  acceptPeer(runtime.link, EditorRender).on(SceneEndpoint, async (endpoint) => {
+    if (!isRegionEndpoint(endpoint)) return;
+    const attached = await attachDeltaStream(Scene, endpoint);  // awaiting-snapshot → live ⇄ resyncing
+    if (attached.ok) reader = attached.value;
+  });
+  // every vsync: apply what arrived, up to the version the view-state frame shows
+  reader?.apply(applyToScene, { upTo: viewFrame.docVersion });
+
+  // main thread: the broker wires the two workers and re-wires after a respawn
+  createPeerBroker().connect(EditorRender, workerHost(editorWorker), workerHost(renderWorker));
+`, { file: 'pipeline wiring (abridged)' })}
+${list([
+  '**View-state frames**: `defineCell` / `createCell` / `attachCell` — a seqlock cell; `read()` returns a private stable copy, torn reads are detected and retried.',
+  '**Input ring**: lossless SPMC record rings (`defineRecordRing`); `@staticflux/surface/input-ring` puts forwarded pointer, pen and key events on one (`inputRingSink`) and each reader coalesces on its own (`drainInputRing({ coalesce })`).',
+  '**Blobs by digest**: `createBlobSender` / `createBlobReceiver` move large payloads once; a delta that `refs` a blob never applies before it.',
+  '**Brokered peer channels**: `createPeerBroker` connects two workers directly; `onConnect` runs on every (re)connection, so a respawned reader gets a fresh endpoint and asks for a snapshot.',
+  '**Handles** (`createHandleLedger`, `Owned<T>`) account for every transferred platform handle; leaks are reported and closed with the scope.',
+])}
+
+${h2('Documents v2: one CRDT doc per page')}
+${paras(
+  'The v1 engine — an ECS world over a Yjs-backed `DocumentCRDT` — still runs Studio. Large editors use **v2** (`@staticflux/document/v2`): an asset is split into **parts**, one CRDT document per page plus a small document-level part, each behind the engine-independent `DocumentCRDTv2` port. The Loro engine (`@staticflux/document/loro-crdt`) is the implementation, worker only, its Wasm in its own budget; `adaptToV1` moves a v1 engine onto it.',
+  '`createDocumentRepo` opens assets once (single-flight), loads parts lazily, persists snapshots plus one append-only commit log through the `DocumentStore` port, and compacts incrementally. Edits go through the repo: `commit(meta, { [part]: ops })`, `moveAcross` for a cross-page move (one record, both parts), and **one commit per gesture**.',
+)}
+${code(`
+  import { createDocumentRepo, defineComponent, field } from '@staticflux/document/v2';
+  import { createLoroEngine } from '@staticflux/document/loro-crdt';
+
+  // versioned components: ids and fields are persisted format — add, or bump with a migration
+  export const Spatial = defineComponent('spatial', { x: 'f64', y: 'f64', rotation: 'f64' }, { defaults: { rotation: 0 } });
+  export const Style = defineComponent('style', { fill: 'color', blend: field.enum(['normal', 'multiply']) });
+
+  const repo = createDocumentRepo({ store, engine: createLoroEngine() });   // store: any DocumentStore
+  const doc = await repo.open('as_42', signal);
+  if (!doc.ok) return doc;
+
+  const drag = doc.value.gesture(meta, 'page:p1');        // stage every frame …
+  if (!drag.ok) return drag;
+  for (const x of pointerXs) drag.value.stage([{ op: 'set', node: 'card', path: 'spatial.x', value: x }]);
+  drag.value.commit();                                     // … commit once: one record, one undo step
+`)}
+<p>${md('Two materialized views feed the pipeline. `@staticflux/document/render-projection` turns part changes into a compact binary scene (`defineRenderProjection`, `createRenderProjector` in the editor worker, `createSceneStore` in the render worker, both checking the projection hash). `@staticflux/document/spatial-index` keeps an rbush index in step with the part (`bindSpatialIndex`) for hit tests and marquee selection. Components generate JSON Schema (`componentJsonSchema`) and milestones are canonical parts (RFC 8785).')}</p>
+
+${h2('The stage and per-actor undo')}
+${paras(
+  '`@staticflux/stage` composes what an editor, renderer, inspector or agent reads: a layer stack (`session` strongest, then proposal layers, then `local` — the asset), variant, inherit and reference arcs, final paths and locks. `read(node)` returns values with **provenance**, and `explain(node, path)` says which opinion won and which were overridden or ignored. Locks are checked before a write, never after.',
+  'The undo service keeps one stack per **actor** — human, agent or flow, attributed from the capability run context. An undo over someone else’s later overwrite is not applied silently: it comes back as a typed conflict, and the user picks `overwrite` or `keep-theirs`.',
+)}
+${code(`
+  import { createPartsDocument, createSessionLayer, createStage, createUndoService, stageWriteGuard } from '@staticflux/stage';
+
+  const root = createPartsDocument('as_42');
+  root.attach(page, { id: 'page:p1' });                   // each loaded page part
+  const session = createSessionLayer();
+  const stage = createStage({ root, session, assets });
+
+  session.set('card', 'spatial.x', 50);                   // a session opinion: wins, never persisted
+  stage.explain('card', 'spatial.x');                      // { value, winner, overridden, ignored }
+
+  const undo = createUndoService({ doc, guard: stageWriteGuard(stage) });
+  undo.commit(alice, 'Move card', { 'page:p1': [{ op: 'set', node: 'card', path: 'spatial.x', value: 10 }] });
+  const outcome = await undo.undo(alice, signal);          // empty | conflict | applied
+  if (outcome.ok && outcome.value.kind === 'conflict') showConflicts(outcome.value.conflicts);
+`)}
+
+${h2('Content-addressed blobs')}
+<p>${md('`@staticflux/blob` is a local-first workspace store: immutable blobs by SHA-256 (whole up to 8 MiB, 4 MiB chunks above, deduped), a few small heads swapped atomically (temp file + `move()` under a Web Lock, compare-and-swap on a generation), an append-only journal that is the only ack point, and a leader tab that owns the writers. It knows nothing about documents; `DocumentRepo` stores its parts and records through it.')}</p>
+${code(`
+  import { createWorkspaceStore, openOpfsDirectory } from '@staticflux/blob';
+
+  const dir = await openOpfsDirectory(['workspaces', workspaceId]);   // SF-BLOB-009 without OPFS
+  if (!dir.ok) return dir;
+  const workspace = createWorkspaceStore(dir.value, { lockPrefix: workspaceId, peer });
+  if (!workspace.ok) return workspace;                              // Web Locks are required for heads
+
+  const ref = await workspace.value.blobs.put(file.stream(), { mime: file.type, signal });
+  if (!ref.ok) return ref;                                          // SF-BLOB-001 on quota
+  const head = await workspace.value.blobs.get(ref.value, { range: { start: 0, end: 4096 }, signal });
+`)}
+${list([
+  '`createFolderMirror` mirrors the workspace to a folder the user picked — batched, never on the ack path, read-only (not failing) when permission lapses.',
+  '`createZipWriter` / `openZip` write and read bundles; deflate-raw blobs go in byte for byte, and `putEncoded` adopts them on import.',
+  '`collectGarbage` sweeps from the catalog (never a directory listing) with a grace period; `requestPersistence` and `checkQuota` cover storage pressure.',
+])}
+
+${h2('GPU raster, text input and images')}
+${paras(
+  '`@staticflux/surface/raster` is the port for tiled GPU rendering in render and export workers. The app supplies a `RasterBackend` (it only draws); the framework decides **which** tiles and **when**: visible tiles first, a 2 ms in-frame raster budget, the rest on an idle lane, stale tiles and snapshots instead of holes, and no raster before `warmUp`. `createGpuDevice` recovers a lost device on a fresh adapter, and every tile cache reports its bytes to the memory ledger.',
+)}
+${code(`
+  import { createTiledRenderer, workerSchedulerLane } from '@staticflux/surface/raster';
+
+  const renderer = createTiledRenderer({
+    backend,                                     // any RasterBackend (passes runRasterBackendContract)
+    lane: workerSchedulerLane(scheduler),        // tile prep at idle priority, sliced
+    requestFrame: () => requestAnimationFrame(draw),
+    memory,                                      // @staticflux/runtime/memory ledger (kind 'gpu')
+  });
+  if (!renderer.ok) return renderer;
+  await renderer.value.warmUp(signal);
+  renderer.value.apply(delta);                   // tiles under the dirty rects go stale
+  const report = renderer.value.frame();
+`)}
+<p>${md('`@staticflux/surface/text-input` is the `TextInput` port for canvas text editing — insert, delete, composition and selection as `TextIntent`s, with bounds for the IME. `createEditContextTextInput` and `createHiddenTextareaTextInput` both pass `runTextInputContract`; `textInputBindings({ editContext: () => facts.apis.editContext })` picks one with a variant binding, never a browser check. `@staticflux/surface/image` scales images (`scaleImage`, `fitWithin`) and encodes deterministic PNGs (`encodePng`) in any worker, no canvas needed.')}</p>
+${callout('note', 'Contract suites on every topology', 'Each pipe has a shared suite in `@staticflux/testkit` that runs on every available medium and link transport. `runSequencingOracleContract` drives a whole pipeline — one worker or two, every medium — and checks each presented frame against a single-threaded reference.')}
+${readMore('worker', 'document', 'stage', 'blob', 'surface', 'testkit')}
 `,
 };
 
@@ -549,8 +704,8 @@ const uiShell: Guide = {
   slug: 'ui-shell',
   title: 'UI, shell, messaging, a11y & i18n',
   short: 'UI, shell & a11y',
-  summary: 'Lit components with declared deps, fine-grained rendering, the shell frame, one surface manager, focus and announcements, typed ICU catalogs.',
-  packages: ['ui', 'shell', 'messaging', 'a11y', 'i18n'],
+  summary: 'Lit components with declared deps, fine-grained rendering, the theme contract and kit, the shell frame and layout specs, one surface manager, focus and announcements, typed ICU catalogs.',
+  packages: ['ui', 'kit', 'shell', 'messaging', 'a11y', 'i18n'],
   lede: 'Components self-inject what they need, render once per frame and only when what they read changes. The shell frames them; one surface manager owns every overlay; accessibility and localization are built in.',
   body: () => html`
 ${h2('Components')}
@@ -581,6 +736,31 @@ ${list([
   '`sfSrc(url)` adds the right `crossorigin` under cross-origin isolation; `crossOrigin(url, kind)` for templates.',
 ])}
 
+${h2('The theme contract')}
+${code(`
+  import { appearanceUnit, extendTheme, themeContribution } from '@staticflux/ui/theme';
+  import { defaultTheme } from '@staticflux/ui/default-theme';
+
+  export const brandTheme = extendTheme(defaultTheme, {
+    id: 'acme/brand',
+    values: { color: { accent: '#5B3DF5' }, radius: { control: '9999px' } },   // typed: unknown keys fail to compile
+  });
+  const units = [appearanceUnit, themeContribution(brandTheme, { order: 10 })];  // the default theme is order −100
+`)}
+<p>${md('`@staticflux/ui/theme` defines **the** token set (`themeTokens`: color ramp, surfaces, text, accent and agent actions, type, a 4 px space grid, sizes, radii, shadows, motion, z) as typed values, never strings. `compileTheme` emits CSS that is right before any JavaScript runs (`prefers-color-scheme`, `prefers-contrast`, `prefers-reduced-motion`); after boot the appearance keeps `data-sf-*` attributes in sync with the user’s choice — scheme, contrast, density (Focus / Standard / Pro) and motion — through `appearance.set(…)`. `runThemeContract` (testkit) checks every brand theme’s contrast pairs against WCAG 2.2 AA.')}</p>
+
+${h2('The kit')}
+${code(`
+  import { defineButton } from '@staticflux/kit/button';
+  import { defineSlider } from '@staticflux/kit/slider';
+
+  defineButton();
+  defineSlider();
+  html\`<sf-button variant="primary" size="md">Export</sf-button>
+        <sf-slider label="Opacity" min="0" max="100" unit="%"></sf-slider>\`;
+`)}
+<p>${md('`@staticflux/kit` is a themed component set on `SfElement`: buttons, icon buttons, segmented controls, fields, sliders, tags, status, color fields, menus, popovers, tooltips, tabs, toolbars, docks and panels, inspector rows, a virtualized tree and the capability command palette. Styles use theme tokens only, so themes, density, contrast and reduced motion restyle everything; every entry point is its own budgeted chunk; overlays render messaging’s surfaces rather than replacing the manager; every component test runs `expectNoA11yIssues`.')}</p>
+
 ${h2('The shell')}
 ${code(`
   export const shellContributionUnits = [
@@ -591,7 +771,31 @@ ${code(`
       gate: gateResource('workspace', 'workspace:studio/expert'), add: ['studio/inspector'] })),
   ];
 `)}
-<p>${md('`<sf-shell>` lays out slots per shell preset (expanded, medium, compact, embedded — chosen per app profile, never by `if`), wraps each region in an error boundary, hides gated contributions until allowed, applies design-token themes (light / dark / high contrast, via `createThemeController`), switches workspaces in a View Transition, and renders skip links and landmarks first. The command palette and command shortcuts sit on the a11y shortcut registry.')}</p>
+<p>${md('`<sf-shell>` lays out slots per shell preset (expanded, medium, compact, embedded — chosen per app profile, never by `if`), wraps each region in an error boundary, hides gated contributions until allowed, applies the theme (the theme contract above; `createThemeController` remains for the older token set), switches workspaces in a View Transition, and renders skip links and landmarks first. The command palette and command shortcuts sit on the a11y shortcut registry.')}</p>
+
+${h2('Layout specs')}
+${code(`
+  import { createSpecLayoutPort, createSpecRuntime, createSpecVocabulary, defineSpecContribution,
+    defineSpecSection } from '@staticflux/shell/spec';
+
+  const vocabulary = createSpecVocabulary({
+    sections: [defineSpecSection({ id: 'tool', pinnable: true }), defineSpecSection({ id: 'panel', placements: ['dock', 'inspector'] })],
+    contributions: [
+      defineSpecContribution({ section: 'tool', id: 'app/pen', label: 'Pen' }),
+      defineSpecContribution({ section: 'tool', id: 'app/heal', label: 'Heal', when: { lens: ['app/pixel'] } }),
+      defineSpecContribution({ section: 'panel', id: 'app/layers', label: 'Layers', gate: gateResource('ui-slot', 'app/layers') }),
+    ],
+  });
+  if (!vocabulary.ok) throw vocabulary.error;           // a malformed vocabulary is a programmer error
+
+  const layout = createSpecLayoutPort();                 // reactive: views render entries(group) with phases
+  const specs = createSpecRuntime({ vocabulary: vocabulary.value, port: layout, decide });
+  const applied = await specs.apply({
+    id: 'app/retouch', context: { lens: 'app/pixel' },
+    slots: [{ section: 'tool', id: 'app/pen' }, { section: 'tool', id: 'app/heal' }, { section: 'panel', id: 'app/layers', placement: 'dock' }],
+  }, { signal });                                        // Result<SpecApplied>: the diff, failures, dropped pins
+`)}
+<p>${md('`@staticflux/shell/spec` generalizes workspaces: a screen is a **spec** — data naming registered contributions, their sections and placements. `validateSpec` reports every issue at once (unknown contribution, context mismatch, gated out, cardinality, placement); `apply` diffs against what is mounted (`diffSpecs`: unmount, move, mount, kept, pinned) and drives the mount port in that order within one frame, each step animated for 120–200 ms (0 under reduced motion). Agents apply specs too, through their own subject’s `DecidePort`.')}</p>
 
 ${h2('One surface manager')}
 ${code(`
@@ -615,7 +819,7 @@ ${code(`
   i18n.t(appMessages.credits, { count: 3 });     // params inferred from the ICU literal
 `)}
 <p>${md('Typed catalogs per package (keys are values, never strings), an ICU subset (plural, select, selectordinal, number, date, list), each locale a lazy chunk, negotiation with a fallback chain, runtime locale switch without reload (it flips only after every catalog in use loaded), RTL via `dir`, `Intl` formatters, and `checkCatalogs` for missing, unused and mismatched keys in CI.')}</p>
-${readMore('ui', 'shell', 'messaging', 'a11y', 'i18n')}
+${readMore('ui', 'kit', 'shell', 'messaging', 'a11y', 'i18n')}
 `,
 };
 
@@ -855,6 +1059,12 @@ ${code(`
 `)}
 <p>${md('Every implementation of a contract runs the same shared suite; a new adapter is not done until it passes. Never import testkit from app or package source — only from `*.test.ts`.')}</p>
 ${code(`
+  for (const medium of availablePipeMedia()) runDeltaStreamContract(medium, { describe, it });   // local · shared · message
+  runRasterBackendContract('memory', () => ({ backend: createMemoryRasterBackend({ tileSize: 64 }), scene, tolerance: 0 }), { describe, it });
+  runTextInputContract('hidden textarea', subject, { describe, it });
+`)}
+<p>${md('The same holds for the newer ports: pipes on every medium and link transport, `runDocumentCrdtContract` (N-peer convergence), `runDocumentRepoContract`, `runUndoServiceContract`, `runBlobStoreContract`, `runSpecRuntimeContract`, `runThemeContract`, and `runSequencingOracleContract` for a whole editor ↔ render pipeline in every topology.')}</p>
+${code(`
   npx vitest run packages/router     # one package
   npx vitest run apps/studio         # boots the whole example app per test (happy-dom)
   pnpm test                          # everything
@@ -863,11 +1073,11 @@ ${readMore('testkit', 'ui')}
 `,
 };
 
-export const GUIDES: readonly Guide[] = [coreDi, lifecycles, routing, authGating, dataStorage, threads, performance, uiShell, pwaHydration, ai, tooling, testing];
+export const GUIDES: readonly Guide[] = [coreDi, lifecycles, routing, authGating, dataStorage, threads, editors, performance, uiShell, pwaHydration, ai, tooling, testing];
 
 const sidebar: readonly SidebarGroup[] = [
   { title: 'Foundations', links: [{ label: 'All guides', path: 'guides/' }, ...[coreDi, lifecycles].map((g) => ({ label: g.short, path: `guides/${g.slug}/` }))] },
-  { title: 'Verticals', links: [routing, authGating, dataStorage, threads, performance].map((g) => ({ label: g.short, path: `guides/${g.slug}/` })) },
+  { title: 'Verticals', links: [routing, authGating, dataStorage, threads, editors, performance].map((g) => ({ label: g.short, path: `guides/${g.slug}/` })) },
   { title: 'Experience', links: [uiShell, pwaHydration, ai].map((g) => ({ label: g.short, path: `guides/${g.slug}/` })) },
   { title: 'Workflow', links: [tooling, testing].map((g) => ({ label: g.short, path: `guides/${g.slug}/` })) },
 ];
@@ -887,7 +1097,7 @@ export const guidePages: readonly Page[] = GUIDES.map((g) => ({
 export const guidesIndexPage: Page = {
   path: 'guides/',
   title: 'Guides',
-  description: 'Concise guides to every area of StaticFlux: core & DI, lifecycles, routing, auth & gating, data & storage, workers, performance, UI & shell, PWA & hydration, AI & capabilities, tooling and testing.',
+  description: 'Concise guides to every area of StaticFlux: core & DI, lifecycles, routing, auth & gating, data & storage, workers, editors & canvases, performance, UI & shell, PWA & hydration, AI & capabilities, tooling and testing.',
   nav: 'guides',
   layout: 'doc',
   sidebar,
