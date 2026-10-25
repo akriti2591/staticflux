@@ -675,7 +675,13 @@ Status: **exists** · **partly** · **missing** · **visible but does nothing (V
 | Milestones, compare, new document, templates | exists | B5, C0 |
 | Export | in progress | C1 |
 
-## 14. Open questions for the owner (with recommendations)
+## 14. Owner decisions (2026-10-25)
+
+**All ten recommendations below are accepted**, with one change to #2: end-to-end tests in CI (both topologies) are
+**not switched on yet**. They are activated at a checkpoint once everything in M1 is built (in C4, after C3), not
+while features are still moving. Until then, work packages keep running the existing Studio and Home smoke scripts
+locally before their PR. The recommendations as written stand as decisions:
+
 
 1. **Rotate affordance style.** Recommend a visible handle 24 px below the selection on a stem (Canva/Keynote) **plus**
    Figma's corner zones; angle pill while rotating. Alternative: zones only with a hover cursor (Figma) — rejected for

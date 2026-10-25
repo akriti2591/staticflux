@@ -21,7 +21,8 @@ the M1c work packages, their pre-assigned IDs and their order.
 | B8 Studio integration | IF-27.1–27.29 | §29 | IF-INT-001… | `claude/wip-b8-studio` |
 | B9 Editor in the worker | IF-33.1–33.29 | §35 | IF-WRK-001… | `claude/wip-b9-worker` |
 | B10a Transform tools, basics | IF-34.1–34.29 | §36 | IF-XF-001… | `claude/wip-b10a-transform` |
-| B11 Studio basics and polish | IF-35.1–35.29 | §37 | IF-POL-001… | `claude/wip-b11-polish` |
+| B11a Foundations (kit blocks, icons, toasts, menus) | IF-35.1–35.29 | §37 | IF-POL-001…049 | `claude/wip-b11a-foundations` |
+| B11b Studio and Home surfaces | IF-36.1–36.29 | §38 | IF-POL-050… | `claude/wip-b11b-surfaces` |
 | C0 Home route | IF-28.1–28.29 | §30 | IF-HOME-001… | `claude/wip-c0-home` |
 | C1 Export | IF-29.1–29.29 | §31 | IF-EXP-001… | `claude/wip-c1-export` |
 | C2 Import | IF-30.1–30.29 | §32 | IF-IMP-001… | `claude/wip-c2-import` |
@@ -71,8 +72,14 @@ undo step, works on rotated and nested elements, and is a capability agents can 
 The owner's first hands-on session found missing basics (no visible delete or rotate, no clipboard) and an unpolished
 UI, while every test passed: tests checked plumbing, not what a person expects. So:
 1. A UX analyst writes `docs/instaflow/ux/STUDIO-UX-SPEC.md` and `STUDIO-FLOWS.md` (plain Markdown, for agents).
-2. **B11 Studio basics and polish** implements the spec's gap table and turns the M1 must-pass flows into end-to-end
-   tests in CI (both topologies), written from the user's side of the screen (find controls as a person would).
+2. **B11 Studio basics and polish** implements the UX docs (`docs/instaflow/ux/`, owner decisions in
+   STUDIO-UX-SPEC §14, all ten recommendations accepted): the gap table and the live-vs-placeholder inventory (nothing
+   visible is inert), the canvas model (dotted infinite canvas, page card), the selection pill + More, the inspector,
+   tooltips and the Lucide icon set via a kit `<sf-icon>`, clipboard, context menu, visible rotate handle, delete,
+   Layers, Settings (M1 part), Home file operations, and the **new logo** (`apps/instaflow/brand/`: top bar, Home,
+   favicon, web app manifest). B11 is large: split it into B11a (foundations: kit building blocks, icons, toasts,
+   menus) and B11b (Studio and Home surfaces on top), one agent and one PR each. Each keeps running the existing
+   Studio and Home smoke scripts locally; **end-to-end tests are not added to CI yet** (owner, 2026-10-25).
 3. C2–C4 follow; every later WP that touches UI reads the spec and flows (M1-BRIEF reading list item 5).
 
 ## C-stage specifics
@@ -95,5 +102,8 @@ UI, while every test passed: tests checked plumbing, not what a person expects. 
     to interactive per route, input-to-frame latency, pan / zoom / drag p95, time to sharp, and per-feature timings
     (open a large design, export, milestone, paste an image);
   - a short readable performance page in the docs with the numbers and how to rerun them.
+- **C4 is the end-to-end checkpoint** (owner, 2026-10-25): once C3 is merged and features stop moving, write the
+  M1 must-pass flows from `docs/instaflow/ux/FLOWS.md` as Playwright tests from the user's side of the screen, run
+  them in CI in both topologies on every PR, and make them a required check.
 - **C4** turns every M1 exit criterion (M1-PLAN § Exit criteria) into a CI check, deletes `apps/instaflow/spikes/`,
   and ratchets size budgets. It is the M1 finish line.
