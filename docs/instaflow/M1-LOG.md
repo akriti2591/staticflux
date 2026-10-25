@@ -24,13 +24,23 @@ entries at the top of **Journal**.
 | B0 Editor spec runtime | Merged | `main` | #12 |
 | B1 Elements and styles | Merged | `main` | #12 |
 | B4 Library and lenses | Merged | `main` | #12 |
-| B3 Tools and smart guides | Merged on working branch; PR open | working branch | #13 |
-| B7 Repeat | Done in worktree; merge after B3's PR | `claude/wip-b7-repeat` @ 405f7c1 | — |
-| B2 Text | Checkpointed, nearly done (`handoffs/B2.md`); finish with a fresh agent after B7 | `claude/wip-b2-text` @ a2328e6 | — |
+| B3 Tools and smart guides | Merged | `main` | #13 |
+| B7 Repeat | PR open (full check: 4,035 tests pass) | working branch | #14 |
+| B2 Text | Checkpointed, nearly done (`handoffs/B2.md`); fresh agent finishing it | `claude/wip-b2-text` @ a2328e6 | — |
 | B6 Accessibility layer | Not started; after B3, B7, B2 | — | — |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
+
+## Overnight plan (owner away, 2026-10-25)
+PRs stack so the owner can merge them in order in the morning:
+1. #14 B7 (working branch → `main`).
+2. B2: fresh agent finishes on `claude/wip-b2-text`; coordinator merges onto `claude/m1b-b2-text`, stacked on the
+   working branch (PR base = working branch).
+3. Flaky timeouts (Loro leak test, `costs.test.ts`, worker threads, headless surface): coordinator fixes on
+   `claude/fix-flaky-timeouts` off `main`, own PR.
+4. B6 accessibility: fresh agent after B2, stacked on B2's branch.
+One agent at a time. Every PR's CI watched; red CI fixed before moving on.
 
 ## Owed
 - **Owner:** npm Release rerun (9 packages); deprecate `0.0.0-stage`; set up trusted publishing, then delete
@@ -41,6 +51,8 @@ this container.
   load: Loro leak test, `costs.test.ts`, worker threads, headless surface.
 
 ## Journal
+- **2026-10-25** #13 merged. B7 merged on the working branch, PR #14. Fresh agent finishing B2 from its handoff.
+  Owner away until morning: stack PRs (plan above).
 - **2026-10-25** Owner: one branch per work package for work in progress. Pushed `claude/wip-b2-text` and
   `claude/wip-b7-repeat`.
 - **2026-10-25** B3 merged on the working branch (full check: 3,994 tests pass), PR #13. B7 done (405f7c1). B2

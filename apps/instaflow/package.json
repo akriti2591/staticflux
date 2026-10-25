@@ -48,6 +48,14 @@
     "./tools": {
       "types": "./dist/tools/index.d.ts",
       "import": "./dist/tools/index.js"
+    },
+    "./repeat": {
+      "types": "./dist/repeat/index.d.ts",
+      "import": "./dist/repeat/index.js"
+    },
+    "./repeat/panel": {
+      "types": "./dist/repeat/panel.d.ts",
+      "import": "./dist/repeat/panel.js"
     }
   },
   "scripts": {

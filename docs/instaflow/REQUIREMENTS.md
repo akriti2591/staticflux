@@ -830,3 +830,83 @@ Lifecycle: LIFECYCLES §25.
 | `IF-TOOL-002` | Nothing to transform (empty selection, or every element position-locked) |
 | `IF-TOOL-003` | View state out of range (camera, zoom) or unknown tab |
 | `IF-TOOL-004` | Every gesture target was deleted before the gesture ended |
+
+## 26. Repeat (M1b B7)
+
+Code: `apps/instaflow/src/repeat` (exports `@instaflow/app/repeat`, `@instaflow/app/repeat/panel`). Error codes
+`IF-REP-001…005`. Lifecycle: LIFECYCLES §27.
+
+- **IF-26.1** **Live, non-destructive repeats**: a `group` with the `repeat` component (`repeat.kind` = `radial` | `grid` |
+  `mirror`) repeats its children (the **source**). Instances are derived when the stage is read, never stored as elements;
+  releasing or switching the generator never changes the source.
+- **IF-26.2** **Radial**: `count` (1…360, the source included), `radius` (≥ 0), `startAngle` (degrees clockwise from
+  12 o'clock: where the source sits on the circle), `sweep` ((0, 360]; 360 spreads copies evenly with no overlap at the end,
+  less spreads them over the arc, ends included) and `rotate` (copies turn with the circle, or keep the source's orientation).
+- **IF-26.3** **Grid**: `rows` and `columns` (1…100), `gapX` / `gapY` between cells of the source's bounds, `rowOffset`
+  (x shift per row) and `columnOffset` (y shift per column), `brick` (`none` | `rows` | `columns`) with `brickShift`
+  (−1…1 cells; 0.5 = brick or hex pattern).
+- **IF-26.4** **Mirror**: the source and its reflection across an axis — `vertical`, `horizontal` or `angle` (`angle` in
+  degrees) — that touches the source's bounds and moves out by `offset`.
+- **IF-26.5** Parameters are typed, one LWW register each (concurrent edits of different parameters merge); writes are
+  validated (IF-REP-001); a repeat makes at most 1,000 instances (IF-REP-002); reads clamp, so the live view never exceeds the
+  limits.
+- **IF-26.6** **The repeat view** (`createRepeatStage`) presents each repeat as one zero-size **instance wrapper** group per
+  instance (`<repeat>~<k>`, spatial values = the placement) holding the source (instance 0, the real nodes) or **copies**
+  (`<repeat>~<k>^<id>`, the source's composed values: classes, tokens and appearance as the source shows them). Nested
+  repeats nest.
+- **IF-26.7** **Instance 0 is the identity**: the source is drawn where it is stored, so editing it on canvas edits the
+  document directly.
+- **IF-26.8** **Editing the source updates every instance**: the view invalidates a node's copies and the wrappers of every
+  repeat above it (placements depend on the source bounds); a smaller count invalidates the wrappers it drops.
+- **IF-26.9** Placements are pure similarity transforms (rotation, reflection, translation) computed in the repeat's local
+  space from the parameters and the source's geometry bounds (`instancePlacements`); live and expanded instances use the same
+  spatial values, so they draw identically.
+- **IF-26.10** **Render**: B1's element render projection runs over the view unchanged; instances are projected as groups
+  and leaves like any element (A7 → A6 scene IR).
+- **IF-26.11** **Composition with B1**: appearance stacks, classes and tokens are copied as resolved; masks act per instance
+  (each wrapper scopes the masks of its copy); a boolean group that is also a repeat combines all instances (groups are
+  boolean operands: a plain group's outline is the union of its children); a repeat may be the source of another repeat.
+- **IF-26.12** **Instance-aware hit query** for B3: `hitInstance(ctx, node, x, y)` returns the top-most drawn leaf with its
+  editable `source`, instance `index` and the full instance `path` (nested repeats); `resolveInstance(id)` maps any view id
+  back; `instanceBounds` gives per-instance page bounds for guides.
+- **IF-26.13** **Derived nodes are read-only**: the view reports them locked and refuses any write that targets them
+  (IF-REP-004 names the source to edit instead). Client gating is UX, not security.
+- **IF-26.14** **Make repeat** (radial, grid, mirror) wraps sibling elements in a new repeat group at the bottom element's
+  place, keeping their page positions; on a selected repeat it switches the generator (IF-REP-003 otherwise).
+- **IF-26.15** **Edit** writes any parameters as one change set; a `kind` switches the generator and keeps the other
+  generator's values for switching back.
+- **IF-26.16** **Release** clears the repeat: the group keeps only the source, unchanged.
+- **IF-26.17** **Expand** turns a repeat into real elements in **one undo step**: one group per instance with the wrapper's
+  exact spatial values, the source moved into the first one unchanged, deep copies (local opinions: classes, tokens and nested
+  live repeats kept) in the others.
+- **IF-26.18** **Deterministic match keys**: instance `k` of a node keyed `key` is `key~k` (wrappers `<repeat key>~k`), in
+  the live view and after expand alike, so Auto Animate (M4) matches live and expanded instances; nodes without a key get
+  `lk_<id>` first (as duplicate does); re-expanding the same repeat writes the same keys. The source keeps its keys (lineage).
+- **IF-26.19** **Expand → render equals the live render** for any parameters (property-tested over the canonical render
+  tree: projected records with resources resolved, ids dropped).
+- **IF-26.20** **On-canvas handles** (headless, for B3's overlay): radial radius (at the circle's centre) and count (on the
+  second instance), grid columns and rows (past the last column / row), mirror offset (on the axis); `repeatHandles` gives
+  page positions and drag directions, `handlePatch` maps a page point to a parameter patch.
+- **IF-26.21** **Handle drags** (`beginHandleDrag`) preview in the stage's session layer (the instances follow live, nothing
+  is written), map against the state at drag start, commit **one change set** on release, and cancel cleanly on Esc or when
+  the `AbortSignal` aborts (machine `instaflow/repeat-handle-drag`; IF-REP-005 after the drag ended).
+- **IF-26.22** Every handle has a keyboard path: the same parameter in the Repeat panel.
+- **IF-26.23** **The Repeat panel** (`instaflow/repeat`, inspector placement) is built only from kit components under Clean
+  Pop: generator switch, number fields per parameter, segmented choices, a sweep slider, Expand and Release; it passes the
+  testkit a11y audit.
+- **IF-26.24** The panel is a view over a headless model (`repeatModel`) and emits `RepeatEdit`s (`repeatEditOps`: one change
+  set each).
+- **IF-26.25** **Contributions** (B0): each operation is a capability (`instaflow/repeat-radial`, `-grid`, `-mirror`, `-edit`,
+  `-expand` (destructive), `-release`; input `{ nodes, params? }`, exposed to agents, gated per subject, attributed) with a
+  HUD action running it; capability runs honour the run's `AbortSignal`.
+- **IF-26.26** Applicability is input validation (IF-REP-003 / IF-REP-004), never a lens or mode check; parameter variants are
+  tables (generators, handles, brick shifts, mirror axes), never branches on flags.
+- **IF-26.27** The view registers in a scope (`scope.defer`) and stops forwarding invalidations when disposed.
+
+| Code | Meaning |
+|---|---|
+| `IF-REP-001` | Repeat parameter has the wrong type or is out of range |
+| `IF-REP-002` | The repeat would make more than 1,000 instances |
+| `IF-REP-003` | Repeat action does not apply to the selection |
+| `IF-REP-004` | Write, expand or edit targets a derived instance |
+| `IF-REP-005` | Handle drag used after it ended, or an unknown handle |

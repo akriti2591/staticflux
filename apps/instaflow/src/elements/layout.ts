@@ -70,9 +70,13 @@ export function pageTransform(ctx: ElementContext, node: NodeId): Affine {
   return t;
 }
 
-/** An element's outline in its local space; boolean groups combine their children (derived, never stored). */
+/**
+ * An element's outline in its local space; boolean groups combine their children (derived, never stored), and a
+ * plain group's outline is the union of its children (a group can be a boolean operand or a clip mask, and a
+ * repeat's instances are groups, B7).
+ */
 export function localOutline(ctx: ElementContext, el: ResolvedElement): Result<PathData> {
-  if (el.geometry.kind !== 'boolean') return ctx.geometry.outline(el);
+  if (el.geometry.kind !== 'boolean' && el.geometry.kind !== 'group') return ctx.geometry.outline(el);
   const operands = [];
   for (const child of ctx.stage.children(el.id)) {
     const c = resolveElement(ctx.stage, child, ctx.kit);
@@ -81,6 +85,7 @@ export function localOutline(ctx: ElementContext, el: ResolvedElement): Result<P
     if (!path.ok) return path;
     operands.push({ path: path.value, transform: c.transform, evenOdd: c.geometry.kind === 'path' && c.geometry.evenOdd });
   }
+  if (el.geometry.kind === 'group') return operands.length === 0 ? ctx.geometry.outline(el) : ctx.geometry.boolean('union', operands);
   return ctx.geometry.boolean(el.geometry.op, operands);
 }
 

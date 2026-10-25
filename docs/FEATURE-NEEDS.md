@@ -312,3 +312,15 @@ Consumer: `apps/instaflow/src/tools` (editor worker, headless).
   capabilities (`@staticflux/capabilities`) gated per subject and attributed.
 - "Every tool works from the keyboard" → `@staticflux/a11y` shortcuts in a canvas scope under Studio's scope.
 - "Guides are chrome, not content" → an overlay scene IR batch (A6 wire format) with theme colours; labels as kit tags.
+
+### repeat (Instaflow M1b · B7)
+Consumer: `apps/instaflow/src/repeat` (editor worker; Repeat panel on main).
+- Live repeats that render, hit-test, mask and combine like elements without being stored → a read-only **view over the
+  composed stage** (`Pick<Stage, read | children | value | explain | lockOf | checkWrite | onInvalidate>`) that B1's render
+  projection (`RenderProjectionSource`, R11.53) and geometry queries read instead of the stage; no framework change needed.
+- Instances that never accept writes → the view's `checkWrite` in the `commitEdit` target (stage write checks, SF-STAGE-*).
+- Live handle previews that never commit → the stage's **session layer** (`SessionLayer.set` / `clear`), then one
+  undo-service commit.
+- Repeat operations reachable from the HUD, the panel, the keyboard and agents with one pipeline → one capability per
+  operation plus B0's `HudActionContribution`; the panel is a `PanelContribution` built from kit components (inspector
+  group/row, text field, segmented, slider, button).
