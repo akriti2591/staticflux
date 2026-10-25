@@ -38,6 +38,9 @@ importers:
 
   apps/instaflow:
     dependencies:
+      '@lit/context':
+        specifier: 1.1.6
+        version: 1.1.6
       '@staticflux/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -47,15 +50,24 @@ importers:
       '@staticflux/document':
         specifier: workspace:*
         version: link:../../packages/document
+      '@staticflux/kit':
+        specifier: workspace:*
+        version: link:../../packages/kit
       '@staticflux/platform':
         specifier: workspace:*
         version: link:../../packages/platform
       '@staticflux/surface':
         specifier: workspace:*
         version: link:../../packages/surface
+      '@staticflux/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@staticflux/worker':
         specifier: workspace:*
         version: link:../../packages/worker
+      lit:
+        specifier: 3.3.3
+        version: 3.3.3
     devDependencies:
       '@staticflux/runtime':
         specifier: workspace:*
