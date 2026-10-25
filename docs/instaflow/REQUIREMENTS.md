@@ -747,3 +747,86 @@ in `crates/render` + `src/render/scene-ir.ts`. Error codes `IF-EL-001…007`.
 - **IF-23.22** The **Pages panel** (`<if-pages-panel>`, the `instaflow/pages` panel contribution) lists the story in order
   from kit components only; selecting a page shows it through the controller, Alt+↑/↓ moves it in the story, the toolbar
   has Previous, Next and Fit all; announcements go to a polite live region; it passes the testkit a11y audit.
+
+## 24. Tools: hit testing, selection, transforms, smart guides and snapping (M1b B3; IF-7.2, IF-7.8)
+
+Code: `apps/instaflow/src/tools` (editor worker, headless; export `@instaflow/app/tools`). Error codes `IF-TOOL-001…004`.
+Lifecycle: LIFECYCLES §25.
+
+- **IF-24.1** **Per-tab view state** (IF-7.2): camera (pan, zoom 0.02–256), selection, the entered container, the active
+  tool, hover and the tool overlay live in the tab's editor worker (`createViewState`, `createViewStates`); they never enter
+  the CRDT or the store, and two tabs on one document keep independent cameras and selections. Bad cameras and unknown
+  tabs are `IF-TOOL-003`.
+- **IF-24.2** **Hit testing** (IF-7.8): a broad phase over A7's rbush spatial index of B1's page-space ink bounds, then an
+  exact narrow phase on B1 geometry in the authoring Wasm (kurbo: fills, strokes, tolerance), honouring masks, frame
+  clips and live booleans (operands stand for their boolean group). The topmost hit in paint order wins.
+- **IF-24.3** The **element index** of a page is bulk-built once and kept current from the stage's invalidations (a moved
+  container re-indexes its subtree; deleted nodes drop), refreshed lazily before a query and disposed with its scope.
+- **IF-24.4** **Selection targets**: a click selects the child of the entered container under the pointer, seen through
+  frames (transparent) but not into groups (opaque); Mod+click selects the leaf itself; a double click or Enter enters a
+  group or frame, Shift+Enter selects the parent, a click on empty canvas leaves it. Fully locked elements (position and
+  content) are not selectable on the canvas and let the click through.
+- **IF-24.5** **Click and marquee**: click selects, Shift+click toggles, pressing an element of a multi-selection keeps it
+  for dragging (releasing without a drag selects just that element), a click on empty canvas clears. A drag on empty
+  canvas is a live **marquee** over the entered container's children (exact geometry: touched; with Alt: fully inside);
+  Shift adds to the selection; Escape restores the selection from before the marquee.
+- **IF-24.6** **Transform handles** are round (Clean Pop): eight resize handles and four rotate zones outside the corners,
+  sized in screen pixels; one element's frame follows its rotation, several elements use the union of their bounds.
+- **IF-24.7** **Move, resize, rotate** work in page space and write `spatial.*` in each element's parent space (nested and
+  rotated containers included). One element resizes in its own frame with the opposite handle fixed on the page;
+  Shift keeps the aspect ratio, Alt resizes about the centre, sizes never go below 1. Several elements scale with their
+  frame. Rotation is about the frame centre; Shift snaps it to 15°.
+- **IF-24.8** **Snap targets** per gesture: edges and centres of the moving elements' siblings (snapping to other
+  elements, plus optional extra elements), the container's edges and centre lines, and the lines of the container's layout
+  grids (B1 `containerGrids` / `gridLines`).
+- **IF-24.9** **Snapping** picks per axis the nearest candidate within 6 screen pixels (divided by zoom) over the box's
+  min edge, centre and max edge; a resize snaps only the dragged edges (axis-aligned frames); Mod disables snapping while
+  dragging; Shift locks a move to one axis.
+- **IF-24.10** **Equal spacing**: a moving box snaps to the centre between its row neighbours, or to a gap that already
+  exists between two boxes of its row, next to the nearest neighbour on either side; the equal gaps carry **distance
+  labels**.
+- **IF-24.11** **Smart guides** show every line the snapped box touches (edges, centres, container centre lines, grid
+  lines) and the equal gaps; they render as a non-printing overlay and never reach the document or an export.
+- **IF-24.12** **Snapping properties** (fast-check): the snapped box is never further than the threshold from the input,
+  and snapping a snapped box again moves it by zero (stable).
+- **IF-24.13** **Align, centre in container and distribute** are B1's actions and capabilities (IF-20.15–20.16); the tools
+  reuse them and define no duplicates.
+- **IF-24.14** **One drag is one undo step**: while dragging, new values are previews in the stage's session layer (drawn
+  through the render projection, never persisted); release commits them as one change set through B1's `commitEdit`
+  (value shapes, locks, final paths, brand rules). Escape or pointercancel commits nothing and clears the preview.
+- **IF-24.15** **Locks**: position-locked elements never move (they stay out of the gesture); a gesture or command with
+  nothing movable is `IF-TOOL-002`. The stage checks every committed write as well (SF-STAGE-001…003).
+- **IF-24.16** A target deleted during a gesture (collaborator, agent) is dropped and pruned from the selection; when every
+  target is gone, nothing commits (`IF-TOOL-004`). Pointer events out of order are `IF-TOOL-001`.
+- **IF-24.17** The **overlay** (selection frame, round handles, hover outline, marquee, guides) is its own scene IR batch
+  (`toolOverlayBatch`) with stroke widths constant on screen and colours from the active theme's tokens (Clean Pop
+  `accent`, `surface1`, `accentSubtle`); no colour is hard-coded.
+- **IF-24.18** Distance labels render as kit tags (`<sf-tag mono>`, `guideLabelTemplate`) placed in screen space.
+- **IF-24.19** **No branch on mode** (rule 4): what a press starts is data (`PRESS_GESTURES[behaviour][pressTarget]`), each
+  gesture kind is a strategy (`GESTURES`), a tool's pointer behaviour comes from `TOOL_BEHAVIOURS` and the arrow keys'
+  meaning from `ARROW_ACTIONS`; the gesture state machine is `instaflow/tool-gesture`.
+- **IF-24.20** **Nudge**: arrow keys move the selection 1 unit, Shift+arrows 10; each key press is one undo step.
+- **IF-24.21** **Keyboard transforms**: Mod+Alt+arrows grow or shrink width and height by 1 (Shift 10) with the top-left
+  corner fixed; Alt+] / Alt+[ rotate ±15° (Mod+Alt+] / Mod+Alt+[ ±1°).
+- **IF-24.22** **Keyboard selection**: Tab / Shift+Tab select the next / previous element of the entered container in paint
+  order, Mod+Shift+ArrowRight / ArrowLeft extend the selection (the keyboard path for a marquee), Mod+A selects all,
+  Enter / Shift+Enter go in and out, Escape clears.
+- **IF-24.23** **Keyboard view**: Mod+= / Mod+- zoom in steps, Shift+0 100 %, Shift+1 fit everything, Shift+2 fit the
+  selection; with the hand tool the arrows pan. Bindings live in `CanvasToolsShortcutScope` (a child of Studio's scope)
+  and have no conflicts.
+- **IF-24.24** **Contributions** (B0): the Select (V) and Hand (H) tools under B0's ids `instaflow/select` and
+  `instaflow/hand`; capabilities `instaflow/move-by`, `instaflow/resize-by`, `instaflow/rotate-by`,
+  `instaflow/rotate-90-cw`, `instaflow/rotate-90-ccw` (exposed to agents, gated per subject, attributed, one undo step) and
+  HUD actions for the two 90° turns.
+- **IF-24.25** **Wheel**: the wheel pans; Mod+wheel (and pinch) zooms about the pointer; handles keep their screen size.
+- **IF-24.26** **Parity** (fast-check): on random nested scenes (frames, groups, rotations, strokes, ellipses, stars,
+  locks), the broad + narrow hit test and marquee equal their brute-force references for every point, tolerance, entered
+  container and deep flag, also after edits.
+- **IF-24.27** Capability runs honour the run's `AbortSignal`; the element index registers in its scope (`scope.defer`).
+
+| Code | Meaning |
+|---|---|
+| `IF-TOOL-001` | Pointer event in a gesture state that does not accept it |
+| `IF-TOOL-002` | Nothing to transform (empty selection, or every element position-locked) |
+| `IF-TOOL-003` | View state out of range (camera, zoom) or unknown tab |
+| `IF-TOOL-004` | Every gesture target was deleted before the gesture ended |

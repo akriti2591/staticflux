@@ -456,3 +456,22 @@ restore) are single commits on the library document, not machines; trash is a st
 | L-5 | `resume()` re-queues exactly the live entries still missing a rendition their kind gets (`RENDITION_PRODUCERS`) | `renditions.test.ts`, `units.test.ts` |
 | L-6 | Trashed entries stay GC roots for 30 days (`TRASH_RETENTION_MS`) | `library.test.ts` |
 | L-7 | Lens code never branches on the lens: the arrangement, focus and overview come from the feature registry (Canvas is the fallback) | IF-LIB-012; `features.test.ts`, `controller.test.ts` |
+
+## 25. Tools: pointer gestures (Instaflow M1b B3)
+
+The pointer tools of one tab are a small machine; everything a gesture changes is a session-layer preview until the
+release commits it as one change set.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/tool-gesture` (one per tab) | idle → pressed (`press`: pointer down; a press on an unselected element selects it at once); pressed → idle (`release` within the drag slop: click semantics; `cancel`); pressed → moving \| resizing \| rotating \| marqueeing \| panning (the kind is `PRESS_GESTURES[behaviour][pressTarget]`); each of those → idle (`release`: commit or keep the selection; `cancel`: Escape or pointercancel, nothing committed). A gesture that cannot begin (IF-TOOL-002) returns to idle | `apps/instaflow/src/tools/gesture.ts` |
+| view state (per tab, data) | selection, entered container and camera change only through the tab's `ViewState`; Escape or a click on empty canvas returns to the root container with an empty selection | `apps/instaflow/src/tools/view-state.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| TL-1 | One gesture (move, resize, rotate) commits exactly one change set = one undo step on release; pointer moves write only session-layer previews; cancel writes nothing and clears them | `gesture.test.ts` |
+| TL-2 | Position-locked elements never move; a gesture or key command with nothing movable is a value, not a throw | IF-TOOL-002; `transform.test.ts`, `keyboard.test.ts` |
+| TL-3 | A target deleted during a gesture is dropped and pruned from the selection; with none left nothing commits | IF-TOOL-004; `gesture.test.ts` |
+| TL-4 | Broad + narrow hit testing and marquee equal their brute-force references | `hit-test.test.ts` (fast-check parity) |
+| TL-5 | Snapping moves a box by at most the threshold, and a snapped box snaps to itself | `snapping.test.ts` (fast-check) |
+| TL-6 | View state is per tab and never written to the CRDT or the store | `view-state.test.ts` |

@@ -300,3 +300,15 @@ Consumer: Instaflow (`apps/instaflow/src/library`, `src/lenses`; D4, D19; IF-3.5
   (reactive arrangement, next / previous page, camera requests through `CameraPort`) and `bindLensShortcuts`.
 - "Reorder the story" → `createStoryWriter({ doc, structure, actor }).movePage(page, to)` (one undoable commit) from the
   `<if-pages-panel>` (B0's `instaflow/pages` panel) with Alt+↑/↓.
+
+### tools: hit testing, selection, transforms, snapping (Instaflow M1b · B3)
+Consumer: `apps/instaflow/src/tools` (editor worker, headless).
+- "Clicks land on what I see, fast, on thousands of elements" → A7's rbush index (`@staticflux/document/spatial-index`)
+  over B1's ink bounds as the broad phase, B1's exact geometry (`hitElement`, `GeometryService.intersects`) as the narrow
+  phase; kept current from `@staticflux/stage`'s `onInvalidate`.
+- "A drag previews live but is one undo step" → the stage's **session layer** for previews (never persisted, drawn
+  through the render projection) and one `commitEdit` (B1) per gesture through the undo service.
+- "Locked things stay put; agents move things through the same rules" → `stage.lockOf` / `checkWrite`; transform
+  capabilities (`@staticflux/capabilities`) gated per subject and attributed.
+- "Every tool works from the keyboard" → `@staticflux/a11y` shortcuts in a canvas scope under Studio's scope.
+- "Guides are chrome, not content" → an overlay scene IR batch (A6 wire format) with theme colours; labels as kit tags.
