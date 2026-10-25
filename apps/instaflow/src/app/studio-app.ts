@@ -60,7 +60,7 @@ import { CreateMilestoneCapability } from '../versioning/command.js';
 import { defineSaveStatus } from '../versioning/save-status.js';
 import { LatestServiceToken, MilestonesPanelModelToken } from '../versioning/tokens.js';
 import { type BootStudioWorkersOptions, bootStudioWorkers, type StudioWorkers } from '../workers/boot.js';
-import { createMirrorHub } from '../workers/mirror.js';
+import { createMirrorHub, type MirrorHub } from '../workers/mirror.js';
 import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, StoryMirror, TypographyMirror } from '../workers/mirrors.js';
 import type { InspectedElement, StudioDocumentRef, StudioInspection, StudioMetrics, ViewProjection } from '../workers/protocol.js';
 import { fromWire } from '../workers/wire.js';
@@ -106,6 +106,8 @@ export interface StudioApp {
   readonly lens: LensController;
   readonly typography: TypographyService;
   readonly workers: StudioWorkers;
+  /** The mirrors the panels read (tests, devtools). */
+  readonly mirrors: MirrorHub;
   /** The editor's view projection (reactive; undefined until the editor posts). */
   readonly view: ViewProjection | undefined;
   /** The open canvas tab (after the canvas started). */
@@ -392,6 +394,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     lens,
     typography,
     workers,
+    mirrors: hub,
     get view() {
       return view();
     },

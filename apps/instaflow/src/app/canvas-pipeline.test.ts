@@ -1,14 +1,14 @@
 // @vitest-environment node
 // B1's geometry and B2's text Wasm load from the file system in Node.
 import { ok } from '@staticflux/core';
-import { createRenderProjector } from '@staticflux/document/render-projection';
+import { createRenderProjector, createSceneStore } from '@staticflux/document/render-projection';
 import { describe, expect, it } from 'vitest';
 import { commitEdit } from '../elements/actions.js';
 import { P } from '../elements/components.js';
 import { createElementRenderSource, ElementProjection, type ElementField } from '../elements/projection.js';
 import { makeRepeat, newRepeatParams } from '../repeat/actions.js';
 import { createTextOps } from '../text/rich-text.js';
-import { createElementSceneSide, decodeSceneRecord, encodeSceneRecord, startCanvasPipeline } from './canvas-pipeline.js';
+import { attachCanvasRender, createCanvasPipes, createElementSceneSide, decodeSceneRecord, encodeSceneRecord } from './canvas-pipeline.js';
 import { createElementRenderPort, createRecordingRaster } from './element-port.js';
 import { createTextLayer } from './text-layer.js';
 import { authoringBuilt, createStudioFixture, person, unwrap } from './test-helpers.js';
@@ -16,16 +16,40 @@ import { authoringBuilt, createStudioFixture, person, unwrap } from './test-help
 const rect = (node: string, x: number, y: number) => ({ op: 'create' as const, node, kind: 'shape', parent: 'p1', props: { [P.x]: x, [P.y]: y, [P.w]: 100, [P.h]: 80, [P.fills]: [{ paint: '#ff5c39' }] } });
 
 describe('scene records', () => {
-  it('frame resources, assets, projection and IR in that order and split them back', () => {
+  it('frame resources, assets, the image table, projection, IR and overlay batches in that order and split them back', () => {
     const bytes = (n: number, v: number) => new Uint8Array(n).fill(v);
-    const record = encodeSceneRecord({ resources: bytes(3, 1), assets: bytes(2, 2), projection: bytes(4, 3), ir: bytes(1, 4) });
+    const record = encodeSceneRecord({ resources: bytes(3, 1), assets: bytes(2, 2), images: [{ asset: 'as_a', rgba: 7, luma: 8 }], projection: bytes(4, 3), ir: bytes(1, 4), overlay: [bytes(2, 5), bytes(0, 0), bytes(1, 6)] });
     const back = unwrap(decodeSceneRecord(record));
     expect([...back.resources, ...back.assets, ...back.projection, ...back.ir]).toEqual([1, 1, 1, 2, 2, 3, 3, 3, 3, 4]);
+    expect(back.overlay.map((b) => [...b])).toEqual([[5, 5], [], [6]]);
+    expect(back.images).toEqual([{ asset: 'as_a', rgba: 7, luma: 8 }]);
+    expect(unwrap(decodeSceneRecord(encodeSceneRecord({}))).overlay).toEqual([]);
     expect(unwrap(decodeSceneRecord(encodeSceneRecord({}))).projection.length).toBe(0);
     const foreign = decodeSceneRecord(new Uint8Array(40));
     expect(!foreign.ok && foreign.error.code).toBe('IF-INT-002');
     const truncated = decodeSceneRecord(record.subarray(0, record.length - 1));
     expect(!truncated.ok && truncated.error.code).toBe('IF-INT-002');
+  });
+});
+
+describe('render side', () => {
+  it('learns image ids from the records (a snapshot clears them) and queues overlay batches after the IR', () => {
+    const side = createElementSceneSide();
+    const store = createSceneStore(ElementProjection);
+    unwrap(side.adapter.apply(store, encodeSceneRecord({ images: [{ asset: 'as_a', rgba: 3, luma: 4 }], overlay: [new Uint8Array([1])], ir: new Uint8Array([2]) }), 'delta'));
+    expect([side.images('as_a', 'rgba'), side.images('as_a', 'luma'), side.images('as_b', 'rgba')]).toEqual([3, 4, undefined]);
+    const queued = side.take();
+    expect([queued.ir.length, queued.overlay.length, queued.full]).toEqual([1, 1, false]);
+    unwrap(side.adapter.apply(store, encodeSceneRecord({}), 'snapshot'));
+    expect(side.images('as_a', 'rgba')).toBeUndefined();
+    expect(side.take().full).toBe(true);
+  });
+
+  it('a publisher publishes only while a page is attached', () => {
+    const pipes = unwrap(createCanvasPipes({ medium: 'local' }));
+    pipes.publisher.step();
+    expect([pipes.publisher.attached, pipes.publisher.records]).toEqual([false, 0]);
+    pipes.close();
   });
 });
 
@@ -49,8 +73,11 @@ describe.skipIf(!authoringBuilt)('canvas pipeline over the repeat view (A7 ports
     const raster = createRecordingRaster();
     const port = createElementRenderPort({ side, raster });
     let camera = { tx: 10, ty: 20, zoom: 0.5 };
-    const pipeline = unwrap(await startCanvasPipeline({ source, projector, ir: text, view: () => ({ camera, selection: ['a'] }), port, side, signal: f.signal }));
-    expect(pipeline.state).toBe('running');
+    const pipes = unwrap(createCanvasPipes({ medium: 'local' }));
+    const render = unwrap(await attachCanvasRender({ pipes: pipes.endpoints, port, side, signal: f.signal }));
+    expect(render.state).toBe('running');
+    pipes.publisher.attach({ source, projector, ir: text, view: () => ({ camera, selection: ['a'] }) });
+    const pipeline = { render: render.render, publish: () => pipes.publisher.step() };
     const drawn = (): number => {
       pipeline.render.update('arrival');
       return port.stats.draws;
@@ -93,9 +120,10 @@ describe.skipIf(!authoringBuilt)('canvas pipeline over the repeat view (A7 ports
     expect(pipeline.render.stats.payloadErrors).toBe(0);
     expect(pipeline.render.stats.drawFailures).toBe(0);
 
-    pipeline.stop();
-    expect(pipeline.state).toBe('stopped');
+    render.stop();
+    expect(render.state).toBe('stopped');
     expect(raster.disposed).toBe(true);
+    pipes.close();
     await f.scope.dispose();
   });
 });
