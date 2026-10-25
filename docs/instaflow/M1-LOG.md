@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-25** UX primitives spec done (PR #27, docs only): OVERLAYS-FEEDBACK, NAVIGATION-DEEPLINKS, DEVTOOLS-UX-SPEC,
+  HUD §4.2 (one control model), Chat §7–9, F-47–F-52. Six owner questions in OVERLAYS-FEEDBACK §6 (asked). Next after
+  #26 and #27 merge: B11a2 (overlay and feedback blocks), then B11b.
 - **2026-10-25** B11a merged on the working branch (58201ab…74721f1): `<sf-icon>` + 89 Lucide and 15 custom icons,
   number field, inline edit, swatch; R13.32–35, SF-KIT-001–002, IF-35.1–35.13, §37. Full check, smokes and
   agents:check green (regenerated the stale surface AGENTS.md row order, drift from main). PR opened.
