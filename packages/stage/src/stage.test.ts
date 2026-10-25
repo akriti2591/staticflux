@@ -264,6 +264,16 @@ describe('stage: incremental composition', () => {
     expect(stage.stats().dependencies).toBeGreaterThan(0);
   });
 
+  it('names root-document nodes created since (nothing read them yet), once', () => {
+    const { stage, design } = setup();
+    stage.read('page');
+    const seen: string[][] = [];
+    stage.onInvalidate((nodes) => seen.push([...nodes]));
+    unwrap(design.part.transact(seedMeta, [{ op: 'create', node: 'fresh', kind: 'shape', parent: 'page', props: {} }, { op: 'set', node: 'fresh', path: 'spatial.x', value: 1 }]));
+    expect(seen.at(-1)).toEqual(['fresh']);
+    expect(stage.children('page')).toContain('fresh');
+  });
+
   it('a session change or a variant selection invalidates only what reads it', () => {
     const { stage, session } = setup();
     stage.read('h1');

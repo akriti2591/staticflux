@@ -3,13 +3,15 @@
  * (rule 4). A new element kind, shape or semantic role adds a row.
  *
  * - `ELEMENT_A11Y_ROLES` — element kind → ARIA role and role description (`frame` → group "frame", `shape` → img …).
- * - `SHAPE_DESCRIPTIONS` — `geometry.shape` → a finer role description for shapes (`rect` → "rectangle").
+ * - `KIND_SHAPE_DESCRIPTIONS` — per kind, `geometry.shape` → a finer role description (`shape` + `rect` → "rectangle");
+ *   an unset shape is B1's `Geometry` default.
  * - `REPEAT_DESCRIPTIONS` — `repeat.kind` → the description of a live repeat group ("radial repeat").
  * - `SEMANTIC_A11Y_ROLES` — the element's semantic `role` (IF-4.1) → an ARIA override (`headline` → heading level 1),
  *   taken from B2's `SEMANTIC_TEXT_ROLES` for headings and kept to roles that may carry a name (WAI-ARIA forbids a
  *   name on `paragraph` and `note` is not focusable content, so those stay the kind's role).
  * - `a11yRoleOf(kind, shape, semantic, repeat)` — the merged answer.
  */
+import { Geometry } from '../elements/components.js';
 import { SEMANTIC_TEXT_ROLES } from '../text/a11y.js';
 
 export interface A11yRole {
@@ -34,14 +36,13 @@ export const ELEMENT_A11Y_ROLES: Readonly<Record<string, A11yRole>> = Object.fre
 /** Fallback for kinds without a row (other work packages' kinds before they add one). */
 export const DEFAULT_A11Y_ROLE: A11yRole = Object.freeze({ role: 'group', roleDescription: 'element' });
 
-/** `geometry.shape` → role description of a shape. */
-export const SHAPE_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
-  rect: 'rectangle',
-  ellipse: 'ellipse',
-  polygon: 'polygon',
-  star: 'star',
-  line: 'line',
+/** Element kind → (`geometry.shape` → role description). Kinds without a row keep their kind's description. */
+export const KIND_SHAPE_DESCRIPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = Object.freeze({
+  shape: Object.freeze({ rect: 'rectangle', ellipse: 'ellipse', polygon: 'polygon', star: 'star', line: 'line' }),
 });
+
+/** The shape of an element whose `geometry.shape` is unset (B1's component default). */
+export const DEFAULT_SHAPE = String(Geometry.defaults['shape']);
 
 /** `repeat.kind` → role description of a live repeat group (B7). */
 export const REPEAT_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
@@ -62,6 +63,6 @@ export const SEMANTIC_A11Y_ROLES: Readonly<Record<string, A11yRole>> = Object.fr
 /** The projected role of an element: kind row, refined by shape, repeat kind and semantic role (in that order). */
 export function a11yRoleOf(kind: string, shape?: string, semantic?: string, repeat?: string): A11yRole {
   const base = ELEMENT_A11Y_ROLES[kind] ?? DEFAULT_A11Y_ROLE;
-  const described = { ...base, roleDescription: REPEAT_DESCRIPTIONS[repeat ?? ''] ?? SHAPE_DESCRIPTIONS[shape ?? ''] ?? base.roleDescription };
+  const described = { ...base, roleDescription: REPEAT_DESCRIPTIONS[repeat ?? ''] ?? KIND_SHAPE_DESCRIPTIONS[kind]?.[shape ?? DEFAULT_SHAPE] ?? base.roleDescription };
   return SEMANTIC_A11Y_ROLES[semantic ?? ''] ?? described;
 }
