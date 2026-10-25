@@ -2,9 +2,11 @@ import { box, unit } from '@staticflux/core';
 import { HeadConflictError } from '@staticflux/document/v2';
 import type { SfStatusElement } from '@staticflux/kit/status';
 import { auditA11y } from '@staticflux/testkit/a11y';
+import { compileTheme } from '@staticflux/ui/theme';
 import { mountTestRoot, settle } from '@staticflux/ui/testing';
 import { html, render } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { cleanPopTheme } from '../theme/clean-pop.js';
 import type { LatestService, SaveState } from './latest.js';
 import { defineSaveStatus, type IfSaveStatusElement, saveStatusView } from './save-status.js';
 import { LatestServiceToken } from './tokens.js';
@@ -26,10 +28,14 @@ describe('<if-save-status>', () => {
   beforeAll(() => defineSaveStatus());
   afterEach(async () => {
     await dispose?.();
+    document.head.innerHTML = '';
     document.body.innerHTML = '';
   });
 
   it('renders the Latest service state reactively in a polite live region', async () => {
+    const style = document.createElement('style');
+    style.textContent = compileTheme(cleanPopTheme);
+    document.head.append(style);
     const state = box<SaveState>({ status: 'saved', stalled: false, since: 0 });
     const latest: LatestService = { state: () => state.get(), onChange: () => () => {}, flush: async () => ({ ok: true, value: undefined }), dispose: () => {} };
     const root = mountTestRoot({ units: [unit({ id: 'test/latest', provides: LatestServiceToken, scope: 'app', create: () => latest })] });

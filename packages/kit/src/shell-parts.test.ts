@@ -205,5 +205,22 @@ describe('inspector', () => {
     const plain = document.createElement('input');
     nameControl(plain, '');
     expect(plain.hasAttribute('aria-label')).toBe(false);
+    // Plain text is never named (a name is prohibited on generic and paragraph roles); controls and custom elements are.
+    const text = document.createElement('span');
+    nameControl(text, 'Row');
+    expect(text.hasAttribute('aria-label')).toBe(false);
+    const para = document.createElement('div');
+    para.setAttribute('role', 'paragraph');
+    nameControl(para, 'Row');
+    expect(para.hasAttribute('aria-label')).toBe(false);
+    const slider = document.createElement('div');
+    slider.setAttribute('role', 'slider');
+    nameControl(slider, 'Row');
+    expect(slider.getAttribute('aria-label')).toBe('Row');
+    const custom = document.createElement('x-thing');
+    nameControl(custom, 'Row');
+    expect(custom.getAttribute('aria-label')).toBe('Row');
+    nameControl(plain, 'Row');
+    expect(plain.getAttribute('aria-label')).toBe('Row');
   });
 });

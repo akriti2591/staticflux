@@ -911,6 +911,77 @@ Lifecycle: LIFECYCLES §25.
 | `IF-TOOL-003` | View state out of range (camera, zoom) or unknown tab |
 | `IF-TOOL-004` | Every gesture target was deleted before the gesture ended |
 
+## 25. Accessibility layer (M1b B6; IF-7.12)
+
+Code: `apps/instaflow/src/a11y` (export `@instaflow/app/a11y`; projection and announcer headless, the DOM mount main
+thread). Error codes `IF-A11Y-001…003`. Lifecycle: LIFECYCLES §26.
+
+- **IF-25.1** **Virtualized DOM projection** (IF-7.12): only elements whose ink bounds meet the visible region (the tab
+  camera's viewport in page space, grown by a margin of half the viewport per side) get DOM nodes, found through B3's
+  rbush element index; their ancestors, the selection and the entered container are always kept, so the tree and the
+  focus path stay whole when they scroll out of view.
+- **IF-25.2** The projection **stays in sync** with the stage (its invalidations, including elements created since) and
+  the tab's view state (camera, viewport, selection, entered container); a burst of changes is one flush per scheduled
+  turn (`createCanvasProjector`, machine `instaflow/a11y-projection`). Under random edits and camera moves it equals a
+  brute-force reference (fast-check).
+- **IF-25.3** **Reading order** is the document tree (child order), never the paint stack or screen position.
+- **IF-25.4** **Roles** come from data tables, never from branches on mode or lens: element kind (`frame`, `group` →
+  group; `shape`, `vector`, `image` → img; `text` → group), refined by shape (`rect` → "rectangle"), repeat kind
+  ("radial repeat") and the semantic role (headlines and subheads → heading with B2's level). Only roles that allow a
+  name and a roving tabindex are used (`group`, `img`, `heading`); the role description says what the element is.
+- **IF-25.5** **Names**: the element's `name`, else the first line of its text (B2, at most 80 characters), else its role
+  description ("Ellipse"). Text elements also carry their full text in the DOM (find in page, braille).
+- **IF-25.6** Node bounds are surface CSS pixels through the camera (nested nodes relative to their parent), so magnifiers
+  and touch exploration land where the element is drawn.
+- **IF-25.7** **Repeats (B7)**: derived instances never get nodes. A live repeat group is described with its instance
+  count; a selected instance focuses its source node, described as "instance k of n".
+- **IF-25.8** Fully locked elements are not focusable and are described as locked; position-locked ones say so.
+- **IF-25.9** A plain group is in view when one of its descendants is (its own index bounds are not trusted).
+- **IF-25.10** **Focus path**: the focused node is the last selected element (as its source) or else the entered
+  container; it alone is in the tab order (`tabindex="0"`), every other selectable node is `-1` (roving tabindex).
+- **IF-25.11** The DOM focus follows the focus path only while the canvas (or one of its nodes) has focus; it never steals
+  focus from the chrome. With nothing selected, or when the focused element is deleted, focus returns to the canvas
+  surface, never to `<body>`.
+- **IF-25.12** A node focused by assistive technology or the pointer selects that element; focus the layer moved itself
+  is not reported back (no select → focus → select loop).
+- **IF-25.13** **Keyboard paths match B3's**: the layer activates nothing on Enter or Space, so arrow keys, Tab /
+  Shift+Tab, Enter / Shift+Enter and Escape run B3's commands with and without a screen reader.
+- **IF-25.14** **Selection announcements** go to the polite live region after a 300 ms quiet period, once per settled
+  change: "Name, role description, facts, selected", "n elements selected", "Selection cleared", prefixed by "Inside
+  Name" when the entered container changed.
+- **IF-25.15** Nothing is announced while a pointer gesture runs (drags, live marquee); the final selection is spoken once
+  when it ends (machine `instaflow/a11y-announce`). Announced text is never sent to telemetry.
+- **IF-25.16** The focused canvas node shows the theme's focus ring: 2 px `color.focusRing` (Clean Pop deep tangerine),
+  2 px offset, `Highlight` in forced colours, at least 3:1 on the canvas well and the chrome in every appearance.
+- **IF-25.17** `createCanvasA11y` wires the projector, the DOM mount and the announcer for one tab and disposes them with
+  the tab scope. In the split topology the projector runs in the editor worker and its snapshots (plain data) are
+  applied on the main thread by `mountCanvasA11y`.
+- **IF-25.18** Capability `instaflow/describe-canvas` (read-only, exposed to agents): the selection or what is in view, in
+  reading order, in the words a screen reader hears; HUD action "Describe" runs it by hand. Honours the run's
+  `AbortSignal`; `IF-A11Y-003` without an open canvas.
+- **IF-25.19** **Chrome audit**: every Instaflow custom element (panels, save status, the Studio frame) runs the full
+  `@staticflux/testkit/a11y` audit under Clean Pop in its test; a guard test fails when a new element lacks it or narrows
+  the rules. The Studio frame is also audited with the canvas layer mounted in its canvas surface.
+- **IF-25.20** The audit includes ARIA states on unsupported roles, names on roles that prohibit them, and duplicate ids
+  (R15.6). Fixed in this package: kit inspector rows no longer name plain text (B1's paint panel named a gradient label).
+- **IF-25.21** **Target sizes**: every control and row size token is at least 24 × 24 px in every density (SC 2.5.8).
+- **IF-25.22** **Reduced motion**: every theme motion duration is 0 ms under `prefers-reduced-motion`; Studio's slot
+  phases stop animating.
+- **IF-25.23** Colours come only from the theme (no colour in B6 code); text and control contrast is the theme's tested
+  pairs.
+- **IF-25.24** **No keyboard trap** (SC 2.1.2): the canvas layer's description names the ways out (Alt+Enter actions,
+  Mod+K command bar), and Studio's keys stay active while the canvas has focus.
+- **IF-25.25** The DOM mount is main-thread only (`SF-SURF-004` without a document); the projection and the announcer
+  need no DOM.
+- **IF-25.26** Everything registers in the tab scope (rule 5); a projector or mount used after dispose is `IF-A11Y-002`.
+- **IF-25.27** A projection whose root page is not on the stage is `IF-A11Y-001`.
+
+| Code | Meaning |
+|---|---|
+| `IF-A11Y-001` | The projected page (root) is not on the stage |
+| `IF-A11Y-002` | Projector or DOM mount used after dispose |
+| `IF-A11Y-003` | `describe-canvas` with no open canvas |
+
 ## 26. Repeat (M1b B7)
 
 Code: `apps/instaflow/src/repeat` (exports `@instaflow/app/repeat`, `@instaflow/app/repeat/panel`). Error codes

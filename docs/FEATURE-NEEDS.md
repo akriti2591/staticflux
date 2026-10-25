@@ -338,3 +338,16 @@ Consumer: `apps/instaflow/src/repeat` (editor worker; Repeat panel on main).
 - Repeat operations reachable from the HUD, the panel, the keyboard and agents with one pipeline → one capability per
   operation plus B0's `HudActionContribution`; the panel is a `PanelContribution` built from kit components (inspector
   group/row, text field, segmented, slider, button).
+
+### accessibility layer (Instaflow M1b · B6)
+Consumer: `apps/instaflow/src/a11y` (projection and announcer in the editor; DOM mount on main).
+- "Screen readers see the canvas, fast, on thousands of elements" → `@staticflux/surface`'s accessible layer (R11.23) with
+  role descriptions, levels, a roving tab order, `activateKeys: []` and a visible focus ring (R11.60–R11.62), fed only with
+  what B3's rbush element index finds in view.
+- "New elements show up without a rebuild" → the stage's `onInvalidate` also names root-document nodes created since
+  (R11.8n amended).
+- "Selection changes are spoken, never chatty" → `@staticflux/a11y`'s polite `Announcer`, behind a debounced, gesture-aware
+  announcer machine.
+- "Every panel stays WCAG 2.2 AA" → `@staticflux/testkit/a11y` with `allowed-attr`, `prohibited-name` and `duplicate-id`
+  (R15.6) in every panel test under Clean Pop; target sizes, focus ring and reduced motion read from the theme.
+- "Agents hear what people hear" → capability `instaflow/describe-canvas` (`@staticflux/capabilities`) and a B0 HUD action.

@@ -60,6 +60,10 @@
     "./repeat/panel": {
       "types": "./dist/repeat/panel.d.ts",
       "import": "./dist/repeat/panel.js"
+    },
+    "./a11y": {
+      "types": "./dist/a11y/index.d.ts",
+      "import": "./dist/a11y/index.js"
     }
   },
   "scripts": {

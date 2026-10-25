@@ -26,8 +26,8 @@ entries at the top of **Journal**.
 | B4 Library and lenses | Merged | `main` | #12 |
 | B3 Tools and smart guides | Merged | `main` | #13 |
 | B7 Repeat | Merged | `main` | #14 |
-| B2 Text | PR open against `main` (full check 4,106 tests + GPU pass); owner IME check pending | `claude/m1b-b2-text` | #16 |
-| B6 Accessibility layer | Not started; after B3, B7, B2 | — | — |
+| B2 Text | Merged; owner IME check pending | `main` | #16 |
+| B6 Accessibility layer | PR open against `main` (full check 4,140 tests); not yet wired to Studio's live canvas | `claude/m1b-b6-a11y` | #17 |
 
 Each work package's work in progress is pushed to its own branch `claude/wip-<wp>-<name>`, so nothing lives only in
 this container.
@@ -51,7 +51,11 @@ One agent at a time. Every PR's CI watched; red CI fixed before moving on.
   load: Loro leak test, `costs.test.ts`, worker threads, headless surface.
 
 ## Journal
-- **2026-10-25** #14 (B7) merged. `main` merged into `claude/m1b-b2-text` (no change to its tree); #16 now targets `main`.
+- **2026-10-25** #14 (B7) and #16 (B2) merged. `main` merged into `claude/m1b-b6-a11y` (no code change); #17 now
+  targets `main`.
+- **2026-10-25** B6 finished by a fresh agent (e84ea2e). Full check caught 8 test type errors: my scoped-check list
+  left out `pnpm typecheck` (build skips tests). Fixed, rule updated in M1B-NOTES. PR #17 stacked on #16. **M1b's eight
+  work packages are all built.** Next for the owner: merge #14 → #16 → #17 (and #15 anytime), IME check.
 - **2026-10-25** #14 (B7) and #15 (timeouts) green, waiting for the owner. B2 finished by a fresh agent (177k tokens
   vs 360–780k for long-running ones) at 8cad75c; merged onto `claude/m1b-b2-text`, PR #16 stacked on #14. Next: B6.
 - **2026-10-25** #13 merged. B7 merged on the working branch, PR #14. Fresh agent finishing B2 from its handoff.

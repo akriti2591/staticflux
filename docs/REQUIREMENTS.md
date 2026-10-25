@@ -329,6 +329,9 @@
 - **R15.3** Respect platform preferences: reduced motion, contrast, forced colors, color scheme.
 - **R15.4** Automated a11y checks (axe) in component tests and CI.
 - **R15.5** Placeholders/skeletons expose correct busy states (`aria-busy`).
+- **R15.6** The component audit (`@staticflux/testkit/a11y`, R15.4) also checks ARIA states on roles that do not support
+  them (`allowed-attr`), names on roles that prohibit one or on a plain `div` / `span` (`prohibited-name`), and duplicate
+  ids within a tree (`duplicate-id`); kit inspector rows name only controls, never plain text.
 
 ## 16. Testing (base requirement)
 
@@ -585,7 +588,8 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
 - **R11.8m** **Final paths and policy locks** win regardless of strength; beaten opinions are flagged. Missing targets and
   arc cycles are flagged, never thrown.
 - **R11.8n** **Incremental composition**: a dependency index (raw nodes, layer entries, variant selection, resolved
-  references, other compositions) invalidates exactly the dependents of a change and reports the stage nodes to redraw.
+  references, other compositions) invalidates exactly the dependents of a change and reports the stage nodes to redraw,
+  including root-document nodes nothing has read yet (created since), so tree indexes learn about new nodes.
 - **R11.8o** **Locks** (`position | content | all`) apply to a node and its subtree and are enforced on writes
   (`checkWrite`, `SF-STAGE-001`); policy locks are removable only by a human with explicit confirmation
   (`SF-STAGE-002`); writes to final paths are rejected (`SF-STAGE-003`). Client gating is UX, not security.
@@ -694,3 +698,13 @@ Extends §11.2 (channels between threads). Packages: `@staticflux/worker/pipelin
   surrogate pairs, paste, Enter/Select All as key intents, a Japanese composition (one commit), a cancelled Korean
   composition, RTL text, IME anchoring at the caret and at composition character bounds, and dispose — run against both
   implementations through drivers (`FakeEditContext`, Firefox-style events on the hidden textarea).
+
+## 11.7 Accessible layer for editors (`@staticflux/surface`; Instaflow M1b B6)
+
+- **R11.60** `AccessibleNode` carries `roleDescription` (`aria-roledescription`) and `level` (`aria-level`); an empty
+  label sets no `aria-label`.
+- **R11.61** **Roving tab order**: focusable nodes take `tabIndex` `0 | -1` (default 0), so an editor keeps exactly one node
+  in the tab order; `activateKeys` (default Enter, Space) can be `[]` so an editor's own shortcuts receive every key.
+- **R11.62** **Visible focus**: with `focusRing` (a CSS outline, e.g. the theme's focus colour) nodes are transparent
+  instead of `opacity: 0` and the focused node shows the ring (`focusRingOffset`, default 2 px; `Highlight` in forced
+  colours).

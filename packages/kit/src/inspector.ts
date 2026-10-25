@@ -26,6 +26,10 @@ export function nameControl(control: Element, label: string): void {
     return;
   }
   if (control.hasAttribute('aria-label') || control.hasAttribute('aria-labelledby')) return;
+  // Plain text (a <span>, <div> or <p> without a role, or a role that forbids a name) is not a control: naming it is
+  // prohibited (WAI-ARIA) and would hide its visible text from screen readers.
+  const role = control.getAttribute('role');
+  if (role === null ? /^(span|div|p)$/.test(control.localName) : /^(generic|paragraph|presentation|none)\b/.test(role)) return;
   control.setAttribute('aria-label', label);
 }
 

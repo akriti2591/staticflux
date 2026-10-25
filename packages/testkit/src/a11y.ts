@@ -11,7 +11,11 @@
  * - `required-attr`      — e.g. `tab`/`option` need `aria-selected`, `slider` needs `aria-valuenow`;
  * - `required-parent`    — `tab` in `tablist`, `option` in `listbox`, `menuitem` in `menu`, `treeitem` in `tree`;
  * - `valid-role`, `positive-tabindex`, `hidden-focusable` (focusable inside `aria-hidden`),
- *   `nested-interactive` (a focusable control inside another control).
+ *   `nested-interactive` (a focusable control inside another control);
+ * - `allowed-attr`       — ARIA states only on roles that support them (`aria-selected` on a `group` is an error);
+ * - `prohibited-name`    — no `aria-label` / `aria-labelledby` on roles that forbid a name (`paragraph`, `generic`,
+ *                          `presentation`…) or on a plain `div` / `span` without a role;
+ * - `duplicate-id`       — ids are unique within each tree (document or shadow root).
  *
  * Layout-dependent rules (color contrast of rendered pixels, target size) are covered
  * by the theme contract (`runThemeContract`) and real-browser e2e checks instead.
@@ -30,7 +34,10 @@ export type A11yRule =
   | 'valid-role'
   | 'positive-tabindex'
   | 'hidden-focusable'
-  | 'nested-interactive';
+  | 'nested-interactive'
+  | 'allowed-attr'
+  | 'prohibited-name'
+  | 'duplicate-id';
 
 export interface A11yIssue {
   readonly rule: A11yRule;
@@ -50,6 +57,8 @@ const ROLES = new Set([
   'presentation', 'progressbar', 'radio', 'radiogroup', 'region', 'row', 'rowgroup', 'rowheader', 'scrollbar', 'search',
   'searchbox', 'separator', 'slider', 'spinbutton', 'status', 'switch', 'tab', 'table', 'tablist', 'tabpanel', 'term',
   'textbox', 'timer', 'toolbar', 'tooltip', 'tree', 'treegrid', 'treeitem',
+  // WAI-ARIA 1.2 structural roles
+  'blockquote', 'caption', 'code', 'deletion', 'emphasis', 'generic', 'insertion', 'paragraph', 'strong', 'subscript', 'superscript', 'time',
 ]);
 
 const NAME_REQUIRED = new Set([
@@ -79,6 +88,20 @@ const REQUIRED_PARENT: Readonly<Record<string, readonly string[]>> = {
   menuitemradio: ['menu', 'menubar', 'group'],
   treeitem: ['tree', 'group'],
 };
+
+/** ARIA states and properties → the roles that support them (WAI-ARIA 1.2; global attributes are not listed). */
+const ALLOWED_ATTR_ROLES: Readonly<Record<string, readonly string[]>> = {
+  'aria-selected': ['gridcell', 'option', 'row', 'tab', 'treeitem', 'columnheader', 'rowheader'],
+  'aria-checked': ['checkbox', 'menuitemcheckbox', 'menuitemradio', 'option', 'radio', 'switch', 'treeitem'],
+  'aria-pressed': ['button'],
+  'aria-expanded': ['application', 'button', 'checkbox', 'combobox', 'gridcell', 'link', 'listbox', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'row', 'rowheader', 'columnheader', 'switch', 'tab', 'treeitem'],
+  'aria-level': ['heading', 'listitem', 'row', 'treeitem'],
+  'aria-valuenow': ['slider', 'spinbutton', 'progressbar', 'meter', 'scrollbar', 'separator'],
+  'aria-multiselectable': ['grid', 'listbox', 'tablist', 'tree', 'treegrid'],
+};
+
+/** Roles whose name is prohibited (WAI-ARIA 1.2 "Name From: prohibited"). */
+const NAME_PROHIBITED = new Set(['caption', 'code', 'deletion', 'emphasis', 'generic', 'insertion', 'paragraph', 'presentation', 'none', 'strong', 'subscript', 'superscript']);
 
 const INTERACTIVE = new Set(['button', 'link', 'checkbox', 'radio', 'switch', 'tab', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'slider', 'spinbutton', 'textbox', 'searchbox', 'combobox', 'treeitem']);
 const REF_ATTRS = ['aria-labelledby', 'aria-describedby', 'aria-controls', 'aria-activedescendant', 'aria-owns', 'aria-errormessage'] as const;
@@ -222,12 +245,20 @@ function isFocusable(element: Element): boolean {
 
 /** Run the audit. Hidden subtrees (`hidden`, `aria-hidden`, `inert`) are skipped except for `hidden-focusable`. */
 export function auditA11y(root: Element | Document | ShadowRoot, options: AuditOptions = {}): A11yIssue[] {
-  const rules = new Set<A11yRule>(options.rules ?? ['name', 'aria-ref', 'required-attr', 'required-parent', 'valid-role', 'positive-tabindex', 'hidden-focusable', 'nested-interactive']);
+  const rules = new Set<A11yRule>(options.rules ?? ['name', 'aria-ref', 'required-attr', 'required-parent', 'valid-role', 'positive-tabindex', 'hidden-focusable', 'nested-interactive', 'allowed-attr', 'prohibited-name', 'duplicate-id']);
   const issues: A11yIssue[] = [];
   const report = (rule: A11yRule, element: Element, message: string): void => {
     if (rules.has(rule)) issues.push({ rule, element, message: `${describe(element)}: ${message}` });
   };
+  const idsByTree = new Map<Node, Set<string>>();
   for (const element of allElements(root)) {
+    if (element.id !== '') {
+      const tree = element.getRootNode();
+      const seen = idsByTree.get(tree) ?? new Set<string>();
+      idsByTree.set(tree, seen);
+      if (seen.has(element.id)) report('duplicate-id', element, `id "${element.id}" is used more than once in the same tree`);
+      seen.add(element.id);
+    }
     if (isHiddenFromAt(element)) {
       // aria-hidden hides from AT but not from the keyboard; `hidden` / `inert` remove both.
       if (composedAriaHidden(element) && isFocusable(element) && !insideInert(element)) {
@@ -248,6 +279,13 @@ export function auditA11y(root: Element | Document | ShadowRoot, options: AuditO
       for (const id of value.trim().split(/\s+/)) {
         if (byIdIn(element, id) === null) report('aria-ref', element, `${attr}="${id}" does not resolve in the same tree (ids never cross a shadow boundary)`);
       }
+    }
+    const named = element.hasAttribute('aria-label') || element.hasAttribute('aria-labelledby');
+    if (named && (role === undefined ? ['div', 'span'].includes(element.localName) : NAME_PROHIBITED.has(role))) {
+      report('prohibited-name', element, `${role === undefined ? `a <${element.localName}> without a role` : `role "${role}"`} must not be named (aria-label / aria-labelledby); give it a role that allows a name`);
+    }
+    for (const [attr, roles] of Object.entries(ALLOWED_ATTR_ROLES)) {
+      if (element.hasAttribute(attr) && !isNative(element) && (role === undefined || !roles.includes(role))) report('allowed-attr', element, `${attr} is not supported on ${role === undefined ? 'an element without a role' : `role "${role}"`}`);
     }
     if (role === undefined) continue;
     if (NAME_REQUIRED.has(role) && accessibleName(element) === '') {
@@ -296,7 +334,10 @@ function hasOwnerRole(element: Element, roles: readonly string[]): boolean {
 function describe(element: Element): string {
   const id = element.id === '' ? '' : `#${element.id}`;
   const role = element.getAttribute('role');
-  return `<${element.localName}${id}${role === null ? '' : ` role=${role}`}>`;
+  const label = element.getAttribute('aria-label');
+  const tree = element.getRootNode();
+  const host = tree instanceof ShadowRoot ? ` in <${tree.host.localName}>` : '';
+  return `<${element.localName}${id}${role === null ? '' : ` role=${role}`}${label === null ? '' : ` aria-label="${label}"`}>${host}`;
 }
 
 /** Throw an Error listing every issue (use in tests). */

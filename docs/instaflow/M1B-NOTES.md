@@ -43,7 +43,8 @@ Instaflow requirements go in `docs/instaflow/REQUIREMENTS.md`. Framework additio
 `docs/REQUIREMENTS.md`: append after the highest existing number in your area and say which in your final message.
 
 ## Checks (no duplicate runs)
-- Agents run only their own scope: `pnpm build`, then `pnpm vitest run <your paths>` and `pnpm lint:boundaries`. After a
+- Agents run only their own scope: `pnpm build`, `pnpm typecheck` (incremental; the only step that type-checks
+  tests), then `pnpm vitest run <your paths>`, `pnpm lint:boundaries` and `pnpm lint:sf`. After a
   fix, rerun only what the fix touched. Never rerun the full suite to confirm a passing change.
 - The coordinator runs `SF_REQUIRE_RUST=1 pnpm check` once per merge, and skips it when the merged tree is identical to
   the tree the agent checked.

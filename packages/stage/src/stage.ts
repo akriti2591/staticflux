@@ -218,7 +218,12 @@ class StageImpl implements Stage {
     if (this.subscriptions.has(doc.key)) return;
     this.subscriptions.set(
       doc.key,
-      doc.subscribe((change) => this.invalidate(change.nodes.map((n) => rawKey(doc.key, n)))),
+      // Root-document nodes nothing has read yet (created since) are named too, so consumers that index the tree
+      // (hit testing, the accessibility projection) learn about new nodes; known nodes go through the dependency index.
+      doc.subscribe((change) => {
+        const unread = doc === this.root ? [...new Set(change.nodes)].filter((n) => !this.dependents.has(rawKey(doc.key, n))) : [];
+        this.invalidate(change.nodes.map((n) => rawKey(doc.key, n)), unread);
+      }),
     );
   }
 
@@ -249,11 +254,12 @@ class StageImpl implements Stage {
     }
   }
 
-  private invalidate(deps: readonly string[]): void {
+  private invalidate(deps: readonly string[], appeared: readonly StageNodeId[] = []): void {
     if (this.isDisposed) return;
     const queue = [...deps];
     const nodes: StageNodeId[] = [];
-    const seen = new Set<string>();
+    const seen = new Set<string>(appeared.map(stageKey));
+    nodes.push(...appeared);
     while (queue.length > 0) {
       const dep = queue.pop() as string;
       const dependents = this.dependents.get(dep);
