@@ -376,7 +376,8 @@
       "@staticflux/core"
     ],
     "limit": "3.75 KB"
-
+  },
+  {
     "name": "@staticflux/document/v2 (DocumentRepo, components, canonical parts; no engine)",
     "path": "packages/document/dist/v2.js",
     "ignore": [
