@@ -282,6 +282,13 @@ describe('<if-studio> keyboard paths', () => {
     const tabs = [...root.querySelectorAll('aside[data-region="dock"] sf-tab')] as HTMLElement[];
     expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'false', 'false', 'false', 'false', 'true']);
     expect(await element.showPanel('instaflow/nope')).toBe(false);
+    // A control inside a panel (a segmented control's composed `sf-change`) does not switch the dock's tab.
+    const inner = root.querySelector('aside[data-region="dock"] sf-tab-panel:last-of-type') as HTMLElement;
+    const probe = document.createElement('span');
+    inner.append(probe);
+    probe.dispatchEvent(new CustomEvent('sf-change', { detail: { value: 'pdf' }, bubbles: true, composed: true }));
+    await settle(4);
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'false', 'false', 'false', 'false', 'true']);
   });
 
   it('the HUD, intents and the command bar emit events for the features that handle them', async () => {
