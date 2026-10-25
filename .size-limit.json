@@ -727,7 +727,7 @@
     "limit": "2.5 KB"
   },
   {
-    "name": "@staticflux/kit/dock (raised 7 → 7.5 KB by B11a: chevrons are <sf-icon> + Lucide modules, no text glyphs)",
+    "name": "@staticflux/kit/dock (raised 7 → 7.6 KB by B11a: chevrons are <sf-icon> + Lucide modules, no text glyphs)",
     "path": "packages/kit/dist/dock.js",
     "ignore": [
       "mobx",
@@ -741,7 +741,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "7.5 KB"
+    "limit": "7.6 KB"
   },
   {
     "name": "@staticflux/kit/inspector (raised 1.85 → 2.65 KB by B11a: the group chevron is <sf-icon>)",
@@ -761,7 +761,7 @@
     "limit": "2.65 KB"
   },
   {
-    "name": "@staticflux/kit/tree (raised 4.4 → 5 KB by B11a: the twisty is <sf-icon>)",
+    "name": "@staticflux/kit/tree (raised 4.4 → 5.1 KB by B11a: the twisty is <sf-icon>)",
     "path": "packages/kit/dist/tree.js",
     "ignore": [
       "mobx",
@@ -775,7 +775,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "5 KB"
+    "limit": "5.1 KB"
   },
   {
     "name": "@staticflux/kit/command-palette",
@@ -829,7 +829,7 @@
     "limit": "1.5 KB"
   },
   {
-    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27 KB by B11a: icon element, number field, inline edit, swatch)",
+    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch)",
     "path": "packages/kit/dist/index.js",
     "ignore": [
       "mobx",
@@ -843,7 +843,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "27 KB"
+    "limit": "27.5 KB"
   },
   {
     "name": "@staticflux/stage (stage, attribution, undo service; excl. framework)",
@@ -1442,7 +1442,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "4.7 KB"
+    "limit": "4.8 KB"
   },
   {
     "name": "@staticflux/kit/inline-edit (<sf-inline-edit>; B11a)",

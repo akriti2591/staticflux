@@ -105,20 +105,20 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 | @staticflux/kit/surfaces | 8.25 KB | packages/kit/dist/surfaces.js |
 | @staticflux/kit/surface-defs | 0.5 KB | packages/kit/dist/surface-defs.js |
 | @staticflux/kit/toolbar | 2.5 KB | packages/kit/dist/toolbar.js |
-| @staticflux/kit/dock (raised 7 → 7.5 KB by B11a: chevrons are <sf-icon> + Lucide modules, no text glyphs) | 7.5 KB | packages/kit/dist/dock.js |
+| @staticflux/kit/dock (raised 7 → 7.6 KB by B11a: chevrons are <sf-icon> + Lucide modules, no text glyphs) | 7.6 KB | packages/kit/dist/dock.js |
 | @staticflux/kit/inspector (raised 1.85 → 2.65 KB by B11a: the group chevron is <sf-icon>) | 2.65 KB | packages/kit/dist/inspector.js |
-| @staticflux/kit/tree (raised 4.4 → 5 KB by B11a: the twisty is <sf-icon>) | 5 KB | packages/kit/dist/tree.js |
+| @staticflux/kit/tree (raised 4.4 → 5.1 KB by B11a: the twisty is <sf-icon>) | 5.1 KB | packages/kit/dist/tree.js |
 | @staticflux/kit/command-palette | 3.6 KB | packages/kit/dist/command-palette.js |
 | @staticflux/kit/roving | 1.25 KB | packages/kit/dist/roving.js |
 | @staticflux/kit/position | 1.5 KB | packages/kit/dist/position.js |
-| @staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27 KB by B11a: icon element, number field, inline edit, swatch) | 27 KB | packages/kit/dist/index.js |
+| @staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch) | 27.5 KB | packages/kit/dist/index.js |
 | @staticflux/kit/tag | 1.1 KB | packages/kit/dist/tag.js |
 | @staticflux/kit/status | 1.1 KB | packages/kit/dist/status.js |
 | @staticflux/kit/card | 1.1 KB | packages/kit/dist/card.js |
 | @staticflux/kit/icon (<sf-icon> + icon data helpers; B11a) | 1.65 KB | packages/kit/dist/icon.js |
 | @staticflux/kit/icons (the whole kit icon set: 89 Lucide + 15 custom; well under STUDIO-UX-SPEC §10.2's 20 KB cap for Studio's set; B11a) | 5 KB | packages/kit/dist/icons/index.js |
 | @staticflux/kit/icons/trash-2 (one icon module ≈ 0.2 KB, STUDIO-UX-SPEC §10.2; B11a) | 0.3 KB | packages/kit/dist/icons/trash-2.js |
-| @staticflux/kit/number-field (<sf-number-field>: expressions, units, scrub, mixed; B11a) | 4.7 KB | packages/kit/dist/number-field.js |
+| @staticflux/kit/number-field (<sf-number-field>: expressions, units, scrub, mixed; B11a) | 4.8 KB | packages/kit/dist/number-field.js |
 | @staticflux/kit/inline-edit (<sf-inline-edit>; B11a) | 2.75 KB | packages/kit/dist/inline-edit.js |
 | @staticflux/kit/swatch (<sf-swatch>; B11a) | 1.3 KB | packages/kit/dist/swatch.js |
 
