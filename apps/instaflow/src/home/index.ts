@@ -4,6 +4,7 @@
  * `AGENTS.md`.
  */
 export * from './boot.js';
+export * from './boot-plan.js';
 export * from './capabilities.js';
 export * from './errors.js';
 export * from './formats.js';

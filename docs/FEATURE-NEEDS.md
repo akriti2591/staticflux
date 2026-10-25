@@ -386,3 +386,17 @@ and `apps/instaflow/src/workers`. No new framework API and no new R-ID: B10a com
 - "Agents call every transform with an optional pivot" → `@staticflux/capabilities` schemas with optional nested objects (`s.optional(s.object(…))`).
 - "Skew is part of the position" → `@staticflux/stage` `positionPaths` extended by the app's stage rules (`spatial.skewX`), so locks cover it.
 - "The numeric bar is keyboard-first under Clean Pop" → `@staticflux/kit` text field, button, icon button (`pressed`) and inspector rows.
+
+### Home route (Instaflow M1c · C0)
+Consumer: `apps/instaflow/src/home` (Home's model, element and boot), `apps/instaflow/src/workspace` (the persistent workspace and the
+store-side pieces Home relies on) and their dev entries. New framework API: `<sf-card>` (R13.31).
+- "Designs survive reloads and move between Home and Studio" → a `DocumentStore` (`@staticflux/document/v2`) over a `@staticflux/storage`
+  `AsyncStore` (IndexedDB in the browser, `createIndexedDbStore`), checked with `@staticflux/testkit`'s DocumentStore contract; blobs in OPFS
+  (`@staticflux/blob` `openOpfsDirectory`, `createDirectoryObjectStore`).
+- "Home lists the workspace with no engine" → app-owned head fields (`DocumentHead.app`, carried by the repo through compaction) read with
+  `readHead` only; compare-and-swap writes like versioning's.
+- "Home's actions are the agents' actions" (D18) → `@staticflux/capabilities` declarations with typed input and output, one registry.
+- "Routes are typed values on both pages" → `@staticflux/router` `defineRoute`, `searchParam`, `createRouteTable` (`build`, `match`) without
+  the navigation pipeline (Home and Studio are separate boots).
+- "Each surface boots only what it needs" (D17) → `@staticflux/loader` `chunk`, `defineBootPlan`, `planChunks`, `validateBootPlan`.
+- "Whole cards are links under Clean Pop" → `@staticflux/kit` `<sf-card href>` (new), `<sf-button>`, `<sf-tag>`.

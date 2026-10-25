@@ -1,5 +1,5 @@
 import { err, ok, type Result } from '@staticflux/core';
-import { createMemoryDocumentStore, HeadConflictError } from '@staticflux/document/v2';
+import { createMemoryDocumentStore, type DocumentHead, HeadConflictError } from '@staticflux/document/v2';
 import { describe, expect, it } from 'vitest';
 import { HOME_QUICK_ACTIONS, NewDesignCapability, OpenDesignCapability, UseTemplateCapability } from './capabilities.js';
 import { HOME_INDEX_SCHEMA, type HomeEntry, type HomeIndex, withHomeIndex } from './index-record.js';
@@ -113,7 +113,8 @@ describe('Home model', () => {
     const source = storeIndexSource(store);
     const signal = new AbortController().signal;
     expect(await source.read(signal)).toEqual(ok({ schema: HOME_INDEX_SCHEMA, entries: [] }));
-    const head = withHomeIndex({ asset: 'library', generation: 1, engine: 'loro/1', treeSchema: 1, parts: {}, logFrom: 1, undoHorizon: 200 }, INDEX);
+    const base: DocumentHead = { asset: 'library', generation: 1, engine: 'loro/1', treeSchema: 1, parts: {}, logFrom: 1, undoHorizon: 200 };
+    const head = withHomeIndex(base, INDEX);
     expect((await store.writeHead('library', head, null, signal)).ok).toBe(true);
     const read = await source.read(signal);
     expect(read.ok && read.value.entries.map((e) => e.asset)).toEqual(['as_d', 'as_i', 'as_t']); // same edit time: by id

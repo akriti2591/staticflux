@@ -146,13 +146,15 @@ export function createHomeModel(options: HomeModelOptions): HomeModel {
   const invoke = <I>(capability: { readonly id: string }, input: I): Promise<Result<HomeActionOutput>> =>
     capabilities.invoke(capability.id, input, { subject: 'user', signal, origin: { channel: 'ui/home' } }) as Promise<Result<HomeActionOutput>>;
 
+  const lifetime = new AbortController();
   const dispose = (): void => {
     if (machine.state === 'disposed') return;
     machine.send('dispose');
+    lifetime.abort();
     for (const release of released) release();
     if (owned) capabilities.dispose();
   };
-  signal.addEventListener('abort', dispose, { once: true });
+  signal.addEventListener('abort', dispose, { once: true, signal: lifetime.signal });
   void refresh();
 
   return {

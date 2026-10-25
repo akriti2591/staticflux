@@ -1,5 +1,5 @@
 import { createScope, err, ok, type Result, unit } from '@staticflux/core';
-import { createMemoryDocumentStore, HeadConflictError } from '@staticflux/document/v2';
+import { createMemoryDocumentStore, type DocumentHead, HeadConflictError } from '@staticflux/document/v2';
 import { auditA11y } from '@staticflux/testkit/a11y';
 import { compileTheme } from '@staticflux/ui/theme';
 import { mountTestRoot, settle } from '@staticflux/ui/testing';
@@ -184,7 +184,8 @@ describe('bootHome', () => {
     expect(booted.value.model.state).toBe('ready');
     expect(booted.value.model.recents()).toEqual([]);
     expect(document.head.querySelector('style')?.textContent).toContain('--sf-color-accent');
-    const head = withHomeIndex({ asset: 'library', generation: 1, engine: 'loro/1', treeSchema: 1, parts: {}, logFrom: 1, undoHorizon: 200 }, INDEX);
+    const base: DocumentHead = { asset: 'library', generation: 1, engine: 'loro/1', treeSchema: 1, parts: {}, logFrom: 1, undoHorizon: 200 };
+    const head = withHomeIndex(base, INDEX);
     expect((await store.writeHead('library', head, null, signal)).ok).toBe(true);
     document.dispatchEvent(new Event('visibilitychange'));
     await settle();

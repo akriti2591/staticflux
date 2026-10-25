@@ -68,6 +68,10 @@
     "./a11y": {
       "types": "./dist/a11y/index.d.ts",
       "import": "./dist/a11y/index.js"
+    },
+    "./home": {
+      "types": "./dist/home/index.d.ts",
+      "import": "./dist/home/index.js"
     }
   },
   "scripts": {

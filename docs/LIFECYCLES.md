@@ -565,6 +565,29 @@ editing session and B6's accessibility layer, all disposed with the tab scope.
 | INT-6 | The IME control bounds are the committed block's, never the composition preview's | `text-session.ime.test.ts` |
 | INT-7 | Every HUD click runs its capability through the one pipeline (validation, attribution, one change set); placeholders say they arrive later | `studio-app.test.ts` |
 
+## 30. Home route: Home model, the Home index, Studio over the workspace (Instaflow M1c C0; D17)
+
+Home is a separate, light boot: it reads the Home index (a projection of the library in the library head, `app.home`)
+from the persistent workspace store and links into Studio. Studio's store side keeps the index in step and plans its
+document from the URL.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/home` | loading → ready (`loaded`) \| failed (`fail`: IF-HOME-001); ready → loading, failed → loading (`refresh`: bfcache restore, tab visible, "Try again"); any → disposed (`dispose`: the boot scope). Terminal: disposed | `apps/instaflow/src/home/model.ts` |
+| Home index writer | idle → scheduled (`touch` / `describe`, a library change) → writing (debounce elapsed, or `flush`) → idle; writing → scheduled (a trigger during the write); a failed write stays dirty until the next trigger; disposed with the store side's scope (pending timer cleared, nothing written after) | `apps/instaflow/src/workspace/home-index-writer.ts` |
+| Studio document plan | URL → `open` (existing design) \| `new` (fresh asset from a format, or B5 new document from a template's newest milestone) \| `demo`; then editor boot → listed (library entry added once the editor has the document) → URL replaced with `/s/:asset` (new designs) | `apps/instaflow/src/workspace/studio-document.ts`, `studio-session.ts` |
+| Leaving Studio | Home link click → `if-navigate` (cancelled by the app) → Latest flushed → Home index flushed → navigate | `apps/instaflow/src/app/studio-app.ts`, `src/workspace/studio-session.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| HOME-1 | Home's entries never reach the editor, render, Loro / CRDT, worker, Wasm or GPU modules (D17) | `home-imports.test.ts`; smoke (no worker, no Wasm, no GPU adapter) |
+| HOME-2 | The Home index changes only by compare-and-swap on the library head; other `app` fields are kept; an unchanged index is not written | IF-HOME-005; `home-index-writer.test.ts` |
+| HOME-3 | `editedAt` never moves backwards; trashed entries are never listed | `home-index-writer.test.ts` |
+| HOME-4 | A design is listed in the library only after the editor opened its document (no entry points at nothing) | `studio-session.test.ts` |
+| HOME-5 | Every Home action, by hand or by an agent, runs through the capability pipeline and navigates only on success | IF-HOME-002/003; `model.test.ts` |
+| HOME-6 | Leaving Studio by the Home link loses no edit: Latest and the index are flushed before the navigation | `studio-session.test.ts`; `home.smoke.mjs` |
+| HOME-7 | The persistent store never reuses a log seq and serializes head swaps and appends per asset | SF-DOC-011; `document-store.test.ts` (DocumentStore contract) |
+
 ## 35. Editor in the worker: Studio's worker topology (Instaflow M1c B9; D15)
 
 Studio's editor module and render module run in workers by the boot setting (one worker by default, two available);

@@ -1,3 +1,4 @@
+import type { DocumentHead } from '@staticflux/document/v2';
 import { describe, expect, it } from 'vitest';
 import { byEdited, EMPTY_HOME_INDEX, HOME_INDEX_APP_KEY, HOME_INDEX_SCHEMA, type HomeEntry, type HomeIndex, readHomeEntry, readHomeIndex, recentDesigns, sameHomeIndex, withHomeIndex, workspaceFiles, workspaceTemplates } from './index-record.js';
 
@@ -14,7 +15,7 @@ const index = (...entries: HomeEntry[]): HomeIndex => ({ schema: HOME_INDEX_SCHE
 
 describe('Home index record', () => {
   it('round-trips through the head app field and sorts newest edit first', () => {
-    const head = { asset: 'library', generation: 3, app: { versioning: { milestones: [] } } };
+    const head: DocumentHead = { asset: 'library', generation: 3, engine: 'loro/1', treeSchema: 1, parts: {}, logFrom: 1, undoHorizon: 200, app: { versioning: { milestones: [] } } };
     const written = withHomeIndex(head, index(entry('as_a', 'composition', '2026-10-02T00:00:00.000Z'), entry('as_b', 'template', '2026-10-05T00:00:00.000Z', { format: { width: 1080, height: 1920 } })));
     expect(written.generation).toBe(3);
     expect(written.app?.['versioning']).toEqual({ milestones: [] }); // other app fields are kept
