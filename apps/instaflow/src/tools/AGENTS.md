@@ -36,7 +36,9 @@ No screen layout: Studio places the tools from the spec.
   `axisAligned`, `valuesToOps`, `boundsAfter`.
 - `overlay.ts` — `ToolOverlay`, `EMPTY_OVERLAY`, `overlayColors(theme)`, `toolOverlayBatch(overlay, zoom, { firstId, clear, ids })`
   (`clear: false` + `ids` write into a shared scene, B8; non-printing
-  scene IR), `guideLabelTemplate(labels, camera)` (`<sf-tag mono>` distance labels).
+  scene IR; Lit-free, the editor worker imports it, B9).
+- `overlay-labels.ts` (main thread) — `guideLabelTemplate(labels, camera)` (`<sf-tag mono>` distance labels; the editor posts the
+  labels and the camera, B9).
 - `gesture.ts` — `ToolSession` (ctx, B1 `EditTarget`, session layer, index, view, actor), `createToolController(session)`
   → `pointer(event)`, `wheel(event)`, `cancel()`, reactive `state`; machine `ToolGestureLifecycle`
   (`instaflow/tool-gesture`, LIFECYCLES §25); tables `PRESS_GESTURES`, `GESTURES`, `TOOL_BEHAVIOURS`, `POINTER`;

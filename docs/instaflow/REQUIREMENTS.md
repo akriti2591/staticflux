@@ -1119,3 +1119,81 @@ the smoke scenario `apps/instaflow/test/smoke`. Error codes `IF-INT-001…005`. 
 | `IF-INT-003` | No open page (or the canvas has not started) |
 | `IF-INT-004` | The canvas renderer could not start (Wasm, WebGPU, canvas) |
 | `IF-INT-005` | The Studio document could not be created or opened |
+
+## 33. Editor in the worker (M1c B9; D15)
+
+Code: `apps/instaflow/src/workers` (the worker host, the editor module, protocols and ports; the browser entry
+`studio.worker.ts`), the page-side adapters in `apps/instaflow/src/app` (`studio-canvas.ts`, `panel-mirrors.ts`,
+`studio-app.ts`), the smoke scenarios `apps/instaflow/test/smoke`. Error codes `IF-WRK-001…006`. Lifecycle: LIFECYCLES §35.
+Supersedes IF-27.4 (B8's one-realm placement).
+
+- **IF-33.1** Studio's editor module and render module run in the **D15 topology**: one worker by default, two by the boot
+  setting `instaflow/sequencing-topology` (`?topology=split` in the dev entry); `planSequencing` turns the setting into
+  roles and media, and no module code branches on it.
+- **IF-33.2** Main boots the workers (`bootStudioWorkers`): creates A5's input ring and the store port, starts each worker
+  with its roles, and relays the editor's pipe endpoints to the render worker when the modules are split; requests go
+  to the worker that hosts the module owning them.
+- **IF-33.3** A worker that fails to spawn, load its script, Wasm or fonts, open the document or create its pipes fails the
+  boot with `IF-WRK-001` naming the step; a request a worker's roles do not cover is `IF-WRK-002`.
+- **IF-33.4** **Everything that decides runs in the editor module**: the document peer, stage, undo, repeat view, B3 view
+  state, tools, snapping and overlay, creation tools, B2 text layout and the text session, B6's projector and announcer,
+  B5 versioning and B4 story edits.
+- **IF-33.5** The render module draws with Vello into the **transferred `OffscreenCanvas`**; main keeps no raster. The canvas
+  is handed over once (`IF-WRK-006` otherwise); size and device pixel ratio changes reach both modules.
+- **IF-33.6** **The overlay is drawn in the same frame as the content it frames**: B3's selection frame, handles, guides and
+  the page edge travel as the overlay section of the same scene record as the content change (record format 2), applied
+  last; during a drag every record that moves content carries the overlay that frames it.
+- **IF-33.7** Scene records carry an **image table** (asset key → scene image ids) with the uploads, so the encoder on the
+  render side resolves image paints wherever the uploads were made.
+- **IF-33.8** **Pointer, wheel and keys reach the editor only through A5's input ring**; events from the text host are not
+  forwarded; keys are forwarded only from inside the canvas surface. The editor recognises a double click by time and
+  distance (`DOUBLE_CLICK`, 500 ms and 4 px); the surface allows no native text selection or drag (a native drag would
+  cancel the pointer).
+- **IF-33.9** Canvas shortcuts (B3's keymap, Undo, Redo, Delete, Duplicate) are registered in Studio's registry on main with
+  handlers that do nothing there (the browser default is prevented, the help lists them, the canvas scope is active as
+  in B8) and run in the editor's registry on the keys from the ring.
+- **IF-33.10** **EditContext (or the hidden textarea) stays on main** on the text host; a TextInput port carries the
+  platform's intents, bounds requests and focus to the editor, and the session's state, caret, selection, control and
+  character bounds back (surface px; main adds the surface's client offset). The port passes the shared TextInput
+  contract with both platform implementations.
+- **IF-33.11** A state from the editor is applied to the platform input only when no intent is in flight, so a late state
+  never rewinds what the person typed; `composing` on the editor side follows the intents as the platform input does;
+  events of an earlier host are dropped.
+- **IF-33.12** **The editor never owns storage**: it reaches the store side (main until the store worker, C0) through the
+  store port — every `DocumentStore` call and blob reads by reference; the port passes the shared `DocumentStore` and
+  repository contracts; transport failures are `IF-WRK-005`.
+- **IF-33.13** The store side keeps the workspace store, the blob store, the library document and B4's library services
+  on main; Place asks the editor, which reads the blob through the store port.
+- **IF-33.14** **Read projections back to main**: the tab's view (page, tool, selection, context, camera, viewport, editing,
+  gesture), B6 accessibility snapshots (mounted with `mountCanvasA11y`; a focused node selects in the editor), distance
+  labels, announcements and problems.
+- **IF-33.15** Panels read **mirrors** of the editor's services (typography, appearance, repeat, milestones, Latest, story):
+  reads are plain data posted when they differ, actions are forwarded; sync panel actions answer optimistically and a
+  failure is announced; an unknown mirror or action is `IF-WRK-003`. Main asks for a repost once it listens.
+- **IF-33.16** Capabilities are validated and gated in the registry on main and **run in the editor**: main forwards
+  exactly the capability ids the editor reported at start (`IF-WRK-004` for any other); outputs cross as plain data.
+- **IF-33.17** **The worker bundle is DOM-free**: nothing the worker imports reaches Lit, the kit, the UI runtime or a
+  main-thread module (a test walks the import graph from `studio.worker.ts`).
+- **IF-33.18** B4's lens controller stays on main as the Pages panel's navigation model over the mirrored structure; it
+  starts on the page the canvas shows and picks the page the editor shows.
+- **IF-33.19** A7's frame metrics stay available: the render module keeps its presented-frame log on the worker's display
+  ticks; `metrics()` reports draws, holds, failures and the input → present estimate of every worker (for C4).
+- **IF-33.20** The Playwright smoke runs **in both topologies**: B8's scenario (draw, type, milestone) plus select, move,
+  resize and rotate by pointer.
+- **IF-33.21** In the smoke, the overlay matches the content during a paused drag (pixels of the shape and its frame, and the
+  editor's frame corners).
+- **IF-33.22** In the smoke, the tab hidden (reported hidden and frozen) then visible keeps its state and draws again.
+- **IF-33.23** In the smoke, switching lens (Canvas → Pages → Canvas) and page (p1 → p2 → p1) keeps the document.
+- **IF-33.24** In the smoke, an IME composition through Chrome's IME path (CDP) on Studio's text host commits through the
+  worker, with the EditContext's character bounds inside the text box.
+- **IF-33.25** A text element is hit across its box (B1 fix found here: double click inside text edits it).
+- **IF-33.26** A release whose press went elsewhere (a double click into text) is not reported as a problem.
+
+| Code | Meaning |
+|---|---|
+| `IF-WRK-001` | A Studio worker could not start (step in `details.step`) |
+| `IF-WRK-002` | A request reached a worker that does not host its module (or a second start) |
+| `IF-WRK-003` | Unknown mirror or mirror action |
+| `IF-WRK-004` | The editor does not implement this capability |
+| `IF-WRK-005` | The store port is closed or did not answer |
+| `IF-WRK-006` | The canvas could not be handed to the render module |

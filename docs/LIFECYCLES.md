@@ -564,3 +564,30 @@ editing session and B6's accessibility layer, all disposed with the tab scope.
 | INT-5 | While text is edited the canvas shortcuts are inactive and the element's projected node is hidden from assistive technology (the text host is the textbox) | `canvas-tab.test.ts` |
 | INT-6 | The IME control bounds are the committed block's, never the composition preview's | `text-session.ime.test.ts` |
 | INT-7 | Every HUD click runs its capability through the one pipeline (validation, attribution, one change set); placeholders say they arrive later | `studio-app.test.ts` |
+
+## 35. Editor in the worker: Studio's worker topology (Instaflow M1c B9; D15)
+
+Studio's editor module and render module run in workers by the boot setting (one worker by default, two available);
+main keeps the page-side adapters. The editor posts scene records (resources, uploads, image table, projection, text IR,
+overlay — record format 2) and view frames on the pipes; the render module draws consistent pairs into the transferred
+`OffscreenCanvas`. Read projections (view, mirrors, accessibility snapshots, labels, the text host) flow back to main;
+input flows in through A5's ring; the store side answers on the store port.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| `instaflow/studio-worker` | idle → starting (`start`: roles, media, pacing; the editor role attaches the ring, opens the store port, loads its environment, creates the pipes and opens the document) → running (`run`) \| failed (`fail`: IF-WRK-001 with the step); running \| failed \| idle → stopped (`stop`, or the link closed). Terminal: stopped | `apps/instaflow/src/workers/host.ts` |
+| render role (per worker) | waiting → drawing once **both** the pipe endpoints (direct in one worker, `attach` from main across two) and the canvas (`canvas`) arrived, in any order; a second `attach` (IF-WRK-002) or `canvas` (IF-WRK-006) is refused | `apps/instaflow/src/workers/host.ts` |
+| editor tab | none → open (`open`: the tab attaches its page's sources to the publisher, which writes a snapshot) → none (next `open` detaches it first, or the worker stops) | `apps/instaflow/src/workers/editor-module.ts`, `apps/instaflow/src/app/canvas-tab.ts` |
+| text host (main) | none → open (`open` command: host div and platform TextInput) → none (`close`: Escape / Tab hand focus to the surface); commands of another session are dropped | `apps/instaflow/src/workers/text-port.ts` |
+| boot (main) | spawn every worker of the plan → start each with its roles (a crash or failure stops all: IF-WRK-001) → relay the pipes (split) → running; `stop` stops and terminates every worker and closes the ring and the store port | `apps/instaflow/src/workers/boot.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| WRK-1 | Module code never asks which topology it runs in: the plan is data, endpoints are routed by the host or by main | `host.test.ts`, `studio-app.test.ts` (both topologies) |
+| WRK-2 | Input reaches the editor only through the input ring; text-host events are never forwarded | `studio-canvas.ts`; smoke |
+| WRK-3 | The overlay travels in the same record as the content change it frames, applied after the content (one frame, E-2) | `canvas-tab.test.ts`; smoke (pixels during a paused drag) |
+| WRK-4 | A platform text state is applied only when no intent is in flight; `composing` follows the intents | `text-port.test.ts` (TextInput contract over the port) |
+| WRK-5 | The editor writes storage only through the store port | `store-port.test.ts` (DocumentStore and repository contracts over the port) |
+| WRK-6 | Every capability run, panel action and Place goes to the editor; main forwards only ids the editor reported | IF-WRK-003, IF-WRK-004; `host.test.ts`, `mirror.test.ts` |
+| WRK-7 | The worker import graph has no Lit, kit, UI runtime or main-thread module | `worker-imports.test.ts` |
+| WRK-8 | A page switch replaces the scene with a snapshot of the new page (the publisher outlives tabs) | `canvas-tab.test.ts` |

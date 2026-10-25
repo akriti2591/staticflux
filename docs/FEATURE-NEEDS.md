@@ -362,3 +362,16 @@ Consumer: `apps/instaflow/src/app` (the Studio composition root) and its dev ent
   registry, which now treats an EditContext host as a typing field (no shortcut steals typed keys; behaviour fix, no new R-ID).
 - "HUD clicks and agents run the same actions" → `@staticflux/capabilities` registry with the stage attribution port.
 - "Panels get their services without prop drilling" → `@staticflux/ui` scopes (`provideScope`) over an injector.
+
+### Editor in the worker (Instaflow M1c · B9)
+Consumer: `apps/instaflow/src/workers` (the worker host and the editor module) and the page-side adapters in `apps/instaflow/src/app`.
+- "One worker or two, by a boot setting" → `@staticflux/worker/pipeline` regions on `local`, `shared` or `message` (`selectMedium`), the
+  record ring for input (A5) and `@staticflux/worker` links, typed protocols and `inMemorySpawner` (tests run the browser host code in process).
+- "Keys from the ring run the canvas shortcuts in a worker" → `@staticflux/a11y`'s shortcut registry `handle` with a key-event-shaped object
+  where there is no DOM (behaviour fix: `isEditable` no longer needs `HTMLElement`; no new R-ID).
+- "The editor reads theme colours in a worker" → `@staticflux/ui/theme` and `/default-theme` load without a DOM (`unsafeCSS` from
+  `@lit/reactive-element/css-tag.js`, Lit's own CSS module; no new R-ID).
+- "EditContext stays on main while the text session runs in the editor" → `@staticflux/surface/text-input`'s `TextInput` port,
+  implemented again on the editor side over a message channel; checked with `@staticflux/testkit`'s TextInput contract.
+- "The editor never writes storage" → `DocumentStore` (`@staticflux/document/v2`) served over a typed protocol; checked with
+  `@staticflux/testkit`'s DocumentStore and repository contracts. Wire errors with `toWireError` / `fromWireError`.

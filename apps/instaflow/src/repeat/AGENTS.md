@@ -37,9 +37,11 @@ handle overlay (it uses `hitInstance`, `instanceBounds`, `repeatHandles`, `begin
   `beginHandleDrag(env, node, handle, { signal })` → `HandleDrag` (`move`, `commit`, `cancel`, `state`), machine
   `RepeatHandleDragLifecycle` (`instaflow/repeat-handle-drag`).
 - `inspector.ts` — `repeatModel(ctx, node)` → `RepeatModel`, `RepeatEdit`, `repeatEditOps`.
-- `contributions.ts` — `REPEAT_ACTIONS`, `repeatCapabilities` (`instaflow/repeat-radial | -grid | -mirror | -edit | -expand |
-  -release`), `repeatCapabilityImplementations(env)`, `runRepeatAction`, `repeatHudActions`, `repeatPanel` (`instaflow/repeat`),
-  `repeatContributionUnits(env)`, `repeatSelectionFacts`.
+- `capabilities.ts` — `REPEAT_ACTIONS`, `repeatCapabilities` (`instaflow/repeat-radial | -grid | -mirror | -edit | -expand |
+  -release`), `repeatCapabilityImplementations(env)`, `runRepeatAction`, `repeatSelectionFacts` (Lit-free: the editor worker
+  imports it, B9).
+- `contributions.ts` — re-exports `capabilities.ts`; `repeatHudActions`, `repeatPanel` (`instaflow/repeat`),
+  `repeatContributionUnits(env)`.
 - `panel.ts` (entry `repeat/panel`) — `<if-repeat-inspector>` (`IfRepeatInspectorElement`), `defineRepeatInspector`,
   `bindRepeatInspector(element, source)`, `REPEAT_EDIT_EVENT`.
 - `errors.ts` — `IF-REP-001` parameter · `002` too many instances · `003` not applicable · `004` derived instance · `005` handle

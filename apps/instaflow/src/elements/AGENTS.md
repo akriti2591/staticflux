@@ -36,7 +36,8 @@ Effects inspector.
   IF-EL-005), `strokeSpec`, `effectSpec`, `GEOMETRY_VERSION`.
 - `layout.ts` — `ElementContext`; `elementBounds` (geometry, ink, centre, transform), `pageTransform`, `localOutline`
   (booleans derived; a plain group is the union of its children, so groups and B7 repeat instances can be boolean operands
-  and clip masks), `strokeRing`, `maskOf`, `containerBounds` / `containerOf`, `siblingBounds`, `hitElement`,
+  and clip masks), `strokeRing`, `maskOf`, `containerBounds` / `containerOf`, `siblingBounds`, `hitElement` (fills, images, frames,
+  booleans and text are hit across their area — text since B9, so a double click inside text edits it),
   `gridLines`, `containerGrids`, box helpers.
 - `actions.ts` — `align` (edges × selection | container | page | key), `centerInContainer`, `distribute` (spacing |
   centers), `tidyUp`, `booleanGroup`, `setBooleanOp`, `releaseBoolean`, `flatten`, `outlineStroke`, `useAsMask`, `setMask`,
@@ -47,8 +48,10 @@ Effects inspector.
 - `scene.ts` — `createSceneResources`, `createElementSceneEncoder` (diffing; `sceneIdOf`), `lumaToAlpha`,
   `gridOverlayBatch` (non-printing overlay).
 - `inspector.ts` — `appearanceModel`, `AppearanceEdit`, `appearanceEditOps`, `NEW_ITEMS`, `swatchOf`.
-- `contributions.ts` — `ELEMENT_ACTIONS`, `elementCapabilities`, `elementCapabilityImplementations(env)`, `runElementAction`,
-  `elementHudActions`, `appearancePanel` (`instaflow/appearance`), `elementContributionUnits(env)`, `selectionFacts`.
+- `capabilities.ts` — `ELEMENT_ACTIONS`, `elementCapabilities`, `elementCapabilityImplementations(env)`, `runElementAction`,
+  `selectionFacts`, `elementActionId` (Lit-free: the editor worker imports it, B9).
+- `contributions.ts` — re-exports `capabilities.ts`; `elementHudActions`, `appearancePanel` (`instaflow/appearance`),
+  `elementContributionUnits(env)`.
 - `panel.ts` (entry `elements/panel`) — `<if-paint-inspector>` (`IfPaintInspectorElement`), `definePaintInspector`,
   `bindPaintInspector(element, source)`, `APPEARANCE_EDIT_EVENT`.
 - `errors.ts` — `IF-EL-001` … `IF-EL-007`.
