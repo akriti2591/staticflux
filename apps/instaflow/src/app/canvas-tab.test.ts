@@ -238,6 +238,21 @@ describe.skipIf(!authoringBuilt)('canvas tab in the editor module: B3 tools, cre
     expect(tab.editing?.node).toBe('tx');
     // The release of that press is not an error (the controller never saw the press).
     expect(tab.pointer({ phase: 'up', x: inside[0], y: inside[1] }).ok).toBe(true);
+    // FIX-TEXT-FIRST-KEY item 2: the double click put the caret at the click (right of the glyphs: the end); a press
+    // at the text's start moves it there and keeps editing; the overlay carries the caret (a third batch).
+    expect(tab.editing?.session.selection).toEqual([7, 7]);
+    const start = at(100.5, 912);
+    unwrap(tab.pointer({ phase: 'down', x: start[0], y: start[1], clicks: 1 }));
+    unwrap(tab.pointer({ phase: 'up', x: start[0], y: start[1] }));
+    expect(tab.editing?.node).toBe('tx');
+    expect(tab.editing?.session.selection).toEqual([0, 0]);
+    r.draw();
+    expect(r.records.at(-1)?.overlay).toBe(3);
+    // A press outside the text ends editing (and goes to the tools as before).
+    const outside = at(900, 100);
+    unwrap(tab.pointer({ phase: 'down', x: outside[0], y: outside[1] }));
+    unwrap(tab.pointer({ phase: 'up', x: outside[0], y: outside[1] }));
+    expect(tab.editing).toBeUndefined();
     await r.scope.dispose();
     await f.scope.dispose();
   });

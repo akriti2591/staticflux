@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { AbortedError, createMachine } from '@staticflux/core';
 import { describe, expect, it } from 'vitest';
-import { authoringBuilt } from '../app/test-helpers.js';
+import { authoringBuilt, unwrap } from '../app/test-helpers.js';
 import { P } from '../elements/components.js';
 import { RP } from '../repeat/components.js';
+import { placeTextOps } from '../text/commands.js';
 import { decodePlan } from './export-module.js';
 import { DEFAULT_EXPORT_OPTIONS, type ExportOptions } from './formats.js';
 import { ExportJobLifecycle, type ExportJobRequest, type ExportJobState, type ExportProgress, runExportJob } from './job.js';
@@ -89,6 +90,43 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('export job (Node: real composi
     expect(pdf.startsWith('%PDF-1.7')).toBe(true);
     await run({ format: 'png', scale: 1 });
     expect(f.rasters.at(-1)?.regions.at(-1)?.background).toEqual([0, 0, 0, 0]);
+  });
+
+  it('FIX-TEXT-FIRST-KEY item 3: a text element’s opacity, blend and effects export on its group, like a shape’s, in SVG and PDF', { timeout: 60_000 }, async () => {
+    const f = await createExportFixture();
+    f.commit([{ op: 'delete', node: 'r2' }], 'p2');
+    f.commit(unwrap(placeTextOps({ node: 'fade', parent: 'p2', x: 100, y: 100, text: 'Faded' })), 'p2');
+    f.commit(unwrap(placeTextOps({ node: 'shade', parent: 'p2', x: 100, y: 400, text: 'Shaded' })), 'p2');
+    f.commit([
+      { op: 'set', node: 'fade', path: P.opacity, value: 0.4 },
+      { op: 'set', node: 'fade', path: P.blend, value: 'multiply' },
+      { op: 'set', node: 'shade', path: P.effects, value: [{ kind: 'drop-shadow', x: 0, y: 6, blur: 8, spread: 0, color: '#00000080' }] },
+    ], 'p2');
+    const snapshot = await f.freeze();
+    const io = { store: f.studio.workspace.store, blobs: f.blobs };
+    const run = async (o: Partial<ExportOptions>) => {
+      const out = await runExportJob({ snapshot, options: opts(o), title: 'Fade', pages: ['p2'], selection: [], images: f.images }, f.env, io, { signal: f.studio.signal });
+      if (!out.ok) throw out.error;
+      return out.value;
+    };
+    const svg = utf8.decode((await run({ format: 'svg' })).files[0]!.bytes);
+    // One layer for the whole text: the glyphs (labelled "Faded") sit inside a group with the opacity and the blend.
+    const layer = /<g[^>]*opacity="0\.4"[^>]*>/.exec(svg)?.[0] ?? '';
+    expect(layer).toContain('mix-blend-mode:multiply');
+    expect(svg.indexOf('aria-label="Faded"')).toBeGreaterThan(svg.indexOf(layer));
+    // The shadowed text: its glyphs inside a filtered group (D21: shadows are SVG filters).
+    const filtered = svg.lastIndexOf('filter="url(#', svg.indexOf('aria-label="Shaded"'));
+    expect(filtered).toBeGreaterThan(0);
+    const pdf = await run({ format: 'pdf' });
+    const pdfText = utf8.decode(pdf.files[0]!.bytes);
+    // The faded text's layer ExtGState: fill alpha 0.4 (as an f32) and the blend; the shadowed text is a raster patch.
+    const alphas = [...pdfText.matchAll(/\/ca ([0-9.]+)/g)].map((m) => Number(m[1]));
+    const blends = [...pdfText.matchAll(/\/BM \/(\w+)/g)].map((m) => m[1]);
+    expect({ alphas, blends }).toMatchObject({ blends: expect.arrayContaining(['Multiply']) });
+    expect(alphas.some((a) => Math.abs(a - 0.4) < 1e-4)).toBe(true);
+    expect(pdf.patches).toBeGreaterThan(0); // the shadow as a raster patch (D21)
+    await run({ format: 'png', scale: 1 }); // the PNG raster gets the same text batch as the writers
+    expect(f.rasters.at(-1)?.batches.length).toBeGreaterThan(0);
   });
 
   it('SVG: one document per page with the real elements, text outlines labelled with their text, embedded images', { timeout: 60_000 }, async () => {

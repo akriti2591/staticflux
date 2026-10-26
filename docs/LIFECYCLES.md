@@ -564,6 +564,8 @@ editing session and B6's accessibility layer, all disposed with the tab scope.
 | INT-5 | While text is edited the canvas shortcuts are inactive and the element's projected node is hidden from assistive technology (the text host is the textbox) | `canvas-tab.test.ts` |
 | INT-6 | The IME control bounds are the committed block's, never the composition preview's | `text-session.ime.test.ts` |
 | INT-7 | Every HUD click runs its capability through the one pipeline (validation, attribution, one change set); placeholders say they arrive later | `studio-app.test.ts` |
+| INT-8 | While text is edited, a press inside its box places the caret or selects (Shift extends; 2 / 3 / 4 clicks = word / paragraph / all; a drag extends by the press's unit) and never ends editing; a press outside ends it. The caret, else the selection rects, are drawn in the overlay (never exported) | `text-editing.pointer.test.ts`, `canvas-tab.test.ts`; smoke (Mod+A, click, drag) |
+| INT-9 | A text element's opacity, blend and effects apply to its text group as one layer (canvas, PNG, SVG, PDF alike, D21) | `text-scene.layer.test.ts`, `job.test.ts` |
 
 ## 30. Home route: Home model, the Home index, Studio over the workspace (Instaflow M1c C0; D17)
 
@@ -627,13 +629,14 @@ input flows in through A5's ring; the store side answers on the store port.
 | ID | Invariant | Error / test |
 |---|---|---|
 | WRK-1 | Module code never asks which topology it runs in: the plan is data, endpoints are routed by the host or by main | `host.test.ts`, `studio-app.test.ts` (both topologies) |
-| WRK-2 | Input reaches the editor only through the input ring; text-host events are never forwarded | `studio-canvas.ts`; smoke |
+| WRK-2 | Input reaches the editor only through the input ring; text-host key events are never forwarded (the host's TextInput turns them into intents); its pointer events go through the ring (caret and selection by pointer, FIX-TEXT-FIRST-KEY) | `studio-canvas.ts`; smoke |
 | WRK-3 | The overlay travels in the same record as the content change it frames, applied after the content (one frame, E-2) | `canvas-tab.test.ts`; smoke (pixels during a paused drag) |
 | WRK-4 | A platform text state is applied only when no intent is in flight; `composing` follows the intents | `text-port.test.ts` (TextInput contract over the port) |
 | WRK-5 | The editor writes storage only through the store port | `store-port.test.ts` (DocumentStore and repository contracts over the port) |
 | WRK-6 | Every capability run, panel action and Place goes to the editor; main forwards only ids the editor reported | IF-WRK-003, IF-WRK-004; `host.test.ts`, `mirror.test.ts` |
 | WRK-7 | The worker import graph has no Lit, kit, UI runtime or main-thread module | `worker-imports.test.ts` |
 | WRK-8 | A page switch replaces the scene with a snapshot of the new page (the publisher outlives tabs) | `canvas-tab.test.ts` |
+| WRK-9 | The text session posts one text state per handled intent, with the caret after the edit: a commit's own document invalidation never pushes the session's state mid-commit (else main applies the new text with the old caret and the next key lands before it: FIX-TEXT-FIRST-KEY) | `text-editing.first-key.test.ts`; smoke (typing step) |
 
 ## 36. Transform tools: Free Transform session (Instaflow M1c B10a)
 

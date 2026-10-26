@@ -17,9 +17,9 @@
  */
 import { err, ok, type Result, type Scope } from '@staticflux/core';
 import type { JsonValue, NodeId, PartOp } from '@staticflux/document/v2';
-import { P } from '../elements/components.js';
+import { BLEND_MODE_NAMES, P } from '../elements/components.js';
 import { pageTransform } from '../elements/layout.js';
-import { createSceneWriter, type SceneTransform } from '../render/scene-ir.js';
+import { BLEND_MODES, createSceneWriter, type SceneTransform } from '../render/scene-ir.js';
 import type { TextLayout } from '../text/layout-result.js';
 import { encodeLayoutSpec } from '../text/layout-spec.js';
 import { TEXT_KIND } from '../text/model.js';
@@ -27,7 +27,7 @@ import { readTextBlock, type TextBlockModel } from '../text/rich-text.js';
 import type { TextLayoutEngine } from '../text/text-engine.js';
 import { createSceneFontTable, textSceneNodes } from '../text/text-scene.js';
 import { type BrandTokenSource, type FontFamilies, resolveTextLayout, type TextDefaults, verticalAlignOffset } from '../text/text-style.js';
-import { type Affine, multiply } from '../elements/resolve.js';
+import { type Affine, multiply, resolveElement } from '../elements/resolve.js';
 import type { SceneIrSource } from './canvas-pipeline.js';
 import type { StudioDocument } from './document.js';
 import { NoOpenPageError } from './errors.js';
@@ -154,8 +154,11 @@ export function createTextLayer(options: TextLayerOptions): TextLayer {
       const placed: number[] = [group];
       const source = part();
       const block = source === undefined ? undefined : readTextBlock(source, node);
+      // The element's layer look (opacity, blend, effects) on the text group, as for shapes (FIX-TEXT-FIRST-KEY item 3).
+      const element = resolveElement(document.view, node, document.kit);
       const nodes = textSceneNodes(laid.value, {
         ...(block?.ok === true ? { text: block.value.text } : {}),
+        ...(element === undefined ? {} : { layer: { opacity: element.opacity, blend: BLEND_MODES[BLEND_MODE_NAMES.indexOf(element.blend)] ?? 'normal', effects: element.effects } }),
         id: group,
         transform: [...textBlockTransform(document, node, laid.value)] as unknown as SceneTransform,
         brushes: brushes(node),

@@ -118,6 +118,15 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
   let runs = 0;
   /** The text as this session last committed or read it (an external change, e.g. undo, ends the run). */
   let known = model.text;
+  /**
+   * FIX-TEXT-FIRST-KEY: true while `target.commit` runs. The target's commit invalidates the element (Studio: once for
+   * the text, once for the box size), which calls `refresh` before this session has moved the caret. A sync there
+   * would push the new text with the **old** caret; across the worker port main applies it when no key is in flight,
+   * the platform caret jumps back before the typed character and the next key lands in front of it ("ello StudioH").
+   * The commit rereads, lays out and syncs once itself; `refreshDue` only matters when the commit fails half-way.
+   */
+  let committing = false;
+  let refreshDue = false;
   const listeners = new Set<(s: TextSessionState) => void>();
 
   const problem = (e: SfError): void => options.onProblem?.(e);
@@ -169,24 +178,48 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
     return `${kind}-${blockId}-${(runs += 1)}`;
   };
 
-  const commit = (ops: Result<PartOp[]>, label: string, caret: number, coalesce?: { readonly kind: 'type' | 'delete'; readonly key: string }): void => {
+  /** Re-read the document and push the result with the current selection (kept in range). */
+  const refreshNow = (): void => {
+    if (!reread()) return;
+    if (model.text !== known) run = undefined; // undo or a remote edit: the next keystroke starts a new step
+    known = model.text;
+    anchor = clamp(anchor);
+    focus = { offset: clamp(focus.offset), upstream: focus.upstream };
+    relayout();
+    sync();
+  };
+
+  /**
+   * Commit `ops`, then place the caret at `caret` (or keep `select`: anchor and focus) and push text + selection
+   * **once** (FIX-TEXT-FIRST-KEY: no push with the old caret while the commit runs).
+   */
+  const commit = (ops: Result<PartOp[]>, label: string, caret: number, coalesce?: { readonly kind: 'type' | 'delete'; readonly key: string }, select?: readonly [number, CaretPosition]): void => {
     if (!ops.ok) {
       problem(ops.error);
       return;
     }
     if (ops.value.length > 0) {
-      const done = options.target.commit(ops.value, label, coalesce?.key);
+      committing = true;
+      refreshDue = false;
+      let done: Result<void>;
+      try {
+        done = options.target.commit(ops.value, label, coalesce?.key);
+      } finally {
+        committing = false;
+      }
       if (!done.ok) {
         run = undefined;
         problem(done.error);
+        // Part of it may have landed (the text, not the box size): show what the document holds now.
+        if (refreshDue) refreshNow();
         return;
       }
     }
     if (!reread()) return;
     known = model.text;
     run = coalesce === undefined ? undefined : { kind: coalesce.kind, key: coalesce.key, at: now(), end: clamp(caret) };
-    anchor = clamp(caret);
-    focus = { offset: anchor, upstream: false };
+    anchor = clamp(select?.[0] ?? caret);
+    focus = select === undefined ? { offset: anchor, upstream: false } : { offset: clamp(select[1].offset), upstream: select[1].upstream };
     relayout();
     sync();
   };
@@ -219,11 +252,8 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
       const [a, b] = ordered();
       const ops = (options.indent ?? listIndentOps)(model, a, b, shift ? -1 : 1);
       if (ops === undefined) return;
-      const keep = [anchor, focus] as const;
-      commit(ops, shift ? LABELS.outdent : LABELS.indent, a);
-      anchor = clamp(keep[0]);
-      focus = { offset: clamp(keep[1].offset), upstream: keep[1].upstream };
-      sync();
+      // The selection stays; one push with it (not a push at `a` followed by another).
+      commit(ops, shift ? LABELS.outdent : LABELS.indent, a, undefined, [anchor, focus]);
     },
     SelectAll: () => {
       anchor = 0;
@@ -351,13 +381,12 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
       moveFocus({ offset: b, upstream: false }, true);
     },
     refresh() {
-      if (!reread()) return;
-      if (model.text !== known) run = undefined; // undo or a remote edit: the next keystroke starts a new step
-      known = model.text;
-      anchor = clamp(anchor);
-      focus = { offset: clamp(focus.offset), upstream: focus.upstream };
-      relayout();
-      sync();
+      // The session's own commit invalidated the element: the commit pushes once, with the caret after the edit.
+      if (committing) {
+        refreshDue = true;
+        return;
+      }
+      refreshNow();
     },
     setTypingStyle(style) {
       typingStyle = style;
