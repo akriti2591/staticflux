@@ -1,6 +1,6 @@
 # apps/instaflow/src/studio — AGENTS.md
 
-**Work package:** Instaflow M1b **B0** (IF-19.11–19.15, D17, D19). **Layer:** app.
+**Work package:** Instaflow M1b **B0** (IF-19.11–19.15, D17, D19), rebuilt by M1c **B11b** (IF-36). **Layer:** app.
 **Depends on:** `src/spec` (registries, Studio spec, proposals), `@staticflux/shell/spec` (runtime, layout port), `kit`
 (button, icon-button, segmented, tabs, tag, text-field, toolbar, dock), `ui` (`SfElement`, theme tokens), `a11y` (shortcut
 registry), `surface` (input forwarder, input ring sink), `src/sequencing` (boot, behind the canvas port), `src/theme` (lens
@@ -16,15 +16,35 @@ fully by hand (D17).
   Studio's scope follows the canvas selection; B9: spec changes run one after another, each on the spec the previous one
   left), `selectTool`,
   `togglePin`, `bindShortcuts(registry, targets, scope)`, `dispose`), `StudioShortcutScope`, `PERSON`.
-- `studio-element.ts` — `<if-studio .studio .canvas .shortcuts asset-title project-title home-href>` (`defineStudio()`):
-  top bar (home, breadcrumb, lens mode switcher with lens shapes, Saved, agent chip, density, Milestone, Save as template (C0), Share), side panel,
-  tabbed dock, canvas region (tools toolbar, HUD toolbar, canvas surface, zoom, command bar, proposal card), inspector, tray.
-  Events: `if-hud-action { action }`, `if-intent { intent: zoom-in | zoom-out | milestone | save-template | share }`, `if-command { text }`,
-  `if-navigate { href }` (C0: the Home link, cancelable — a host that cancels it saves, then navigates; modified clicks stay the browser's).
-  B8: `.status` (the top bar's save state, B5's `<if-save-status>`), `zoom` (the readout), tone `more` HUD actions in one
-  `<sf-menu>` "More actions", the HUD capped at two rows, the tools pill sized by its item count, the surface positioned for
-  the canvas layers.
-  `focusHud`, `focusCommandBar`, `focusCanvas`, `canvasActive`. `studioMessages`.
+- `studio-element.ts` — `<if-studio .studio .canvas .shortcuts .model .port asset-title home-href>` (`defineStudio()`, B11b):
+  top bar (logo → Home, title inline rename, M1 lenses, save state → Milestones, `View ▾` zoom + density, Milestone popover,
+  `⋯`, Export), tabbed dock, the canvas room (mist dots, page card + label behind the transparent canvas, tool picker with the
+  shape family, `<if-hud>`, zoom pill, `<if-command-bar>`, proposal card), inspector column. `StudioChromeModel` in (mirrors),
+  `StudioChromePort` out (capabilities, mirror actions, camera, export, milestone, template, copy link, page selection).
+  `hudPosition` (pure pill placement), `EMPTY_CHROME`, `M1_LENSES`, `focusHud`, `focusTitle`, `focusCommandBar`,
+  `focusCanvas`, `showPanel`, `canvasActive`, `studioMessages`. Event `if-navigate { href }` (the Home link, cancelable).
+- `hud.ts` (B11b) — `<if-hud>`: the selection pill per kind over `studio-controls.ts` (`CONTROL_SETS`, `SECTIONS`, `CONTROL`,
+  `MORE_GROUP_OF`, `MORE_EXCLUDED`); `HudPort`, `paintFromColor`, `pillCapabilities`, `moreMenuGroups`.
+- `command-bar.ts` (B11b) — `<if-command-bar .sources>` (`Mod+K`; fires `if-command { value }` = `cap:` / `tool:` / `camera:`),
+  `commandEntries`, `pushRecent`, `readRecentCommands`, `RECENT_LIMIT`.
+- `inspector.ts` (B11b) — `<if-inspector .model .port density>`: header + the kind's sections (`InspectorModel`,
+  `InspectorPort extends HudPort`, `EMPTY_INSPECTOR`, `reveal(section)`, `focusPageName()`); `inspector-model.ts` (pure:
+  `INSPECTOR_SECTIONS`, `inspectorSections`, row summaries, gradient edits, dash and effect presets, blend groups, page
+  presets, `PAGE_SIZE_RANGE`); `inspector-paint.ts` (fill / stroke / effect stacks, gradient editor, corners, layer);
+  `inspector-text.ts` (the Text section, `TextCommands`, `WEIGHTS`); `inspector-panel.ts` (`inspectorPanel`, the spec panel
+  `instaflow/inspector`); `errors.ts` (IF-POL-050 page size, IF-POL-051 no image to replace).
+- `layers-panel.ts` (B11b) — `<if-layers-panel .model .port>` (Layers, STUDIO §3.1, on the kit tree), `layersPanel` (the spec
+  panel `instaflow/layers`), `LayersModel`, `LayersPort`, `EMPTY_LAYERS`, `filterLayers`, `dropTarget` (display ↔ paint order);
+  a row's right-click fires `if-layer-context` (`LayerContextDetail`) after selecting it.
+- `context-menu.ts` (B11b slice 4) — `contextMenuGroups(target, env)` (pure: the groups per canvas / selection / page target,
+  STUDIO §8.2), `parseContextValue` (`cap:<id>[?k=v]`, `cmd:<name>[:<arg>]`), `contextMessages`, `ContextTarget`, `ContextEnv`.
+  `<if-studio>` renders them in one `sf-menu.context-menu` and runs the values through `StudioChromePort`.
+- `shortcuts-sheet.ts` (B11b slice 4) — `SHORTCUT_GROUPS`, `shortcutGroupOf(entry, ctx)`, `shortcutSheet(list, ctx)` (the
+  cheat sheet's cards from `registry.list()`), `shortcutsSheetSurface(groups)` (the settings-size dialog over the kit's
+  `<sf-shortcut-sheet>`).
+- `ChromeShortcuts` (in `studio-element.ts`, B11b slice 4) — the chrome's own keys (dock, inspector, rename, copy link,
+  milestone, save hint, cheat sheet, context menu); the port grew `contextAt`, `clipboard`, `selectAll`, `editText`,
+  `textPreset`, `fitToBox`, `replaceImage`, `pageAction`, `saveHint`, `openShortcuts`; the model `clipboard` and `pages`.
 - `canvas.ts` — **`CanvasPort`** (`start(surface, signal) → CanvasSession { forwarded, stop }`), `sequencingCanvas({ boot, env,
   schedule })` (boots A7, forwards surface input into the editor's input ring; IF-SPEC-005 on failure).
 - `hints.ts` (B11a2) — `STUDIO_HINTS` (the M1 first-use hints: frame, shape, text, hand, layers, multi-selection), `HintTargets` (typed
@@ -45,7 +65,13 @@ fully by hand (D17).
 - Keyboard: `1`–`5` lenses (Pages is `5`), tool letters (never while typing: the registry checks the composed origin), `Alt+Enter` HUD, `Mod+K`
   command bar, `Escape` canvas; arrows inside the toolbars, the mode switcher and the dock tabs.
 
+## Budgets
+No size entry of its own (the app chunk). The shared modules it grew carry the raises: `@instaflow/app/tools` (rotate stem),
+`@instaflow/app/text` (B11b text commands), `@staticflux/kit/icons`.
+
 ## Test
 `npx vitest run apps/instaflow/src/studio` — controller (spec changes, pins, keyboard), element under Clean Pop (structure vs
 StudioCP, layout from spec, density, pins, proposal card, motion phases, keyboard paths, a11y audit), the
 `runSpecMountPortContract` suite over the DOM, and the canvas region over the in-process A7 pipeline with the digest renderer.
+B11b: `hud.test.ts`, `command-bar.test.ts`, `inspector.test.ts` (every kind audited), `inspector-model.test.ts`; the Studio smoke
+drives the pill, the inspector and the command bar in both topologies.

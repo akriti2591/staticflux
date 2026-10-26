@@ -20,6 +20,8 @@ import type { CanvasSnapshot } from '../a11y/projection.js';
 import type { CanvasPipeEndpoints } from '../app/canvas-pipeline.js';
 import type { ExportTarget } from '../export/service.js';
 import type { LibraryEntry } from '../library/library-doc.js';
+import type { ClipboardPayload } from '../app/clipboard.js';
+import type { SelectionSummary } from '../app/scene-summary.js';
 import type { RenderPacing } from '../sequencing/pacing.js';
 import type { RenderModuleStats } from '../sequencing/render-module.js';
 import type { ModuleRole, SequencingMedia } from '../sequencing/topology.js';
@@ -100,6 +102,8 @@ export interface ViewProjection {
   readonly editing: NodeId | undefined;
   /** B3's gesture state (`idle` when nothing is being dragged). */
   readonly gesture: string;
+  /** B11b: the element under the pointer (Layers outlines its row). */
+  readonly hover?: NodeId;
 }
 
 /** One element as tests and the smoke check read it (`inspect`). */
@@ -135,6 +139,18 @@ export interface StudioInspection {
   readonly docVersion: number;
   readonly records: number;
   readonly undo: number;
+  /** B11b: the person's undo steps, newest first (labels; the overflow's `Undo: …` and tests). */
+  readonly steps?: readonly { readonly label: string; readonly commits: number; readonly invocation?: string; readonly changeSet?: string }[];
+}
+
+/** B11b: camera commands of the View menu and the zoom pill. */
+export type CameraCommand = 'fit-page' | 'fit-selection' | 'zoom-100' | 'zoom-in' | 'zoom-out' | 'zoom-50' | 'zoom-200';
+
+/** B11b: a capability the editor ran from a key (its id, the nodes, and how many it touched). */
+export interface RanCommand {
+  readonly capability: string;
+  readonly nodes: readonly NodeId[];
+  readonly ok: boolean;
 }
 
 /** Frame metrics (A7) and editor counters, for C4's budgets. */
@@ -166,13 +182,29 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     visible: request<{ readonly visible: boolean }, void>(),
     tool: request<{ readonly tool: string }, void>(),
     select: request<{ readonly nodes: readonly NodeId[] }, void>(),
+    /** B11b: Layers hovers a row: the element is outlined on the canvas (null: none). */
+    hover: request<{ readonly node: NodeId | null }, void>(),
     invoke: request<{ readonly capability: string; readonly input: unknown; readonly subject: CapabilitySubject; readonly origin?: InvocationOrigin; readonly invocationId: string }, unknown>({ timeoutMs: 60_000 }),
     call: request<MirrorCall, unknown>({ timeoutMs: 60_000 }),
     text: request<TextHostEvent, void>(),
     place: request<{ readonly entry: LibraryEntry }, void>({ timeoutMs: 60_000 }),
+    /** B11b: the selected images show `entry` instead (Image › Replace…; fit kept, crop reset). */
+    replaceImage: request<{ readonly entry: LibraryEntry }, void>({ timeoutMs: 60_000 }),
     hud: request<{ readonly action: string }, void>(),
     /** The zoom buttons (B3 `zoomStep`). */
     zoom: request<{ readonly step: 1 | -1 }, void>(),
+    /** B11b: the View menu and zoom pill (fit the page, the selection, a zoom level). */
+    camera: request<{ readonly action: CameraCommand }, void>(),
+    /** B11b (STUDIO §8.1): serialise the selection for the clipboard; `cut` also deletes it (one step "Cut"). */
+    copy: request<{ readonly nodes: readonly NodeId[]; readonly cut: boolean }, ClipboardPayload>(),
+    /** B11b: paste a payload (offset per §8.1, or in place); the pasted top level is selected. One step "Paste". */
+    paste: request<{ readonly payload: ClipboardPayload; readonly inPlace: boolean }, void>(),
+    /** B11b: plain text from another app becomes a text element at the viewport centre. */
+    pasteText: request<{ readonly text: string }, void>(),
+    /** B11b: a context menu at a viewport point (or at the selection): select what is there, return the selection. */
+    contextAt: request<{ readonly x?: number; readonly y?: number }, SelectionSummary>(),
+    /** B11b: Edit text on the selected text element (the context menu; Enter on the canvas does the same). */
+    editText: request<Record<string, never>, void>(),
     inspect: request<{ readonly nodes?: readonly NodeId[] }, StudioInspection>(),
     /** C1: freeze Latest for an export and report the pages and the selection (editor role). */
     exportTarget: request<void, ExportTarget>({ timeoutMs: 120_000 }),
@@ -191,5 +223,7 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     problem: event<{ readonly error: WireError }>(),
     /** A creation tool finished: hand the toolbar back to this tool. */
     tool: event<{ readonly tool: string }>(),
+    /** B11b: a key command ran a capability in the editor (main gives the feedback a toast needs). */
+    ran: event<RanCommand>(),
   },
 });

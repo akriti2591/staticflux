@@ -75,11 +75,12 @@ const S = STUDIO_SELECTION_HUD;
 
 /** Toolbar per lens, in order. */
 export const STUDIO_LENS_TOOLS: Readonly<Record<LensContributionId, readonly ToolId[]>> = Object.freeze({
-  [L.canvas]: [T.select, T.frame, T.shape, T.text, T.pen, T.hand],
+  // B11b: no Pen until its controller exists (STUDIO-UX-SPEC §4.1); the shape family follows Shape.
+  [L.canvas]: [T.select, T.frame, T.shape, T.ellipse, T.polygon, T.star, T.line, T.text, T.hand],
   [L.pixel]: [T.select, T.brush, T.heal, T.crop, T.hand],
   [L.timeline]: [T.select, T.split, T.hand],
   [L.flow]: [T.select, T.connect, T.hand],
-  [L.pages]: [T.select, T.shape, T.text, T.pen, T.hand],
+  [L.pages]: [T.select, T.shape, T.ellipse, T.polygon, T.star, T.line, T.text, T.hand],
 });
 
 /**
@@ -87,32 +88,34 @@ export const STUDIO_LENS_TOOLS: Readonly<Record<LensContributionId, readonly Too
  * the HUD's one "More actions" menu, so the row has no separate More slot (B8).
  */
 export const STUDIO_LENS_HUD: Readonly<Record<LensContributionId, readonly ActionId[]>> = Object.freeze({
-  [L.canvas]: [H.rewrite, H.animate, H.ask],
+  // B11b: no assistant or motion actions until they run (STUDIO-UX-SPEC §2.2, Appendix A).
+  [L.canvas]: [],
   [L.pixel]: [H.removeBackground, H.ask],
   [L.timeline]: [H.animate, H.ask],
   [L.flow]: [H.ask],
-  [L.pages]: [H.rewrite, H.animate, H.ask],
+  [L.pages]: [],
 });
 
 /** Panels every Studio lens shares (selection, undo, chat and the dock persist across lenses, UX §4). */
 export const STUDIO_PANELS: readonly PanelPlacement[] = Object.freeze([
-  { panel: P.chat, dock: 'side' },
+  // B11b: only built panels are placed (nothing visible is inert): no Chat (M2) or Brand (B-4) placeholder; Export is
+  // the top bar's Export dialog, not a dock tab.
+  // B11b: Layers is a real list now (STUDIO-UX-SPEC §3.1), the dock's first tab.
   { panel: P.layers, dock: 'dock' },
   { panel: P.pages, dock: 'dock' },
   { panel: P.assets, dock: 'dock' },
   { panel: P.milestones, dock: 'dock' },
-  { panel: P.brand, dock: 'dock' },
-  // C1: Export (the top bar's Share shows it).
-  { panel: P.export, dock: 'dock' },
+  // B11b: one inspector with every section of the selection kind (STUDIO-UX-SPEC §5) replaces the per-feature panels.
+  { panel: P.inspector, dock: 'inspector' },
 ]);
 
 /** Extra panels per lens. */
 export const STUDIO_LENS_PANELS: Readonly<Record<LensContributionId, readonly PanelPlacement[]>> = Object.freeze({
-  [L.canvas]: [{ panel: P.typography, dock: 'inspector' }],
+  [L.canvas]: [],
   [L.pixel]: [{ panel: P.adjust, dock: 'inspector' }],
   [L.timeline]: [],
   [L.flow]: [],
-  [L.pages]: [{ panel: P.typography, dock: 'inspector' }],
+  [L.pages]: [],
 });
 
 /** HUD actions a scope adds per lens (B8: the selection's actions, by feature, direct ones first). */
@@ -126,12 +129,8 @@ export const STUDIO_SCOPE_HUD: Readonly<Partial<Record<ScopeKind, Readonly<Recor
 /** Panels a scope adds per lens (B8: the selection's inspectors). */
 export const STUDIO_SCOPE_PANELS: Readonly<Partial<Record<ScopeKind, Readonly<Record<LensContributionId, readonly PanelPlacement[]>>>>> = Object.freeze({
   selection: {
-    [L.canvas]: [
-      // B10a: the numeric transform bar first, as in design tools.
-      { panel: P.transform, dock: 'inspector' },
-      { panel: P.appearance, dock: 'inspector' },
-      { panel: P.repeat, dock: 'inspector' },
-    ],
+    // B11b: the inspector panel shows the selection's sections itself (Transform first, as in design tools).
+    [L.canvas]: [],
   },
 });
 
@@ -146,7 +145,8 @@ export const studioSpec: EditorSpec = defineEditorSpec({
   panels: [...STUDIO_PANELS, ...(STUDIO_LENS_PANELS[L.canvas] ?? [])],
   hud: STUDIO_LENS_HUD[L.canvas] ?? [],
   capabilities: STUDIO_CAPABILITIES,
-  density: 'pro',
+  // B11b: Standard is the default density (STUDIO-UX-SPEC §14.3).
+  density: 'standard',
 });
 
 /** Studio under another lens (a mode switch is a spec change). Keeps the base's scope, density and pins. */

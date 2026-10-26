@@ -12,7 +12,7 @@ import { createExportFixture, exportBuilt } from '../export/testing/test-helpers
 import type { LibraryEntry } from '../library/library-doc.js';
 import { DEFAULT_SEQUENCING_SETTINGS } from '../sequencing/topology.js';
 import { StudioIds } from '../spec/studio-ids.js';
-import { AppearanceMirror, StoryMirror } from '../workers/mirrors.js';
+import { AppearanceMirror, SceneMirror, StoryMirror } from '../workers/mirrors.js';
 import { dragEvents, inProcessWorkers, inputWriter, until } from '../workers/test-helpers.js';
 import { openStudioWorkspace } from './document.js';
 import { createStudioApp } from './studio-app.js';
@@ -92,13 +92,24 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     workers.draw();
     expect(workers.rasters[0]?.presents).toBeGreaterThan(0);
 
-    // The spec's scope follows the selection: the selection's HUD actions and inspectors mount, and the appearance
-    // inspector's model is mirrored from the editor.
+    // The spec's scope follows the selection: the selection's HUD actions mount; the inspector (B11b) stays and shows
+    // the selection's sections from the editor's mirrors (the appearance model here).
     await until(() => app.studio.spec?.scope.kind === 'selection', 'selection scope');
     expect(app.studio.port.groups()['hud@default']).toContain('hud:instaflow/repeat-radial');
-    expect(app.studio.port.groups()['panel@inspector']).toEqual(expect.arrayContaining(['panel:instaflow/appearance', 'panel:instaflow/repeat']));
+    expect(app.studio.port.groups()['panel@inspector']).toEqual(['panel:instaflow/inspector']);
     await until(() => app.mirrors.view(AppearanceMirror).read('model')?.node === rect, 'appearance model mirrored');
     unwrap(await app.mirrors.view(AppearanceMirror).call('apply', { op: 'set', path: 'spatial.opacity', value: 0.5 }));
+    // B11b: the inspector's Page section edits the page through the scene mirror: size (16–8192 px) and Background.
+    const sceneView = app.mirrors.view(SceneMirror);
+    unwrap(await sceneView.call('resizePage', 1200, 1500));
+    await until(() => sceneView.read('page')?.width === 1200 && sceneView.read('page')?.height === 1500, 'page resized');
+    const tooSmall = await sceneView.call('resizePage', 4, 4);
+    expect(!tooSmall.ok && tooSmall.error.code).toBe('IF-POL-050');
+    unwrap(await sceneView.call('applyPage', { op: 'update', stack: 'fills', index: 0, patch: { paint: '#FFF4E0' } }));
+    await until(() => sceneView.read('pageFill')?.fills[0]?.paint === '#FFF4E0', 'page background');
+    expect(sceneView.read('pages')).toBe(2);
+    const noImage = await sceneView.call('setImageFit', 'contain');
+    expect(noImage.ok).toBe(true); // a rectangle has no image fill: nothing changes, no step
 
     // A HUD click runs the capability (validated and gated here, run in the editor): a live radial repeat.
     unwrap(await app.runHudAction('instaflow/repeat-radial'));
@@ -161,6 +172,34 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     unwrap(app.lens.goTo('p2'));
     await until(() => app.tab?.page === 'p2', 'page 2 shown');
     expect((await inspect())?.elements.length).toBe(0);
+
+    // B11b: Pages › Add / Duplicate / Rename / Delete page, each one undo step across the root and page parts.
+    const storyView = app.mirrors.view(StoryMirror);
+    const storyPages = (): string[] => {
+      const s = storyView.read('structure');
+      return s?.ok === true ? s.value.pages.map((p) => p.id) : [];
+    };
+    const copied = unwrap(await storyView.call('duplicatePage', 'p1'));
+    await until(() => storyPages()[1] === copied, 'the copy follows page 1');
+    unwrap(app.lens.goTo(copied));
+    await until(() => app.tab?.page === copied, 'the copy shown');
+    expect((await inspect())?.elements.length).toBeGreaterThan(0); // page 1's elements, copied
+    const added = unwrap(await storyView.call('addPage', null));
+    await until(() => storyPages().at(-1) === added, 'a page at the end');
+    unwrap(await storyView.call('renameStoryPage', added, 'Back cover'));
+    await until(() => {
+      const s = storyView.read('structure');
+      return s?.ok === true && s.value.pages.at(-1)?.name === 'Back cover';
+    }, 'renamed');
+    const emptyName = await storyView.call('renameStoryPage', added, '  ');
+    expect(!emptyName.ok && emptyName.error.code).toBe('IF-POL-053');
+    unwrap(await storyView.call('deletePage', added));
+    await until(() => !storyPages().includes(added), 'deleted');
+    app.chrome.invoke('instaflow/undo', {}, []);
+    await until(() => storyPages().includes(added), 'undo restores the page');
+    for (const page of storyPages().slice(1)) unwrap(await storyView.call('deletePage', page));
+    const last = await storyView.call('deletePage', storyPages()[0] as string);
+    expect(!last.ok && last.error.code).toBe('IF-POL-052');
 
     const metrics = unwrap(await app.metrics());
     expect(metrics.render?.drawFailures).toBe(0);

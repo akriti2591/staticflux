@@ -15,8 +15,15 @@
  *   target, position)` filters targets (never into the item's own subtree); dropping fires a
  *   cancelable `sf-reorder` `{ id, targetId, position: 'before' | 'after' | 'inside' }`. The
  *   tree never mutates `nodes`: the app applies the move (through its document/undo model).
+ * - **Rows the app decorates** (Instaflow B11b, Layers): `node.trailing` renders after the badge (pointer conveniences such
+ *   as eye / lock toggles; a click inside it never selects the row; the app keeps a keyboard path for each), shown on
+ *   hover and on the active row, always when `node.trailingPinned`; `node.muted` draws the row at 50 %; `highlighted` marks
+ *   one row as hovered elsewhere (the canvas).
+ * - **Inline rename:** `renaming = id` swaps that row's label for a text field (focused, text selected); Enter or blur
+ *   fires `sf-rename` `{ id, value }` (trimmed, only when changed and not empty), Escape fires `sf-rename-cancel`; either
+ *   ends renaming and returns focus to the tree. Keys typed in the field never reach the tree.
  * - Events: `sf-select` `{ ids, id }`, `sf-toggle` `{ id, expanded }`, `sf-activate` `{ id }`,
- *   `sf-reorder`, `sf-drag-start` (cancelable).
+ *   `sf-reorder`, `sf-drag-start` (cancelable), `sf-rename`, `sf-rename-cancel`.
  */
 import { createMachine, defineMachine } from '@staticflux/core';
 import { component, defineComponent, SfElement } from '@staticflux/ui';
@@ -39,6 +46,17 @@ export interface TreeNode {
   readonly badge?: string;
   readonly draggable?: boolean;
   readonly disabled?: boolean;
+  /** Content after the badge (B11b): pointer conveniences; never selects the row. */
+  readonly trailing?: unknown;
+  /** Keep `trailing` visible without hover (an active toggle). */
+  readonly trailingPinned?: boolean;
+  /** Drawn at 50 % (a hidden layer). */
+  readonly muted?: boolean;
+}
+
+export interface RenameDetail {
+  readonly id: string;
+  readonly value: string;
 }
 
 export interface TreeRow {
@@ -141,6 +159,8 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
     label: {},
     multiselect: { type: Boolean },
     canDrop: { attribute: false },
+    renaming: { attribute: false },
+    highlighted: { attribute: false },
     rowHeight: { type: Number, attribute: 'row-height' },
     activeId: { state: true },
     scrollTop: { state: true },
@@ -220,6 +240,33 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
         color: ${t.color.textMuted.css};
         font-size: ${t.type.sizeXs.css};
       }
+      .row.muted > :not(.trailing) {
+        opacity: 0.5;
+      }
+      .row.hovered {
+        box-shadow: inset 0 0 0 1px ${t.color.accent.css};
+      }
+      .trailing {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        visibility: hidden;
+      }
+      .row:hover .trailing,
+      .row.active .trailing,
+      .trailing.pinned {
+        visibility: visible;
+      }
+      .rename {
+        flex: 1;
+        min-inline-size: 0;
+        font: inherit;
+        color: inherit;
+        padding: 2px 4px;
+        border: 1px solid ${t.color.focusRing.css};
+        border-radius: ${t.radius.sm.css};
+        background: ${t.color.surface1.css};
+      }
       .row[data-drop='before'] {
         box-shadow: inset 0 2px 0 ${t.color.accent.css};
       }
@@ -246,6 +293,10 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
   declare label: string;
   declare multiselect: boolean;
   declare canDrop: CanDrop | undefined;
+  /** The row whose label is an inline rename field (B11b). */
+  declare renaming: string | undefined;
+  /** A row hovered elsewhere (the canvas), outlined. */
+  declare highlighted: string | undefined;
   /** Row height in px; 0 = read the density token `--sf-size-row`. */
   declare rowHeight: number;
   declare activeId: string | undefined;
@@ -267,6 +318,8 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
     this.label = '';
     this.multiselect = false;
     this.canDrop = undefined;
+    this.renaming = undefined;
+    this.highlighted = undefined;
     this.rowHeight = 0;
     this.activeId = undefined;
     this.scrollTop = 0;
@@ -313,6 +366,45 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
 
   protected override willUpdate(changed: PropertyValues<this>): void {
     if (changed.has('nodes') && this.activeId !== undefined && findNode(this.nodes, this.activeId) === undefined) this.activeId = undefined;
+    if (changed.has('renaming') && this.renaming !== undefined) {
+      this.activeId = this.renaming;
+      this.renameOpen = true;
+    }
+  }
+
+  protected override updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    if (changed.has('renaming') && this.renaming !== undefined) {
+      const input = this.renderRoot.querySelector<HTMLInputElement>('input.rename');
+      input?.focus();
+      input?.select();
+    }
+  }
+
+  private renameOpen = false;
+
+  /** End an inline rename: `value` commits (when changed and not empty), undefined cancels. */
+  private finishRename(id: string, value: string | undefined): void {
+    if (!this.renameOpen || this.renaming !== id) return;
+    this.renameOpen = false;
+    this.renaming = undefined;
+    const node = findNode(this.nodes, id);
+    const trimmed = value?.trim();
+    if (trimmed === undefined) emit(this, 'sf-rename-cancel', { id });
+    else if (trimmed !== '' && trimmed !== node?.label) emit<RenameDetail>(this, 'sf-rename', { id, value: trimmed });
+    else emit(this, 'sf-rename-cancel', { id });
+    void this.updateComplete.then(() => this.viewport?.focus());
+  }
+
+  private onRenameKey(event: KeyboardEvent, id: string): void {
+    event.stopPropagation();
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.finishRename(id, (event.target as HTMLInputElement).value);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.finishRename(id, undefined);
+    }
   }
 
   // ------------------------------------------------------------------ state changes
@@ -362,6 +454,7 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
   // ------------------------------------------------------------------ keyboard
 
   private onKeydown(event: KeyboardEvent): void {
+    if (event.composedPath()[0] instanceof HTMLInputElement) return;
     const rows = this.rows;
     if (rows.length === 0) return;
     let index = rows.findIndex((r) => r.node.id === this.activeId);
@@ -435,6 +528,8 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
 
   private onRowClick(event: MouseEvent, row: TreeRow): void {
     if (row.node.disabled === true) return;
+    const inside = event.composedPath().some((target) => target instanceof Element && (target.classList.contains('trailing') || target.classList.contains('rename')));
+    if (inside) return;
     const onTwisty = event.composedPath().some((target) => target instanceof Element && target.classList.contains('twisty'));
     if (onTwisty && row.expanded !== undefined) {
       this.setExpanded(row.node.id, !row.expanded);
@@ -534,7 +629,7 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
             windowRows,
             (r) => r.node.id,
             (r) => html`<div
-              class="row ${r.node.id === active ? 'active' : ''}"
+              class="row ${r.node.id === active ? 'active' : ''} ${r.node.muted === true ? 'muted' : ''} ${r.node.id === this.highlighted ? 'hovered' : ''}"
               role="treeitem"
               id=${rowDomId(this.base, r.node.id)}
               aria-level=${r.level}
@@ -545,7 +640,7 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
               aria-disabled=${r.node.disabled === true ? 'true' : nothing}
               data-id=${r.node.id}
               data-drop=${this.drop?.id === r.node.id ? this.drop.position : nothing}
-              draggable=${r.node.draggable === false || r.node.disabled === true ? 'false' : 'true'}
+              draggable=${r.node.draggable === false || r.node.disabled === true || r.node.id === this.renaming ? 'false' : 'true'}
               style=${`padding-inline-start:calc(${r.level - 1} * 16px + 4px)`}
               @click=${(e: MouseEvent) => this.onRowClick(e, r)}
               @dblclick=${() => emit(this, 'sf-activate', { id: r.node.id })}
@@ -553,9 +648,17 @@ export class SfTreeElement extends SfElement<typeof treeSpec> {
               @dragover=${(e: DragEvent) => this.onDragOver(e, r)}
               @drop=${(e: DragEvent) => this.onDrop(e, r)}
             >
-              <span class="twisty" aria-hidden="true">${r.expanded === undefined ? nothing : html`<sf-icon .icon=${chevronDownIcon}></sf-icon>`}</span>${r.node.icon ?? nothing}<span class="label">${r.node.label}</span>${r.node.badge === undefined
+              <span class="twisty" aria-hidden="true">${r.expanded === undefined ? nothing : html`<sf-icon .icon=${chevronDownIcon}></sf-icon>`}</span>${r.node.icon ?? nothing}${r.node.id === this.renaming
+                ? html`<input
+                    class="rename"
+                    aria-label=${`Rename ${r.node.label}`}
+                    .value=${r.node.label}
+                    @keydown=${(e: KeyboardEvent) => this.onRenameKey(e, r.node.id)}
+                    @blur=${(e: FocusEvent) => this.finishRename(r.node.id, (e.target as HTMLInputElement).value)}
+                  />`
+                : html`<span class="label">${r.node.label}</span>`}${r.node.badge === undefined ? nothing : html`<span class="badge">${r.node.badge}</span>`}${r.node.trailing === undefined
                 ? nothing
-                : html`<span class="badge">${r.node.badge}</span>`}
+                : html`<span class="trailing ${r.node.trailingPinned === true ? 'pinned' : ''}">${r.node.trailing}</span>`}
             </div>`,
           )}
         </div>

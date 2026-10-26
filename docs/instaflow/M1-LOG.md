@@ -72,6 +72,11 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** Owner near the weekly limit: B11b stopped after slices 1–4 (chrome/HUD/rotate/command bar, inspector,
+  Layers/Pages, context menu/clipboard/keys/cheat sheet). Slice 5 (Home/New design) WIP saved untested on
+  `claude/wip-b11b-slice5` (361df7f). Slices 1–4 replayed onto main for a PR. **Resume:** B11c = finish slice 5 from
+  that branch (its tests were mid-update), slice 6 (Settings, density, hints, deep links, logo/favicon/manifest),
+  find & replace, and the leftovers in `handoffs/B11b.md`; then the split input-lag look.
 - **2026-10-26** B12b PR #35 open. **B11b launched** on `claude/wip-b11b-surfaces` (stacked on B12b), in slices: Studio chrome/
   canvas/tools/HUD → inspector (every control) → dock → context menu/keyboard/clipboard → Home/New design/files →
   Settings/density/hints/deep links/logo; may end with a B11c for the remainder. Split input-lag look deferred until

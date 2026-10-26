@@ -231,8 +231,8 @@ export const TOOL_KEYMAP: readonly ToolKeyBinding[] = Object.freeze([
   ...resizes(true),
   { id: 'instaflow/rotate-cw', keys: ['Alt+]'], description: `Rotate ${ROTATE_STEP}° clockwise`, run: (c) => c.rotateBy(ROTATE_STEP) },
   { id: 'instaflow/rotate-ccw', keys: ['Alt+['], description: `Rotate ${ROTATE_STEP}° counter-clockwise`, run: (c) => c.rotateBy(-ROTATE_STEP) },
-  { id: 'instaflow/rotate-cw-fine', keys: ['Mod+Alt+]'], description: 'Rotate 1° clockwise', run: (c) => c.rotateBy(1) },
-  { id: 'instaflow/rotate-ccw-fine', keys: ['Mod+Alt+['], description: 'Rotate 1° counter-clockwise', run: (c) => c.rotateBy(-1) },
+  // B11b: Mod+Alt+] / [ are Bring to front / Send to back now (STUDIO §7); the 1° steps are the Transform section's
+  // angle field (the registry cannot tell Alt+Shift+] from Alt+]: Shift is part of the symbol).
   { id: 'instaflow/select-next', keys: ['Tab'], description: 'Select the next element', run: (c) => c.selectSibling(1, false) },
   { id: 'instaflow/select-previous', keys: ['Shift+Tab'], description: 'Select the previous element', run: (c) => c.selectSibling(-1, false) },
   { id: 'instaflow/extend-next', keys: ['Mod+Shift+ArrowRight'], description: 'Add the next element to the selection', run: (c) => c.selectSibling(1, true) },
@@ -248,8 +248,9 @@ export const TOOL_KEYMAP: readonly ToolKeyBinding[] = Object.freeze([
   { id: 'instaflow/zoom-selection', keys: ['Shift+2'], description: 'Zoom to the selection', run: (c) => c.fitSelection() },
   { id: 'instaflow/flip-h', keys: ['Shift+H'], description: 'Flip horizontal', run: (c) => c.flip('horizontal') },
   { id: 'instaflow/flip-v', keys: ['Shift+V'], description: 'Flip vertical', run: (c) => c.flip('vertical') },
-  // Browsers reserve Mod+T for a new tab outside full screen and installed apps; the HUD's Free transform does the same.
-  { id: 'instaflow/free-transform', keys: ['Mod+T'], description: 'Free transform (Enter applies, Escape cancels)', run: (c) => c.transform() },
+  // Browsers reserve Mod+T for a new tab outside full screen and installed apps: Mod+Alt+T is the key people can use (B11b,
+  // STUDIO §7); the HUD's Free transform does the same.
+  { id: 'instaflow/free-transform', keys: ['Mod+Alt+T', 'Mod+T'], description: 'Free transform (Enter applies, Escape cancels)', run: (c) => c.transform() },
 ]);
 
 /** B10a: the keys of an active transform session (`TransformModeShortcutScope`). */

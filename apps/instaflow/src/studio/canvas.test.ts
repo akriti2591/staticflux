@@ -92,7 +92,7 @@ describe('canvas region', () => {
     const element = await mountWith(canvas);
     await until(() => element.shadowRoot?.querySelector('[role="alert"]') !== null);
     expect(element.shadowRoot?.querySelector('[role="alert"]')?.textContent).toContain('could not start');
-    expect(element.shadowRoot?.querySelector('sf-toolbar.tools')).not.toBeNull();
+    expect(element.shadowRoot?.querySelector('.tools[role="toolbar"]')).not.toBeNull();
   });
 
   it('stops the pipeline when the element disconnects', async () => {

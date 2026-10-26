@@ -3,7 +3,7 @@ import { createScope } from '@staticflux/core';
 import { press } from '@staticflux/testkit/a11y';
 import { afterEach, describe, expect, it } from 'vitest';
 import { gateSpecDecide, pixelTouchUpSpec, StudioIds, studioSpec } from '../spec/index.js';
-import { editorGate, studioRegistries } from '../spec/testing/fixtures.js';
+import { editorGate, gatedStudioSpec, studioRegistries } from '../spec/testing/fixtures.js';
 import { scriptedProposer } from '../spec/testing/scripted-proposer.js';
 import { createStudio, PERSON, StudioShortcutScope } from './studio.js';
 
@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe('createStudio', () => {
-  it('opens the Studio spec: canvas lens, full toolbar, dock, inspector, HUD, Pro density', async () => {
+  it('opens the Studio spec: canvas lens, full toolbar, dock, inspector, Standard density (B11b)', async () => {
     const studio = make();
     expect(studio.spec).toBeUndefined();
     expect(studio.density).toBe('focus');
@@ -25,15 +25,15 @@ describe('createStudio', () => {
     expect(opened.ok).toBe(true);
     expect(studio.spec?.id).toBe('instaflow/studio');
     expect(studio.lens?.label).toBe('Canvas');
-    expect(studio.density).toBe('pro');
+    expect(studio.density).toBe('standard');
     expect(studio.activeTool).toBe(StudioIds.tool.select);
     expect(studio.port.groups()).toMatchObject({
       'lens@default': ['lens:instaflow/lens-canvas'],
-      'panel@side': ['panel:instaflow/chat'],
-      'panel@dock': ['panel:instaflow/layers', 'panel:instaflow/pages', 'panel:instaflow/assets', 'panel:instaflow/milestones', 'panel:instaflow/brand', 'panel:instaflow/export'],
-      'panel@inspector': ['panel:instaflow/typography'],
-      'hud@default': ['hud:instaflow/rewrite', 'hud:instaflow/animate', 'hud:instaflow/ask'],
+      'panel@dock': ['panel:instaflow/layers', 'panel:instaflow/pages', 'panel:instaflow/assets', 'panel:instaflow/milestones'],
+      'panel@inspector': ['panel:instaflow/inspector'],
     });
+    expect(studio.port.groups()['panel@side'] ?? []).toEqual([]);
+    expect(studio.port.groups()['hud@default'] ?? []).toEqual([]);
     expect(studio.proposals.history.map((p) => p.source.kind)).toEqual(['preset']);
     await studio.dispose();
   });
@@ -41,17 +41,17 @@ describe('createStudio', () => {
   it('a lens switch and a density change are spec changes by the person; pins survive them', async () => {
     const studio = make();
     await studio.open();
-    expect(studio.togglePin('panel:instaflow/layers')).toEqual({ ok: true, value: true });
+    expect(studio.togglePin('panel:instaflow/pages')).toEqual({ ok: true, value: true });
     const pixel = await studio.switchLens(StudioIds.lens.pixel);
     expect(pixel.ok && pixel.value.source).toEqual(PERSON);
     expect(studio.lens?.label).toBe('Pixel');
-    expect(studio.port.groups()['panel@inspector']).toEqual(['panel:instaflow/adjust']);
+    expect(studio.port.groups()['panel@inspector']).toEqual(['panel:instaflow/inspector', 'panel:instaflow/adjust']);
     const focus = await studio.setDensity('focus');
     expect(focus.ok).toBe(true);
     expect(studio.density).toBe('focus');
     expect(studio.lens?.label).toBe('Pixel');
-    expect(studio.runtime.pinned.has('panel:instaflow/layers')).toBe(true);
-    expect(studio.togglePin('panel:instaflow/layers')).toEqual({ ok: true, value: false });
+    expect(studio.runtime.pinned.has('panel:instaflow/pages')).toBe(true);
+    expect(studio.togglePin('panel:instaflow/pages')).toEqual({ ok: true, value: false });
     expect(studio.togglePin('lens:instaflow/lens-pixel').ok).toBe(false);
     await studio.dispose();
   });
@@ -95,15 +95,16 @@ describe('createStudio', () => {
 
   it('opening a spec that does not validate is an error; a gated switch reports it', async () => {
     const free = editorGate('free');
-    const studio = createStudio({ registries: studioRegistries({ gated: true }), decideFor: (s) => gateSpecDecide(free.gate, s), reducedMotion: () => true });
+    const studio = createStudio({ registries: studioRegistries({ gated: true }), decideFor: (s) => gateSpecDecide(free.gate, s), reducedMotion: () => true, spec: gatedStudioSpec });
     const opened = await studio.open();
     expect(!opened.ok && opened.error.code).toBe('SF-SHELL-009');
     free.setPlan('pro');
     expect((await studio.open()).ok).toBe(true);
     free.setPlan('free');
-    const switched = await studio.switchLens(StudioIds.lens.pixel);
+    // A spec change that keeps the gated Brand slot (a density change) is refused while the plan does not allow it.
+    const switched = await studio.setDensity('pro');
     expect(!switched.ok && switched.error.code).toBe('SF-SHELL-009');
-    expect(studio.lens?.label).toBe('Canvas');
+    expect(studio.density).toBe('standard');
   });
 
   it('agent proposals preview in Ask and the person opens them (scripted proposer)', async () => {
@@ -140,7 +141,7 @@ describe('createStudio', () => {
     await until(() => studio.lens?.label === 'Canvas');
     press(document.body, '5');
     await until(() => studio.lens?.label === 'Pages');
-    expect(registry.list().filter((s) => s.scope === StudioShortcutScope.id).length).toBe(5 + 11 + 3);
+    expect(registry.list().filter((s) => s.scope === StudioShortcutScope.id).length).toBe(5 + 13 + 3); // B11b: Ellipse O, Line L
     await scope.dispose();
     expect(studio.bindShortcuts(registry, { focusHud: () => undefined, focusCommandBar: () => undefined, focusCanvas: () => undefined }, createScope('again')).ok).toBe(true);
     const conflicting = studio.bindShortcuts(registry, { focusHud: () => undefined, focusCommandBar: () => undefined, focusCanvas: () => undefined }, createScope('twice'));
@@ -153,7 +154,7 @@ describe('createStudio', () => {
     expect((await studio.open()).ok).toBe(true);
     expect(studio.spec?.id).toBe('instaflow/pixel-touchup');
     expect(studio.density).toBe('focus');
-    expect(studioSpec.density).toBe('pro');
+    expect(studioSpec.density).toBe('standard');
   });
 });
 

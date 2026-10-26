@@ -729,7 +729,13 @@ export function duplicate(ctx: ActionContext, nodes: readonly NodeId[], offset: 
     }
     const texts = ctx.texts?.(source);
     ops.push({ op: 'create', node: id, kind: composed.kind, parent, position, props, ...(texts === undefined || Object.keys(texts).length === 0 ? {} : { texts }) });
-    ctx.stage.children(source).forEach((child, index) => copy(child, id, { index }, false));
+    // Derived nodes (a repeat's instances) are regenerated from the copy's own parameters, never copied (B11b fix:
+    // writing their match key failed the whole duplicate).
+    const derived = (ctx.stage as { isDerived?: (node: NodeId) => boolean }).isDerived;
+    ctx.stage
+      .children(source)
+      .filter((child) => derived?.call(ctx.stage, child) !== true)
+      .forEach((child, index) => copy(child, id, { index }, false));
   };
   for (const node of nodes) {
     const parent = ctx.stage.read(node)?.parent ?? null;

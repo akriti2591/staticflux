@@ -6,6 +6,7 @@
  * result.
  */
 import { err, ok, type Result, type SfError } from '@staticflux/core';
+import type { NodeId } from '@staticflux/document/v2';
 import type { AppearanceEdit, AppearanceModel } from '../elements/inspector.js';
 import type { StructureFeed } from '../lenses/structure.js';
 import type { StoryWriter } from '../lenses/story.js';
@@ -69,6 +70,13 @@ export function typographyFromMirror(view: MirrorView<TypographyMirrorShape>, on
     setAlign: (align) => send(view.call('setAlign', align)),
     setLineHeight: (multiple) => send(view.call('setLineHeight', multiple)),
     fitToBox: () => send(view.call('fitToBox')),
+    setScript: (script) => send(view.call('setScript', script)),
+    setParagraph: (patch) => send(view.call('setParagraph', patch)),
+    setBox: (box) => send(view.call('setBox', box)),
+    setVerticalAlign: (align) => send(view.call('setVerticalAlign', align)),
+    convertCase: (kind) => send(view.call('convertCase', kind)),
+    clearFormatting: () => send(view.call('clearFormatting')),
+    applyPreset: (name) => send(view.call('applyPreset', name)),
   };
 }
 
@@ -106,11 +114,62 @@ export function structureFromMirror(view: MirrorView<StoryMirrorShape>): Structu
 }
 
 /** B4's story writer (the Pages panel's reorder). */
-export function storyFromMirror(view: MirrorView<StoryMirrorShape>, onProblem: Problem): StoryWriter {
+export function storyFromMirror(view: MirrorView<StoryMirrorShape>, onProblem: Problem, feedback: PageFeedback = {}): StoryWriter {
+  /** Resolve once the mirrored structure lists (or no longer lists) `page`, or after `ms`. */
+  const until = (page: NodeId, present: boolean, ms = 3000): Promise<void> =>
+    new Promise((resolve) => {
+      const has = (): boolean => {
+        const s = view.read('structure');
+        return s?.ok === true && s.value.pages.some((p) => p.id === page) === present;
+      };
+      if (has()) return resolve();
+      const timer = setTimeout(() => {
+        off();
+        resolve();
+      }, ms);
+      const off = view.onChange(() => {
+        if (!has()) return;
+        clearTimeout(timer);
+        off();
+        resolve();
+      });
+    });
+  const report = <T>(r: Result<T>): Result<T> => {
+    if (!r.ok) onProblem(r.error);
+    return r;
+  };
   return {
     movePage(page, to) {
       reportFailure(view.call('movePage', page, to), onProblem);
       return ok();
     },
+    pages: {
+      async addPage(after) {
+        const r = report(await view.call('addPage', after ?? null));
+        if (r.ok) await until(r.value, true);
+        return r;
+      },
+      async duplicatePage(page) {
+        const r = report(await view.call('duplicatePage', page));
+        if (r.ok) await until(r.value, true);
+        return r;
+      },
+      async deletePage(page) {
+        const r = report(await view.call('deletePage', page));
+        if (r.ok) {
+          await until(page, false);
+          feedback.deleted?.(page);
+        }
+        return r;
+      },
+      async renamePage(page, name) {
+        return report(await view.call('renameStoryPage', page, name));
+      },
+    },
   };
+}
+
+/** What the page edits tell the person beyond the panel (a toast with Undo after a delete). */
+export interface PageFeedback {
+  deleted?(page: NodeId): void;
 }

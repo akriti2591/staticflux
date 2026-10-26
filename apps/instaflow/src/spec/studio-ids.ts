@@ -8,6 +8,11 @@ export const StudioIds = Object.freeze({
     select: 'instaflow/select',
     frame: 'instaflow/frame',
     shape: 'instaflow/shape',
+    // B11b: the rest of the shape family (the picker's Shape menu).
+    ellipse: 'instaflow/ellipse',
+    polygon: 'instaflow/polygon',
+    star: 'instaflow/star',
+    line: 'instaflow/line',
     text: 'instaflow/text',
     pen: 'instaflow/pen',
     hand: 'instaflow/hand',
@@ -34,6 +39,8 @@ export const StudioIds = Object.freeze({
     transform: 'instaflow/transform',
     // C1: PNG, PDF and SVG export.
     export: 'instaflow/export',
+    // B11b: the inspector (every section of the selection kind; the page with nothing selected).
+    inspector: 'instaflow/inspector',
   },
   hud: {
     rewrite: 'instaflow/rewrite',

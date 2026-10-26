@@ -1,94 +1,241 @@
 /**
- * `<if-studio>` — the Studio frame (`docs/instaflow/design/StudioCP.dc.html`), laid out entirely from
- * the mounted editor spec: the top bar (home, breadcrumb, the lens mode switcher, save state, agent
- * chip, density, Milestone, Share), the contextual side panel (chat), the tabbed left dock, the canvas
- * region (tools, the HUD slot, the canvas surface behind the A7 modules, the command bar, zoom, a
- * proposed-editor card) and the inspector. Every slot is a kit component under the active theme
- * (Clean Pop): no app colours, no one-off control styles.
+ * `<if-studio>` — the Studio frame (STUDIO-UX-SPEC §1–§4, `docs/instaflow/design/StudioCP.dc.html`; B0, rebuilt by
+ * B11b): the top bar (the mark → Home, the design title renamed in place, the lens switcher `Canvas · Pages`, the save
+ * state → Milestones, `View ▾`, `Milestone`, `⋯`, `Export`), the tabbed left dock, the **canvas room** (the mist dot
+ * grid fills the whole region; the page is a white card with a shadow and a non-printing label, drawn behind the
+ * transparent canvas; the floating tool picker, the selection pill, the zoom pill) and the inspector. Every control is
+ * a kit component under the active theme (Clean Pop).
  *
- * It renders from the Studio controller's reactive layout model (`studio.port`), so a spec diff only
- * re-renders what changed; entering, moving and exiting slots carry `data-phase` and their 120–200 ms
- * motion (0 under reduced motion). Slot elements carry `data-slot` and `data-group` (`panel@dock`).
+ * The dock, the tools and the inspector panels are laid out from the mounted editor spec (`studio.port`); the selection
+ * pill (`<if-hud>`) and the page card read `model` (the editor's mirrors, set by the app); every edit goes out through
+ * `port`. Nothing here decides: it shows and forwards.
  */
-import type { ShortcutRegistry } from '@staticflux/a11y';
+import { defineShortcut, type ShortcutDef, type ShortcutRegistry } from '@staticflux/a11y';
 import { createScope, type Scope } from '@staticflux/core';
 import { defineButton } from '@staticflux/kit/button';
 import { defineDock } from '@staticflux/kit/dock';
+import { defineIconElement } from '@staticflux/kit/icon';
 import { defineIconButton } from '@staticflux/kit/icon-button';
-import { defineMenu } from '@staticflux/kit/menu';
+import { defineInlineEdit } from '@staticflux/kit/inline-edit';
+import { chevronDownIcon } from '@staticflux/kit/icons/chevron-down';
+import { downloadIcon } from '@staticflux/kit/icons/download';
+import { ellipsisIcon } from '@staticflux/kit/icons/ellipsis';
+import { minusIcon } from '@staticflux/kit/icons/minus';
+import { plusIcon } from '@staticflux/kit/icons/plus';
+import { defineMenu, type SfMenuElement } from '@staticflux/kit/menu';
+import { definePopover, type SfPopoverElement } from '@staticflux/kit/popover';
 import { defineSegmented, type SegmentOption } from '@staticflux/kit/segmented';
 import { defineTabs } from '@staticflux/kit/tabs';
 import { defineTag } from '@staticflux/kit/tag';
 import { defineTextField } from '@staticflux/kit/text-field';
-import { defineToolbar, type SfToolbarElement } from '@staticflux/kit/toolbar';
 import type { SpecLayoutEntry, SpecSlotKey } from '@staticflux/shell/spec';
 import { component, defineComponent, SfElement } from '@staticflux/ui';
 import { themeTokens as t } from '@staticflux/ui/theme';
 import { css, html, nothing, type PropertyValues, type TemplateResult } from 'lit';
-import { DENSITIES, DENSITY_RANK, type Density, type HudTone, type PanelContext, type PanelPlacementId, type ScopeKind } from '../spec/contributions.js';
+import type { PageSummary, SelectionSummary } from '../app/scene-summary.js';
+import { DENSITY_RANK, type Density, type PanelContext, type PanelPlacementId, type ScopeKind, type ToolId } from '../spec/contributions.js';
 import type { SpecProposal } from '../spec/proposals.js';
-import { lensMarkStyle, lensOf, lenses } from '../theme/lenses.js';
+import { StudioIds } from '../spec/studio-ids.js';
+import type { FontChoice, TypographySummary } from '../text/typography.js';
+import { toolIcon } from '../theme/icons.js';
+import { lensMarkStyle, lensOf } from '../theme/lenses.js';
+import { instaflowMark } from '../theme/logo.js';
+import { circleIcon } from '@staticflux/kit/icons/circle';
+import { pentagonIcon } from '@staticflux/kit/icons/pentagon';
+import { starIcon } from '@staticflux/kit/icons/star';
+import type { IconDef } from '@staticflux/kit/icon';
+import type { DocumentColor } from '@staticflux/kit/color-popover';
 import type { CanvasPort, CanvasSession } from './canvas.js';
-import type { Studio } from './studio.js';
+import { defineInspectorElement } from './inspector.js';
+import { defineLayersPanel, type LayerContextDetail } from './layers-panel.js';
+import { type CommandEntry, defineCommandBar, type IfCommandBarElement } from './command-bar.js';
+import { defineHud, type HudAction, type HudPort, type IfHudElement } from './hud.js';
+import { type Studio, StudioShortcutScope } from './studio.js';
+import { type ContextEntry, type ContextGroup, type ContextTarget, contextMenuGroups, parseContextValue } from './context-menu.js';
 
 /** User-facing strings (props override them; i18n lands with the app shell). */
 export const studioMessages = Object.freeze({
   home: 'Home',
-  breadcrumb: 'Breadcrumb',
-  mode: 'Mode',
-  density: 'Density',
+  title: 'Design title',
+  untitled: 'Untitled design',
+  lens: 'Lens',
   densities: { focus: 'Focus', standard: 'Standard', pro: 'Pro' } as Readonly<Record<Density, string>>,
+  densityLines: { focus: 'Just your work.', standard: 'Your work, with the panels that explain it.', pro: 'Everything, with numbers.' } as Readonly<Record<Density, string>>,
   saved: 'Saved',
-  milestone: 'Milestone',
-  saveTemplate: 'Save as template',
-  share: 'Share',
-  dock: 'Dock',
-  tools: 'Tools',
-  hud: 'Selection actions',
-  canvas: 'Canvas',
-  canvasSurface: 'Canvas surface',
-  commandBar: 'Command bar',
-  commandPlaceholder: 'Ask Claude or type a command',
+  saveHint: 'Instaflow saves as you work. Create a milestone to keep a named version.',
+  view: 'View',
+  zoomFit: 'Zoom to fit',
+  zoomSelection: 'Zoom to selection',
+  zoom100: 'Zoom to 100 %',
   zoom: 'Zoom',
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
+  density: 'Density',
+  milestone: 'Milestone',
+  milestoneName: 'Milestone name',
+  create: 'Create',
+  more: 'More',
+  saveTemplate: 'Save as template…',
+  rename: 'Rename…',
+  copyLink: 'Copy link',
+  export: 'Export',
+  dock: 'Dock',
+  tools: 'Tools',
+  shapes: 'Shapes',
+  canvas: 'Canvas',
+  canvasSurface: 'Canvas surface',
+  pageLabel: (p: PageSummary) => `${p.name} · ${p.width} × ${p.height}`,
+  pageLabelHint: 'Click to select the page · double-click to rename it',
   proposal: 'Proposed editor',
   open: 'Open',
   dismiss: 'Dismiss',
-  pin: (label: string) => `Pin ${label}`,
-  moreActions: 'More actions',
   canvasFailed: 'The canvas could not start. The rest of Studio still works.',
+  contextMenu: 'Context menu',
 });
+
+/** The chrome's own keys (STUDIO-UX-SPEC §7, B11b slice 4); the cheat sheet lists them with every other shortcut. */
+export const ChromeShortcuts = Object.freeze({
+  toggleDock: defineShortcut({ id: 'instaflow/toggle-dock', keys: ['Mod+\\'], scope: StudioShortcutScope, description: 'Show or hide the dock' }),
+  toggleInspector: defineShortcut({ id: 'instaflow/toggle-inspector', keys: ['Mod+Alt+\\'], scope: StudioShortcutScope, description: 'Show or hide the inspector' }),
+  rename: defineShortcut({ id: 'instaflow/rename-key', keys: ['Mod+Shift+R', 'F2'], scope: StudioShortcutScope, description: 'Rename the selection' }),
+  copyLink: defineShortcut({ id: 'instaflow/copy-link', keys: ['Mod+Alt+L'], scope: StudioShortcutScope, description: 'Copy a link to this design' }),
+  milestone: defineShortcut({ id: 'instaflow/milestone-key', keys: ['Mod+Alt+S'], scope: StudioShortcutScope, description: 'Create a milestone' }),
+  save: defineShortcut({ id: 'instaflow/save-key', keys: ['Mod+S'], scope: StudioShortcutScope, description: 'Instaflow saves as you work' }),
+  help: defineShortcut({ id: 'instaflow/shortcuts-help', keys: ['Shift+?'], scope: StudioShortcutScope, description: 'Keyboard shortcuts' }),
+  contextMenu: defineShortcut({ id: 'instaflow/context-menu-key', keys: ['Shift+F10'], scope: StudioShortcutScope, description: 'Open the context menu' }),
+});
+
+/** The camera commands of the View menu and the zoom pill (the editor runs them). */
+export type CameraAction = 'fit-page' | 'fit-selection' | 'zoom-100' | 'zoom-in' | 'zoom-out' | 'zoom-50' | 'zoom-200';
+
+/** What the chrome shows (the editor's mirrors, set by the app as they post). */
+export interface StudioChromeModel {
+  readonly title: string;
+  readonly page: PageSummary | undefined;
+  readonly selection: SelectionSummary | undefined;
+  /** Page-space bounds of the selection frame. */
+  readonly frame: { readonly x: number; readonly y: number; readonly w: number; readonly h: number } | undefined;
+  readonly camera: { readonly tx: number; readonly ty: number; readonly zoom: number };
+  /** B3's gesture state (`idle` when nothing is being dragged). */
+  readonly gesture: string;
+  readonly editing: boolean;
+  readonly typography: TypographySummary | undefined;
+  readonly fonts: readonly FontChoice[];
+  readonly colors: readonly DocumentColor[];
+  readonly actions: ReadonlyMap<string, HudAction>;
+  /** Capabilities that run with nothing selected (undo, redo): the command bar always lists them. */
+  readonly globalActions: readonly string[];
+  /** C1's exporter exists here (the Export button renders only then). */
+  readonly exportAvailable: boolean;
+  /** Templates can be saved here. */
+  readonly templatesAvailable: boolean;
+  /** B11b slice 4: what Paste and Paste style can do now (context menu). */
+  readonly clipboard: { readonly canPaste: boolean; readonly styleCopied: boolean };
+  /** Pages in the design (Delete page needs two). */
+  readonly pages: number;
+}
+
+/** What the chrome runs (the app implements it over capabilities and mirrors). */
+export interface StudioChromePort extends HudPort {
+  renameTitle(title: string): void;
+  camera(action: CameraAction): void;
+  openExport(): void;
+  createMilestone(name: string): void;
+  saveAsTemplate(): void;
+  copyLink(): void;
+  /** Leave Studio for `href` after saving (the Home link). */
+  navigate(href: string): void;
+  /** The page label (STUDIO §1): select the page (nothing selected: the inspector shows Page); `rename` focuses its name. */
+  selectPage(rename: boolean): void;
+  /** B11b slice 4: the context menu's target at a canvas point (selects what is there), or the selection. */
+  contextAt(point?: { readonly x: number; readonly y: number }): Promise<SelectionSummary | undefined>;
+  /** Clipboard commands from menus (keys use the browser's copy / cut / paste events). */
+  clipboard(action: 'cut' | 'copy' | 'paste' | 'paste-in-place' | 'copy-as-text'): void;
+  selectAll(): void;
+  editText(): void;
+  textPreset(name: string): void;
+  fitToBox(): void;
+  /** Replace the selected image (the library picker). */
+  replaceImage(): void;
+  /** Page edits on the open page (`size` takes `WxH`). */
+  pageAction(action: 'add' | 'duplicate' | 'delete' | 'size', arg?: string): void;
+  /** `Mod+S`: Instaflow saves as you work (a toast offers a milestone). */
+  saveHint(): void;
+  /** `?`: the keyboard cheat sheet. */
+  openShortcuts(): void;
+}
+
+export const EMPTY_CHROME: StudioChromeModel = Object.freeze({
+  title: '',
+  page: undefined,
+  selection: undefined,
+  frame: undefined,
+  camera: { tx: 0, ty: 0, zoom: 1 },
+  gesture: 'idle',
+  editing: false,
+  typography: undefined,
+  fonts: [],
+  colors: [],
+  actions: new Map(),
+  globalActions: [],
+  exportAvailable: false,
+  templatesAvailable: false,
+  clipboard: { canPaste: false, styleCopied: false },
+  pages: 1,
+});
+
+/** The tool picker's shape family (one button, a menu, STUDIO-UX-SPEC §4.1). */
+const SHAPE_FAMILY: readonly ToolId[] = [StudioIds.tool.shape, StudioIds.tool.ellipse, StudioIds.tool.polygon, StudioIds.tool.star, StudioIds.tool.line];
+const TOOL_ICONS: Readonly<Record<string, IconDef>> = {
+  [StudioIds.tool.select]: toolIcon('select'),
+  [StudioIds.tool.frame]: toolIcon('frame'),
+  [StudioIds.tool.shape]: toolIcon('shape'),
+  [StudioIds.tool.text]: toolIcon('text'),
+  [StudioIds.tool.hand]: toolIcon('hand'),
+  [StudioIds.tool.ellipse]: circleIcon,
+  [StudioIds.tool.polygon]: pentagonIcon,
+  [StudioIds.tool.star]: starIcon,
+  [StudioIds.tool.line]: minusIcon,
+};
+
+/** Lenses shown in M1 (STUDIO-UX-SPEC §2.1: the layout lenses that exist). */
+export const M1_LENSES: readonly string[] = [StudioIds.lens.canvas, StudioIds.lens.pages];
+
+/** Gap between the pill and the selection, and the pill's margin from the canvas edges (§4.2.2). */
+export const HUD_GAP = 12;
+export const HUD_MARGIN = 8;
+/** The tool picker's bottom edge (16 px from the top, 42 px tall): the pill never overlaps it. */
+export const TOOL_PICKER_BOTTOM = 16 + 42;
+/** The rotate handle sits 24 px below the frame on a stem: a pill below the selection clears it. */
+const ROTATE_CLEARANCE = 36;
 
 /**
- * How each HUD tone renders (UX §2): direct manipulations ghost, ✦ agent actions soft. Tone `more` actions all go
- * into the one "More actions" menu (`HUD_MORE`), so the bar stays short however many features contribute.
+ * Where the pill goes (§4.2.2), in canvas-region pixels: centred above the selection's screen bounds with a 12 px gap,
+ * below when there is no room above (the tool picker counts), clamped to the region; undefined when the selection is
+ * entirely off-screen. Pure.
  */
-const HUD_CONTROLS: Readonly<Record<Exclude<HudTone, 'more'>, (entry: SpecLayoutEntry, run: () => void) => TemplateResult>> = Object.freeze({
-  direct: (entry, run) =>
-    html`<sf-button size="sm" variant="ghost" data-slot=${entry.slot.key} data-group="hud@default" data-phase=${entry.phase} style=${motionStyle(entry)} ?inert=${isExiting(entry)} @click=${run}>${entry.slot.contribution.label}</sf-button>`,
-  agent: (entry, run) =>
-    html`<sf-button size="sm" variant="agent-soft" data-slot=${entry.slot.key} data-group="hud@default" data-phase=${entry.phase} style=${motionStyle(entry)} ?inert=${isExiting(entry)} @click=${run}>✦ ${entry.slot.contribution.label}</sf-button>`,
-});
-
-/** The More menu: one trigger, one item per `more` action (each item is its slot). */
-const HUD_MORE = (entries: readonly SpecLayoutEntry[], run: (action: string) => void): TemplateResult | typeof nothing =>
-  entries.length === 0
-    ? nothing
-    : html`<sf-menu label=${studioMessages.moreActions} data-hud-more @sf-select=${(e: CustomEvent<{ value: string }>) => run(e.detail.value)}>
-        <sf-icon-button slot="trigger" label=${studioMessages.moreActions} size="sm" variant="ghost"><span aria-hidden="true">⋯</span></sf-icon-button>
-        ${entries.map(
-          (entry) =>
-            html`<sf-menu-item value=${entry.slot.id} data-slot=${entry.slot.key} data-group="hud@default" data-phase=${entry.phase} ?disabled=${isExiting(entry)}>${entry.slot.contribution.label}</sf-menu-item>`,
-        )}
-      </sf-menu>`;
-
-const AUTONOMY_LABEL = Object.freeze({ plan: 'Plan', ask: 'Ask', 'accept-edits': 'Accept edits', autopilot: 'Autopilot' });
+export function hudPosition(
+  frame: { readonly x: number; readonly y: number; readonly w: number; readonly h: number },
+  camera: { readonly tx: number; readonly ty: number; readonly zoom: number },
+  region: { readonly width: number; readonly height: number },
+  pill: { readonly width: number; readonly height: number },
+): { readonly left: number; readonly top: number } | undefined {
+  const x = frame.x * camera.zoom + camera.tx;
+  const y = frame.y * camera.zoom + camera.ty;
+  const w = frame.w * camera.zoom;
+  const h = frame.h * camera.zoom;
+  if (x + w < 0 || y + h < 0 || x > region.width || y > region.height) return undefined;
+  const visibleTop = Math.max(y, 0);
+  const above = visibleTop - HUD_GAP - pill.height;
+  const top = above >= TOOL_PICKER_BOTTOM + HUD_MARGIN ? above : Math.min(y + h + ROTATE_CLEARANCE, region.height - pill.height - HUD_MARGIN);
+  const left = Math.min(Math.max(x + w / 2 - pill.width / 2, HUD_MARGIN), Math.max(HUD_MARGIN, region.width - pill.width - HUD_MARGIN));
+  return { left, top: Math.max(TOOL_PICKER_BOTTOM + HUD_MARGIN, top) };
+}
 
 const studioComponent = component({
   tag: 'if-studio',
   placeholder: () => nothing,
-  description: 'Instaflow Studio frame, laid out from the mounted editor spec (M1b B0).',
+  description: 'Instaflow Studio frame: top bar, dock, the canvas room with the page card, tool picker and selection pill, inspector (B11b).',
 });
 
 const motionStyle = (entry: SpecLayoutEntry): string => `--if-motion:${entry.step.durationMs}ms;--if-ease:${entry.step.easing}`;
@@ -108,6 +255,11 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     zoom: { type: Number },
     expanded: { state: true },
     dockTab: { state: true },
+    model: { attribute: false },
+    port: { attribute: false },
+    hudHidden: { state: true },
+    closed: { state: true },
+    contextGroups: { state: true },
   };
   static override styles = [
     css`
@@ -123,39 +275,43 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       }
       header {
         display: flex;
-        flex-wrap: wrap;
         align-items: center;
         gap: ${t.space.md.css};
-        min-block-size: ${t.size.toolbar.css};
-        padding-inline: ${t.space.md.css};
+        min-block-size: 56px;
+        padding-inline: 14px;
         border-block-end: 1px solid ${t.color.border.css};
+        background: ${t.color.canvas.css};
       }
       .home {
         display: inline-flex;
         border-radius: ${t.radius.sm.css};
       }
       .home:focus-visible,
-      .surface:focus-visible {
+      .surface:focus-visible,
+      .saved:focus-visible,
+      .page-label:focus-visible {
         outline: 2px solid ${t.color.focusRing.css};
         outline-offset: 2px;
-      }
-      nav {
-        display: flex;
-        align-items: center;
-        gap: ${t.space.xs.css};
-        color: ${t.color.textMuted.css};
       }
       .title {
         font-family: ${t.font.familyDisplay.css};
         font-weight: ${t.font.weightDisplay.css};
-        font-size: ${t.type.sizeLg.css};
-        color: ${t.color.text.css};
+        font-size: 15px;
+        min-inline-size: 0;
       }
       .modes {
         margin-inline: auto;
       }
       .saved {
+        display: inline-flex;
+        align-items: center;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        font: inherit;
         color: ${t.color.textMuted.css};
+        cursor: pointer;
+        border-radius: ${t.radius.sm.css};
       }
       .body {
         flex: 1;
@@ -170,79 +326,86 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         position: relative;
         flex: 1;
         min-inline-size: 0;
-        display: grid;
-        grid-template-rows: auto auto 1fr auto;
-        gap: ${t.space.sm.css};
-        padding: ${t.space.md.css};
-        background-color: ${t.color.neutral4.css};
-        background-image: radial-gradient(${t.color.neutral7.css} 1px, transparent 1px);
+        overflow: hidden;
+        background-color: #e4e9ef;
+        background-image: radial-gradient(#c3ccd7 1px, transparent 1px);
         background-size: 20px 20px;
       }
-      .tools,
-      .hud {
-        justify-self: center;
-        background: ${t.color.surface2.css};
-        border-radius: ${t.radius.full.css};
-        box-shadow: ${t.shadow.level1.css};
-        padding: ${t.space.xs.css};
-        max-inline-size: 100%;
+      .page-card {
+        position: absolute;
+        background: #ffffff;
+        box-shadow:
+          0 2px 6px rgba(22, 21, 26, 0.1),
+          0 24px 56px rgba(22, 21, 26, 0.18);
+        pointer-events: none;
+      }
+      .page-label {
+        position: absolute;
+        z-index: 2;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        font: inherit;
+        font-size: 12px;
+        color: ${t.color.textMuted.css};
+        cursor: pointer;
+        white-space: nowrap;
+        border-radius: ${t.radius.sm.css};
       }
       .surface {
-        position: relative;
-        overflow: hidden;
-        min-block-size: 0;
-        border-radius: ${t.radius.md.css};
+        position: absolute;
+        inset: 0;
+        z-index: 1;
       }
-      /*
-       * The kit toolbar is an inline-size container, so it has no intrinsic width (B8): the tools pill gets its width
-       * from its item count; the HUD spans the canvas region and always takes two rows however many actions a
-       * selection brings (it scrolls, the canvas keeps its size). A fixed block size, not only a maximum: a HUD that
-       * grew from one row (no selection) to two (a selection's actions) moved the surface 40 px under the pointer, so
-       * a drag that started as the HUD re-laid out lost that distance (IF-33.20 smoke, colocated topology).
-       */
       .tools {
-        inline-size: calc(var(--if-items, 6) * (${t.size.controlLg.css} + ${t.space.xs.css}) + 2 * ${t.space.sm.css} + 2 * ${t.space.xs.css});
-      }
-      .hud {
-        justify-self: stretch;
-        block-size: calc(${t.size.toolbar.css} * 2);
-        max-block-size: calc(${t.size.toolbar.css} * 2);
-        overflow-y: auto;
-        scrollbar-width: thin;
-      }
-      .bottom {
-        display: flex;
-        align-items: center;
-        gap: ${t.space.md.css};
-      }
-      .zoom {
+        position: absolute;
+        z-index: 2;
+        inset-block-start: 16px;
+        inset-inline-start: 50%;
+        transform: translateX(-50%);
         display: inline-flex;
         align-items: center;
-        gap: ${t.space.xs.css};
-        padding: ${t.space.xs.css};
+        gap: 2px;
+        padding: 4px;
+        background: ${t.color.surface2.css};
+        border-radius: ${t.radius.full.css};
+        box-shadow:
+          0 1px 2px rgba(22, 21, 26, 0.08),
+          0 10px 28px rgba(22, 21, 26, 0.18);
+      }
+      .zoom {
+        position: absolute;
+        z-index: 2;
+        inset-inline-start: 16px;
+        inset-block-end: 24px;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        padding: 3px;
         background: ${t.color.surface2.css};
         border: 1px solid ${t.color.border.css};
         border-radius: ${t.radius.full.css};
         font-family: ${t.font.familyMono.css};
+        font-size: 12px;
       }
-      .command {
-        flex: 1;
-        display: flex;
-        align-items: center;
+      .command-bar {
+        position: absolute;
+        z-index: 2;
+        inset-block-end: 24px;
+        inset-inline-start: 50%;
+        transform: translateX(-50%);
+      }
+      if-hud[data-hidden] {
+        visibility: hidden;
+      }
+      .milestone-form {
+        display: grid;
         gap: ${t.space.sm.css};
-        max-inline-size: 520px;
-        margin-inline: auto;
-        padding-inline: ${t.space.md.css} ${t.space.xs.css};
-        background: ${t.color.surface2.css};
-        border: 1px solid ${t.color.border.css};
-        border-radius: ${t.radius.full.css};
-        box-shadow: ${t.shadow.level1.css};
-      }
-      .command sf-text-field {
-        flex: 1;
+        inline-size: 236px;
       }
       .proposal {
         position: absolute;
+        z-index: 3;
         inset-inline-end: ${t.space.lg.css};
         inset-block-start: ${t.space.lg.css};
         inline-size: 240px;
@@ -263,13 +426,15 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         color: ${t.color.textMuted.css};
       }
       [role='alert'] {
+        position: absolute;
+        z-index: 3;
+        inset-block-end: 80px;
+        inset-inline: 0;
+        text-align: center;
         color: ${t.color.dangerText.css};
       }
       [data-phase='entering'] {
         animation: if-enter var(--if-motion, 0ms) var(--if-ease, ease) both;
-      }
-      [data-phase='moving'] {
-        animation: if-move var(--if-motion, 0ms) var(--if-ease, ease) both;
       }
       [data-phase='exiting'] {
         animation: if-exit var(--if-motion, 0ms) var(--if-ease, ease) both;
@@ -279,11 +444,6 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         from {
           opacity: 0;
           transform: scale(0.96);
-        }
-      }
-      @keyframes if-move {
-        from {
-          opacity: 0.5;
         }
       }
       @keyframes if-exit {
@@ -309,13 +469,24 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
   declare canvasError: string | undefined;
   /** What the top bar's save state shows (B5's `<if-save-status>`); the static "Saved" until set. */
   declare status: unknown;
-  /** The canvas zoom (1 = 100 %) shown in the zoom control. */
+  /** The canvas zoom (1 = 100 %) shown in the zoom pill. */
   declare zoom: number;
   /** Regions the person expanded although the density collapses them. */
   declare expanded: ReadonlySet<PanelPlacementId>;
   declare dockTab: SpecSlotKey | undefined;
+  declare model: StudioChromeModel;
+  declare port: StudioChromePort | undefined;
+  declare hudHidden: boolean;
+  /** Regions the person closed (`Mod+\\`, `Mod+Alt+\\`, the dock's collapse button) although the density opens them. */
+  declare closed: ReadonlySet<PanelPlacementId>;
+  /** The open context menu's items (STUDIO §8.2). */
+  declare contextGroups: readonly ContextGroup[];
   private wired: Scope | undefined;
   private canvasSession: CanvasSession | undefined;
+  private hudFrozen = false;
+  private hudTimer: ReturnType<typeof setTimeout> | undefined;
+  private lastGesture = 'idle';
+  private shapeTool: ToolId = StudioIds.tool.shape;
 
   constructor() {
     super();
@@ -330,10 +501,16 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     this.zoom = 1;
     this.expanded = new Set();
     this.dockTab = undefined;
+    this.model = EMPTY_CHROME;
+    this.port = undefined;
+    this.hudHidden = false;
+    this.closed = new Set();
+    this.contextGroups = [];
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    clearTimeout(this.hudTimer);
     const wired = this.wired;
     this.wired = undefined;
     void wired?.dispose();
@@ -342,20 +519,43 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     void session?.stop();
   }
 
+  protected override willUpdate(changed: PropertyValues): void {
+    // The pill hides during gestures and comes back 120 ms after one ends, at the new place (§4.2.2).
+    if (changed.has('model')) {
+      const gesture = this.model.gesture;
+      if (gesture !== 'idle') {
+        clearTimeout(this.hudTimer);
+        this.hudHidden = true;
+      } else if (this.lastGesture !== 'idle') {
+        clearTimeout(this.hudTimer);
+        this.hudTimer = setTimeout(() => {
+          this.hudHidden = false;
+        }, 120);
+      }
+      this.lastGesture = gesture;
+    }
+  }
+
   protected override updated(changed: PropertyValues): void {
     super.updated(changed);
     if (this.wired === undefined && this.studio !== undefined && this.isConnected) this.wire(this.studio);
+    this.placeHud();
   }
 
-  /** Focus the first HUD control (`Alt+Enter`). */
+  /** Focus the first item of the selection pill (`Alt+Enter`). */
   focusHud(): void {
-    const items = this.query<SfToolbarElement>('.hud')?.items ?? [];
-    (items.find((item) => item.tabIndex === 0) ?? items[0])?.focus();
+    this.query<IfHudElement>('if-hud')?.focusFirst();
   }
 
-  /** Focus the command bar (`Mod+K`). */
+  /** Focus the design title (`⋯ › Rename…`, F-29). */
+  focusTitle(): void {
+    const edit = this.query<HTMLElement & { edit?: () => void }>('.title');
+    edit?.edit?.();
+  }
+
+  /** Open the command bar with its filter focused (`Mod+K`, §4.4). */
   focusCommandBar(): void {
-    this.query<HTMLElement>('.command sf-text-field')?.focus();
+    this.query<IfCommandBarElement>('if-command-bar')?.open();
   }
 
   /** Focus the canvas surface (`Escape`). */
@@ -363,10 +563,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     this.query<HTMLElement>('.surface')?.focus();
   }
 
-  /**
-   * Show a dock panel by contribution id (C1: "Share" shows Export): its tab selected, the dock expanded, focus on
-   * its tab. False when the spec does not place it in the dock.
-   */
+  /** Show a dock panel by contribution id: its tab selected, the dock expanded, focus on its tab. False when not docked. */
   async showPanel(id: string): Promise<boolean> {
     const entry = this.studio?.port.entries('panel@dock').find((e) => e.slot.id === id && !isExiting(e));
     if (entry === undefined) return false;
@@ -392,6 +589,22 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     if (this.shortcuts !== undefined) {
       const bound = studio.bindShortcuts(this.shortcuts, { focusHud: () => this.focusHud(), focusCommandBar: () => this.focusCommandBar(), focusCanvas: () => this.focusCanvas() }, scope);
       if (bound.ok) this.shortcuts.attach(this, scope);
+      // B11b slice 4: the chrome's own keys (STUDIO §7).
+      const selected = (): number => this.model.selection?.nodes.length ?? 0;
+      const keys: readonly (readonly [ShortcutDef, () => void, (() => boolean)?])[] = [
+        [ChromeShortcuts.toggleDock, () => this.toggleRegion('dock')],
+        [ChromeShortcuts.toggleInspector, () => this.toggleRegion('inspector')],
+        [ChromeShortcuts.rename, () => this.rename(), () => selected() === 1],
+        [ChromeShortcuts.copyLink, () => this.port?.copyLink()],
+        [ChromeShortcuts.milestone, () => this.port?.createMilestone('')],
+        [ChromeShortcuts.save, () => this.port?.saveHint()],
+        [ChromeShortcuts.help, () => this.port?.openShortcuts()],
+        [ChromeShortcuts.contextMenu, () => void this.openContextMenuFromKeyboard()],
+      ];
+      for (const [def, run, when] of keys) {
+        const registered = this.shortcuts.register(def, run, { scope, ...(when === undefined ? {} : { when }) });
+        if (!registered.ok) console.warn(registered.error.message);
+      }
     }
     const surface = this.query<HTMLElement>('.surface');
     if (this.canvas !== undefined && surface !== null) {
@@ -406,12 +619,31 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     }
   }
 
+  /** Place the pill from the selection frame (frozen while one of its popovers is open). */
+  private placeHud(): void {
+    const hud = this.query<IfHudElement>('if-hud');
+    const region = this.query<HTMLElement>('main');
+    const frame = this.model.frame;
+    if (hud === null || region === null) return;
+    if (this.hudFrozen) return;
+    const pill = hud.getBoundingClientRect();
+    const box = region.getBoundingClientRect();
+    const at = frame === undefined ? undefined : hudPosition(frame, this.model.camera, { width: box.width, height: box.height }, { width: pill.width, height: pill.height });
+    if (at === undefined || this.hudHidden) hud.setAttribute('data-hidden', '');
+    else {
+      hud.removeAttribute('data-hidden');
+      hud.style.left = `${Math.round(at.left)}px`;
+      hud.style.top = `${Math.round(at.top)}px`;
+    }
+  }
+
   private context(): PanelContext {
     const context = this.studio?.port.mountedContext ?? {};
-    return { density: (context['density'] as Density | undefined) ?? 'focus', lens: context['lens'] as PanelContext['lens'], scope: (context['scope'] as ScopeKind | undefined) ?? 'asset' };
+    return { density: (context['density'] as Density | undefined) ?? 'standard', lens: context['lens'] as PanelContext['lens'], scope: (context['scope'] as ScopeKind | undefined) ?? 'asset' };
   }
 
   private collapsed(region: PanelPlacementId, entries: readonly SpecLayoutEntry[], density: Density): boolean {
+    if (this.closed.has(region)) return true;
     if (this.expanded.has(region)) return false;
     const studio = this.studio;
     return !entries.some((e) => DENSITY_RANK[density] >= DENSITY_RANK[studio?.registries.panel(e.slot.id)?.minDensity ?? 'focus']);
@@ -419,9 +651,133 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
 
   private setExpanded(region: PanelPlacementId, collapsed: boolean): void {
     const next = new Set(this.expanded);
-    if (collapsed) next.delete(region);
-    else next.add(region);
+    const closed = new Set(this.closed);
+    if (collapsed) {
+      next.delete(region);
+      closed.add(region);
+    } else {
+      next.add(region);
+      closed.delete(region);
+    }
     this.expanded = next;
+    this.closed = closed;
+  }
+
+  /** `Mod+\\` / `Mod+Alt+\\`: collapse or open the dock / the inspector (STUDIO §7). */
+  toggleRegion(region: PanelPlacementId): void {
+    const studio = this.studio;
+    const entries = studio?.port.entries(`panel@${region}`) ?? [];
+    this.setExpanded(region, !this.collapsed(region, entries, this.context().density));
+  }
+
+  /** Rename the selection in place (the inspector header; `Mod+Shift+R`, F2, the context menu). */
+  rename(): void {
+    const inspector = this.query<HTMLElement & { focusName?: () => void }>('if-inspector');
+    if (this.closed.has('inspector')) this.setExpanded('inspector', false);
+    void this.updateComplete.then(() => (this.query<HTMLElement & { focusName?: () => void }>('if-inspector') ?? inspector)?.focusName?.());
+  }
+
+  /** Open the context menu for a target at a client point (STUDIO §8.2). `keyboard` focuses the first row. */
+  async openContextMenu(target: ContextTarget, at: { readonly x: number; readonly y: number }, options: { readonly keyboard?: boolean; readonly returnTo?: Element } = {}): Promise<void> {
+    this.contextGroups = contextMenuGroups(target, { ...this.model.clipboard, pages: this.model.pages });
+    await this.updateComplete;
+    const menu = this.query<SfMenuElement>('sf-menu.context-menu');
+    menu?.showAt(at, { ...(options.keyboard === true ? { keyboard: true } : {}), ...(options.returnTo === undefined ? {} : { returnTo: options.returnTo }) });
+  }
+
+  private async onCanvasContext(e: MouseEvent): Promise<void> {
+    const port = this.port;
+    if (port === undefined) return;
+    e.preventDefault();
+    const label = e.composedPath().some((t) => t instanceof HTMLElement && t.hasAttribute('data-if-page-label'));
+    if (label) {
+      await this.openContextMenu({ kind: 'page' }, { x: e.clientX, y: e.clientY });
+      return;
+    }
+    const surface = this.query<HTMLElement>('.surface');
+    const rect = surface?.getBoundingClientRect();
+    const keyboard = e.clientX === 0 && e.clientY === 0;
+    const summary = await port.contextAt(keyboard || rect === undefined ? undefined : { x: e.clientX - rect.left, y: e.clientY - rect.top });
+    const target: ContextTarget = summary === undefined || summary.kind === 'none' ? { kind: 'canvas' } : { kind: 'selection', summary };
+    await this.openContextMenu(target, keyboard ? this.menuAnchor() : { x: e.clientX, y: e.clientY }, { keyboard, ...(surface === null ? {} : { returnTo: surface }) });
+  }
+
+  /** A Layers row's context menu: the page row gets the page's items, an element row the selection's. */
+  private async onLayerContext(detail: LayerContextDetail): Promise<void> {
+    const port = this.port;
+    if (port === undefined) return;
+    const summary = detail.page ? undefined : await port.contextAt();
+    const target: ContextTarget = summary === undefined || summary.kind === 'none' ? { kind: 'page' } : { kind: 'selection', summary };
+    await this.openContextMenu(target, { x: detail.x, y: detail.y }, { returnTo: detail.returnTo });
+  }
+
+  /** Where a keyboard-opened menu goes: the selection's top-left, or the canvas centre. */
+  private menuAnchor(): { readonly x: number; readonly y: number } {
+    const region = this.query<HTMLElement>('main')?.getBoundingClientRect();
+    const frame = this.model.frame;
+    const { tx, ty, zoom } = this.model.camera;
+    if (region === undefined) return { x: 0, y: 0 };
+    if (frame === undefined) return { x: region.left + region.width / 2, y: region.top + region.height / 2 };
+    return { x: region.left + frame.x * zoom + tx, y: region.top + (frame.y + frame.h) * zoom + ty };
+  }
+
+  /** `Shift+F10` / the Menu key with the canvas focused. */
+  async openContextMenuFromKeyboard(): Promise<void> {
+    const port = this.port;
+    if (port === undefined) return;
+    const summary = await port.contextAt();
+    const target: ContextTarget = summary === undefined || summary.kind === 'none' ? { kind: 'canvas' } : { kind: 'selection', summary };
+    const surface = this.query<HTMLElement>('.surface');
+    await this.openContextMenu(target, this.menuAnchor(), { keyboard: true, ...(surface === null ? {} : { returnTo: surface }) });
+  }
+
+  private runContext(value: string): void {
+    const port = this.port;
+    const parsed = parseContextValue(value);
+    if (port === undefined || parsed === undefined) return;
+    if (parsed.kind === 'cap') {
+      const { node, ...input } = parsed.input as { node?: string } & Record<string, unknown>;
+      port.invoke(parsed.id, input, node === undefined ? undefined : [node]);
+      return;
+    }
+    const arg = parsed.arg ?? '';
+    const commands: Readonly<Record<string, () => void>> = {
+      cut: () => port.clipboard('cut'),
+      copy: () => port.clipboard('copy'),
+      paste: () => port.clipboard('paste'),
+      'paste-in-place': () => port.clipboard('paste-in-place'),
+      'copy-as-text': () => port.clipboard('copy-as-text'),
+      rename: () => this.rename(),
+      'copy-link': () => port.copyLink(),
+      'select-all': () => port.selectAll(),
+      'zoom-fit': () => port.camera('fit-page'),
+      'zoom-100': () => port.camera('zoom-100'),
+      'add-page': () => port.pageAction('add'),
+      'edit-text': () => port.editText(),
+      'text-style': () => port.textPreset(arg),
+      'fit-to-box': () => port.fitToBox(),
+      'replace-image': () => port.replaceImage(),
+      fit: () => port.setImageFit(arg),
+      'page-rename': () => port.selectPage(true),
+      'page-duplicate': () => port.pageAction('duplicate'),
+      'page-delete': () => port.pageAction('delete'),
+      'page-size': () => port.pageAction('size', arg),
+      'page-background': () => port.selectPage(false),
+    };
+    commands[parsed.name]?.();
+  }
+
+  private renderContextMenu(): TemplateResult {
+    const items = (list: readonly ContextEntry[]): TemplateResult[] =>
+      list.map((e) =>
+        e.children === undefined
+          ? html`<sf-menu-item value=${e.value} shortcut=${e.shortcut ?? nothing}>${e.label}</sf-menu-item>`
+          : html`<sf-menu-item value=${e.value}>${e.label}</sf-menu-item>
+              <sf-menu slot="submenu" label=${e.label}>${items(e.children)}</sf-menu>`,
+      );
+    return html`<sf-menu class="context-menu" label=${studioMessages.contextMenu} @sf-select=${(e: CustomEvent<{ value: string }>) => this.runContext(e.detail.value)}>
+      ${this.contextGroups.map((group, i) => html`${i > 0 ? html`<div role="separator"></div>` : nothing}${items(group)}`)}
+    </sf-menu>`;
   }
 
   override render(): TemplateResult | typeof nothing {
@@ -430,93 +786,235 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const context = this.context();
     return html`${this.renderTopBar(studio, context.density)}
       <div class="body">
-        ${this.renderPanels('side', context)} ${this.renderDock(context)}
-        <main aria-label=${studioMessages.canvas}>
-          ${this.renderTools(studio)} ${this.renderHud()}
+        ${this.renderDock(context)}
+        <main aria-label=${studioMessages.canvas} @contextmenu=${(e: MouseEvent) => void this.onCanvasContext(e)}>
+          ${this.renderPage()}
           <div class="surface" tabindex="0" role="application" aria-roledescription="canvas" aria-label=${studioMessages.canvasSurface}></div>
-          <div class="bottom">
-            <div role="group" aria-label=${studioMessages.zoom} class="zoom">
-              <sf-icon-button label=${studioMessages.zoomOut} size="sm" variant="ghost" @click=${() => this.emitIntent('zoom-out')}><span aria-hidden="true">−</span></sf-icon-button>
-              <span>${Math.round(this.zoom * 100)}%</span>
-              <sf-icon-button label=${studioMessages.zoomIn} size="sm" variant="ghost" @click=${() => this.emitIntent('zoom-in')}><span aria-hidden="true">+</span></sf-icon-button>
-            </div>
-            <div class="command">
-              <span aria-hidden="true">✦</span>
-              <sf-text-field label=${studioMessages.commandBar} label-hidden placeholder=${studioMessages.commandPlaceholder} @change=${(e: Event) => this.emitCommand(e)}></sf-text-field>
-              <sf-tag mono>⌘K</sf-tag>
-            </div>
-          </div>
+          ${this.renderTools(studio)} ${this.renderHud(context.density)} ${this.renderZoom()} ${this.renderCommandBar(studio)}
           ${this.canvasError === undefined ? nothing : html`<p role="alert">${this.canvasError}</p>`} ${this.renderProposal(studio.proposals.pending)}
+          ${this.renderContextMenu()}
         </main>
         ${this.renderPanels('inspector', context)}
-      </div>
-      ${this.renderPanels('tray', context)}`;
+      </div>`;
   }
 
   private renderTopBar(studio: Studio, density: Density): TemplateResult {
     const lensEntry = studio.port.entries('lens@default').find((e) => !isExiting(e));
-    const options: SegmentOption[] = studio.registries.lenses.map((lens) => ({
-      value: lens.id,
-      label: lens.label,
-      icon: html`<span aria-hidden="true" style=${lensMarkStyle(lensOf(lens.palette))}></span>`,
-    }));
-    const densities: SegmentOption[] = DENSITIES.map((d) => ({ value: d, label: studioMessages.densities[d] }));
+    const options: SegmentOption[] = studio.registries.lenses
+      .filter((lens) => M1_LENSES.includes(lens.id))
+      .map((lens) => ({ value: lens.id, label: lens.label, icon: html`<span aria-hidden="true" style=${lensMarkStyle(lensOf(lens.palette))}></span>` }));
+    const port = this.port;
+    const title = this.model.title || this.assetTitle;
     return html`<header>
-      <a class="home" href=${this.homeHref} aria-label=${studioMessages.home} @click=${(e: MouseEvent) => this.onHome(e)}>${logo()}</a>
-      <nav aria-label=${studioMessages.breadcrumb}><span>${this.projectTitle}</span><span aria-hidden="true">/</span><span class="title">${this.assetTitle}</span></nav>
+      <a class="home" href=${this.homeHref} aria-label=${studioMessages.home} @click=${(e: MouseEvent) => this.onHome(e)}>${instaflowMark(26)}</a>
+      <sf-inline-edit class="title" trigger="click" label=${studioMessages.title} placeholder=${studioMessages.untitled} .value=${title} @sf-change=${(e: CustomEvent<{ value: string }>) => port?.renameTitle(e.detail.value)}></sf-inline-edit>
       <sf-segmented
         class="modes"
-        label=${studioMessages.mode}
+        label=${studioMessages.lens}
         .options=${options}
         value=${lensEntry?.slot.id ?? ''}
         data-slot=${lensEntry?.slot.key ?? nothing}
         data-group="lens@default"
         @sf-change=${(e: CustomEvent<{ value: string }>) => void studio.switchLens(e.detail.value as `${string}/${string}`)}
       ></sf-segmented>
-      ${this.status === undefined ? html`<span class="saved" role="status">${studioMessages.saved}</span>` : this.status}
-      <sf-tag tone="agent">✦ Claude · ${AUTONOMY_LABEL[studio.proposals.autonomy]}</sf-tag>
-      <sf-segmented label=${studioMessages.density} .options=${densities} value=${density} @sf-change=${(e: CustomEvent<{ value: Density }>) => void studio.setDensity(e.detail.value)}></sf-segmented>
-      <sf-button @click=${() => this.emitIntent('milestone')}>${studioMessages.milestone}</sf-button>
-      <sf-button @click=${() => this.emitIntent('save-template')}>${studioMessages.saveTemplate}</sf-button>
-      <sf-button variant="primary" @click=${() => this.emitIntent('share')}>${studioMessages.share}</sf-button>
+      <button class="saved" type="button" title=${studioMessages.saveHint} @click=${() => void this.showPanel(StudioIds.panel.milestones)}>
+        ${this.status === undefined ? html`<span role="status">${studioMessages.saved}</span>` : this.status}
+      </button>
+      ${this.renderViewMenu(studio, density)} ${this.renderMilestone()} ${this.renderOverflow()}
+      ${this.model.exportAvailable
+        ? html`<sf-button variant="primary" @click=${() => port?.openExport()}><sf-icon .icon=${downloadIcon} size="16"></sf-icon> ${studioMessages.export}</sf-button>`
+        : nothing}
     </header>`;
   }
 
-  private renderTools(studio: Studio): TemplateResult {
-    const entries = studio.port.entries('tool@default');
-    const active = studio.activeTool;
-    return html`<sf-toolbar class="tools" label=${studioMessages.tools} style=${`--if-items:${entries.length}`}>
-      ${entries.map((entry) => {
-        const tool = studio.registries.tool(entry.slot.id);
-        return html`<sf-icon-button
-          label=${entry.slot.contribution.label}
-          shortcut=${tool?.shortcut ?? nothing}
-          variant="ghost"
-          .pressed=${entry.slot.id === active}
-          data-slot=${entry.slot.key}
-          data-group="tool@default"
-          data-phase=${entry.phase}
-          style=${motionStyle(entry)}
-          ?inert=${isExiting(entry)}
-          @click=${() => studio.selectTool(entry.slot.id)}
-          ><span aria-hidden="true">${tool?.glyph ?? entry.slot.contribution.label.slice(0, 1)}</span></sf-icon-button
-        >`;
-      })}
-    </sf-toolbar>`;
+  private renderViewMenu(studio: Studio, density: Density): TemplateResult {
+    const port = this.port;
+    const run = (value: string): void => {
+      if (value.startsWith('density:')) void studio.setDensity(value.slice('density:'.length) as Density);
+      else port?.camera(value as CameraAction);
+    };
+    return html`<sf-menu label=${studioMessages.view} @sf-select=${(e: CustomEvent<{ value: string }>) => run(e.detail.value)}>
+      <sf-button slot="trigger" variant="ghost">${studioMessages.view} <sf-icon .icon=${chevronDownIcon} size="16"></sf-icon></sf-button>
+      <sf-menu-group label=${studioMessages.zoom}>
+        <sf-menu-item value="fit-page" shortcut="Shift+1">${studioMessages.zoomFit}</sf-menu-item>
+        ${this.model.selection !== undefined && this.model.selection.nodes.length > 0 ? html`<sf-menu-item value="fit-selection" shortcut="Shift+2">${studioMessages.zoomSelection}</sf-menu-item>` : nothing}
+        <sf-menu-item value="zoom-100" shortcut="Shift+0">${studioMessages.zoom100}</sf-menu-item>
+        <sf-menu-item value="zoom-in" shortcut="Mod+=">${studioMessages.zoomIn}</sf-menu-item>
+        <sf-menu-item value="zoom-out" shortcut="Mod+-">${studioMessages.zoomOut}</sf-menu-item>
+      </sf-menu-group>
+      <sf-menu-group label=${studioMessages.density}>
+        ${(['focus', 'standard', 'pro'] as const).map(
+          (d) => html`<sf-menu-item type="radio" value=${`density:${d}`} ?checked=${d === density}>${studioMessages.densities[d]} · ${studioMessages.densityLines[d]}</sf-menu-item>`,
+        )}
+      </sf-menu-group>
+    </sf-menu>`;
   }
 
-  private renderHud(): TemplateResult {
-    const studio = this.studio as Studio;
-    const entries = studio.port.entries('hud@default');
-    const tone = (entry: SpecLayoutEntry): HudTone => studio.registries.hud(entry.slot.id)?.tone ?? 'direct';
-    const more = entries.filter((entry) => tone(entry) === 'more');
-    return html`<sf-toolbar class="hud" label=${studioMessages.hud}>
-      ${entries.flatMap((entry) => {
-        const kind = tone(entry);
-        return kind === 'more' ? [] : [HUD_CONTROLS[kind](entry, () => this.emitAction(entry.slot.id))];
+  private renderMilestone(): TemplateResult {
+    const port = this.port;
+    let name = '';
+    const create = (popover: SfPopoverElement | null): void => {
+      port?.createMilestone(name.trim());
+      popover?.removeAttribute('open');
+      if (popover !== null) popover.open = false;
+    };
+    return html`<sf-popover label=${studioMessages.milestone}>
+      <sf-button slot="trigger">${studioMessages.milestone}</sf-button>
+      <form
+        class="milestone-form"
+        @submit=${(e: SubmitEvent) => {
+          e.preventDefault();
+          create((e.currentTarget as HTMLElement).closest('sf-popover') as SfPopoverElement | null);
+        }}
+      >
+        <sf-text-field label=${studioMessages.milestoneName} placeholder="Milestone" @input=${(e: Event) => (name = (e.composedPath()[0] as HTMLInputElement).value ?? '')}></sf-text-field>
+        <sf-button type="submit" variant="primary">${studioMessages.create}</sf-button>
+      </form>
+    </sf-popover>`;
+  }
+
+  private renderOverflow(): TemplateResult {
+    const port = this.port;
+    const actions: Readonly<Record<string, () => void>> = {
+      'save-template': () => port?.saveAsTemplate(),
+      rename: () => this.focusTitle(),
+      'copy-link': () => port?.copyLink(),
+    };
+    return html`<sf-menu label=${studioMessages.more} @sf-select=${(e: CustomEvent<{ value: string }>) => actions[e.detail.value]?.()}>
+      <sf-icon-button slot="trigger" variant="ghost" label=${studioMessages.more}><sf-icon .icon=${ellipsisIcon} size="18"></sf-icon></sf-icon-button>
+      ${this.model.templatesAvailable ? html`<sf-menu-item value="save-template">${studioMessages.saveTemplate}</sf-menu-item>` : nothing}
+      <sf-menu-item value="rename">${studioMessages.rename}</sf-menu-item>
+      <sf-menu-item value="copy-link" shortcut="Mod+Alt+L">${studioMessages.copyLink}</sf-menu-item>
+    </sf-menu>`;
+  }
+
+  /** The page card (behind the transparent canvas) and its label (STUDIO-UX-SPEC §1). */
+  private renderPage(): TemplateResult | typeof nothing {
+    const page = this.model.page;
+    if (page === undefined) return nothing;
+    const { tx, ty, zoom } = this.model.camera;
+    const card = `left:${tx}px;top:${ty}px;width:${page.width * zoom}px;height:${page.height * zoom}px`;
+    return html`<div class="page-card" style=${card} aria-hidden="true"></div>
+      <button
+        type="button"
+        class="page-label"
+        style=${`left:${tx}px;top:${ty - 28}px`}
+        data-if-page-label
+        title=${studioMessages.pageLabelHint}
+        @click=${() => this.port?.selectPage(false)}
+        @dblclick=${() => this.port?.selectPage(true)}
+      >
+        ${studioMessages.pageLabel(page)}
+      </button>`;
+  }
+
+  private renderTools(studio: Studio): TemplateResult {
+    const entries = studio.port.entries('tool@default').filter((e) => !isExiting(e));
+    const active = studio.activeTool;
+    const family = entries.filter((e) => SHAPE_FAMILY.includes(e.slot.id));
+    if (active !== undefined && SHAPE_FAMILY.includes(active)) this.shapeTool = active;
+    const shape = family.find((e) => e.slot.id === this.shapeTool) ?? family[0];
+    const button = (entry: SpecLayoutEntry): TemplateResult => {
+      const tool = studio.registries.tool(entry.slot.id);
+      return html`<sf-icon-button
+        label=${entry.slot.contribution.label}
+        shortcut=${tool?.shortcut ?? nothing}
+        variant="ghost"
+        .pressed=${entry.slot.id === active}
+        data-slot=${entry.slot.key}
+        data-group="tool@default"
+        data-phase=${entry.phase}
+        style=${motionStyle(entry)}
+        @click=${() => studio.selectTool(entry.slot.id)}
+        ><sf-icon .icon=${TOOL_ICONS[entry.slot.id] ?? toolIcon('select')} size="18"></sf-icon
+      ></sf-icon-button>`;
+    };
+    let shapeDone = false;
+    return html`<div class="tools" role="toolbar" aria-label=${studioMessages.tools}>
+      ${entries.map((entry) => {
+        if (!SHAPE_FAMILY.includes(entry.slot.id)) return button(entry);
+        if (shapeDone || shape === undefined) return nothing;
+        shapeDone = true;
+        return html`${button(shape)}
+          ${family.length > 1
+            ? html`<sf-menu label=${studioMessages.shapes} @sf-select=${(e: CustomEvent<{ value: ToolId }>) => void studio.selectTool(e.detail.value)}>
+                <sf-icon-button slot="trigger" size="sm" variant="ghost" label=${studioMessages.shapes}><sf-icon .icon=${chevronDownIcon} size="16"></sf-icon></sf-icon-button>
+                ${family.map((f) => {
+                  const tool = studio.registries.tool(f.slot.id);
+                  return html`<sf-menu-item value=${f.slot.id} type="radio" ?checked=${f.slot.id === this.shapeTool} .icon=${TOOL_ICONS[f.slot.id]} shortcut=${tool?.shortcut ?? nothing}>${f.slot.contribution.label}</sf-menu-item>`;
+                })}
+              </sf-menu>`
+            : nothing}`;
       })}
-      ${HUD_MORE(more, (action) => this.emitAction(action))}
-    </sf-toolbar>`;
+    </div>`;
+  }
+
+  private renderHud(density: Density): TemplateResult | typeof nothing {
+    const port = this.port;
+    if (port === undefined) return nothing;
+    return html`<if-hud
+      ?data-hidden=${this.hudHidden}
+      .summary=${this.model.selection}
+      .typography=${this.model.typography}
+      .fonts=${this.model.fonts}
+      .actions=${this.model.actions}
+      .documentColors=${this.model.colors}
+      .port=${port}
+      ?pro=${density === 'pro'}
+      @if-hud-freeze=${(e: CustomEvent<{ frozen: boolean }>) => {
+        this.hudFrozen = e.detail.frozen;
+        if (!this.hudFrozen) this.placeHud();
+      }}
+    ></if-hud>`;
+  }
+
+  private renderZoom(): TemplateResult {
+    const port = this.port;
+    return html`<div role="group" aria-label=${studioMessages.zoom} class="zoom">
+      <sf-icon-button label=${studioMessages.zoomOut} shortcut="Mod+-" size="sm" variant="ghost" @click=${() => port?.camera('zoom-out')}><sf-icon .icon=${minusIcon} size="16"></sf-icon></sf-icon-button>
+      <sf-menu label=${studioMessages.zoom} @sf-select=${(e: CustomEvent<{ value: CameraAction }>) => port?.camera(e.detail.value)}>
+        <sf-button slot="trigger" size="sm" variant="ghost">${Math.round(this.zoom * 100)}%</sf-button>
+        <sf-menu-item value="fit-page" shortcut="Shift+1">${studioMessages.zoomFit}</sf-menu-item>
+        ${this.model.selection !== undefined && this.model.selection.nodes.length > 0 ? html`<sf-menu-item value="fit-selection" shortcut="Shift+2">${studioMessages.zoomSelection}</sf-menu-item>` : nothing}
+        <sf-menu-item value="zoom-50">50 %</sf-menu-item>
+        <sf-menu-item value="zoom-100" shortcut="Shift+0">100 %</sf-menu-item>
+        <sf-menu-item value="zoom-200">200 %</sf-menu-item>
+      </sf-menu>
+      <sf-icon-button label=${studioMessages.zoomIn} shortcut="Mod+=" size="sm" variant="ghost" @click=${() => port?.camera('zoom-in')}><sf-icon .icon=${plusIcon} size="16"></sf-icon></sf-icon-button>
+    </div>`;
+  }
+
+  /** The command bar (§4.4) over what can run now; its rows run here. */
+  private renderCommandBar(studio: Studio): TemplateResult {
+    const tools: CommandEntry[] = studio.port
+      .entries('tool@default')
+      .filter((e) => !isExiting(e))
+      .map((e) => {
+        const shortcut = studio.registries.tool(e.slot.id)?.shortcut;
+        return { value: `tool:${e.slot.id}`, title: e.slot.contribution.label, ...(shortcut === undefined ? {} : { shortcut }) };
+      });
+    const hasSelection = this.model.selection !== undefined && this.model.selection.nodes.length > 0;
+    const camera: CommandEntry[] = [
+      { value: 'camera:fit-page', title: studioMessages.zoomFit, shortcut: 'Shift+1' },
+      ...(hasSelection ? [{ value: 'camera:fit-selection', title: studioMessages.zoomSelection, shortcut: 'Shift+2' }] : []),
+      { value: 'camera:zoom-100', title: studioMessages.zoom100, shortcut: 'Shift+0' },
+      { value: 'camera:zoom-in', title: studioMessages.zoomIn, shortcut: 'Mod+=' },
+      { value: 'camera:zoom-out', title: studioMessages.zoomOut, shortcut: 'Mod+-' },
+    ];
+    const sources = { selection: this.model.selection, actions: this.model.actions, globalActions: this.model.globalActions, tools, camera, recent: [] };
+    return html`<if-command-bar class="command-bar" .sources=${sources} @if-command=${(e: CustomEvent<{ value: string }>) => this.runCommand(studio, e.detail.value)}></if-command-bar>`;
+  }
+
+  private runCommand(studio: Studio, value: string): void {
+    const [kind, ...rest] = value.split(':');
+    const id = rest.join(':');
+    const run: Readonly<Record<string, () => void>> = {
+      // Commands that need no selection run without one (their inputs take no nodes).
+      cap: () => (this.model.globalActions.includes(id) ? this.port?.invoke(id, {}, []) : this.port?.invoke(id)),
+      tool: () => void studio.selectTool(id as ToolId),
+      camera: () => this.port?.camera(id as CameraAction),
+    };
+    run[kind ?? '']?.();
   }
 
   private renderPanels(region: PanelPlacementId, context: PanelContext): TemplateResult | typeof nothing {
@@ -537,24 +1035,9 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const panel = studio.registries.panel(entry.slot.id);
     const label = entry.slot.contribution.label;
     const below = panel !== undefined && DENSITY_RANK[context.density] < DENSITY_RANK[panel.minDensity];
-    return html`<sf-panel
-      label=${label}
-      ?collapsed=${below}
-      data-slot=${entry.slot.key}
-      data-group=${`panel@${entry.slot.placement}`}
-      data-phase=${entry.phase}
-      style=${motionStyle(entry)}
-      ?inert=${isExiting(entry)}
-    >
-      ${this.renderPin(entry.slot.key, label)} ${panel?.render(context) ?? nothing}
+    return html`<sf-panel label=${label} ?collapsed=${below} data-slot=${entry.slot.key} data-group=${`panel@${entry.slot.placement}`} data-phase=${entry.phase} style=${motionStyle(entry)} ?inert=${isExiting(entry)}>
+      ${panel?.render(context) ?? nothing}
     </sf-panel>`;
-  }
-
-  private renderPin(slot: SpecSlotKey, label: string): TemplateResult {
-    const studio = this.studio as Studio;
-    return html`<sf-icon-button slot="actions" size="sm" variant="ghost" label=${studioMessages.pin(label)} .pressed=${studio.runtime.pinned.has(slot)} @click=${() => studio.togglePin(slot)}
-      ><span aria-hidden="true">⚲</span></sf-icon-button
-    >`;
   }
 
   /** The dock's tab changed; `sf-change` from controls inside its panels (composed, bubbling) is not a tab change. */
@@ -570,11 +1053,16 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const selected = present.find((e) => e.slot.key === this.dockTab)?.slot.key ?? present[0]?.slot.key;
     return html`<aside aria-label=${studioMessages.dock} data-region="dock">
       <sf-dock side="start" label=${studioMessages.dock} ?collapsed=${this.collapsed('dock', entries, context.density)} @sf-collapse=${(e: CustomEvent<{ collapsed: boolean }>) => this.setExpanded('dock', e.detail.collapsed)}>
-        <sf-tabs label=${studioMessages.dock} .value=${selected ?? ''} @sf-change=${(e: CustomEvent<{ value: SpecSlotKey }>) => this.pickDockTab(e)}>
+        <sf-tabs
+          label=${studioMessages.dock}
+          .value=${selected ?? ''}
+          @sf-change=${(e: CustomEvent<{ value: SpecSlotKey }>) => this.pickDockTab(e)}
+          @if-layer-context=${(e: CustomEvent<LayerContextDetail>) => void this.onLayerContext(e.detail)}
+        >
           ${present.map((entry) => html`<sf-tab value=${entry.slot.key} data-slot=${entry.slot.key} data-group="panel@dock" data-phase=${entry.phase} style=${motionStyle(entry)}>${entry.slot.contribution.label}</sf-tab>`)}
           ${present.map((entry) => {
             const panel = studio.registries.panel(entry.slot.id);
-            return html`<sf-tab-panel value=${entry.slot.key}>${this.renderPin(entry.slot.key, entry.slot.contribution.label)} ${panel?.render(context) ?? nothing}</sf-tab-panel>`;
+            return html`<sf-tab-panel value=${entry.slot.key}>${panel?.render(context) ?? nothing}</sf-tab-panel>`;
           })}
         </sf-tabs>
       </sf-dock>
@@ -606,50 +1094,31 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const proceed = this.dispatchEvent(new CustomEvent('if-navigate', { detail: { href: this.homeHref }, bubbles: true, composed: true, cancelable: true }));
     if (!proceed) e.preventDefault();
   }
-
-  private emitIntent(intent: 'zoom-in' | 'zoom-out' | 'milestone' | 'save-template' | 'share'): void {
-    this.dispatchEvent(new CustomEvent('if-intent', { detail: { intent }, bubbles: true, composed: true }));
-  }
-
-  private emitAction(action: string): void {
-    this.dispatchEvent(new CustomEvent('if-hud-action', { detail: { action }, bubbles: true, composed: true }));
-  }
-
-  private emitCommand(event: Event): void {
-    const field = event.currentTarget as { value?: string };
-    const text = field.value ?? '';
-    if (text.trim().length === 0) return;
-    this.dispatchEvent(new CustomEvent('if-command', { detail: { text }, bubbles: true, composed: true }));
-  }
-}
-
-/** The logo: the four lens marks (decorative; the link is named "Home"). */
-function logo(): TemplateResult {
-  const [layout, pixel, video, flow] = lenses();
-  return html`<svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
-    <rect x="2" y="2" width="13" height="13" rx="4" fill=${layout?.color ?? 'currentColor'}></rect>
-    <circle cx="23.5" cy="8.5" r="6.5" fill=${pixel?.color ?? 'currentColor'}></circle>
-    <rect x="2" y="19" width="13" height="9" rx="3" fill=${video?.color ?? 'currentColor'}></rect>
-    <rect x="17" y="17" width="13" height="13" rx="6.5" fill=${flow?.color ?? 'currentColor'}></rect>
-  </svg>`;
 }
 
 /** Define `<if-studio>` and the kit components it renders. */
 export function defineStudio(registry: CustomElementRegistry = customElements): void {
   defineButton(registry);
+  defineIconElement(registry);
   defineIconButton(registry);
+  defineInlineEdit(registry);
   defineMenu(registry);
+  definePopover(registry);
   defineSegmented(registry);
   defineTabs(registry);
   defineTag(registry);
   defineTextField(registry);
-  defineToolbar(registry);
   defineDock(registry);
+  defineHud(registry);
+  defineCommandBar(registry);
+  defineInspectorElement(registry);
+  defineLayersPanel(registry);
   if (registry.get(studioComponent.tag) === undefined) defineComponent(IfStudioElement, registry);
 }
 
 declare global {
   interface HTMLElementTagNameMap {
     'if-studio': IfStudioElement;
+    'if-hud': IfHudElement;
   }
 }

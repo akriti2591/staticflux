@@ -78,7 +78,9 @@ export function selectionFrame(ctx: ElementContext, nodes: readonly NodeId[]): R
 export const RESIZE_HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const;
 export type ResizeHandleId = (typeof RESIZE_HANDLES)[number];
 export const ROTATE_HANDLES = ['rotate-nw', 'rotate-ne', 'rotate-se', 'rotate-sw'] as const;
-export type RotateHandleId = (typeof ROTATE_HANDLES)[number];
+/** B11b (STUDIO §6.1): the visible rotate handle, 24 px below the frame's bottom edge on a stem. */
+export const ROTATE_STEM_HANDLE = 'rotate-stem';
+export type RotateHandleId = (typeof ROTATE_HANDLES)[number] | typeof ROTATE_STEM_HANDLE;
 /** The reference point (B10a): the point rotate and Alt-resize work about. */
 export const PIVOT_HANDLE = 'pivot';
 export type HandleId = ResizeHandleId | RotateHandleId | typeof PIVOT_HANDLE;
@@ -95,10 +97,10 @@ export const HANDLE_DIRECTIONS: Readonly<Record<ResizeHandleId, readonly [-1 | 0
   w: [-1, 0],
 });
 
-const ROTATE_CORNER: Readonly<Record<RotateHandleId, ResizeHandleId>> = Object.freeze({ 'rotate-nw': 'nw', 'rotate-ne': 'ne', 'rotate-se': 'se', 'rotate-sw': 'sw' });
+const ROTATE_CORNER: Readonly<Record<(typeof ROTATE_HANDLES)[number], ResizeHandleId>> = Object.freeze({ 'rotate-nw': 'nw', 'rotate-ne': 'ne', 'rotate-se': 'se', 'rotate-sw': 'sw' });
 
 /** Handle sizes in screen pixels (Clean Pop: round handles). */
-export const HANDLE_SIZES = Object.freeze({ radius: 4.5, hitRadius: 7, rotateRadius: 14, rotateOffset: 12, pivotRadius: 5, pivotHitRadius: 8 });
+export const HANDLE_SIZES = Object.freeze({ radius: 4.5, hitRadius: 7, rotateRadius: 14, rotateOffset: 12, stemLength: 24, pivotRadius: 5, pivotHitRadius: 8 });
 
 export type HandleKind = 'resize' | 'rotate' | 'pivot';
 
@@ -117,6 +119,21 @@ export interface TransformHandle {
 export function framePoint(frame: SelectionFrame, u: number, v: number): Point {
   const [tl, tr, , bl] = frame.corners;
   return [tl[0] + (tr[0] - tl[0]) * u + (bl[0] - tl[0]) * v, tl[1] + (tr[1] - tl[1]) * u + (bl[1] - tl[1]) * v];
+}
+
+/** Where the rotate stem starts (the bottom edge's midpoint) and ends (24 screen px further, along the frame's down axis). */
+export function stemStart(frame: SelectionFrame): Point {
+  return framePoint(frame, 0.5, 1);
+}
+
+export function stemEnd(frame: SelectionFrame, zoom: number): Point {
+  const [tl, , , bl] = frame.corners;
+  const dx = bl[0] - tl[0];
+  const dy = bl[1] - tl[1];
+  const len = Math.hypot(dx, dy) || 1;
+  const off = HANDLE_SIZES.stemLength / zoom;
+  const [x, y] = stemStart(frame);
+  return [x + (dx / len) * off, y + (dy / len) * off];
 }
 
 /**
@@ -140,6 +157,8 @@ export function transformHandles(frame: SelectionFrame, zoom: number, pivot?: Po
     const off = HANDLE_SIZES.rotateOffset * s;
     out.push({ id, kind: 'rotate', x: cx + (dx / len) * off, y: cy + (dy / len) * off, radius: 0, hitRadius: HANDLE_SIZES.rotateRadius * s });
   }
+  const [x, y] = stemEnd(frame, zoom);
+  out.push({ id: ROTATE_STEM_HANDLE, kind: 'rotate', x, y, radius: HANDLE_SIZES.radius * s, hitRadius: HANDLE_SIZES.hitRadius * s });
   if (pivot !== undefined) {
     const [x, y] = framePoint(frame, pivot[0], pivot[1]);
     out.push({ id: PIVOT_HANDLE, kind: 'pivot', x, y, radius: HANDLE_SIZES.pivotRadius * s, hitRadius: HANDLE_SIZES.pivotHitRadius * s });

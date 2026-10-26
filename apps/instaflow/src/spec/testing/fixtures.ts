@@ -3,7 +3,9 @@ import { createGate, createManualFactSource, defineFact, definePolicy, definePol
 import { gateResource } from '@staticflux/ui';
 import { editDocumentCapability, proposeSpecCapability } from '../capabilities.js';
 import { createEditorRegistries, type EditorRegistries } from '../registries.js';
+import { defineEditorSpec, type EditorSpec } from '../schema.js';
 import { StudioIds, studioHudActions, studioLenses, studioPanels, studioTools } from '../studio-contributions.js';
+import { studioSpec } from '../studio-spec.js';
 
 export const BrandGate = gateResource('ui-slot', StudioIds.panel.brand);
 export const AskGate = gateResource('ui-slot', StudioIds.hud.ask);
@@ -45,3 +47,13 @@ export function editorGate(plan = 'free', options: { readonly delegateAsk?: bool
   });
   return { gate, setPlan: (next) => facts.set(PlanFact, next) };
 }
+
+/**
+ * Studio's spec plus the B0 placeholders B11b took out of the real one (Brand, Ask): the
+ * gating, delegation and pinning suites exercise slots that can be gated and pinned.
+ */
+export const gatedStudioSpec: EditorSpec = defineEditorSpec({
+  ...studioSpec,
+  panels: [...studioSpec.panels, { panel: StudioIds.panel.brand, dock: 'dock' }],
+  hud: [...studioSpec.hud, StudioIds.hud.ask],
+});

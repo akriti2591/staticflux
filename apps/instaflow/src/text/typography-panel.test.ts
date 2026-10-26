@@ -21,7 +21,7 @@ import { placeTextOps, TextIds, textContributionUnits, textHudActions, textTool,
 import { ALIGN_OPTIONS, defineTypographyPanel, fontLabel, type IfTypographyPanelElement, TYPOGRAPHY_TEXT } from './typography-panel.js';
 import { MIXED, type TypographyService, TypographyServiceToken, type TypographySummary } from './typography.js';
 
-const SUMMARY: TypographySummary = { font: { font: 'sha256:aa' }, size: 24, weight: 700, bold: true, italic: false, underline: MIXED, color: '#112233', letterSpacing: 0, align: 'center', lineHeight: 1.2, link: undefined };
+const SUMMARY: TypographySummary = { font: { font: 'sha256:aa' }, size: 24, weight: 700, bold: true, italic: false, underline: MIXED, color: '#112233', letterSpacing: 0, align: 'center', lineHeight: 1.2, link: undefined, strike: false, script: undefined, spaceBefore: 0, spaceAfter: 0, indent: 0 };
 
 function fakeService(options: { readonly summary: TypographySummary | undefined } = { summary: SUMMARY }) {
   const summary = options.summary;
@@ -49,6 +49,13 @@ function fakeService(options: { readonly summary: TypographySummary | undefined 
     setAlign: record('setAlign'),
     setLineHeight: record('setLineHeight'),
     fitToBox: record('fitToBox'),
+    setScript: record('setScript'),
+    setParagraph: record('setParagraph'),
+    setBox: record('setBox'),
+    setVerticalAlign: record('setVerticalAlign'),
+    convertCase: record('convertCase'),
+    clearFormatting: record('clearFormatting'),
+    applyPreset: record('applyPreset'),
   };
   return { service, calls, notify: () => listeners.forEach((l) => l()) };
 }
@@ -148,7 +155,7 @@ describe('text contributions (B0 tokens)', () => {
     expect(typographyPanel.render({ density: 'standard', lens: StudioIds.lens.canvas, scope: 'selection' })).toBeDefined();
   });
 
-  it('replace B0’s placeholders under the same ids; Studio places Typography in the inspector and still validates', async () => {
+  it('replace B0’s placeholders under the same ids; Studio still validates (B11b: the inspector panel holds the Text section)', async () => {
     expect(TextIds.panel).toBe(StudioIds.panel.typography);
     const ours = new Set<string>([textTool.id, typographyPanel.id]);
     const registries = createEditorRegistries({
@@ -163,7 +170,7 @@ describe('text contributions (B0 tokens)', () => {
     expect(registries.value.panel(TextIds.panel)).toBe(typographyPanel);
     for (const spec of [studioSpec, studioSpecFor(StudioIds.lens.pages)]) {
       expect(spec.tools).toContain(TextIds.tool);
-      expect(spec.panels).toContainEqual({ panel: TextIds.panel, dock: 'inspector' });
+      expect(spec.panels).toContainEqual({ panel: StudioIds.panel.inspector, dock: 'inspector' });
       expect((await validateSpec(toShellSpec(spec), registries.value.vocabulary, { decide: gateSpecDecide(editorGate('pro').gate) })).ok).toBe(true);
     }
     expect(studioSpecFor(StudioIds.lens.pixel).panels.some((p) => p.panel === TextIds.panel)).toBe(false);

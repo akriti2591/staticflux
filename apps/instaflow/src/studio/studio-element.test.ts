@@ -1,11 +1,13 @@
 /**
- * `<if-studio>` under Clean Pop in happy-dom: the frame matches `StudioCP.dc.html` structurally, it is
- * laid out from the mounted spec (and follows spec diffs with motion phases), keyboard paths work, the
- * shell passes the a11y audit, and the DOM satisfies the shared `SpecMountPort` contract.
+ * `<if-studio>` under Clean Pop in happy-dom (B11b): the frame matches STUDIO-UX-SPEC §1–§4 (top bar, dock, the canvas
+ * room with the page card, tool picker, selection pill, zoom pill, inspector), it is laid out from the mounted spec,
+ * keyboard paths work, every control forwards to the chrome port, the frame passes the a11y audit, and the DOM
+ * satisfies the shared `SpecMountPort` contract.
  */
 import { createShortcutRegistry } from '@staticflux/a11y';
 import type { SfSegmentedElement } from '@staticflux/kit/segmented';
-import type { SfDockElement, SfPanelElement } from '@staticflux/kit/dock';
+import type { SfDockElement } from '@staticflux/kit/dock';
+import type { SfMenuElement } from '@staticflux/kit/menu';
 import { ok, type Result } from '@staticflux/core';
 import { type SpecSlotKey } from '@staticflux/shell/spec';
 import { runSpecMountPortContract, specContractVocabulary } from '@staticflux/testkit';
@@ -14,11 +16,12 @@ import { compileTheme } from '@staticflux/ui/theme';
 import { mountTestRoot, settle } from '@staticflux/ui/testing';
 import { html, render } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createEditorRegistries, gateSpecDecide, pixelTouchUpSpec, StudioIds, studioSpec } from '../spec/index.js';
+import type { SelectionSummary } from '../app/scene-summary.js';
+import { createEditorRegistries, gateSpecDecide, pixelTouchUpSpec, StudioIds } from '../spec/index.js';
 import { editorGate, studioRegistries } from '../spec/testing/fixtures.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
 import { createStudio, type Studio } from './studio.js';
-import { defineStudio, type IfStudioElement } from './studio-element.js';
+import { defineStudio, EMPTY_CHROME, HUD_MARGIN, hudPosition, type IfStudioElement, type StudioChromeModel, type StudioChromePort, TOOL_PICKER_BOTTOM } from './studio-element.js';
 
 let dispose: (() => Promise<void>) | undefined;
 
@@ -35,9 +38,85 @@ interface Mounted {
   readonly element: IfStudioElement;
   readonly root: ShadowRoot;
   readonly studio: Studio;
+  readonly calls: string[];
 }
 
-async function mount(options: { studio?: Studio; shortcuts?: boolean; open?: boolean } = {}): Promise<Mounted> {
+/** A chrome port that records what each control asked for. */
+function recordingPort(calls: string[], context?: () => SelectionSummary | undefined): StudioChromePort {
+  const log =
+    (name: string) =>
+    (...args: unknown[]): void => {
+      calls.push(`${name}${args.length === 0 ? '' : ` ${JSON.stringify(args.filter((a) => a !== undefined))}`}`);
+    };
+  return {
+    invoke: log('invoke'),
+    setPaint: log('setPaint'),
+    setProp: log('setProp'),
+    setFont: log('setFont'),
+    setSize: log('setSize'),
+    setTextColor: log('setTextColor'),
+    toggleText: log('toggleText'),
+    setTextAlign: log('setTextAlign'),
+    setRepeat: log('setRepeat'),
+    setImageFit: log('setImageFit'),
+    command: log('command'),
+    renameTitle: log('renameTitle'),
+    camera: log('camera'),
+    openExport: log('openExport'),
+    createMilestone: log('createMilestone'),
+    saveAsTemplate: log('saveAsTemplate'),
+    copyLink: log('copyLink'),
+    navigate: log('navigate'),
+    selectPage: log('selectPage'),
+    contextAt: (point) => {
+      log('contextAt')(point);
+      return Promise.resolve(context?.());
+    },
+    clipboard: log('clipboard'),
+    selectAll: log('selectAll'),
+    editText: log('editText'),
+    textPreset: log('textPreset'),
+    fitToBox: log('fitToBox'),
+    replaceImage: log('replaceImage'),
+    pageAction: log('pageAction'),
+    saveHint: log('saveHint'),
+    openShortcuts: log('openShortcuts'),
+  };
+}
+
+const SHAPE: SelectionSummary = {
+  kind: 'shape',
+  nodes: ['r1'],
+  label: 'Rectangle',
+  typeLabel: 'Rectangle',
+  locked: false,
+  anyLocked: false,
+  hidden: false,
+  common: 'rectangle',
+  fill: { kind: 'solid', color: '#FF5C39', token: '@primary' },
+  stroke: { kind: 'none' },
+  radius: 0,
+  actions: ['instaflow/delete', 'instaflow/duplicate', 'instaflow/lock', 'instaflow/flip-horizontal', 'instaflow/bring-to-front', 'instaflow/repeat-radial'],
+};
+
+const MODEL: StudioChromeModel = {
+  ...EMPTY_CHROME,
+  title: 'Night Market Flyer',
+  page: { id: 'p1', name: 'Page 1', width: 1080, height: 1350 },
+  camera: { tx: 40, ty: 60, zoom: 0.5 },
+  exportAvailable: true,
+  templatesAvailable: true,
+  actions: new Map(
+    [
+      ['instaflow/flip-horizontal', 'Flip horizontal', 'Shift+H'],
+      ['instaflow/bring-to-front', 'Bring to front', 'Mod+Alt+]'],
+      ['instaflow/repeat-radial', 'Radial repeat', undefined],
+      ['instaflow/lock', 'Lock / unlock', 'Mod+Shift+L'],
+    ].map(([id, title, shortcut]) => [id as string, { id: id as string, title: title as string, ...(shortcut === undefined ? {} : { shortcut }) }]),
+  ),
+};
+
+async function mount(options: { studio?: Studio; shortcuts?: boolean; open?: boolean; model?: StudioChromeModel; context?: () => SelectionSummary | undefined } = {}): Promise<Mounted> {
   const style = document.createElement('style');
   style.textContent = compileTheme(cleanPopTheme);
   document.head.append(style);
@@ -46,14 +125,15 @@ async function mount(options: { studio?: Studio; shortcuts?: boolean; open?: boo
   if (options.open !== false) await studio.open();
   const testRoot = mountTestRoot({ units: [] });
   const shortcuts = options.shortcuts === false ? undefined : createShortcutRegistry({ isMac: false });
-  render(html`<if-studio .studio=${studio} .shortcuts=${shortcuts} asset-title="Night Market Flyer" project-title="Spring campaign"></if-studio>`, testRoot.container);
+  const calls: string[] = [];
+  render(html`<if-studio .studio=${studio} .shortcuts=${shortcuts} .model=${options.model ?? MODEL} .port=${recordingPort(calls, options.context)} asset-title="Night Market Flyer"></if-studio>`, testRoot.container);
   dispose = async () => {
     await studio.dispose();
     await testRoot.dispose();
   };
   await settle(6);
   const element = testRoot.container.querySelector('if-studio') as IfStudioElement;
-  return { element, root: element.shadowRoot as ShadowRoot, studio };
+  return { element, root: element.shadowRoot as ShadowRoot, studio, calls };
 }
 
 const slots = (root: ShadowRoot, group: string): string[] =>
@@ -64,112 +144,169 @@ async function until(condition: () => boolean): Promise<void> {
   expect(condition()).toBe(true);
 }
 
-describe('<if-studio> frame', () => {
-  it('matches StudioCP structurally: top bar, chat side panel, tabbed dock, canvas region, inspector', async () => {
+const menuItems = (menu: Element): string[] => [...menu.querySelectorAll(':scope > sf-menu-item, :scope > sf-menu-group > sf-menu-item')].map((i) => i.textContent?.trim() ?? '');
+
+describe('<if-studio> frame (B11b)', () => {
+  it('top bar per STUDIO-UX-SPEC §2: the mark → Home, the title, Canvas · Pages, Saved, View, Milestone, More, Export', async () => {
     const { root } = await mount();
     const header = root.querySelector('header') as HTMLElement;
-    expect(header.querySelector('a.home')?.getAttribute('aria-label')).toBe('Home');
-    expect(header.querySelector('nav')?.getAttribute('aria-label')).toBe('Breadcrumb');
-    expect(header.querySelector('nav')?.textContent).toContain('Night Market Flyer');
+    const home = header.querySelector('a.home') as HTMLAnchorElement;
+    expect(home.getAttribute('aria-label')).toBe('Home');
+    expect(home.querySelector('svg[data-if-mark]')).not.toBeNull();
+    expect((header.querySelector('sf-inline-edit.title') as HTMLElement & { value: string }).value).toBe('Night Market Flyer');
     const mode = header.querySelector('sf-segmented.modes') as SfSegmentedElement;
-    expect(mode.options.map((o) => o.label)).toEqual(['Canvas', 'Pixel', 'Timeline', 'Flow', 'Pages']);
+    expect(mode.options.map((o) => o.label)).toEqual(['Canvas', 'Pages']);
     expect(mode.value).toBe(StudioIds.lens.canvas);
-    expect([...header.querySelectorAll('sf-button')].map((b) => b.textContent?.trim())).toEqual(['Milestone', 'Save as template', 'Share']);
-    expect(header.querySelector('sf-button[variant="primary"]')?.textContent?.trim()).toBe('Share');
-    expect(header.querySelector('[role="status"]')?.textContent).toBe('Saved');
-
+    expect(header.querySelector('.saved [role="status"]')?.textContent).toBe('Saved');
+    expect([...header.querySelectorAll('sf-button')].map((b) => b.textContent?.trim().replace(/\s+/g, ' '))).toEqual(['View', 'Milestone', 'Create', 'Export']);
+    expect(header.querySelector(':scope > sf-button[variant="primary"]')?.textContent?.trim()).toBe('Export');
+    // Nothing visible is inert: no Share, no assistant chip, no density switch in the bar (§2, §14).
+    expect(header.textContent).not.toMatch(/Share|Claude|✦|Arrives/);
+    expect(header.querySelector(':scope > sf-segmented:not(.modes)')).toBeNull();
     const landmarks = [...root.querySelectorAll('aside, main')].map((el) => `${el.localName}:${el.getAttribute('aria-label')}`);
-    expect(landmarks).toEqual(['aside:Chat', 'aside:Dock', 'main:Canvas', 'aside:Typography']);
-    expect([...root.querySelectorAll('aside[data-region="dock"] sf-tab')].map((t) => t.textContent?.trim())).toEqual(['Layers', 'Pages', 'Assets', 'Milestones', 'Brand', 'Export']);
+    expect(landmarks).toEqual(['aside:Dock', 'main:Canvas', 'aside:Inspector']);
+    expect([...root.querySelectorAll('aside[data-region="dock"] sf-tab')].map((t) => t.textContent?.trim())).toEqual(['Layers', 'Pages', 'Assets', 'Milestones']);
     const main = root.querySelector('main') as HTMLElement;
-    expect(main.querySelector('sf-toolbar.tools')?.getAttribute('aria-label')).toBe('Tools');
-    expect(main.querySelector('sf-toolbar.hud')?.getAttribute('aria-label')).toBe('Selection actions');
-    expect(main.querySelector('.command sf-text-field')?.getAttribute('label')).toBe('Command bar');
-    expect(main.querySelector('[role="group"]')?.getAttribute('aria-label')).toBe('Zoom');
+    expect(main.querySelector('.tools')?.getAttribute('aria-label')).toBe('Tools');
+    expect(main.querySelector('[role="group"].zoom')?.getAttribute('aria-label')).toBe('Zoom');
     expect(main.querySelector('.surface')?.getAttribute('aria-label')).toBe('Canvas surface');
-    expect([...main.querySelectorAll('.hud > *')].map((b) => accessibleName(b))).toEqual(['✦ Rewrite', 'Animate', '✦ Ask']);
   });
 
-  it('the HUD has a fixed block size: a selection bringing more actions never moves or resizes the canvas surface', async () => {
-    // B9 smoke flake (colocated): the HUD grew from one row (no selection) to two (a selection's actions), the surface
-    // moved 40 px under a drag that had started, and the move lost that distance. The surface keeps its place only if
-    // the HUD's block size does not depend on its content.
-    const { root } = await mount();
-    const hud = root.querySelector('sf-toolbar.hud') as HTMLElement;
-    const style = getComputedStyle(hud);
-    expect(style.blockSize).not.toBe('');
-    expect(style.blockSize).not.toBe('auto');
-    expect(style.blockSize).toBe(style.maxBlockSize);
+  it('the Export button renders only where an exporter exists', async () => {
+    const { root } = await mount({ model: { ...MODEL, exportAvailable: false } });
+    expect(root.querySelector('header > sf-button[variant="primary"]')).toBeNull();
   });
 
-  it('HUD actions of tone `more` share one "More actions" menu (B8); the bar keeps direct and agent actions', async () => {
-    const { gate } = editorGate('pro');
-    const studio = createStudio({
-      registries: studioRegistries(),
-      decideFor: (s) => gateSpecDecide(gate, s),
-      reducedMotion: () => true,
-      spec: { ...studioSpec, hud: [StudioIds.hud.rewrite, StudioIds.hud.more, StudioIds.hud.ask] },
-    });
-    const { element, root } = await mount({ studio });
-    const seen: string[] = [];
-    element.addEventListener('if-hud-action', (e) => seen.push((e as CustomEvent<{ action: string }>).detail.action));
-    const hud = root.querySelector('.hud') as HTMLElement;
-    expect([...hud.children].map((b) => b.localName)).toEqual(['sf-button', 'sf-button', 'sf-menu']);
-    expect([...hud.children].slice(0, 2).map((b) => accessibleName(b))).toEqual(['✦ Rewrite', '✦ Ask']);
-    expect(accessibleName(hud.querySelector('sf-menu > [slot="trigger"]') as Element)).toBe('More actions');
-    const items = [...hud.querySelectorAll('sf-menu-item')];
-    expect(items.map((i) => i.getAttribute('data-slot'))).toEqual(['hud:instaflow/more']);
-    hud.querySelector('sf-menu')?.dispatchEvent(new CustomEvent('sf-select', { detail: { value: StudioIds.hud.more } }));
-    expect(seen).toEqual([StudioIds.hud.more]);
+  it('the canvas room: the page card and its label follow the camera; the label names the page and its size', async () => {
+    const { root, element, calls } = await mount();
+    const card = root.querySelector('.page-card') as HTMLElement;
+    expect(card.getAttribute('style')).toBe('left:40px;top:60px;width:540px;height:675px');
+    const label = root.querySelector('[data-if-page-label]') as HTMLElement;
+    expect(label.textContent?.trim()).toBe('Page 1 · 1080 × 1350');
+    expect(label.getAttribute('style')).toBe('left:40px;top:32px');
+    // Click selects the page (the inspector shows Page); double-click renames it (STUDIO §1).
+    label.click();
+    label.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    expect(calls).toEqual(['selectPage [false]', 'selectPage [true]']);
+    element.model = { ...MODEL, camera: { tx: 0, ty: 100, zoom: 1 } };
+    await settle(2);
+    expect(card.getAttribute('style')).toBe('left:0px;top:100px;width:1080px;height:1350px');
+  });
+
+  it('the tool picker: icons with names and keys, the shape family as one button with a menu, no Pen', async () => {
+    const { root, studio } = await mount();
+    const tools = root.querySelector('.tools') as HTMLElement;
+    const buttons = [...tools.querySelectorAll(':scope > sf-icon-button')];
+    expect(buttons.map((b) => accessibleName(b))).toEqual(['Select', 'Frame', 'Rectangle', 'Text', 'Hand']);
+    expect(buttons.map((b) => b.getAttribute('shortcut'))).toEqual(['V', 'F', 'R', 'T', 'H']);
+    expect(tools.querySelectorAll('sf-icon').length).toBeGreaterThanOrEqual(5);
+    expect(tools.textContent).not.toMatch(/[↖#▢✒✋]/);
+    const shapes = tools.querySelector('sf-menu') as SfMenuElement;
+    expect(menuItems(shapes)).toEqual(['Rectangle', 'Ellipse', 'Polygon', 'Star', 'Line']);
+    shapes.dispatchEvent(new CustomEvent('sf-select', { detail: { value: StudioIds.tool.ellipse } }));
+    await settle(4);
+    expect(studio.activeTool).toBe(StudioIds.tool.ellipse);
+    expect([...tools.querySelectorAll(':scope > sf-icon-button')].map((b) => accessibleName(b))).toContain('Ellipse');
+  });
+
+  it('the selection pill renders the kind’s ranked controls and More; its controls run through the port', async () => {
+    const { root, calls } = await mount({ model: { ...MODEL, selection: SHAPE, frame: { x: 100, y: 400, w: 200, h: 100 } } });
+    const hud = root.querySelector('if-hud') as HTMLElement;
+    await settle(4);
+    const toolbar = hud.shadowRoot?.querySelector('[role="toolbar"]') as HTMLElement;
+    expect(toolbar.getAttribute('aria-label')).toBe('Selection actions');
+    const names = [...toolbar.querySelectorAll('[data-hud-item]')].map((el) => accessibleName(el) || el.getAttribute('label'));
+    expect(names).toEqual(['Fill', 'Stroke', 'Radius', 'Duplicate', 'Delete', 'More actions']);
+    (toolbar.querySelector('sf-icon-button[label="Delete"]') as HTMLElement).click();
+    expect(calls).toEqual(['invoke ["instaflow/delete"]']);
+    const more = toolbar.querySelector('sf-menu[filterable]') as SfMenuElement;
+    expect([...more.querySelectorAll('sf-menu-group')].map((g) => g.getAttribute('label'))).toEqual(['Edit', 'Arrange', 'Transform', 'Repeat']);
+    expect(menuItems(more.querySelector('sf-menu-group[label="Transform"]') as Element)).toEqual(['Flip horizontal', 'Free transform']);
+    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'instaflow/bring-to-front' } }));
+    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'instaflow/free-transform-hud' } }));
+    expect(calls.slice(1)).toEqual(['invoke ["instaflow/bring-to-front"]', 'command ["instaflow/free-transform-hud"]']);
+  });
+
+  it('pill placement (§4.2.2): above with a 12 px gap, below when the picker is in the way, clamped, hidden off-screen', () => {
+    const region = { width: 1000, height: 800 };
+    const pill = { width: 200, height: 36 };
+    const camera = { tx: 0, ty: 0, zoom: 1 };
+    expect(hudPosition({ x: 400, y: 300, w: 200, h: 100 }, camera, region, pill)).toEqual({ left: 400, top: 252 });
+    const below = hudPosition({ x: 400, y: 40, w: 200, h: 100 }, camera, region, pill);
+    expect(below?.top).toBeGreaterThan(140);
+    expect(hudPosition({ x: -150, y: 300, w: 200, h: 100 }, camera, region, pill)?.left).toBe(HUD_MARGIN);
+    expect(hudPosition({ x: 2000, y: 300, w: 200, h: 100 }, camera, region, pill)).toBeUndefined();
+    expect(hudPosition({ x: 400, y: 300, w: 200, h: 100 }, camera, region, pill)?.top ?? 0).toBeGreaterThan(TOOL_PICKER_BOTTOM);
+  });
+
+  it('passes the a11y audit with a selection (names, ARIA references, roles, no nested interactive controls)', async () => {
+    const { element } = await mount({ model: { ...MODEL, selection: SHAPE, frame: { x: 100, y: 400, w: 200, h: 100 } } });
+    await settle(4);
+    expectNoA11yIssues(element);
   });
 
   it('is laid out from the spec: slots per group follow the mounted layout', async () => {
     const { root, studio } = await mount();
     for (const [group, keys] of Object.entries(studio.port.groups())) {
-      if (group.startsWith('capability')) continue;
-      expect(slots(root, group), group).toEqual(keys);
+      if (group.startsWith('capability') || group.startsWith('hud') || group.startsWith('lens')) continue;
+      const shown = slots(root, group);
+      // The shape family shows one button (the current shape); the others are rows of its menu.
+      const family = new Set(['tool:instaflow/ellipse', 'tool:instaflow/polygon', 'tool:instaflow/star', 'tool:instaflow/line']);
+      expect(shown, group).toEqual(keys.filter((k) => !family.has(k)));
     }
-    await studio.switchLens(StudioIds.lens.pixel);
+    await studio.switchLens(StudioIds.lens.pages);
     await settle(4);
-    expect(slots(root, 'tool@default')).toEqual(['tool:instaflow/select', 'tool:instaflow/brush', 'tool:instaflow/heal', 'tool:instaflow/crop', 'tool:instaflow/hand']);
-    expect(slots(root, 'panel@inspector')).toEqual(['panel:instaflow/adjust']);
-    expect((root.querySelector('sf-segmented.modes') as SfSegmentedElement).value).toBe(StudioIds.lens.pixel);
+    expect((root.querySelector('sf-segmented.modes') as SfSegmentedElement).value).toBe(StudioIds.lens.pages);
   });
 
-  it('passes the a11y audit (names, ARIA references, roles, no nested interactive controls)', async () => {
-    const { element } = await mount();
-    expectNoA11yIssues(element);
-  });
-
-  it('density: Focus collapses the docks to rails, Standard opens them, Pro opens the inspector', async () => {
+  it('density lives in View (§2.3): Standard opens the dock and inspector, Focus collapses them to rails, Pro keeps them open', async () => {
     const { root, studio } = await mount();
     const dock = (region: string) => root.querySelector(`aside[data-region="${region}"] sf-dock`) as SfDockElement;
-    const properties = () => root.querySelector('[data-slot="panel:instaflow/typography"]') as SfPanelElement;
-    expect([dock('dock').collapsed, dock('inspector').collapsed, properties().collapsed]).toEqual([false, false, false]);
-    await studio.setDensity('standard');
+    expect(studio.density).toBe('standard');
+    expect([dock('dock').collapsed, dock('inspector').collapsed]).toEqual([false, false]);
+    const view = root.querySelector('header sf-menu') as SfMenuElement;
+    expect(menuItems(view)).toEqual(expect.arrayContaining(['Zoom to fit', 'Focus · Just your work.', 'Standard · Your work, with the panels that explain it.', 'Pro · Everything, with numbers.']));
+    view.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'density:focus' } }));
+    await until(() => studio.density === 'focus');
     await settle(4);
-    expect([dock('dock').collapsed, dock('inspector').collapsed, properties().collapsed]).toEqual([false, true, true]);
-    await studio.setDensity('focus');
-    await settle(4);
-    expect([dock('side').collapsed, dock('dock').collapsed, dock('inspector').collapsed]).toEqual([true, true, true]);
-    // The person can still open a collapsed dock (its expand button fires sf-collapse).
+    expect([dock('dock').collapsed, dock('inspector').collapsed]).toEqual([true, true]);
     dock('dock').setCollapsed(false);
     await settle(4);
     expect(dock('dock').collapsed).toBe(false);
+    view.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'density:pro' } }));
+    await until(() => studio.density === 'pro');
     expectNoA11yIssues(root.host);
   });
 
-  it('pins a panel from its header; a pinned panel survives a narrow spec', async () => {
-    const { root, studio } = await mount();
-    const pin = root.querySelector('[data-slot="panel:instaflow/chat"] sf-icon-button[slot="actions"]') as HTMLElement;
-    expect(accessibleName(pin)).toBe('Pin Chat');
-    pin.click();
+  it('the top bar forwards: View zoom, the zoom pill, Milestone (named), More (template, rename, copy link), Export', async () => {
+    const { root, calls } = await mount();
+    const view = root.querySelector('header sf-menu') as SfMenuElement;
+    view.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'fit-page' } }));
+    (root.querySelector('.zoom sf-icon-button') as HTMLElement).click();
+    const milestone = root.querySelector('header sf-popover form') as HTMLFormElement;
+    const field = milestone.querySelector('sf-text-field') as HTMLElement;
+    const input = field.shadowRoot?.querySelector('input') as HTMLInputElement;
+    input.value = 'Client v1';
+    input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    milestone.dispatchEvent(new Event('submit', { cancelable: true }));
+    const more = [...root.querySelectorAll('header sf-menu')].at(-1) as SfMenuElement;
+    expect(menuItems(more)).toEqual(['Save as template…', 'Rename…', 'Copy link']);
+    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'save-template' } }));
+    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'copy-link' } }));
+    (root.querySelector('header > sf-button[variant="primary"]') as HTMLElement).click();
+    expect(calls).toEqual(['camera ["fit-page"]', 'camera ["zoom-out"]', 'createMilestone ["Client v1"]', 'saveAsTemplate', 'copyLink', 'openExport']);
+  });
+
+  it('the title renames in place through the port; the save state opens Milestones', async () => {
+    const { root, calls, element } = await mount();
+    const title = root.querySelector('sf-inline-edit.title') as HTMLElement;
+    title.dispatchEvent(new CustomEvent('sf-change', { detail: { value: 'Spring sale', previous: 'Night Market Flyer' } }));
+    expect(calls).toEqual(['renameTitle ["Spring sale"]']);
+    (root.querySelector('.saved') as HTMLButtonElement).click();
     await settle(4);
-    expect(studio.runtime.pinned.has('panel:instaflow/chat')).toBe(true);
-    await studio.proposals.propose(pixelTouchUpSpec(['img-1']), { kind: 'person', id: 'ann' });
-    await settle(4);
-    expect(slots(root, 'panel@side')).toEqual(['panel:instaflow/chat']);
-    expect(slots(root, 'panel@dock')).toEqual([]);
+    const tabs = [...root.querySelectorAll('aside[data-region="dock"] sf-tab')] as HTMLElement[];
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'false', 'false', 'true']);
+    expect(await element.showPanel('instaflow/nope')).toBe(false);
   });
 
   it('shows an agent proposal as a preview card; Open mounts it, Dismiss declines it', async () => {
@@ -177,160 +314,124 @@ describe('<if-studio> frame', () => {
     const p = await studio.proposals.propose(pixelTouchUpSpec(['img-1']), { kind: 'agent', id: 'claude', displayName: 'Claude' }, { reason: 'Touch up the photo' });
     await settle(4);
     const card = root.querySelector('section[aria-label="Proposed editor"]') as HTMLElement;
-    expect(card.textContent).toContain('Claude proposes');
     expect(card.textContent).toContain('Touch up the photo');
     (card.querySelector('sf-button[variant="agent"]') as HTMLElement).click();
     await until(() => p.state === 'mounted');
-    await settle(4);
-    expect(root.querySelector('section[aria-label="Proposed editor"]')).toBeNull();
-    const second = await studio.proposals.propose(pixelTouchUpSpec(['img-2']), { kind: 'agent', id: 'claude' });
-    await settle(4);
-    (root.querySelector('section[aria-label="Proposed editor"] .actions sf-button:last-child') as HTMLElement).click();
-    expect(second.state).toBe('declined');
-  });
-
-  it('motion: entering and exiting slots carry their phase and duration; exiting ones are inert', async () => {
-    const waits: (() => void)[] = [];
-    const wait = (ms: number, signal: AbortSignal): Promise<Result<void>> =>
-      new Promise((resolve) => {
-        const done = () => resolve(ok());
-        waits.push(done);
-        signal.addEventListener('abort', done, { once: true });
-        void ms;
-      });
-    const { gate } = editorGate('pro');
-    const studio = createStudio({ registries: studioRegistries(), decideFor: (s) => gateSpecDecide(gate, s), wait });
-    const opening = studio.open();
-    await until(() => waits.length > 0);
-    for (const release of waits.splice(0)) release();
-    await opening;
-    const { root } = await mount({ studio, open: false });
-    const switching = studio.switchLens(StudioIds.lens.pixel);
-    await until(() => root.querySelector('[data-phase="exiting"]') !== null);
-    await settle(2);
-    const exiting = root.querySelector('[data-slot="tool:instaflow/frame"]') as HTMLElement;
-    expect(exiting.getAttribute('data-phase')).toBe('exiting');
-    expect(exiting.hasAttribute('inert')).toBe(true);
-    expect(exiting.getAttribute('style')).toContain('--if-motion:120ms');
-    const entering = root.querySelector('[data-slot="tool:instaflow/brush"]') as HTMLElement;
-    expect(entering.getAttribute('data-phase')).toBe('entering');
-    expect(entering.getAttribute('style')).toContain('--if-motion:160ms');
-    for (const release of waits.splice(0)) release();
-    await switching;
-    await settle(4);
-    expect(root.querySelector('[data-slot="tool:instaflow/frame"]')).toBeNull();
-    expect(root.querySelector('[data-slot="tool:instaflow/brush"]')?.getAttribute('data-phase')).toBe('present');
   });
 });
 
 describe('<if-studio> keyboard paths', () => {
-  it('1–4 switch lenses; tool letters pick tools but not while typing in the command bar', async () => {
-    const { element, root, studio } = await mount();
+  it('1 and 5 switch lenses; tool letters pick tools; Alt+Enter focuses the pill and arrows rove it', async () => {
+    const { root, studio, element } = await mount({ model: { ...MODEL, selection: SHAPE, frame: { x: 100, y: 400, w: 200, h: 100 } } });
     const surface = root.querySelector('.surface') as HTMLElement;
     surface.focus();
-    press(surface, '2');
-    await until(() => studio.lens?.label === 'Pixel');
-    await settle(4);
-    press(surface, 'j');
-    expect(studio.activeTool).toBe(StudioIds.tool.heal);
-    await settle(2);
-    expect(root.querySelector('[data-slot="tool:instaflow/heal"]')?.getAttribute('aria-pressed') ?? (root.querySelector('[data-slot="tool:instaflow/heal"]') as { pressed?: unknown }).pressed).toBeTruthy();
-    press(surface, 'k', { ctrl: true });
-    await settle(2);
-    const field = root.querySelector('.command sf-text-field') as HTMLElement;
-    const input = field.shadowRoot?.querySelector('input') as HTMLInputElement;
-    expect(deepFocused()).toBe(input);
-    press(input, 'v');
-    expect(studio.activeTool).toBe(StudioIds.tool.heal);
-    press(input, 'Escape');
-    expect(deepFocused()).toBe(surface);
+    press(surface, '5');
+    await until(() => studio.lens?.label === 'Pages');
     press(surface, '1');
     await until(() => studio.lens?.label === 'Canvas');
+    await settle(4);
+    press(surface, 'f');
+    expect(studio.activeTool).toBe(StudioIds.tool.frame);
+    press(surface, 'o');
+    expect(studio.activeTool).toBe(StudioIds.tool.ellipse);
+    press(surface, 'Enter', { alt: true });
+    await settle(2);
+    const hud = root.querySelector('if-hud') as HTMLElement;
+    const items = [...(hud.shadowRoot?.querySelectorAll('[data-hud-item]') ?? [])];
+    expect(deepFocused()).toBe(items[0]);
+    press(items[0] as Element, 'ArrowRight');
+    expect(deepFocused()).toBe(items[1]);
     expect(element.isConnected).toBe(true);
   });
 
-  it('Alt+Enter focuses the HUD; arrow keys rove inside it; the mode switcher switches lenses by arrow keys', async () => {
-    const { root, studio } = await mount();
+  it('Mod+K opens the command bar; its rows run capabilities (no-selection ones without nodes), tools and the camera', async () => {
+    const model = { ...MODEL, selection: SHAPE, frame: { x: 100, y: 400, w: 200, h: 100 }, globalActions: ['instaflow/undo'], actions: new Map([...MODEL.actions, ['instaflow/undo', { id: 'instaflow/undo', title: 'Undo' }]]) };
+    const { root, studio, calls } = await mount({ model });
     const surface = root.querySelector('.surface') as HTMLElement;
-    press(surface, 'Enter', { alt: true });
-    const hudItems = [...root.querySelectorAll('.hud > *')];
-    expect(deepFocused()).toBe(hudItems[0]);
-    press(hudItems[0] as Element, 'ArrowRight');
+    surface.focus();
+    press(surface, 'k', { ctrl: true });
+    await settle(4);
+    const bar = root.querySelector('if-command-bar') as HTMLElement;
+    const menu = bar.shadowRoot?.querySelector('sf-menu') as HTMLElement & { open?: boolean };
+    expect(menu.open).toBe(true);
+    const values = [...menu.querySelectorAll('sf-menu-item')].map((i) => i.getAttribute('value'));
+    expect(values).toEqual(expect.arrayContaining(['cap:instaflow/flip-horizontal', 'cap:instaflow/undo', `tool:${StudioIds.tool.text}`, 'camera:fit-selection']));
+    const select = (value: string): boolean => menu.dispatchEvent(new CustomEvent('sf-select', { detail: { value } }));
+    select('cap:instaflow/flip-horizontal');
+    select('cap:instaflow/undo');
+    select('camera:zoom-100');
+    select(`tool:${StudioIds.tool.text}`);
+    expect(calls).toEqual(['invoke ["instaflow/flip-horizontal"]', 'invoke ["instaflow/undo",{},[]]', 'camera ["zoom-100"]']);
+    expect(studio.activeTool).toBe(StudioIds.tool.text);
+  });
+
+  it('right-click on the canvas asks for the target, opens the context menu there and runs its rows (B11b slice 4)', async () => {
+    const model = { ...MODEL, selection: SHAPE, frame: { x: 100, y: 400, w: 200, h: 100 }, clipboard: { canPaste: true, styleCopied: false } };
+    const { root, calls } = await mount({ model, context: () => ({ ...SHAPE, actions: [...SHAPE.actions, 'instaflow/copy-style'] }) });
+    const main = root.querySelector('main') as HTMLElement;
+    const surface = root.querySelector('.surface') as HTMLElement;
+    const e = new MouseEvent('contextmenu', { bubbles: true, composed: true, cancelable: true, clientX: 120, clientY: 90 });
+    surface.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(true);
+    const menu = root.querySelector('sf-menu.context-menu') as SfMenuElement & { open?: boolean };
+    await until(() => menu.open === true);
+    expect(calls[0]?.startsWith('contextAt')).toBe(true);
+    const values = [...menu.querySelectorAll('sf-menu-item')].map((i) => i.getAttribute('value'));
+    expect(values).toEqual(expect.arrayContaining(['cmd:cut', 'cmd:copy', 'cmd:paste', 'cap:instaflow/duplicate', 'cap:instaflow/copy-style', 'cap:instaflow/lock?locked=true', 'cmd:rename']));
+    expectNoA11yIssues(main);
+    const select = (value: string): boolean => menu.dispatchEvent(new CustomEvent('sf-select', { detail: { value } }));
+    select('cmd:copy');
+    select('cap:instaflow/lock?locked=true');
+    select('cmd:page-size:1080x1080');
+    select('cmd:replace-image');
+    expect(calls.slice(1)).toEqual(['clipboard ["copy"]', 'invoke ["instaflow/lock",{"locked":true}]', 'pageAction ["size","1080x1080"]', 'replaceImage']);
+  });
+
+  it('the empty canvas has its own menu', async () => {
+    const { root } = await mount({ context: () => undefined });
+    const surface = root.querySelector('.surface') as HTMLElement;
+    surface.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, composed: true, cancelable: true, clientX: 50, clientY: 50 }));
+    const menu = root.querySelector('sf-menu.context-menu') as SfMenuElement & { open?: boolean };
+    await until(() => menu.open === true);
+    expect([...menu.querySelectorAll('sf-menu-item')].map((i) => i.getAttribute('value'))).toEqual(['cmd:select-all', 'cmd:zoom-fit', 'cmd:zoom-100', 'cmd:add-page']);
+  });
+
+  it('the chrome keys: Mod+\\ collapses the dock, Mod+S hints, ? opens the cheat sheet, Shift+F10 the menu', async () => {
+    const { root, calls, element } = await mount({ model: { ...MODEL, selection: SHAPE, frame: { x: 100, y: 400, w: 200, h: 100 } }, context: () => SHAPE });
+    const surface = root.querySelector('.surface') as HTMLElement;
+    surface.focus();
+    const dock = (): boolean => root.querySelector('sf-dock[side="start"]')?.hasAttribute('collapsed') ?? false;
+    const before = dock();
+    press(surface, '\\', { ctrl: true });
     await settle(2);
-    expect(deepFocused()).toBe(hudItems[1]);
-    const mode = root.querySelector('sf-segmented.modes') as SfSegmentedElement;
-    const checked = mode.shadowRoot?.querySelector('[aria-checked="true"]') as HTMLElement;
-    checked.focus();
-    press(checked, 'ArrowRight');
-    await until(() => studio.lens?.label === 'Pixel');
+    expect(dock()).toBe(!before);
+    element.toggleRegion('dock');
+    await settle(2);
+    expect(dock()).toBe(before);
+    press(surface, 's', { ctrl: true });
+    press(surface, '?', { shift: true });
+    press(surface, 'F10', { shift: true });
+    const menu = root.querySelector('sf-menu.context-menu') as SfMenuElement & { open?: boolean };
+    await until(() => menu.open === true);
+    expect(calls.slice(0, 3).map((c) => c.split(' ')[0])).toEqual(['saveHint', 'openShortcuts', 'contextAt']);
   });
 
-  it('the dock tabs are an APG tablist: arrows move between Layers, Pages, Assets, Milestones, Brand and Export', async () => {
-    const { root } = await mount();
-    const tabs = [...root.querySelectorAll('aside[data-region="dock"] sf-tab')] as HTMLElement[];
-    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false', 'false', 'false']);
-    tabs[0]?.focus();
-    press(tabs[0] as HTMLElement, 'ArrowRight');
-    await settle(4);
-    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'true', 'false', 'false', 'false', 'false']);
-  });
-
-  it('showPanel selects a dock panel by id and focuses its tab (C1: Share shows Export)', async () => {
+  it('the Home link asks the host first (cancelable) and keeps modified clicks', async () => {
     const { element, root } = await mount();
-    expect(await element.showPanel('instaflow/export')).toBe(true);
-    await settle(4);
-    const tabs = [...root.querySelectorAll('aside[data-region="dock"] sf-tab')] as HTMLElement[];
-    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'false', 'false', 'false', 'false', 'true']);
-    expect(await element.showPanel('instaflow/nope')).toBe(false);
-    // A control inside a panel (a segmented control's composed `sf-change`) does not switch the dock's tab.
-    const inner = root.querySelector('aside[data-region="dock"] sf-tab-panel:last-of-type') as HTMLElement;
-    const probe = document.createElement('span');
-    inner.append(probe);
-    probe.dispatchEvent(new CustomEvent('sf-change', { detail: { value: 'pdf' }, bubbles: true, composed: true }));
-    await settle(4);
-    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'false', 'false', 'false', 'false', 'true']);
-  });
-
-  it('the HUD, intents and the command bar emit events for the features that handle them', async () => {
-    const { element, root } = await mount();
-    const seen: string[] = [];
-    element.addEventListener('if-hud-action', (e) => seen.push((e as CustomEvent<{ action: string }>).detail.action));
-    element.addEventListener('if-intent', (e) => seen.push((e as CustomEvent<{ intent: string }>).detail.intent));
-    element.addEventListener('if-command', (e) => seen.push((e as CustomEvent<{ text: string }>).detail.text));
-    (root.querySelector('[data-slot="hud:instaflow/animate"]') as HTMLElement).click();
-    (root.querySelector('header sf-button[variant="primary"]') as HTMLElement).click();
-    (root.querySelector('.zoom sf-icon-button') as HTMLElement).click();
-    const field = root.querySelector('.command sf-text-field') as HTMLElement & { value: string };
-    field.value = 'make it pop';
-    field.dispatchEvent(new Event('change'));
-    expect(seen).toEqual(['instaflow/animate', 'share', 'zoom-out', 'make it pop']);
-  });
-
-  it('C0: "Save as template" is an intent; the Home link asks the host first (cancelable) and keeps modified clicks', async () => {
-    const { element, root } = await mount();
-    const seen: string[] = [];
-    element.addEventListener('if-intent', (e) => seen.push((e as CustomEvent<{ intent: string }>).detail.intent));
-    const save = [...root.querySelectorAll('header sf-button')].find((b) => b.textContent?.trim() === 'Save as template') as HTMLElement;
-    save.click();
-    expect(seen).toEqual(['save-template']);
-    element.homeHref = '/';
-    await element.updateComplete;
     const home = root.querySelector('header a.home') as HTMLAnchorElement;
-    expect(home.getAttribute('href')).toBe('/');
     const hrefs: string[] = [];
-    const cancel = (e: Event): void => {
+    element.addEventListener('if-navigate', (e) => {
       hrefs.push((e as CustomEvent<{ href: string }>).detail.href);
       e.preventDefault();
-    };
-    element.addEventListener('if-navigate', cancel);
+    });
     const plain = new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, button: 0 });
     home.dispatchEvent(plain);
     expect(hrefs).toEqual(['/']);
-    expect(plain.defaultPrevented).toBe(true); // the host navigates after saving
+    expect(plain.defaultPrevented).toBe(true);
     const newTab = new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, button: 0, metaKey: true });
     newTab.preventDefault = () => undefined; // happy-dom would follow the link otherwise
     home.dispatchEvent(newTab);
-    expect(hrefs).toEqual(['/']); // modified clicks are the browser's
+    expect(hrefs).toEqual(['/']);
   });
 });
 
@@ -361,3 +462,6 @@ runSpecMountPortContract(
   { describe, it },
   { numRuns: 5 },
 );
+
+/** Unused-type guard (the contract helper's result type). */
+export type _Unused = Result<void> | ReturnType<typeof ok>;

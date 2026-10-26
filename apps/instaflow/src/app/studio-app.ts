@@ -19,21 +19,25 @@
  *   selection; the Milestone button; zoom buttons and readout; the library's Place; results and problems are
  *   announced politely.
  */
-import { type Announcer, createAnnouncer, createShortcutRegistry, type ShortcutRegistry, type Timers } from '@staticflux/a11y';
+import { type Announcer, createAnnouncer, createShortcutRegistry, defineShortcut, type ShortcutRegistry, type Timers } from '@staticflux/a11y';
 import { alwaysActivePort, allowAllDecidePort, type AnyCapability, type CapabilityRegistry, createCapabilityRegistry, failClosedConfirmPort, implementCapability, unmeteredPort } from '@staticflux/capabilities';
-import { box, createInjector, err, type Injector, ok, type Result, type Scope, type SfError, unit, watch } from '@staticflux/core';
+import { box, createInjector, createScope, err, type Injector, ok, type Result, type Scope, type SfError, unit, watch } from '@staticflux/core';
 import type { NodeId } from '@staticflux/document/v2';
 import { createGate, definePolicy, definePolicySet } from '@staticflux/gate';
 import type { Actor } from '@staticflux/stage';
 import type { TextInputFactory } from '@staticflux/surface/text-input';
-import { defineUiElements, gateResource, provideScope } from '@staticflux/ui';
+import { allowAllDecideUnit, defineUiElements, gateResource, provideScope, visibilityObserverUnit } from '@staticflux/ui';
+import { defineDialogSurface } from '@staticflux/kit/surface-defs';
+import { defineShortcutSheet } from '@staticflux/kit/shortcut-sheet';
+import { defineSurfaces } from '@staticflux/kit/surfaces';
+import { ownerOf, SurfaceManagerToken, type SurfaceManager } from '@staticflux/messaging';
 import { fromWireError, type Spawner } from '@staticflux/worker';
 import { html, render } from 'lit';
 import { ref } from 'lit/directives/ref.js';
 import { APPEARANCE_PANEL_ID } from '../elements/contributions.js';
 import { ExportCapability, ExportShortcut, implementExport } from '../export/capability.js';
 import { DEFAULT_EXPORT_OPTIONS, type ExportFile, type ExportOptions } from '../export/formats.js';
-import { bindExportPanel, EXPORT_PANEL_ID, type IfExportPanelElement } from '../export/panel.js';
+import { bindExportPanel, defineExportPanel, EXPORT_PANEL_ID, type IfExportPanelElement } from '../export/panel.js';
 import { browserDownload, createExportService, type ExportService } from '../export/service.js';
 import { bindPaintInspector, definePaintInspector, type IfPaintInspectorElement } from '../elements/panel.js';
 import { canvasLensFeature } from '../lenses/canvas-lens.js';
@@ -56,8 +60,17 @@ import type { ActionId, PanelContribution, ToolId } from '../spec/contributions.
 import { gateSpecDecide } from '../spec/gate.js';
 import type { EditorRegistries } from '../spec/registries.js';
 import type { ScopeRef } from '../spec/schema.js';
-import { createStudio, type Studio } from '../studio/studio.js';
-import { defineStudio, type IfStudioElement } from '../studio/studio-element.js';
+import { createStudio, type Studio, StudioShortcutScope } from '../studio/studio.js';
+import type { IfLayersPanelElement, LayersModel, LayersPort } from '../studio/layers-panel.js';
+import { type IfInspectorElement, type InspectorModel, type InspectorPort } from '../studio/inspector.js';
+import { type CameraAction, defineStudio, EMPTY_CHROME, type IfStudioElement, type StudioChromeModel, type StudioChromePort } from '../studio/studio-element.js';
+import type { HudAction } from '../studio/hud.js';
+import type { LayerRow } from './scene-summary.js';
+import { createToasts, INSTAFLOW_SURFACE_UNITS, type Toasts } from './feedback.js';
+import { CopyStyleCapability, DeleteCapability, LockCapability, STUDIO_KEY_COMMANDS, UndoCapability } from './studio-commands.js';
+import { ClipboardShortcuts, createClipboardController } from './clipboard-controller.js';
+import { shortcutSheet, type ShortcutGroupName, shortcutsSheetSurface } from '../studio/shortcuts-sheet.js';
+import { ELEMENT_ACTIONS, elementActionId } from '../elements/capabilities.js';
 import { TEXT_HUD_COMMANDS } from '../text/commands.js';
 import { TOOL_HUD_COMMANDS } from '../tools/contributions.js';
 import { bindTransformBar, defineTransformBar, type IfTransformBarElement } from '../tools/transform-bar.js';
@@ -72,7 +85,7 @@ import { defineSaveStatus } from '../versioning/save-status.js';
 import { LatestServiceToken, MilestonesPanelModelToken } from '../versioning/tokens.js';
 import { type BootStudioWorkersOptions, bootStudioWorkers, type StudioWorkers } from '../workers/boot.js';
 import { createMirrorHub, type MirrorHub } from '../workers/mirror.js';
-import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, StoryMirror, TransformMirror, TypographyMirror } from '../workers/mirrors.js';
+import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, SceneMirror, StoryMirror, TransformMirror, TypographyMirror } from '../workers/mirrors.js';
 import type { InspectedElement, StudioDocumentRef, StudioInspection, StudioMetrics, ViewProjection } from '../workers/protocol.js';
 import { fromWire } from '../workers/wire.js';
 import type { StudioWorkspace } from './document.js';
@@ -160,6 +173,14 @@ export interface StudioApp {
   metrics(): Promise<Result<StudioMetrics>>;
   /** Messages spoken in the polite live region (the last few; tests and the smoke check read them). */
   readonly spoken: readonly string[];
+  /** B11b: the toasts port (feedback for non-local actions, OVERLAYS-FEEDBACK §3.5). */
+  readonly toasts: Toasts;
+  /** B11b: toast messages shown so far (the last few; tests and the smoke check read them). */
+  readonly toasted: readonly string[];
+  /** B11b: what the chrome runs (the HUD pill, the top bar, menus): also the smoke checks' handle. */
+  readonly chrome: StudioChromePort;
+  /** B11b: what the chrome shows (the selection summary, layers, page; tests and the smoke check read it). */
+  readonly scene: StudioChromeModel & { readonly layers: readonly LayerRow[] };
 }
 
 /** HUD action → capability input from the selection (data; the default is `{ nodes }`). */
@@ -224,11 +245,16 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     run: (o: ExportOptions) => void app.exportDesign(o),
     cancel: () => exportsService?.cancel(),
   };
+  const inspectorBinding: { bind: (element: Element) => () => void; element?: IfInspectorElement } = { bind: () => () => undefined };
+  const layersBinding: { bind: (element: Element) => () => void } = { bind: () => () => undefined };
   const BINDERS: Readonly<Record<string, (element: Element) => () => void>> = {
     [EXPORT_PANEL_ID]: (element) => bindExportPanel(element as IfExportPanelElement, exportPort),
     [StudioIds.panel.transform]: (element) => bindTransformBar(element as IfTransformBarElement, transformBar),
     [APPEARANCE_PANEL_ID]: (element) => bindPaintInspector(element as IfPaintInspectorElement, appearance),
     [REPEAT_PANEL_ID]: (element) => bindRepeatInspector(element as IfRepeatInspectorElement, repeat),
+    // B11b: bound once the chrome below exists (the binder runs when the panel renders, after startup).
+    [StudioIds.panel.inspector]: (element) => inspectorBinding.bind(element),
+    [StudioIds.panel.layers]: (element) => layersBinding.bind(element),
   };
   /** Panels whose element takes its model from the host: rendered inside a wrapper whose first child gets bound. */
   const bindPanel = (panel: PanelContribution): PanelContribution => {
@@ -264,7 +290,8 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     camera: { show: () => undefined },
   });
   scope.defer(() => lens.dispose());
-  const story = storyFromMirror(storyView, problem);
+  // B11b: a deleted page toasts with Undo (the editor's undo service restores its stub; the part kept its content).
+  const story = storyFromMirror(storyView, problem, { deleted: () => toasts.undoable({ message: 'Page deleted', undo: () => run(UndoCapability.id, {}, []) }) });
   let assetCount = 0;
   const library = createLibraryServices(
     {
@@ -301,6 +328,10 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   const latest = latestFromMirror(hub.view(LatestMirror));
   const injector = createInjector({
     units: [
+      // B11b: messaging under the strict overlay policy (toasts, the Export dialog), OVERLAYS-FEEDBACK §1.
+      visibilityObserverUnit,
+      allowAllDecideUnit,
+      ...INSTAFLOW_SURFACE_UNITS,
       unit({ id: 'instaflow/studio-typography', provides: TypographyServiceToken, scope: 'app', create: () => typography }),
       unit({ id: 'instaflow/studio-lens-controller', provides: LensControllerToken, scope: 'app', create: () => lens }),
       unit({ id: 'instaflow/studio-story-writer', provides: StoryWriterToken, scope: 'app', create: () => story }),
@@ -311,6 +342,30 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     idle: (cb) => setTimeout(cb, 0),
   });
   scope.defer(() => injector.dispose());
+  const managed = await injector.get(SurfaceManagerToken);
+  if (!managed.ok) return managed;
+  const manager: SurfaceManager = managed.value;
+  const toasted: string[] = [];
+  const baseToasts = createToasts(manager, ownerOf(injector));
+  const record = (message: string): void => {
+    toasted.push(message);
+    if (toasted.length > 20) toasted.shift();
+  };
+  const toasts: Toasts = {
+    show: (r) => {
+      record(r.message);
+      return baseToasts.show(r);
+    },
+    undoable: (r) => {
+      record(r.message);
+      return baseToasts.undoable(r);
+    },
+    error: (e, run, copy) => {
+      record(e.message);
+      return baseToasts.error(e, run, copy);
+    },
+    undoNewest: () => baseToasts.undoNewest(),
+  };
 
   // ---------------------------------------------------------------- capabilities (run in the editor)
   const served = new Set(workers.started.capabilities);
@@ -423,7 +478,8 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   watch(
     () => lens.current(),
     (current) => {
-      if (current !== undefined && current !== canvas.page && pages.includes(current)) void canvas.showPage(current).then((r) => (r.ok ? undefined : problem(r.error)));
+      // B11b: pages join and leave at runtime: the arrangement (the mirrored story) lists the pages there are now.
+      if (current !== undefined && current !== canvas.page && (lens.arrangement()?.frames.some((f) => f.page === current) ?? pages.includes(current))) void canvas.showPage(current).then((r) => (r.ok ? undefined : problem(r.error)));
     },
     { scope },
   );
@@ -452,7 +508,9 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   const createMilestone = async (name?: string): Promise<Result<unknown>> => {
     const result = await capabilities.invoke(CreateMilestoneCapability, { name: name ?? `Milestone ${(milestones += 1)}` }, { subject: 'user', signal, origin: { channel: 'ui/hud' } });
     if (result.ok) {
-      say(`Milestone created: ${(result.value as { name?: string }).name ?? ''}`);
+      const made = (result.value as { name?: string }).name ?? '';
+      say(`Milestone created: ${made}`);
+      toasts.show({ message: `Milestone '${made}' created`, action: { label: 'View', run: () => void element?.showPanel(StudioIds.panel.milestones) } });
       void milestonesPanel.refresh();
     } else problem(result.error);
     return result;
@@ -464,8 +522,11 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       return ok(undefined);
     }
     const result = await capabilities.invoke(SaveAsTemplateCapability, title === undefined ? {} : { title }, { subject: 'user', signal, origin: { channel: 'ui/top-bar' } });
-    if (result.ok) say(`Template saved: ${(result.value as { title: string }).title}`);
-    else problem(result.error);
+    if (result.ok) {
+      const saved = (result.value as { title: string }).title;
+      say(`Template saved: ${saved}`);
+      toasts.show({ message: `Saved as template '${saved}'`, action: { label: 'Open Home', run: () => void leave(options.homeHref ?? '/') } });
+    } else problem(result.error);
     return result;
   };
   // C1: the Export panel's button, `Mod+Shift+E` and agents run the same capability.
@@ -474,7 +535,9 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     const result = await capabilities.invoke(ExportCapability, o, { subject: 'user', signal, origin: { channel: 'ui/panel' } });
     if (result.ok) {
       const files = (result.value as { files: readonly { name: string }[] }).files;
-      say(`Exported ${files.length === 1 ? files[0]?.name : `${files.length} files`}`);
+      const what = files.length === 1 ? (files[0]?.name ?? '') : `${files.length} files`;
+      say(`Exported ${what}`);
+      toasts.show({ message: `Exported ${what}`, tone: 'success' });
     } else if (result.error.kind !== 'aborted') problem(result.error);
     return result;
   };
@@ -490,7 +553,297 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     return { page: v.page, view: { selection: v.selection, tool: v.tool, camera: v.camera, viewport: v.viewport, context: v.context }, editing: v.editing === undefined ? undefined : { node: v.editing } };
   };
 
+  // ---------------------------------------------------------------- B11b: the chrome (top bar, pill, menus)
+  let element: IfStudioElement | undefined;
+  const scene = hub.view(SceneMirror);
+  const typographyView = hub.view(TypographyMirror);
+  const titleBox = box(options.document.title);
+  const keyOfCapability = new Map<string, string>(STUDIO_KEY_COMMANDS.map((k) => [k.capability as string, k.def.keys[0] as string] as const));
+  const elementKeys = new Map(ELEMENT_ACTIONS.flatMap((a) => (a.shortcut === undefined ? [] : [[elementActionId(a.name), a.shortcut] as const])));
+  const globalActions: readonly string[] = STUDIO_KEY_COMMANDS.filter((k) => k.empty === true).map((k) => k.capability as string);
+  const actionTable: ReadonlyMap<string, HudAction> = new Map(
+    declarations.map((cap) => {
+      const shortcut = keyOfCapability.get(cap.id) ?? elementKeys.get(cap.id as `instaflow/${string}`) ?? registries.value.hud(cap.id)?.shortcut;
+      return [cap.id as string, { id: cap.id as string, title: cap.title, ...(shortcut === undefined ? {} : { shortcut }) }] as const;
+    }),
+  );
+  /** Feedback a capability run gives beyond the canvas (FOUNDATIONS §5.3: a delete of ≥ 5 elements toasts with Undo). */
+  const styleCopied = box(false);
+  const feedback = (capability: string, nodes: readonly NodeId[]): void => {
+    if (capability === CopyStyleCapability.id) styleCopied.set(true);
+    if (capability === DeleteCapability.id && nodes.length >= 5) toasts.undoable({ message: `Deleted ${nodes.length} elements`, undo: () => run(UndoCapability.id, {}, []) });
+  };
+  const run = (capability: string, extra: Readonly<Record<string, unknown>> = {}, nodes: readonly NodeId[] = selection()): void => {
+    const input = nodes.length === 0 ? { ...extra } : { nodes: [...nodes], ...extra };
+    void capabilities.invoke(capability, input, { subject: 'user', signal, origin: { channel: 'ui/hud' } }).then((r) => {
+      if (r.ok) feedback(capability, nodes);
+      else if (r.error.kind !== 'aborted') toasts.error(r.error);
+    });
+  };
+  scope.defer(editor.on('ran', (ran) => (ran.ok ? feedback(ran.capability, ran.nodes) : undefined)));
+  const sceneCall = (r: Promise<Result<unknown>>): void => void r.then((x) => (x.ok ? undefined : toasts.error(x.error)));
+  // B11b slice 4: the clipboard (STUDIO §8.1): keys use the browser's events, menus the async API and memory.
+  const blocked = (message: string): void => {
+    toasts.show({ message, tone: 'warning', dedupe: 'clipboard' });
+  };
+  const clip = createClipboardController({
+    editor: {
+      copy: (nodes, cut) => editor.request('copy', { nodes: [...nodes], cut }),
+      paste: (payload, inPlace) => editor.request('paste', { payload, inPlace }),
+      pasteText: (text) => editor.request('pasteText', { text }),
+    },
+    selection,
+    editing: () => view()?.editing !== undefined,
+    async placeFiles(files) {
+      const imported = await library.panel.importFiles(files);
+      if (!imported.ok) return void toasts.error(imported.error);
+      for (const failed of imported.value.failed) toasts.error(failed.error);
+      for (const entry of [...imported.value.imported, ...imported.value.deduplicated]) {
+        const placed = await editor.request('place', { entry });
+        if (!placed.ok) toasts.error(placed.error);
+      }
+    },
+    async selectedText() {
+      const copied = await editor.request('copy', { nodes: [...selection()], cut: false });
+      return copied.ok ? copied.value.text : '';
+    },
+    problem: (e) => toasts.error(e),
+    warn: blocked,
+    ...(globalThis.navigator?.clipboard === undefined ? {} : { system: globalThis.navigator.clipboard }),
+  });
+  // The cheat sheet (STUDIO §2.3.1): a snapshot of the registry when it opens.
+  const commandGroups = new Map<string, ShortcutGroupName>(STUDIO_KEY_COMMANDS.map((k) => [k.def.id as string, k.group === 'Style' ? 'Edit' : k.group] as const));
+  const lensIds = new Set<string>(registries.value.lenses.map((l) => l.id as string));
+  const sheetDialog = shortcutsSheetSurface(() => shortcutSheet(shortcuts.list(), { lenses: lensIds, commands: commandGroups }));
+  let sheet: { dismiss(): void; readonly state: string } | undefined;
+  const pageAction = async (action: 'add' | 'duplicate' | 'delete' | 'size', arg?: string): Promise<void> => {
+    const current = lens.current();
+    const pagesEditor = story.pages;
+    if (action === 'size') {
+      const [w, h] = (arg ?? '').split('x').map(Number);
+      if (w !== undefined && h !== undefined && Number.isFinite(w) && Number.isFinite(h)) sceneCall(scene.call('resizePage', w, h));
+      return;
+    }
+    if (pagesEditor === undefined) return;
+    if (action === 'add') {
+      const added = await pagesEditor.addPage(current);
+      if (added.ok) void lens.goTo(added.value);
+      else toasts.error(added.error);
+    } else if (current !== undefined && action === 'duplicate') {
+      const copy = await pagesEditor.duplicatePage(current);
+      if (copy.ok) void lens.goTo(copy.value);
+      else toasts.error(copy.error);
+    } else if (current !== undefined && action === 'delete') {
+      const frames = lens.arrangement()?.frames ?? [];
+      const at = frames.findIndex((f) => f.page === current);
+      const next = frames[at + 1] ?? frames[at - 1];
+      if (next !== undefined && frames.length > 1) await lens.goTo(next.page);
+      const gone = await pagesEditor.deletePage(current);
+      if (!gone.ok) toasts.error(gone.error);
+    }
+  };
+  const chrome: StudioChromePort = {
+    invoke: (capability, extra, nodes) => run(capability, extra ?? {}, nodes ?? selection()),
+    setPaint: (stack, paint, label) => sceneCall(scene.call('setPaint', stack, paint, label)),
+    setProp: (path, value, label) => sceneCall(scene.call('setProp', path, value as never, label)),
+    setFont: (font) => void typography.setFont(font),
+    setSize: (size) => void typography.setSize(size),
+    setTextColor: (color) => void typography.setColor(color),
+    toggleText: (key) => void typography.toggle(key),
+    setTextAlign: (align) => void typography.setAlign(align),
+    setRepeat: (patch) => repeat.apply({ op: 'set', patch: patch as never }),
+    setImageFit: (fit) => sceneCall(scene.call('setImageFit', fit)),
+    command: (id) => void runHudAction(id as ActionId),
+    renameTitle(title) {
+      const asset = options.document.asset as never;
+      const renamed = library.library.rename(asset, title);
+      if (!renamed.ok) {
+        toasts.error(renamed.error);
+        return;
+      }
+      titleBox.set(title.trim());
+      if (typeof document !== 'undefined') document.title = `${title.trim()} · Instaflow`;
+    },
+    camera: (action: CameraAction) => void editor.request('camera', { action }).then((r) => (r.ok ? undefined : problem(r.error))),
+    openExport: () => openExport(),
+    createMilestone: (name) => void createMilestone(name === '' ? undefined : name),
+    saveAsTemplate: () => void saveAsTemplate(titleBox.get()),
+    copyLink() {
+      const href = globalThis.location?.href ?? '';
+      const clip = globalThis.navigator?.clipboard;
+      if (clip === undefined) {
+        toasts.show({ message: 'Clipboard blocked by the browser · Allow in site settings', tone: 'warning' });
+        return;
+      }
+      void clip.writeText(href).then(
+        () => toasts.show({ message: 'Link copied', dedupe: 'link-copied' }),
+        () => toasts.show({ message: 'Clipboard blocked by the browser · Allow in site settings', tone: 'warning' }),
+      );
+    },
+    navigate: (href) => void leave(href),
+    selectPage(rename) {
+      void editor.request('select', { nodes: [] }).then(async (r) => {
+        if (!r.ok) return problem(r.error);
+        const el = inspectorBinding.element;
+        if (el === undefined) return;
+        if (rename) await el.focusPageName();
+        else await el.reveal('page');
+      });
+    },
+    async contextAt(point) {
+      const r = await editor.request('contextAt', point === undefined ? {} : { x: point.x, y: point.y });
+      if (r.ok) return r.value;
+      problem(r.error);
+      return undefined;
+    },
+    clipboard(action) {
+      if (action === 'cut' || action === 'copy') void clip.copy(action === 'cut');
+      else if (action === 'copy-as-text') void clip.copyAsText();
+      else void clip.paste(action === 'paste-in-place');
+    },
+    selectAll() {
+      const nodes = scene.read('layers').filter((l) => !l.locked && !l.hidden).map((l) => l.id);
+      void editor.request('select', { nodes }).then((r) => (r.ok ? undefined : problem(r.error)));
+    },
+    editText: () => void editor.request('editText', {}).then((r) => (r.ok ? undefined : toasts.error(r.error))),
+    textPreset: (name) => void typography.applyPreset(name as never),
+    fitToBox: () => void typography.fitToBox(),
+    replaceImage() {
+      void library.panel.pickAndImport().then(async (picked) => {
+        if (!picked.ok) {
+          if (picked.error.kind !== 'aborted') toasts.error(picked.error);
+          return;
+        }
+        const entry = picked.value.imported[0] ?? picked.value.deduplicated[0];
+        if (entry === undefined) return;
+        const done = await editor.request('replaceImage', { entry });
+        if (!done.ok) toasts.error(done.error);
+      });
+    },
+    pageAction: (action, arg) => void pageAction(action, arg),
+    saveHint: () => toasts.show({ message: 'Instaflow saves as you work', dedupe: 'save-hint', action: { label: 'Create milestone', run: () => void createMilestone() } }),
+    openShortcuts() {
+      if (sheet !== undefined && sheet.state !== 'dismissed') {
+        sheet.dismiss();
+        sheet = undefined;
+        return;
+      }
+      sheet = manager.request(sheetDialog, { owner: ownerOf(injector) });
+    },
+  };
+  // B11b: the inspector (STUDIO §5): the chrome port plus the editor's appearance, transform, repeat and typography.
+  const inspectorPort: InspectorPort = {
+    ...chrome,
+    appearance: (edit) => appearance.apply(edit),
+    pageAppearance: (edit) => sceneCall(scene.call('applyPage', edit)),
+    transform: (edit) => transformBar.apply(edit),
+    transformSession: (action) => transformBar.session(action),
+    repeat: (edit) => repeat.apply(edit),
+    text: typography,
+    renamePage: (name) => sceneCall(scene.call('renamePage', name)),
+    resizePage: (width, height) => sceneCall(scene.call('resizePage', width, height)),
+  };
+  const appearanceView = hub.view(AppearanceMirror);
+  const transformView = hub.view(TransformMirror);
+  const repeatView = hub.view(RepeatMirror);
+  const inspectorModel = (): InspectorModel => {
+    const s = scene.read('selection');
+    const asset = s.asset;
+    return {
+      selection: s,
+      page: scene.read('page'),
+      title: titleBox.get(),
+      pages: scene.read('pages'),
+      appearance: appearanceView.read('model'),
+      pageFill: scene.read('pageFill'),
+      transform: transformView.read('model'),
+      typography: typographyView.read('summary'),
+      fonts: typographyView.read('fonts'),
+      repeat: repeatView.read('model'),
+      colors: scene.read('colors'),
+      imageName: asset === undefined ? undefined : library.library.entries().find((e) => e.asset === asset)?.title,
+    };
+  };
+  inspectorBinding.bind = (element) => {
+    const el = element as IfInspectorElement;
+    inspectorBinding.element = el;
+    el.port = inspectorPort;
+    const stop = createScope('instaflow/inspector-binding');
+    watch(inspectorModel, (model) => (el.model = model), { scope: stop, fireImmediately: true });
+    return () => void stop.dispose();
+  };
+
+  // B11b: Layers (STUDIO §3.1) over the scene mirror; its edits are capabilities and mirror actions.
+  const layersPort: LayersPort = {
+    select: (nodes) => void editor.request('select', { nodes: [...nodes] }).then((r) => (r.ok ? undefined : problem(r.error))),
+    selectPage: () => chrome.selectPage(false),
+    rename: (node, name) => run('instaflow/rename', { name }, [node]),
+    move: (nodes, parent, before) => sceneCall(scene.call('move', nodes, parent, before)),
+    hide: (nodes, hidden) => run('instaflow/hide', { hidden }, nodes),
+    lock: (nodes, locked) => run(LockCapability.id, { locked }, nodes),
+    remove: (nodes) => run(DeleteCapability.id, {}, nodes),
+    hover: (node) => void editor.request('hover', { node: node ?? null }),
+    pickTool: (tool) => void studio.selectTool(tool === 'shape' ? StudioIds.tool.shape : StudioIds.tool.text),
+  };
+  const layersModel = (): LayersModel => ({ page: scene.read('page'), layers: scene.read('layers'), selection: selection(), hover: view()?.hover });
+  layersBinding.bind = (element) => {
+    const el = element as IfLayersPanelElement;
+    el.port = layersPort;
+    const stop = createScope('instaflow/layers-binding');
+    watch(layersModel, (model) => (el.model = model), { scope: stop, fireImmediately: true });
+    return () => void stop.dispose();
+  };
+
+  // The Export dialog (OVERLAYS-FEEDBACK §2.3): C1's panel in a form dialog over Studio, bound once per element (the
+  // dialog re-renders its body; binding again on every render ran each export as many times).
+  let exportBound: { readonly element: Element; readonly unbind: () => void } | undefined;
+  const bindExportOnce = (el: Element | undefined): void => {
+    if (el === exportBound?.element) return;
+    exportBound?.unbind();
+    exportBound = el === undefined ? undefined : { element: el, unbind: bindExportPanel(el as IfExportPanelElement, exportPort) };
+  };
+  const exportDialog = defineDialogSurface<void>({
+    id: 'instaflow/export-dialog',
+    scope: 'app',
+    title: () => 'Export',
+    size: 'form',
+    body: () => html`<if-export-panel ${ref(bindExportOnce)}></if-export-panel>`,
+  });
+  const openExport = (): void => {
+    manager.request(exportDialog, { owner: ownerOf(injector) });
+  };
+  const chromeModel = (): StudioChromeModel => {
+    const v = view();
+    return {
+      ...EMPTY_CHROME,
+      title: titleBox.get(),
+      page: scene.read('page'),
+      selection: scene.read('selection'),
+      frame: scene.read('frame'),
+      camera: v?.camera ?? { tx: 0, ty: 0, zoom: 1 },
+      gesture: v?.gesture ?? 'idle',
+      editing: v?.editing !== undefined,
+      typography: typographyView.read('summary'),
+      fonts: typographyView.read('fonts'),
+      colors: scene.read('colors'),
+      actions: actionTable,
+      globalActions,
+      exportAvailable: exportsService !== undefined,
+      templatesAvailable: templates !== undefined,
+      clipboard: { canPaste: clip.held.get() !== undefined, styleCopied: styleCopied.get() },
+      pages: scene.read('pages'),
+    };
+  };
+
   const app: StudioApp = {
+    toasts,
+    get toasted() {
+      return toasted;
+    },
+    chrome,
+    get scene() {
+      return { ...chromeModel(), layers: scene.read('layers') };
+    },
     studio,
     registries: registries.value,
     capabilities,
@@ -546,6 +899,9 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       defineTransformBar();
       defineTypographyPanel();
       defineSaveStatus();
+      defineSurfaces();
+      defineExportPanel();
+      defineShortcutSheet();
       const provided = provideScope(container, { injector, name: 'instaflow/studio' });
       scope.defer(() => provided.dispose());
       const doc = container.ownerDocument;
@@ -557,34 +913,41 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
           .canvas=${canvas}
           .shortcuts=${shortcuts}
           .status=${html`<if-save-status></if-save-status>`}
+          .model=${chromeModel()}
+          .port=${chrome}
           asset-title=${options.document.title}
           home-href=${options.homeHref ?? '/'}
           project-title="Instaflow"
-          @if-hud-action=${(e: CustomEvent<{ action: ActionId }>) => void runHudAction(e.detail.action)}
           @if-navigate=${(e: CustomEvent<{ href: string }>) => {
             e.preventDefault();
             void leave(e.detail.href);
           }}
-          @if-intent=${(e: CustomEvent<{ intent: string }>) => {
-            const intents: Readonly<Record<string, () => void>> = {
-              milestone: () => void createMilestone(),
-              'save-template': () => void saveAsTemplate(),
-              'zoom-in': () => void editor.request('zoom', { step: 1 }).then((r) => (r.ok ? undefined : problem(r.error))),
-              'zoom-out': () => void editor.request('zoom', { step: -1 }).then((r) => (r.ok ? undefined : problem(r.error))),
-              share: () => void element.showPanel(EXPORT_PANEL_ID).then((shown) => (shown ? undefined : say('Export is not in this editor.'))),
-            };
-            intents[e.detail.intent]?.();
-          }}
-        ></if-studio>`,
+        ></if-studio>
+        <sf-surface-layer></sf-surface-layer>`,
         container,
       );
-      const element = container.querySelector('if-studio') as IfStudioElement;
+      const mounted = container.querySelector('if-studio') as IfStudioElement;
+      element = mounted;
+      // The chrome model follows the mirrors and the view (one assignment per change; Lit diffs the rest).
+      watch(chromeModel, (model) => (mounted.model = model), { scope });
+      // Key commands with the focus on the chrome (STUDIO §12: Delete works when focus is not on the canvas and not in a
+      // text field); on the canvas its own scope wins and the editor runs them.
+      for (const command of STUDIO_KEY_COMMANDS) {
+        const def = defineShortcut({ id: `${command.def.id}-chrome`, keys: command.def.keys, scope: StudioShortcutScope, description: command.def.description, allowInInputs: false });
+        const registered = shortcuts.register(def, () => run(command.capability, command.extra?.(selection().length) ?? {}, command.empty === true ? [] : selection()), { scope, when: () => command.empty === true || selection().length > 0 });
+        if (!registered.ok) problem(registered.error);
+      }
+      // The clipboard keys (cheat sheet rows; the browser's events do the work) and the clipboard events in Studio.
+      for (const def of Object.values(ClipboardShortcuts)) {
+        const registered = shortcuts.register(def, () => false, { scope });
+        if (!registered.ok) problem(registered.error);
+      }
+      clip.attach(doc, (e) => e.composedPath().includes(mounted), scope);
       if (exportsService !== undefined) {
         const registered = shortcuts.register(
           ExportShortcut,
           () => {
-            void element.showPanel(EXPORT_PANEL_ID);
-            void exportDesign(lastExport ?? DEFAULT_EXPORT_OPTIONS);
+            openExport();
             return true;
           },
           { scope },
@@ -594,12 +957,12 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       watch(
         () => view()?.camera.zoom,
         (zoom) => {
-          if (zoom !== undefined) element.zoom = zoom;
+          if (zoom !== undefined) mounted.zoom = zoom;
         },
         { scope, fireImmediately: true },
       );
       scope.defer(() => render(html``, container));
-      return element;
+      return mounted;
     },
   };
   const openedSpec = await studio.open(signal);

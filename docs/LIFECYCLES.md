@@ -701,6 +701,37 @@ toast timers and dismiss guards live in the surface manager (LIFECYCLES §8 is u
 | FND-12 | At most two hints per session; a seen hint never shows again on that device until `Reset hints` | `apps/instaflow/src/studio/hints.test.ts` |
 | FND-13 | Every B11a2 block passes the full audit under Clean Pop | `apps/instaflow/src/a11y/foundations.test.ts`, guarded by `chrome.test.ts` |
 
+## 38. Studio and Home surfaces (Instaflow M1c B11b)
+
+The surfaces keep no document state: every edit is one capability run or one mirror action (one change set). The machines below
+live in their element and end with it; the per-device state lives in `localStorage` (a convenience: it may come back empty).
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| selection pill (per Studio) | hidden (nothing selected, or the selection off-screen) → shown (a selection whose frame is visible); shown → hidden-for-gesture (`gesture` ≠ idle) → shown (120 ms after the gesture ends, at the new place); shown → frozen (a pill popover or menu opened: the place stays) → shown (the last one closed) | `apps/instaflow/src/studio/studio-element.ts`, `hud.ts` |
+| command bar (per Studio) | closed → open (`Mod+K` or a click: the filter focused) → closed (a row runs: recorded first in the recents, then `if-command`; Escape; outside press) | `apps/instaflow/src/studio/command-bar.ts` |
+| inspector section (per section, per device) | open ↔ collapsed (the disclosure; default from §5.1, remembered under `instaflow/ui/inspector-sections`); Pro: pinned open (no toggle); `reveal(section)` → open | `apps/instaflow/src/studio/inspector.ts` |
+| stack row (per row) | collapsed ↔ expanded (a click on its summary; Pro: always expanded) | `apps/instaflow/src/studio/inspector-paint.ts` |
+| `kit/tree` row rename (per tree) | viewing → renaming (`renaming = id`: the field focused, text selected; the row not draggable) → viewing (Enter or blur: `sf-rename` when the trimmed name changed and is not empty, else `sf-rename-cancel`; Escape: `sf-rename-cancel`); focus returns to the tree | `packages/kit/src/tree.ts` |
+| a page (per page id) | absent → in the story (Add / Duplicate: part created and attached, stub created after a page — one step) → out of the story (Delete: the stub goes, the part keeps its content — one step) → in the story (undo) | `apps/instaflow/src/lenses/page-ops.ts`, `workers/editor-module.ts` (`StoryMirror`) |
+| clipboard (per Studio) | empty → held (Copy or Cut ran: the payload in memory and, when the browser allows, on the system clipboard) → held (a later copy replaces it; a paste of Studio's payload from another tab replaces it). Paste stacking (per editor): count 0 → k (each non-in-place paste of the same payload) → 0 (a new copy) | `apps/instaflow/src/app/clipboard-controller.ts`, `workers/editor-module.ts` (`pastes`) |
+| style clipboard (per editor) | empty → held (Copy style: the first element's style values) → held (the next Copy style replaces it); Paste style reads it, never clears it | `apps/instaflow/src/app/studio-commands.ts` |
+| context menu (per Studio) | closed → resolving (right-click, Shift+F10 or a Layers row: `contextAt` selects the target) → open (the target's groups at the point; keyboard opens focus the first row) → closed (a row runs, Escape, an outside press: focus returns to the canvas or the row) | `apps/instaflow/src/studio/studio-element.ts`, `context-menu.ts` |
+| cheat sheet (per Studio) | closed → open (`?`: a registry snapshot, the search focused) → closed (`?` again, Escape, the close button) | `apps/instaflow/src/studio/shortcuts-sheet.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| SURF-1 | The pill and the inspector render only controls the selection kind declares; the More menu and the command bar list only capabilities the selection can run | IF-POL-001; `hud.test.ts`, `inspector.test.ts`, `command-bar.test.ts` |
+| SURF-2 | Every pill, inspector and command-bar edit is one undo step; a commit that changes nothing writes no step | `studio.smoke.mjs` (undo ×4, W = 150), `editor-module.ts` (no-op filter) |
+| SURF-3 | A page side is 16…8192 px; a refused size changes nothing | IF-POL-050; `studio-app.test.ts` |
+| SURF-4 | Undo and redo run one at a time, in order; the selection never names an element an undo removed | `canvas-tab.ts`; `studio.smoke.mjs` |
+| SURF-5 | Every surface element passes the full audit under Clean Pop | `chrome.test.ts` guards the list |
+| SURF-6 | A design never has zero pages; a deleted page's content survives in its part until undo brings the stub back | IF-POL-052; `page-ops.test.ts`, `studio-app.test.ts` |
+| SURF-7 | A Layers drop or Alt+↑/↓ writes the paint order the list shows (above a row = after it in the document) | `layers-panel.test.ts`, `studio.smoke.mjs` |
+| SURF-8 | A paste never reuses an id: every pasted node gets a new one, the top level is selected, and each paste or cut is one undo step | `clipboard.test.ts`, `studio.smoke.mjs` (Mod+V, Mod+Shift+V, undo ×2) |
+| SURF-9 | The context menu lists a capability only when the selection's `actions` include it, and Paste / Paste style only when there is something to paste | `context-menu.test.ts`, `studio-element.test.ts` |
+| SURF-10 | The cheat sheet lists exactly the registered, unshadowed shortcuts (each once) | `shortcuts-sheet.test.ts`, `shortcut-sheet.test.ts` (kit) |
+
 ## 39. Engine gaps for B11b: typing steps, hidden elements, page fill, crops (Instaflow M1c B12)
 
 What B12 adds to B2's text session (§21) and B1's elements. Nothing here is a new `defineMachine`: the typing run lives in

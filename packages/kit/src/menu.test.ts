@@ -67,6 +67,15 @@ describe('<sf-menu> rows', () => {
 });
 
 describe('submenus (one level)', () => {
+  it('a shortcut attribute that is removed (Lit `nothing`) leaves the row without a key hint (B11b)', async () => {
+    const { element } = await fixture<SfMenuElement>(html`<sf-menu label="More"><sf-button slot="trigger">More</sf-button><sf-menu-item value="a" shortcut="Mod+C">A</sf-menu-item></sf-menu>`);
+    const item = element.querySelector('sf-menu-item') as SfMenuItemElement;
+    item.removeAttribute('shortcut');
+    await settle();
+    expect(item.hasAttribute('aria-keyshortcuts')).toBe(false);
+    expect(item.shadowRoot?.querySelector('kbd') ?? null).toBeNull();
+  });
+
   it('opens with → into the first row, closes with ← back to its row, Escape closes the submenu only', async () => {
     const { menu, trigger, row, sub } = await arrangeMenu();
     expect(row.getAttribute('aria-haspopup')).toBe('menu');

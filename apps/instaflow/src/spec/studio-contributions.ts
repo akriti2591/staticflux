@@ -27,7 +27,12 @@ const T = StudioIds.tool;
 export const studioTools = Object.freeze([
   defineTool({ id: T.select, label: 'Select', glyph: '↖', shortcut: 'V' }),
   defineTool({ id: T.frame, label: 'Frame', glyph: '#', shortcut: 'F', lenses: [L.canvas] }),
-  defineTool({ id: T.shape, label: 'Shape', glyph: '▢', shortcut: 'R', lenses: [L.canvas, L.pages] }),
+  defineTool({ id: T.shape, label: 'Rectangle', glyph: '▢', shortcut: 'R', lenses: [L.canvas, L.pages] }),
+  // B11b: the shape family (one picker button with a menu, STUDIO-UX-SPEC §4.1); B8's creation tools draw them.
+  defineTool({ id: T.ellipse, label: 'Ellipse', glyph: '', shortcut: 'O', lenses: [L.canvas, L.pages] }),
+  defineTool({ id: T.polygon, label: 'Polygon', glyph: '', lenses: [L.canvas, L.pages] }),
+  defineTool({ id: T.star, label: 'Star', glyph: '', lenses: [L.canvas, L.pages] }),
+  defineTool({ id: T.line, label: 'Line', glyph: '', shortcut: 'L', lenses: [L.canvas, L.pages] }),
   defineTool({ id: T.text, label: 'Text', glyph: 'T', shortcut: 'T', lenses: [L.canvas, L.pages] }),
   defineTool({ id: T.pen, label: 'Pen', glyph: '✒', shortcut: 'P', lenses: [L.canvas, L.pages] }),
   defineTool({ id: T.hand, label: 'Hand', glyph: '✋', shortcut: 'H' }),
@@ -51,9 +56,10 @@ export const studioPanels: readonly PanelContribution[] = Object.freeze([
   definePanel({ id: P.brand, label: 'Brand', placements: ['dock'], minDensity: 'standard', render: placeholder('B4') }),
   definePanel({ id: P.properties, label: 'Properties', placements: ['inspector'], minDensity: 'pro', render: placeholder('B1 / B2') }),
   definePanel({ id: P.adjust, label: 'Adjust', placements: ['inspector'], minDensity: 'focus', lenses: [L.pixel], render: placeholder('B3') }),
-  definePanel({ id: P.typography, label: 'Typography', placements: ['inspector', 'side'], minDensity: 'pro', lenses: [L.canvas, L.pages], render: placeholder('B2') }),
+  definePanel({ id: P.typography, label: 'Typography', placements: ['inspector', 'side'], minDensity: 'standard', lenses: [L.canvas, L.pages], render: placeholder('B2') }),
   definePanel({ id: P.milestones, label: 'Milestones', placements: ['dock', 'side'], minDensity: 'standard', render: placeholder('B5') }),
   definePanel({ id: P.export, label: 'Export', placements: ['dock', 'side'], minDensity: 'standard', render: placeholder('C1') }),
+  definePanel({ id: P.inspector, label: 'Inspector', placements: ['inspector'], minDensity: 'standard', render: placeholder('B11b') }),
 ]);
 
 const H = StudioIds.hud;

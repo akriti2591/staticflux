@@ -96,7 +96,7 @@ async function colourBox(page, clip, rgb, tolerance = 40) {
 
 async function scenario(page) {
   const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('pageerror', (e) => errors.push(`${e.message} ${(e.stack ?? '').split('\n').slice(1, 4).join(' ')}`));
   page.on('console', (m) => (m.type() === 'error' ? errors.push(m.text()) : undefined));
   page.on('worker', (w) => w.on('console', (m) => (m.type() === 'error' ? errors.push(`worker: ${m.text()}`) : undefined)));
   // C1: requests for the export Wasm (the page's and its workers'), to show it loads only for an SVG or PDF export.
@@ -135,7 +135,7 @@ async function scenario(page) {
   };
 
   // ---------------------------------------------------------------- B8: draw a rectangle
-  await page.getByRole('button', { name: 'Shape' }).click();
+  await page.getByRole('button', { name: 'Rectangle', exact: true }).click();
   await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.3);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.38, { steps: 4 });
@@ -146,8 +146,9 @@ async function scenario(page) {
   const drawn = (await inspect([rect])).elements[0];
   if (drawn?.kind !== 'shape' || !(drawn.w > 10)) fail(`no rectangle drawn: ${JSON.stringify(drawn)}`);
   log(`rectangle ${rect} (${Math.round(drawn.w)} wide)`);
-  await page.getByRole('button', { name: 'Radial repeat' }).waitFor({ timeout: 20_000 });
-  log('selection HUD mounted (Radial repeat)');
+  const hud = page.getByRole('toolbar', { name: 'Selection actions' });
+  await hud.getByRole('button', { name: 'Fill', exact: true }).waitFor({ timeout: 20_000 });
+  log('selection pill shows the shape controls (Fill, Stroke, Radius, Duplicate, Delete, More)');
   await waitSettled();
 
   // ---------------------------------------------------------------- select, move (overlay vs content), resize, rotate
@@ -266,16 +267,16 @@ async function scenario(page) {
   if (!(Math.abs(skewed.skewX) > 5) || !near(skewed.skewX / 15, Math.round(skewed.skewX / 15), 1e-6) || (await undoDepth()) !== u1 + 1) fail(`skew: ${JSON.stringify({ skewed, undo: [u1, await undoDepth()] })}`);
   log(`skew by Mod-dragging the top handle of a rotated element (${Math.round(skewed.skewX)}°, snapped to 15° with Shift; one undo step)`);
 
-  // Numeric bar (the Transform panel): type a width, Enter applies it as one undo step.
-  const bar = page.locator('if-transform-bar');
-  const width = bar.getByRole('textbox', { name: 'Width', exact: true });
+  // Numeric transform (B11b: the inspector's Transform section): type a width, Enter applies it as one undo step.
+  const bar = page.locator('if-inspector');
+  const width = bar.getByRole('spinbutton', { name: 'W', exact: true });
   await width.waitFor({ timeout: 20_000 });
   const u2 = await undoDepth();
   await width.fill('150');
   await width.press('Enter');
   await waitAsync(page, async (n) => Math.abs(((await window.__studio.inspect([n])).value?.elements[0]?.w ?? 0) - 150) < 0.01, rect, { timeout: 10_000, polling: 100 });
   if ((await undoDepth()) !== u2 + 1) fail(`numeric bar: ${u2} → ${await undoDepth()} undo steps`);
-  log('numeric bar: W = 150 typed and applied (one undo step)');
+  log('inspector Transform: W = 150 typed and applied (one undo step)');
 
   // Transform mode: Mod+T, steps are previews; Escape cancels the whole session, Enter applies it as one undo step.
   await surface.focus();
@@ -371,8 +372,177 @@ async function scenario(page) {
 
   // ---------------------------------------------------------------- B8: milestone
   await page.getByRole('button', { name: 'Milestone', exact: true }).click();
-  await page.waitForFunction(() => window.__studio.spoken.some((m) => m.startsWith('Milestone created')), null, { timeout: 20_000 });
-  log('milestone created');
+  await page.getByRole('textbox', { name: 'Milestone name' }).fill('Smoke v1');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.waitForFunction(() => window.__studio.toasted.some((m) => m === "Milestone 'Smoke v1' created"), null, { timeout: 20_000 });
+  log('milestone created from the popover, toast shown');
+
+  // ---------------------------------------------------------------- B11b: the selection pill (recolour, duplicate, group, delete, undo)
+  const sceneOf = () => page.evaluate(() => {
+    const s = window.__studio.scene;
+    return { kind: s.selection?.kind, fill: s.selection?.fill?.color, nodes: s.selection?.nodes ?? [], layers: s.layers.length };
+  });
+  const clickElement = async (node) => {
+    const b = await screenBox(node);
+    await page.mouse.click(b.x + b.w / 2, b.y + b.h / 2);
+    await page.waitForFunction((n) => window.__studio.tab.view.selection.join() === n, node, { timeout: 10_000 });
+  };
+  await clickElement(rect);
+  await waitAsync(page, () => window.__studio.scene.selection?.kind === 'shape', null, { timeout: 10_000 });
+  // The inspector (STUDIO §5): exactly the rectangle's sections.
+  const inspector = page.locator('if-inspector');
+  await inspector.locator('section[data-section="fill"]').waitFor({ timeout: 10_000 }).catch(() => fail('the inspector shows no Fill section for a rectangle'));
+  const shown = await inspector.locator('section[data-section]').evaluateAll((els) => els.map((e) => e.getAttribute('data-section')));
+  if (JSON.stringify(shown) !== JSON.stringify(['transform', 'fill', 'stroke', 'corners', 'effects', 'layer'])) fail(`inspector sections for a rectangle: ${JSON.stringify(shown)}`);
+  log(`inspector: a rectangle shows ${shown.join(' · ')}`);
+  const u4 = await undoDepth();
+  const labels4 = (await inspect()).steps.map((x) => x.label);
+  await hud.getByRole('button', { name: 'Fill', exact: true }).click();
+  const hex = page.getByRole('textbox', { name: 'Fill colour Hex' });
+  await hex.waitFor({ timeout: 10_000 });
+  await hex.fill('3D5AFE');
+  await hex.press('Enter');
+  await waitAsync(page, () => window.__studio.scene.selection?.fill?.color?.toUpperCase().startsWith('#3D5AFE') === true, null, { timeout: 10_000 }).catch(async (e) => fail(`pill recolour: ${e.message} ${JSON.stringify(await sceneOf())}`));
+  if ((await undoDepth()) !== u4 + 1) fail(`pill recolour: ${u4} → ${await undoDepth()} undo steps`);
+  await page.keyboard.press('Escape'); // closes the colour popover
+  log('pill recolour: Fill swatch → colour popover → #3D5AFE (one undo step)');
+  await hud.getByRole('button', { name: 'Duplicate', exact: true }).click();
+  await waitAsync(page, (n) => window.__studio.tab.view.selection.length === 1 && window.__studio.tab.view.selection[0] !== n, rect, { timeout: 10_000 });
+  const copy = await page.evaluate(() => window.__studio.tab.view.selection[0]);
+  log(`pill Duplicate: ${copy} selected`);
+  await surface.focus();
+  await page.keyboard.press('Control+A');
+  await waitAsync(page, () => window.__studio.tab.view.selection.length === 3, null, { timeout: 10_000 });
+  await waitAsync(page, () => window.__studio.scene.selection?.kind === 'mixed', null, { timeout: 10_000 });
+  await hud.getByRole('button', { name: 'Group', exact: true }).click();
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.some((e) => e.kind === 'group') === true && window.__studio.scene.selection?.kind === 'group', null, { timeout: 10_000 }).catch(async (e) => fail(`pill Group: ${e.message} ${JSON.stringify(await sceneOf())}`));
+  log('pill Group: the three elements are one group, selected (the pill shows Ungroup)');
+  await hud.getByRole('button', { name: 'Ungroup', exact: true }).waitFor({ timeout: 10_000 });
+  await hud.getByRole('button', { name: 'Delete', exact: true }).click();
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.length === 0, null, { timeout: 10_000 });
+  log('pill Delete: the group is gone');
+  await surface.focus();
+  for (let i = 0; i < 4; i++) await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => {
+    const s = (await window.__studio.inspect()).value;
+    return s !== undefined && s.elements.filter((e) => e.kind === 'shape').length === 1 && s.elements.every((e) => e.kind !== 'group') && s.textNodes.length === 1;
+  }, null, { timeout: 15_000 }).catch(async (e) => fail(`undo ×4: ${e.message} ${JSON.stringify((await inspect()).elements.map((x) => [x.id, x.kind]))}`));
+  const labels = (await inspect()).steps.map((x) => x.label);
+  if (JSON.stringify(labels.slice(0, 3)) !== JSON.stringify(labels4.slice(0, 3))) fail(`undo ×4 left the steps ${JSON.stringify(labels)} (before: ${JSON.stringify(labels4)})`);
+  await clickElement(rect);
+  await waitAsync(page, () => window.__studio.scene.selection?.fill?.color?.toUpperCase().startsWith('#FF5C39') === true, null, { timeout: 10_000 });
+  log('Mod+Z ×4 undid delete, group, duplicate and the recolour');
+  // The command bar (Mod+K): type, Enter runs the top row on the selection; then undo it.
+  const shapes = async () => (await inspect()).elements.filter((e) => e.kind === 'shape').length;
+  await surface.focus();
+  await page.keyboard.press('Control+K');
+  const commandFilter = page.getByRole('searchbox', { name: 'Type a command' });
+  await commandFilter.waitFor({ timeout: 10_000 }).catch(() => fail('Mod+K did not open the command bar'));
+  await commandFilter.fill('Duplicate');
+  await commandFilter.press('Enter');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 2, null, { timeout: 10_000 }).catch(async (e) => fail(`command bar Duplicate: ${e.message} (${await shapes()} shapes)`));
+  await surface.focus();
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 1, null, { timeout: 10_000 });
+  log('command bar: Mod+K → "Duplicate" → Enter duplicated the selection (undone)');
+
+  // Clipboard (STUDIO §8.1, B11b slice 4): Mod+C, Mod+V pastes +24 on the same page and selects the copy; Mod+Shift+V
+  // pastes in place; one undo step each.
+  await clickElement(rect);
+  const r1 = (await screenBox(rect)).e;
+  await surface.focus();
+  const uClip = await undoDepth();
+  await page.keyboard.press('Control+C');
+  await page.waitForFunction(() => window.__studio.scene.clipboard.canPaste === true, null, { timeout: 10_000 }).catch(() => fail('Mod+C kept nothing to paste'));
+  await page.keyboard.press('Control+V');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 2, null, { timeout: 10_000 }).catch(async (e) => fail(`Mod+V: ${e.message} (${await shapes()} shapes)`));
+  const pasted = await page.evaluate(() => window.__studio.tab.view.selection[0]);
+  if (pasted === rect) fail('Mod+V did not select the pasted copy');
+  const p1 = (await screenBox(pasted)).e;
+  if (!near(p1.x - r1.x, 24, 0.5) || !near(p1.y - r1.y, 24, 0.5)) fail(`Mod+V pasted at ${p1.x - r1.x}, ${p1.y - r1.y} from the source (want +24, +24)`);
+  await page.keyboard.press('Control+Shift+V');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 3, null, { timeout: 10_000 }).catch(async (e) => fail(`Mod+Shift+V: ${e.message} (${await shapes()} shapes)`));
+  const inPlace = (await screenBox(await page.evaluate(() => window.__studio.tab.view.selection[0]))).e;
+  if (!near(inPlace.x, r1.x, 0.5) || !near(inPlace.y, r1.y, 0.5)) fail(`Mod+Shift+V pasted at ${inPlace.x}, ${inPlace.y} (want ${r1.x}, ${r1.y})`);
+  if ((await undoDepth()) !== uClip + 2) fail(`paste: ${uClip} → ${await undoDepth()} undo steps (want one per paste)`);
+  await page.keyboard.press('Control+Z');
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 1, null, { timeout: 10_000 }).catch(async (e) => fail(`paste undo: ${e.message} (${await shapes()} shapes)`));
+  log('clipboard: Mod+C, Mod+V pasted +24 and selected the copy, Mod+Shift+V pasted in place; Mod+Z ×2 removed both');
+
+  // The context menu (STUDIO §8.2): right-click the rectangle → Duplicate; then undo.
+  const rb = await screenBox(rect);
+  await page.mouse.click(rb.x + rb.w / 2, rb.y + rb.h / 2, { button: 'right' });
+  // The menu's rows are its light-DOM children (slotted into the shadow `role=menu`), so rows are found from the host.
+  await page.getByRole('menu', { name: 'Context menu' }).waitFor({ timeout: 10_000 }).catch(() => fail('right-click opened no context menu'));
+  const contextMenu = page.locator('sf-menu.context-menu');
+  for (const name of ['Cut', 'Copy', 'Paste', 'Duplicate', 'Delete', 'Copy style', 'Rename']) {
+    if ((await contextMenu.getByRole("menuitem", { name, exact: true }).count()) !== 1) fail(`the context menu has no "${name}": ${JSON.stringify(await contextMenu.getByRole("menuitem").evaluateAll((els) => els.map((e) => [e.getAttribute("value"), e.textContent, e.getAttribute("aria-label")])))}`);
+  }
+  await contextMenu.getByRole('menuitem', { name: 'Duplicate', exact: true }).click();
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 2, null, { timeout: 10_000 }).catch(async (e) => fail(`context menu Duplicate: ${e.message} (${await shapes()} shapes)`));
+  await surface.focus();
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 1, null, { timeout: 10_000 });
+  log('context menu: right-click → Duplicate (undone)');
+
+  // The cheat sheet (STUDIO §2.3.1): ? opens it from the registry; the search filters; Escape closes.
+  await page.keyboard.press('Shift+?');
+  const sheet = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+  await sheet.waitFor({ timeout: 10_000 }).catch(() => fail('? opened no cheat sheet'));
+  const sheetSearch = sheet.getByRole('searchbox', { name: 'Search shortcuts' });
+  await sheetSearch.fill('paste');
+  const rows = await sheet.locator('sf-shortcut-sheet li').allTextContents();
+  if (!rows.some((t) => t.includes('Paste in place')) || rows.some((t) => t.includes('Undo'))) fail(`cheat sheet search "paste": ${JSON.stringify(rows)}`);
+  await page.keyboard.press('Escape');
+  await sheet.waitFor({ state: 'detached', timeout: 10_000 }).catch(() => fail('Escape did not close the cheat sheet'));
+  log(`cheat sheet: ? opened it, "paste" kept ${rows.length} rows, Escape closed it`);
+
+  // Layers (STUDIO §3.1): rename a row inline, move it up with Alt+↑ (one step each), then undo both.
+  const layersOf = () => page.evaluate(() => window.__studio.scene.layers.map((l) => [l.id, l.name]));
+  const layersBefore = await layersOf();
+  const layers = page.locator('if-layers-panel');
+  await page.getByRole('tab', { name: 'Layers', exact: true }).click();
+  const rectRow = layers.locator(`[role="treeitem"][data-id="${rect}"]`);
+  await rectRow.waitFor({ timeout: 10_000 }).catch(async () => fail(`Layers has no row for ${rect}: ${JSON.stringify(layersBefore)}`));
+  await rectRow.dblclick();
+  const renameField = layers.locator('input.rename');
+  await renameField.waitFor({ timeout: 10_000 });
+  await renameField.fill('Hero card');
+  await renameField.press('Enter');
+  await waitAsync(page, (n) => window.__studio.scene.layers.some((l) => l.id === n && l.name === 'Hero card'), rect, { timeout: 10_000 }).catch(async (e) => fail(`Layers rename: ${e.message} ${JSON.stringify(await layersOf())}`));
+  const at = (await layersOf()).findIndex(([id]) => id === rect);
+  await rectRow.click();
+  await page.keyboard.press('Alt+ArrowUp');
+  await waitAsync(page, ([n, i]) => window.__studio.scene.layers.findIndex((l) => l.id === n) === i - 1, [rect, at], { timeout: 10_000 }).catch(async (e) => fail(`Layers reorder: ${e.message} ${JSON.stringify(await layersOf())}`));
+  await surface.focus();
+  await page.keyboard.press('Control+Z');
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, (before) => JSON.stringify(window.__studio.scene.layers.map((l) => [l.id, l.name])) === before, JSON.stringify(layersBefore), { timeout: 10_000 }).catch(async (e) => fail(`Layers undo: ${e.message} ${JSON.stringify(await layersOf())}`));
+  log(`Layers: renamed "${rect}" to "Hero card" and moved it up (Alt+↑); Mod+Z ×2 restored both`);
+
+  // Pages (STUDIO §3.2): Add page shows a new page sized like the current one; Mod+Z takes it back.
+  const storyPages = () => page.evaluate(() => {
+    const s = window.__studio.mirrors.view({ id: 'instaflow/mirror/story' }).read('structure');
+    return s?.ok === true ? s.value.pages.map((p) => p.id) : [];
+  });
+  await page.getByRole('tab', { name: 'Pages', exact: true }).click();
+  const pagesPanel = page.locator('if-pages-panel');
+  await pagesPanel.getByRole('button', { name: 'Add page' }).click();
+  await page.waitForFunction(() => window.__studio.tab?.page?.startsWith('pg_') === true, null, { timeout: 20_000 }).catch(async () => fail(`Add page: ${JSON.stringify(await storyPages())}`));
+  const pagesNow = await storyPages();
+  if (pagesNow.length !== 3) fail(`Add page: ${JSON.stringify(pagesNow)}`);
+  await surface.focus();
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => {
+    const s = window.__studio.mirrors.view({ id: 'instaflow/mirror/story' }).read('structure');
+    return s?.ok === true && s.value.pages.length === 2;
+  }, null, { timeout: 10_000 }).catch(async (e) => fail(`Add page undo: ${e.message} ${JSON.stringify(await storyPages())}`));
+  await pagesPanel.locator('[role="treeitem"][data-id="p1"]').click();
+  await page.waitForFunction(() => window.__studio.tab?.page === 'p1', null, { timeout: 20_000 });
+  await page.getByRole('tab', { name: 'Layers', exact: true }).click();
+  log(`Pages: Add page showed ${pagesNow.find((id) => id.startsWith("pg_"))} after p1; Mod+Z removed it; back on p1`);
+  await page.mouse.click(box.x + 8, box.y + box.height - 8);
 
   // ---------------------------------------------------------------- tab hidden, then visible
   const state = async () => {
@@ -430,7 +600,7 @@ async function scenario(page) {
   // ---------------------------------------------------------------- C1: export PNG, PDF and SVG
   const beforeExport = await state();
   const undoBeforeExport = await undoDepth();
-  await page.getByRole('tab', { name: 'Export' }).click();
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
   const exportPanel = page.locator('if-export-panel');
   await exportPanel.waitFor({ timeout: 20_000 });
   const download = async (button) => {

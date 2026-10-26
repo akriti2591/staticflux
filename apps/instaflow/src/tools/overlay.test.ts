@@ -57,12 +57,12 @@ describe('tool overlay (non-printing chrome)', () => {
       ],
       labels: [],
     };
-    // clear + hover + marquee + 2 guide lines + 3 × 3 spacing strokes + 4 frame edges + 8 resize handles
-    expect(opCount(toolOverlayBatch(overlay, 2, { firstId: 9 }))).toBe(1 + 1 + 1 + 2 + 9 + 4 + 8);
+    // clear + hover + marquee + 2 guide lines + 3 × 3 spacing strokes + 4 frame edges + 8 resize handles + rotate stem and handle
+    expect(opCount(toolOverlayBatch(overlay, 2, { firstId: 9 }))).toBe(1 + 1 + 1 + 2 + 9 + 4 + 8 + 2);
     // Into a shared scene (B8): no CLEAR, and the ids written are reported for the next batch to remove.
     const ids: number[] = [];
-    expect(opCount(toolOverlayBatch(overlay, 2, { firstId: 9, clear: false, ids }))).toBe(1 + 1 + 2 + 9 + 4 + 8);
-    expect(ids).toEqual(Array.from({ length: 25 }, (_, i) => 9 + i));
+    expect(opCount(toolOverlayBatch(overlay, 2, { firstId: 9, clear: false, ids }))).toBe(1 + 1 + 2 + 9 + 4 + 8 + 2);
+    expect(ids).toEqual(Array.from({ length: 27 }, (_, i) => 9 + i));
   });
 
   it('renders distance labels as mono kit tags at their screen positions', () => {

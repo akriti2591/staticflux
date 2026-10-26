@@ -178,6 +178,7 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
         announce: (message) => void server.emit('announce', { message }),
         problem: (error) => void server.emit('problem', { error: toWireError(error) }),
         tool: (tool) => void server.emit('tool', { tool }),
+        ran: (ran) => void server.emit('ran', ran),
       },
       ...(env.timers === undefined ? {} : { timers: env.timers }),
       ...(env.schedule === undefined ? {} : { schedule: env.schedule }),
@@ -307,6 +308,16 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
       const e = needEditor();
       return e.ok ? e.value.place(entry, context.signal) : e;
     },
+    async hover({ node }) {
+      const e = needEditor();
+      if (!e.ok) return e;
+      e.value.hover(node ?? undefined);
+      return ok();
+    },
+    async replaceImage({ entry }, context) {
+      const e = needEditor();
+      return e.ok ? e.value.replaceImage(entry, context.signal) : e;
+    },
     async hud({ action }) {
       const e = needEditor();
       return e.ok ? e.value.hud(action) : e;
@@ -314,6 +325,30 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
     async zoom({ step }) {
       const e = needEditor();
       return e.ok ? e.value.zoom(step) : e;
+    },
+    async camera({ action }) {
+      const e = needEditor();
+      return e.ok ? e.value.camera(action) : e;
+    },
+    async copy({ nodes, cut }) {
+      const e = needEditor();
+      return e.ok ? e.value.copy(nodes, cut) : e;
+    },
+    async paste({ payload, inPlace }) {
+      const e = needEditor();
+      return e.ok ? e.value.paste(payload, inPlace) : e;
+    },
+    async pasteText({ text }) {
+      const e = needEditor();
+      return e.ok ? e.value.pasteText(text) : e;
+    },
+    async contextAt(point) {
+      const e = needEditor();
+      return e.ok ? e.value.contextAt(point) : e;
+    },
+    async editText() {
+      const e = needEditor();
+      return e.ok ? e.value.editText() : e;
     },
     async inspect({ nodes }) {
       const e = needEditor();

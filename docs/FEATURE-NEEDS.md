@@ -460,3 +460,21 @@ Consumer: `apps/instaflow/src/workers` (TextInput port), `src/app` (text layer, 
   edits are replayed with the port's reference model `applyTextIntent`.
 - "Text sits in the layer stack like any shape and exports as drawn" → one more kind in the A7 render projection
   (`defineRenderProjection`) and the render crate's existing group, clip and mask traversal for canvas, PNG, SVG and PDF (D21).
+
+### Studio and Home surfaces (Instaflow M1c · B11b)
+Consumer: `apps/instaflow/src/studio`, `src/app`, `src/workers`, `src/text`, `src/tools`. No new framework API and no new R-ID so
+far except R13.46 (kit tree) and R13.47 (kit cheat sheet): the surfaces compose the kit blocks and the engine's mirrors and capabilities.
+- "Every control in the pill, the inspector and the command bar runs the same action agents run" → `@staticflux/capabilities`
+  registry `invoke` (validated, gated, attributed) and the editor's mirror actions (B9).
+- "The inspector shows the selection's sections and nothing else" → the declared control model (`spec/controls.ts`) and plain
+  data tables per kind; `@staticflux/kit` disclosure, number field, colour popover, font picker, menu.
+- "Twelve more icons without growing a boot path" → the kit's generated per-icon Lucide modules (`icons.json`).
+- "Layers renames a row in place and shows its eye and lock" → the kit tree's decorated rows and inline rename (R13.46).
+- "Pages can be added and deleted while the design is open" → `@staticflux/document` `OpenDocument.createPart` and the parts
+  document's `attach` (a page is its own part, D14), committed with the undo service across parts.
+- "Copy and paste between pages and tabs without a permission prompt" → the browser's clipboard events on main, the payload
+  built and applied in the editor over B1's `duplicate` (base stage) and committed with `commitOps`; no framework API.
+- "A context menu that offers only what the selection can do" → the selection summary's `actions` (the capability registry's
+  facts) and the kit menu's `showAt` (R13.45).
+- "A cheat sheet that can never be stale" → `@staticflux/a11y` `ShortcutRegistry.list()` and the kit's `<sf-shortcut-sheet>`
+  (R13.47).

@@ -14,7 +14,7 @@ import {
   studioSpec,
   studioSpecFor,
 } from './index.js';
-import { editorGate, studioRegistries } from './testing/fixtures.js';
+import { editorGate, gatedStudioSpec, studioRegistries } from './testing/fixtures.js';
 import { scriptedProposer } from './testing/scripted-proposer.js';
 
 const person = { kind: 'person', id: 'ann' } as const;
@@ -97,11 +97,11 @@ describe('spec proposals', () => {
     expect([malformed.state, malformed.error?.code, malformed.spec]).toEqual(['rejected', 'IF-SPEC-001', undefined]);
     const unknown = await proposals.propose({ ...pixelTouchUpSpec(['img-1']), tools: ['instaflow/teleport'] }, agent);
     expect([unknown.state, unknown.error?.code]).toEqual(['rejected', 'SF-SHELL-009']);
-    const gated = await proposals.propose(studioSpec, person);
+    const gated = await proposals.propose(gatedStudioSpec, person);
     expect([gated.state, gated.error?.code]).toEqual(['rejected', 'SF-SHELL-009']);
     expect(port.calls).toEqual([]);
     setPlan('pro');
-    expect((await proposals.propose(studioSpec, person)).state).toBe('mounted');
+    expect((await proposals.propose(gatedStudioSpec, person)).state).toBe('mounted');
     expect(proposals.history.map((p) => p.state)).toEqual(['rejected', 'rejected', 'rejected', 'mounted']);
   });
 
@@ -109,15 +109,15 @@ describe('spec proposals', () => {
     const { gate } = editorGate('pro', { delegateAsk: false });
     const runtime = createSpecRuntime({ vocabulary: studioRegistries({ gated: true }).vocabulary, port: recordingSpecPort() });
     const proposals = createSpecProposals({ runtime, decideFor: (subject) => gateSpecDecide(gate, subject), autonomy: 'accept-edits' });
-    const asAgent = await proposals.propose(studioSpec, agent);
+    const asAgent = await proposals.propose(gatedStudioSpec, agent);
     expect(asAgent.state).toBe('rejected');
     expect((asAgent.error?.details as { issues: { slot: string; code: string }[] }).issues.map((i) => [i.code, i.slot])).toEqual([['SF-SHELL-012', 'hud:instaflow/ask']]);
-    expect((await proposals.propose(studioSpec, person)).state).toBe('mounted');
+    expect((await proposals.propose(gatedStudioSpec, person)).state).toBe('mounted');
   });
 
   it('a preview that is no longer allowed when opened is rejected', async () => {
     const { proposals, setPlan } = setup('ask', 'pro');
-    const p = await proposals.propose(studioSpec, agent);
+    const p = await proposals.propose(gatedStudioSpec, agent);
     expect(p.state).toBe('previewing');
     setPlan('free');
     const opened = await p.open();
