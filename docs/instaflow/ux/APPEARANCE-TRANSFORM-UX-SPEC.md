@@ -914,3 +914,345 @@ Pages) and `2–4` are reserved for the other lenses; `Alt+Shift+↑/↓` change
 
 **Q11. Rulers in Standard.** *Recommend:* rulers are off in Standard and Focus (one key or menu away, `Shift+R`) and on in
 Pro; draggable guides arrive in M2 with rulers as their home. *Question:* agreed?
+
+## Appendix A. Feature checklist against Figma · Canva · Illustrator · Photoshop · Sketch
+
+Method (coordinator, 2026-10-25): every appearance, transform and structure control the five tools offer, each marked
+**include** (where it lives, per density: `S` = Standard at rest, `M` = behind `More ▾` or a row's second line, `P` = Pro
+only, `HUD` = the pill, `pop` = the colour popover, `menu` = More / context / palette, `View` = the View menu), **defer**
+(milestone and the §10.2 item) or **reject** (why). Columns `F C I P S` = Figma, Canva, Illustrator, Photoshop, Sketch
+have it. Nothing basic is left implicit.
+
+### A.1 Fills and colour
+
+| Control | F C I P S | Decision | Where / why |
+|---|---|---|---|
+| Solid fill | ✓ ✓ ✓ ✓ ✓ | **include** (a) | HUD 1; Fill S |
+| Several fills, ordered | ✓ – ✓ ✓ ✓ | **include** (a) | Fill S rows, ≤ 16 |
+| Per-fill opacity | ✓ – ✓ ✓ ✓ | include (a) | row `%` |
+| Per-fill blend mode | ✓ – ✓ ✓ ✓ | include (a) | row M |
+| Show / hide a fill | ✓ – ✓ ✓ ✓ | include (a) | eye |
+| Reorder fills | ✓ – ✓ ✓ ✓ | include (a model, b UI) | grip, `Alt+↑↓` |
+| Hex field | ✓ ✓ ✓ ✓ ✓ | include (a) | pop |
+| RGB / HSB / HSL models | ✓ – ✓ ✓ ✓ | **include** (b) | pop `HEX ▾` |
+| OKLCH / Lab / CMYK | – – ✓ (CMYK, Lab) ✓ (Lab, CMYK) – | OKLCH **include** (b); CMYK/Lab **reject** | OKLCH for perceptual steps; CMYK is a print-production space with no profile pipeline here (Print PDF converts, OVERLAYS §2.3) |
+| Alpha / opacity on the colour | ✓ ✓ ✓ ✓ ✓ | include (a) | pop `%`, alpha slider in Custom |
+| Saturation/brightness square + hue | ✓ ✓ ✓ ✓ ✓ | include (b) | pop `Custom ▸` |
+| Colour wheel (HSB wheel) | – – ✓ ✓ – | **reject** | the square + hue slider is the web convention; a wheel costs height |
+| Eyedropper (screen) | ✓ ✓ ✓ ✓ ✓ | **include** (b) | pop `⌖`, `I`; API or tile sampling (departure) |
+| Document colours / "colours in this file" | ✓ ✓ – – ✓ (document colours) | **include** (b) | pop row |
+| Photo colours (colours extracted from images in the design) | – ✓ – – – | defer M2 | pop row `From images` after A-10's colour analysis; a Canva nicety |
+| Recent colours | ✓ ✓ ✓ ✓ – | include (b) | pop row |
+| Default palette | – ✓ – – – | include (b) | pop Palette (Clean Pop 24) |
+| Saved / personal palette, swatches | ✓ (styles) ✓ (brand) ✓ ✓ ✓ | **include** (b) | pop `☆` + Saved row (workspace) |
+| Brand kit colours | ✓ (libraries) ✓ – – ✓ | include (a) | pop Brand row; Brand panel B-4 |
+| Named colour styles (update all) | ✓ – ✓ (global swatches) – ✓ | defer M2 | A-13 |
+| Colour variables / modes (light / dark) | ✓ – – – – | **reject M1/M2** | brand tokens cover one mode; modes are a Brand-panel M3 topic |
+| Contrast checker | plugin ✓ (Pro) – – – | **include** (b, departure) | pop tag |
+| Colour blindness preview | plugin – ✓ ✓ – | defer M3 | `View › Preview as ▾` (Pro) |
+| Colour names | – ✓ – – – | **reject** (tooltip only in Pro) | hex is the name; untranslatable |
+| Copy / paste a colour | ✓ ✓ ✓ ✓ ✓ | include (b) | `Mod+C/V` on swatches |
+| Paste CSS gradient / colour strings | – – – – – | **include** (b, departure) | pop |
+| Gradient paste from the web | – – – – – | include (b) | as above |
+| Mixed colours across a selection | ✓ – ✓ ✓ ✓ | include (b) | hatch + `Replace all ▾` |
+| Fill rule (nonzero / even-odd) | ✓ – ✓ – ✓ | include (a) | vectors only, Pro `Fill rule ▾` |
+| Select same fill | ✓ – ✓ – – | include (b) | ctx |
+| Replace a colour everywhere | plugin ✓ ✓ (recolour artwork) – – | include (b) | Find Kind Colour |
+| Recolour artwork (harmonies, shift hue of all) | – ✓ (Magic) ✓ – – | defer M2 (assistant `✦ Recolour`) | CHAT proposal |
+
+### A.2 Gradients
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Linear gradient | ✓ ✓ ✓ ✓ ✓ | **include** (a) | pop Gradient tab |
+| Radial | ✓ ✓ ✓ ✓ ✓ | include (a) | |
+| Angular / conic | ✓ – – ✓ ✓ | include (a); export rasterised (a) | |
+| Diamond / reflected | ✓ (diamond) – – ✓ – | **reject** | rare; a mirrored linear or two shapes do it |
+| Freeform / mesh gradient | – – ✓ (mesh, freeform) – – | **reject M1/M2** | needs a mesh model; M3 at most |
+| Add / remove / move stops | ✓ – ✓ ✓ ✓ | include (a model, b UI) | strip + handles |
+| Stop colour with alpha | ✓ – ✓ ✓ ✓ | include (a) | |
+| Stop colour as a token / style | ✓ – ✓ (swatch) – – | include (a) | |
+| Midpoints between stops | – – ✓ ✓ – | **reject** | add a stop instead; midpoints confuse |
+| Angle field, rotate 45 / 90 | ✓ (handles) ✓ (angle) ✓ ✓ ✓ | include (a, b) | pop + row |
+| Reverse | ✓ – ✓ ✓ – | include (b) | pop `⇄` |
+| Aspect ratio (elliptical radial) | ✓ – ✓ ✓ – | defer M2 | A-4 |
+| On-canvas handles | ✓ – ✓ ✓ ✓ | **include** (b) | §2.3.2 |
+| Gradient presets | – ✓ ✓ ✓ – | include (b) | pop chips |
+| Document gradients | – – – – – | **include** (b, departure) | pop row |
+| Saved gradients | – – ✓ ✓ – | include (b) | `☆` |
+| Gradient on strokes | ✓ – ✓ ✓ ✓ | include (a) | |
+| Gradient on text | ✓ – ✓ ✓ ✓ | defer M2 | A-11 |
+| Gradient opacity (whole) | ✓ – ✓ ✓ ✓ | include (a) | row `%` |
+| Gradient tool (separate tool) | – – ✓ ✓ – | **reject** | the handles appear with the popover; no mode to find |
+| Dithering | – – – ✓ – | **reject** | 8-bit banding is handled by the renderer; not a user control |
+| Interpolation space (sRGB / OKLab) | – – – – – | defer M3 (Pro) | one `Interpolate in ▾`; needs render support |
+
+### A.3 Image fills and images
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Image as a fill of any shape | ✓ (fill) ✓ (frames) ✓ (clipping) ✓ (clipping) ✓ | **include** (a) | `+ Add ▾ Image…` |
+| Fit: fill / fit / stretch / tile | ✓ ✓ (crop) – – ✓ | include (a) | `Fit ▾` |
+| Crop (move/scale the image inside) | ✓ ✓ ✓ ✓ ✓ | **include, M1 follow-up** (c) | A-3 |
+| Rotate the image inside (90°), flip inside | ✓ ✓ – – – | defer with A-3 | Image M |
+| Tile scale / spacing | ✓ – ✓ (pattern) ✓ – | defer with A-3 | row line 2 |
+| Replace image | ✓ ✓ ✓ ✓ ✓ | include (a, b) | HUD, Image S |
+| Image opacity, blend | ✓ ✓ ✓ ✓ ✓ | include (a) | row |
+| Adjustments (exposure, contrast, saturation, temperature, tint, highlights, shadows) | ✓ ✓ – ✓ ✓ | defer M2 | A-10 |
+| Filters / presets (Canva "Filters", Duotone) | – ✓ – ✓ – | defer M2 | A-10 preset row; Duotone = gradient map M3 |
+| Remove background | ✓ (plugin) ✓ – ✓ – | defer M2 (assistant) | HUD 6 |
+| Image masks via shape | ✓ ✓ ✓ ✓ ✓ | include (a) | §4.4 |
+| Frames (Canva photo frames) | – ✓ – – – | **include via** shapes with image fills + masks | the same thing without a special element |
+| Source info, reveal in assets | ✓ – ✓ – – | include (b) | Image M |
+| Image compression / export size per image | – – – – – | reject here | Export dialog |
+| GIF / video fills | ✓ (video) ✓ – – – | defer M2 (Timeline, B-1) | |
+| Smart objects / linked files | – – ✓ ✓ ✓ (symbols) | reject (assets are hashed; replace = re-import) | |
+
+### A.4 Strokes
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Stroke colour, width | ✓ ✓ ✓ ✓ ✓ | **include** (a) | HUD 2, Stroke S |
+| Several strokes | ✓ – ✓ ✓ (as effects) ✓ | include (a) | rows |
+| Position inside / centre / outside | ✓ – ✓ ✓ ✓ | include (a) | M |
+| Per-side strokes | ✓ ✓ (borders) – – – | include (a model, b UI) | `⊞` |
+| Dash pattern | ✓ ✓ ✓ – ✓ | include (a); presets (b) | `Dash ▾` |
+| Dash offset | ✓ – ✓ – – | include (a) | Custom |
+| Caps | ✓ – ✓ – ✓ | include (a) | |
+| Joins, miter limit | ✓ – ✓ – ✓ | include (a); miter P | |
+| Arrowheads / line ends | ✓ ✓ ✓ – ✓ | defer M2 | A-5 |
+| Gradient / image stroke | ✓ – ✓ ✓ ✓ | include (a) | |
+| Per-stroke opacity, blend | ✓ – ✓ ✓ ✓ | include (a) | |
+| Outline stroke (expand) | ✓ – ✓ – ✓ | include (a) | More |
+| Stroke styles / brushes (calligraphic, art, pattern brushes) | – – ✓ – – | **reject** | Illustrator's brush engine; not a social-design need |
+| Variable width profiles | – – ✓ – – | reject M1/M2 | Pen WP topic at most |
+| Align stroke to pixel | ✓ – ✓ – – | defer M2 | with pixel snapping A-18 |
+| Stroke scaling with the object | ✓ (scale tool) – ✓ – ✓ | defer M2 | A-7 |
+| Text stroke | ✓ ✓ ✓ ✓ ✓ | defer M2 | TEXT T-18 |
+
+### A.5 Effects
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Drop shadow (x y blur spread colour) | ✓ ✓ ✓ ✓ ✓ | **include** (a) | Effects |
+| Several shadows | ✓ – ✓ ✓ ✓ | include (a) | rows |
+| Inner shadow | ✓ – ✓ ✓ ✓ | include (a) | |
+| Outer / inner glow | – ✓ (glow) ✓ ✓ – | include (a) | one kind + Inner toggle |
+| Layer blur | ✓ ✓ ✓ ✓ ✓ | include (a) | |
+| Background blur | ✓ – – – ✓ | include (a) | |
+| Motion / zoom blur | – – ✓ ✓ ✓ (motion) | **reject** | the Timeline (B-1) animates; static motion blur is a photo filter (A-10 M3 at most) |
+| Bevel & emboss | – – – ✓ – | **include preset now** (b); real kind defer M2 | A-9 |
+| Satin, colour / gradient / pattern overlay | – – – ✓ – | **reject** | fill rows with blend modes |
+| Stroke as an effect | – – – ✓ – | reject | the Stroke stack |
+| Noise / grain, texture | ✓ (2025) – ✓ (SVG filters) ✓ – | defer M3 | A-19 |
+| Glass / liquid glass | ✓ (2025) – – – – | reject M1/M2 | background blur + fills approximate; revisit |
+| Effect presets | – ✓ ✓ (graphic styles) ✓ (styles) ✓ | **include** (b) | `+ Add ▾` presets |
+| Effect styles (named, update all) | ✓ – ✓ ✓ ✓ | defer M2 | A-13 |
+| Brand effect tokens | ✓ (libraries) – – – ✓ | include (a) | `From brand ▸` |
+| Shadow blend mode | – – ✓ ✓ – | **reject** | colour alpha suffices; not in the model |
+| Global light angle | – – – ✓ – | with A-9 (bevel) only | |
+| Spread on shadows | ✓ – – ✓ ✓ | include (a) | |
+| Effects on groups (composite first) | ✓ ✓ ✓ ✓ ✓ | include (a) | |
+| Rasterise / flatten effects | – – ✓ ✓ – | reject | export does it |
+| 3D effects, extrude, perspective | – ✓ (shadow presets) ✓ (3D) ✓ – | reject M1/M2 | B10b distort/perspective is a transform topic |
+
+### A.6 Layer, opacity, blend, visibility
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Layer opacity | ✓ ✓ ✓ ✓ ✓ | **include** (a) | Layer ▸ |
+| Blend mode (16) | ✓ ✓ (some) ✓ ✓ ✓ | include (a) | `Blend ▾` |
+| Pass-through for groups | ✓ – ✓ (isolate) ✓ ✓ | defer M2 | A-14 |
+| Opacity number keys | ✓ – – ✓ – | **reject** | lens keys (Q10); `Alt+Shift+↑/↓` |
+| Isolate blending | – – ✓ – – | reject | pass-through covers it |
+| Knockout group | – – ✓ ✓ – | reject | niche |
+| Hide / show | ✓ ✓ ✓ ✓ ✓ | **include, M1 follow-up** (c) | A-2 |
+| Lock (one scope) | ✓ ✓ ✓ ✓ ✓ | include (a, b) | |
+| Lock scopes (position only) | – – – ✓ (position / pixels) – | **include Pro** (a model) | `Lock ▾` |
+| Layer colour labels / tags | – – – ✓ – | reject | roles exist in the model for agents, not as a UI |
+
+### A.7 Page and canvas
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Page / canvas background colour | ✓ ✓ ✓ (artboard: white only) ✓ ✓ (artboard) | **include** (a) | Page S |
+| Page background gradient / image | – ✓ – ✓ – | **include, M1 follow-up** (c) | A-1 (owner request) |
+| Several background rows, opacity | – – – ✓ – | with A-1 | |
+| Apply background to all pages | – ✓ – – – | include (b) | Page M |
+| Transparent background export | ✓ ✓ ✓ ✓ ✓ | include (a) | Export Advanced |
+| Page size, presets, orientation | ✓ ✓ ✓ ✓ ✓ | include | HOME-FILES §1.3 size pair |
+| Margins and bleed | – ✓ (print) ✓ ✓ ✓ | include Pro (per DENSITY §3.2) | Page P |
+| Page templates / master pages | – – – – ✓ (symbols) | reject M1/M2 | templates (F-16) cover it |
+| Canvas colour (the mist room) | ✓ – ✓ ✓ ✓ | **reject** as a setting | theme-owned; Settings › Theme later |
+
+### A.8 Styles, tokens and reuse
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Copy / paste style | ✓ ✓ ✓ (eyedropper) ✓ (copy layer style) ✓ | **include** (b) | `Mod+Alt+C/V` |
+| Paste partial style | – – – ✓ – | include (b) | `Paste style ▸` |
+| Named styles (colour, effect, stroke) | ✓ – ✓ ✓ ✓ | defer M2 | A-13 |
+| Style classes with overrides and reset | ✓ (components) – ✓ – ✓ (shared styles) | include (a model, b UI) | header dot |
+| Brand kit tokens | ✓ ✓ – – ✓ | include (a) | pop Brand; `From brand ▸` |
+| Brand rules (enforced) | – ✓ (brand controls) – – – | include (a) | sunflower line |
+| Select same | ✓ – ✓ ✓ – | include (b) | ctx |
+| Find and replace colour | plugin ✓ ✓ – – | include (b) | STUDIO §9.1 |
+| Libraries across files | ✓ ✓ ✓ ✓ ✓ | defer M3 (D14) | |
+
+### A.9 Transforms
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Move, nudge 1/10 | ✓ ✓ ✓ ✓ ✓ | **include** (a) | |
+| Resize with handles, Shift ratio, Alt centre | ✓ ✓ ✓ ✓ ✓ | include (a) | |
+| Ratio-locked by default for images | – ✓ – – – | **include** (b, departure) | Q4 |
+| Rotate: handle, zones, Shift 15° | ✓ (zones) ✓ (handle) ✓ ✓ ✓ | include (a + b handle) | STUDIO §14.1 |
+| Rotate 90° cw / ccw | ✓ ✓ ✓ ✓ ✓ | include (a) | More, ∠ buttons |
+| Angle field | ✓ – ✓ ✓ ✓ | include (a) | Transform S |
+| Skew / shear | – – ✓ ✓ – | include (a) | Mod-drag, ⟂ |
+| Flip H / V | ✓ ✓ ✓ ✓ ✓ | include (a) | |
+| Pivot / reference point | – – ✓ ✓ – | include (a) | ring, picker |
+| Free transform session | – – ✓ ✓ – | include (a) | `Mod+Alt+T` |
+| Numeric W/H link | ✓ ✓ ✓ ✓ ✓ | include (a) | 🔗 |
+| Swap W/H | – ✓ (rotate page) – – – | include (b) | ⇄ |
+| Expressions in fields | ✓ – ✓ ✓ ✓ | include (b) | `+10`, `*2` |
+| Relative (page) coordinates | ✓ (absolute toggle) – ✓ – – | include Pro (b) | `Relative to ▾` |
+| Scale tool (scales strokes, text, effects) | ✓ (K) – ✓ ✓ (free transform) – | defer M2 | A-7 |
+| Constraints / pins | ✓ – – – ✓ (resizing) | defer M2 | A-8 |
+| Auto layout / flex | ✓ – – – ✓ (smart layout) | defer M2 | A-15 |
+| Distort / perspective / warp | – – ✓ ✓ – | defer (B10b, early M2) | REQUIREMENTS §34 |
+| Alt-drag duplicate | ✓ ✓ ✓ ✓ ✓ | include (b) | |
+| Snap angles (15°) | ✓ ✓ ✓ ✓ ✓ | include (a) | Shift |
+| Snap rotation to a neighbour's angle | – – ✓ (smart guides) – – | defer M2 | A-6 |
+| Transform again / repeat transform | – – ✓ (Mod+D) – – | include via `Mod+D` smart offset | STUDIO §9 |
+| Transform each (per element about own centre) | – – ✓ – – | **reject** | multi rotate about the union is the convention; Pro per-element list edits one |
+| Align to pixel grid | ✓ – ✓ – ✓ | defer M2 | A-18 |
+| Position lock | ✓ ✓ ✓ ✓ ✓ | include (a) | |
+| 3D rotate / tilt | – – ✓ ✓ – | reject | B10b perspective at most |
+
+### A.10 Groups, frames, components
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Group / ungroup | ✓ ✓ ✓ ✓ ✓ | **include** (b) | `Mod+G` |
+| Enter a group (double-click), exit (Esc) | ✓ ✓ ✓ ✓ ✓ | include (a) | |
+| Select through (Mod+click) | ✓ – ✓ (direct selection) ✓ ✓ | include (a) | |
+| Frames (clipping containers with size) | ✓ – ✓ (artboards, clipping masks) ✓ (artboards) ✓ (artboards) | include (a) | |
+| Frame selection | ✓ – – – – | include (b) | `Mod+Alt+G` |
+| Convert group ↔ frame | ✓ – – – – | include (b) | |
+| Clip content toggle | ✓ – – – ✓ | include (a) | |
+| Nested frames | ✓ – – – ✓ | include (a) | |
+| Group explanation line | – – – – – | **include** (b, departure) | Frame section hint |
+| Components (main + instances) | ✓ – ✓ (symbols) ✓ (smart objects) ✓ (symbols) | defer M2 | A-12 |
+| Overrides, reset, detach, swap | ✓ – ✓ – ✓ | defer M2 | A-12 |
+| Variants / component properties | ✓ – – – – | defer M3 | |
+| Nested components | ✓ – ✓ – ✓ | with A-12 | |
+| Shared libraries | ✓ ✓ ✓ ✓ ✓ | defer M3 (D14) | |
+| Repeats (live arrays) | – – ✓ (repeat transforms, static) – – | **include** (a, departure) | §4.6 |
+| Canva "Groups" only (no frames) | – ✓ – – – | we have both | |
+
+### A.11 Booleans, masks, corners
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Union / subtract / intersect / exclude | ✓ – ✓ ✓ (shape layers) ✓ | **include** (a) | `Combine ▾` |
+| Live (non-destructive) booleans | ✓ – ✓ (compound shapes) ✓ ✓ | include (a) | |
+| Change the operation later | ✓ – ✓ ✓ ✓ | include (a) | `Operation ▾` |
+| Flatten / expand | ✓ – ✓ ✓ ✓ | include (a) | `Mod+E` |
+| Divide / trim / merge / crop / outline (Pathfinder extras) | – – ✓ – – | **reject** | the four operations + Flatten cover social design; Illustrator's extras are print-prep |
+| Boolean shortcuts | ✓ – ✓ – ✓ | **reject in M1** | collide with Milestone/Export; palette |
+| Mask by the bottom layer | ✓ – ✓ (top object is the mask) ✓ ✓ | include Figma's rule (a); Pro `Swap mask` (b) | §4.4 |
+| Mask modes clip / alpha / luminance | ✓ (alpha, luminance, vector) – ✓ (opacity mask) ✓ ✓ | include (a) | `Mask mode ▾` |
+| Invert mask | – – ✓ ✓ – | include (a) | |
+| Matte image as mask | – – – ✓ (layer mask) – | include (a model, b UI) | `Matte ▾` |
+| Edit the mask in place | ✓ – ✓ ✓ ✓ | include (a) | enter |
+| Text as mask | ✓ – ✓ ✓ ✓ | include (a) | |
+| Mask with gradient (soft edge) | ✓ (alpha mask) – ✓ ✓ ✓ | include via a gradient-filled alpha mask (a) | |
+| Corner radius (linked) | ✓ ✓ ✓ ✓ ✓ | include (a) | HUD 3 |
+| Per-corner radii | ✓ – ✓ ✓ ✓ | include (a) | ⊞ |
+| Smooth corners (squircle) | ✓ – – – ✓ | include (a) | slider |
+| On-canvas radius handle | ✓ ✓ ✓ ✓ – | include (b) | |
+| Star / polygon points, inner radius | ✓ ✓ ✓ ✓ ✓ | include (a) | |
+| Per-vertex radii on paths | ✓ – ✓ – ✓ | include (a model); UI in the Pen WP | |
+
+### A.12 Repeat
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Radial / grid / mirror repeats, live | – – ✓ (Repeat, static-ish) – – | **include** (a) | §4.6 |
+| On-canvas handles | – – ✓ – – | include (a) | Edit |
+| Expand to real elements | – – ✓ – – | include (a) | |
+| Per-instance overrides | – – – – – | defer M2 | A-12 |
+| Repeat along a path, scatter | – – ✓ (blend tool) – – | defer M3 | A-19 |
+| Brick / hex offsets | – – – – – | include (a) | M |
+
+### A.13 Snapping, guides, rulers, grids, align
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Snap to elements (edges, centres) | ✓ ✓ ✓ ✓ ✓ | **include** (a) | |
+| Smart guides with distances | ✓ ✓ ✓ ✓ ✓ | include (a) | |
+| Equal-spacing detection | ✓ ✓ ✓ – ✓ | include (a) | |
+| Hold a key to disable snapping | ✓ (Mod) ✓ – ✓ – | include (a) | Mod |
+| Snap settings menu | ✓ ✓ ✓ ✓ ✓ | include (b) | `View › Snapping ▸` |
+| Rulers | ✓ ✓ ✓ ✓ ✓ | include (b) | Pro on; `Shift+R` |
+| Draggable guides | ✓ ✓ ✓ ✓ ✓ | defer M2 | A-16 |
+| Layout grids (columns, rows, square) | ✓ – ✓ (grid) ✓ (grid) ✓ | include (a, b UI) | `Layout grid ▸` |
+| Pixel grid / snap to pixel | ✓ – ✓ ✓ ✓ | defer M2 | A-18 |
+| Align to selection / page / parent | ✓ ✓ ✓ ✓ ✓ | include (a) | popover |
+| Key object alignment | – – ✓ ✓ – | include Pro (a model, b UI) | Alt-click |
+| Distribute by gaps / centres | ✓ ✓ ✓ ✓ ✓ | include (a) | |
+| Tidy up | ✓ ✓ – – – | include (a) | |
+| Smart spacing handles | ✓ – – – – | defer M2 | A-17 |
+| Measure distances on hover (Alt) | ✓ – – ✓ – | include Pro (hover distance tags, DENSITY §3.1) | |
+| Isometric / perspective grids | – – ✓ ✓ – | reject | |
+
+### A.14 Layers panel, order, lock, hide, rename
+
+| Control | F C I P S | Decision | Where |
+|---|---|---|---|
+| Bring forward / back, to front / back | ✓ ✓ ✓ ✓ ✓ | **include** (b) | `Mod+]/[` |
+| Drag to reorder / re-parent | ✓ ✓ ✓ ✓ ✓ | include (b) | Layers |
+| Rename inline | ✓ ✓ ✓ ✓ ✓ | include (b) | |
+| Lock / unlock | ✓ ✓ ✓ ✓ ✓ | include (a, b) | |
+| Hide / show, Show all | ✓ ✓ ✓ ✓ ✓ | include, M1 follow-up (c) | A-2 |
+| Filter layers by kind / name | ✓ – ✓ ✓ – | include (b) | Pro chips |
+| Kind icons, structure glyphs | ✓ – ✓ ✓ ✓ | include (b) | |
+| Layer thumbnails | – ✓ – ✓ – | **reject** | rows stay 26–30 px; Pages have thumbnails |
+| Collapse / expand all | ✓ – ✓ ✓ ✓ | include (b) | `⋯`, Alt+click |
+| Select same kind | ✓ – ✓ ✓ – | include (b) | ctx |
+| Multi-select in Layers (Shift, Mod) | ✓ ✓ ✓ ✓ ✓ | include (b) | |
+| Layer comps / states | – – – ✓ – | reject | milestones and pages |
+
+### A.15 Not these controls, listed so they are not missed
+
+Pen and vector point editing, path operations beyond booleans, brushes (the Pen WP); image editing tools (brush, heal,
+liquify: the Pixel lens B-2); animation and transitions (B-1); perspective, distort and warp (B10b); 3D; artboard
+presets beyond the size pair (HOME-FILES); export per layer (OVERLAYS §2.3 rejects it); plugins (REQUIREMENTS §17);
+comments (B-8); CMYK and colour management (Print PDF handles conversion); symbols libraries across files (D14, M3).
+
+## Appendix B. Coordinator checklist rows this spec accounts for (`CAPABILITY-COVERAGE.md`)
+
+| Row | How this spec accounts for it |
+|---|---|
+| **Appearance: fills, gradients, strokes, effects (§20 B1)** | §2 end to end: fill stack §2.1, colour popover §2.2, gradient editor §2.3 (type, stops, on-canvas handles, angle, reverse, presets, document gradients, in the popover, gradient text A-11), image fills §2.4, strokes §2.5, effects §2.6 (bevel preset now + A-9), layer §2.7, page background §2.8 (decision A-1), styles §2.9, control table §2.10; FLOWS F-65…F-68 |
+| **Transforms: rotate, skew, flip, pivot (§34 B10a)** | §3: gestures §3.1, numeric §3.2, rules §3.3, keys §3.4, multi §3.5, table §3.6; FLOWS F-04 (updated), F-69 |
+| **Groups, components and instances (§20)** | §4.1 groups and frames; §4.2 components decided **M2** (A-12) with outlets and flows; FLOWS F-70, F-71 (M2) |
+| **Boolean operations, masks, corners (§20)** | §4.3, §4.4 (mask rule corrected in F-12), §4.5; FLOWS F-12 (updated) |
+| **Repeat (§26)** | §4.6; per-instance overrides A-12; FLOWS F-13 (updated) |
+| **Snapping, smart guides, rulers, grids (§24)** | §4.7, §4.8; A-16 guides, A-17, A-18; FLOWS F-72 |
+| **Layers, Pages, Library (§23)** | §4.9 (order, lock scopes, hide A-2, rename, filter); Assets › Components (A-12); Pages thumbnails render the page stack (A-1) |
+| **Versioning (§22)** | Milestone previews render every appearance identically (§6) |
+| **Export (§29)** | §6 fidelity (conic rasterisation, effects as PDF patches, transparent page, hidden elements) |
+| **Import** | Pasted CSS gradients (§2.2); image fills from Assets (§2.4); missing-asset fill row (§7) |
+| **Home, files, storage** | New design `Background` swatch is the same popover (§2.8); the saved palette is per device (`ui-state`) |
+| **Accessibility (§25)** | §8 |
+| **Brand kit** | Tokens on fills, strokes, radii, effects (§2.9); rule errors (§7); Brand panel B-4 holds styles (A-13) |
+| **Text and fonts (§21)** | Gradient text A-11, text stroke T-18, text as mask / boolean operand (§4.3–4.4), contrast tag on text colour (§2.2) |
+| **Motion (§9)** | Stack items carry `id`s for animation (IF-20.3); nothing rendered here until B-1 |
+| **Generative features (§10)** | `✦ Remove background`, `✦ Recolour` as provider-gated proposals (§2.4, A.1) |
+| **Agent views and change sets (§6, §12)** | Every control maps to a capability (`appearanceEditOps`, transform and element capabilities); provenance shows class overrides (§2.9) |
+| **Resize design (B-5)** | Constraints A-8 are its prerequisite (§3.2) |
+| **Pixel lens (B-2)** | Image adjustments A-10 are the non-destructive half; crop A-3 never needs the lens (§2.4) |
+| **Colour picker (owner)** | §2.2: models HEX/RGB/HSB/HSL/OKLCH, alpha, gradient tab, contrast, saved palettes, eyedropper everywhere, colour names rejected with reason |
+| **Backgrounds and bevels (owner)** | §2.8 (A-1 decision, Q1) and §2.6 (preset now, A-9 M2, Q2) |
