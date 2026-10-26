@@ -72,6 +72,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** B12b on the working branch (cherry-picked its 6 commits onto main; tree equals its tip plus coordinator
+  docs): P1 versioned keystrokes with rebasing in `workers/text-port.ts`; P2 text as a projection kind in the element
+  tree (+ a scene IR fix for edit-then-delete in one frame). Full check 4569 tests, smoke 0/10 both topologies, Home
+  green, no budget raised. IF-37.23–37.30, §39 ENG-9…11. PR opened. Next: split input-lag look, then B11b.
 - **2026-10-26** #34 (B12 + text fixes) merged; main CI green. Owner confirms on a real machine: "text works well".
 - **2026-10-26** B12 + text fixes: full check green (4552 tests), Studio smoke 0/10 failures in both topologies, Home smoke
   green. PR opened. B12b (P1 versioned keystrokes, P2 text in the element tree) running on
