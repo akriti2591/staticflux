@@ -564,6 +564,8 @@ editing session and B6's accessibility layer, all disposed with the tab scope.
 | INT-5 | While text is edited the canvas shortcuts are inactive and the element's projected node is hidden from assistive technology (the text host is the textbox) | `canvas-tab.test.ts` |
 | INT-6 | The IME control bounds are the committed block's, never the composition preview's | `text-session.ime.test.ts` |
 | INT-7 | Every HUD click runs its capability through the one pipeline (validation, attribution, one change set); placeholders say they arrive later | `studio-app.test.ts` |
+| INT-8 | While text is edited, a press inside its box places the caret or selects (Shift extends; 2 / 3 / 4 clicks = word / paragraph / all; a drag extends by the press's unit) and never ends editing; a press outside ends it. The caret, else the selection rects, are drawn in the overlay (never exported) | `text-editing.pointer.test.ts`, `canvas-tab.test.ts`; smoke (Mod+A, click, drag) |
+| INT-9 | A text element's opacity, blend and effects apply to its text group as one layer (canvas, PNG, SVG, PDF alike, D21) | `text-scene.layer.test.ts`, `job.test.ts` |
 
 ## 30. Home route: Home model, the Home index, Studio over the workspace (Instaflow M1c C0; D17)
 
