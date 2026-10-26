@@ -42,7 +42,7 @@ interface Mounted {
 }
 
 /** A chrome port that records what each control asked for. */
-function recordingPort(calls: string[]): StudioChromePort {
+function recordingPort(calls: string[], context?: () => SelectionSummary | undefined): StudioChromePort {
   const log =
     (name: string) =>
     (...args: unknown[]): void => {
@@ -68,6 +68,19 @@ function recordingPort(calls: string[]): StudioChromePort {
     copyLink: log('copyLink'),
     navigate: log('navigate'),
     selectPage: log('selectPage'),
+    contextAt: (point) => {
+      log('contextAt')(point);
+      return Promise.resolve(context?.());
+    },
+    clipboard: log('clipboard'),
+    selectAll: log('selectAll'),
+    editText: log('editText'),
+    textPreset: log('textPreset'),
+    fitToBox: log('fitToBox'),
+    replaceImage: log('replaceImage'),
+    pageAction: log('pageAction'),
+    saveHint: log('saveHint'),
+    openShortcuts: log('openShortcuts'),
   };
 }
 
@@ -103,7 +116,7 @@ const MODEL: StudioChromeModel = {
   ),
 };
 
-async function mount(options: { studio?: Studio; shortcuts?: boolean; open?: boolean; model?: StudioChromeModel } = {}): Promise<Mounted> {
+async function mount(options: { studio?: Studio; shortcuts?: boolean; open?: boolean; model?: StudioChromeModel; context?: () => SelectionSummary | undefined } = {}): Promise<Mounted> {
   const style = document.createElement('style');
   style.textContent = compileTheme(cleanPopTheme);
   document.head.append(style);
@@ -113,7 +126,7 @@ async function mount(options: { studio?: Studio; shortcuts?: boolean; open?: boo
   const testRoot = mountTestRoot({ units: [] });
   const shortcuts = options.shortcuts === false ? undefined : createShortcutRegistry({ isMac: false });
   const calls: string[] = [];
-  render(html`<if-studio .studio=${studio} .shortcuts=${shortcuts} .model=${options.model ?? MODEL} .port=${recordingPort(calls)} asset-title="Night Market Flyer"></if-studio>`, testRoot.container);
+  render(html`<if-studio .studio=${studio} .shortcuts=${shortcuts} .model=${options.model ?? MODEL} .port=${recordingPort(calls, options.context)} asset-title="Night Market Flyer"></if-studio>`, testRoot.container);
   dispose = async () => {
     await studio.dispose();
     await testRoot.dispose();
@@ -350,6 +363,57 @@ describe('<if-studio> keyboard paths', () => {
     select(`tool:${StudioIds.tool.text}`);
     expect(calls).toEqual(['invoke ["instaflow/flip-horizontal"]', 'invoke ["instaflow/undo",{},[]]', 'camera ["zoom-100"]']);
     expect(studio.activeTool).toBe(StudioIds.tool.text);
+  });
+
+  it('right-click on the canvas asks for the target, opens the context menu there and runs its rows (B11b slice 4)', async () => {
+    const model = { ...MODEL, selection: SHAPE, frame: { x: 100, y: 400, w: 200, h: 100 }, clipboard: { canPaste: true, styleCopied: false } };
+    const { root, calls } = await mount({ model, context: () => ({ ...SHAPE, actions: [...SHAPE.actions, 'instaflow/copy-style'] }) });
+    const main = root.querySelector('main') as HTMLElement;
+    const surface = root.querySelector('.surface') as HTMLElement;
+    const e = new MouseEvent('contextmenu', { bubbles: true, composed: true, cancelable: true, clientX: 120, clientY: 90 });
+    surface.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(true);
+    const menu = root.querySelector('sf-menu.context-menu') as SfMenuElement & { open?: boolean };
+    await until(() => menu.open === true);
+    expect(calls[0]?.startsWith('contextAt')).toBe(true);
+    const values = [...menu.querySelectorAll('sf-menu-item')].map((i) => i.getAttribute('value'));
+    expect(values).toEqual(expect.arrayContaining(['cmd:cut', 'cmd:copy', 'cmd:paste', 'cap:instaflow/duplicate', 'cap:instaflow/copy-style', 'cap:instaflow/lock?locked=true', 'cmd:rename']));
+    expectNoA11yIssues(main);
+    const select = (value: string): boolean => menu.dispatchEvent(new CustomEvent('sf-select', { detail: { value } }));
+    select('cmd:copy');
+    select('cap:instaflow/lock?locked=true');
+    select('cmd:page-size:1080x1080');
+    select('cmd:replace-image');
+    expect(calls.slice(1)).toEqual(['clipboard ["copy"]', 'invoke ["instaflow/lock",{"locked":true}]', 'pageAction ["size","1080x1080"]', 'replaceImage']);
+  });
+
+  it('the empty canvas has its own menu', async () => {
+    const { root } = await mount({ context: () => undefined });
+    const surface = root.querySelector('.surface') as HTMLElement;
+    surface.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, composed: true, cancelable: true, clientX: 50, clientY: 50 }));
+    const menu = root.querySelector('sf-menu.context-menu') as SfMenuElement & { open?: boolean };
+    await until(() => menu.open === true);
+    expect([...menu.querySelectorAll('sf-menu-item')].map((i) => i.getAttribute('value'))).toEqual(['cmd:select-all', 'cmd:zoom-fit', 'cmd:zoom-100', 'cmd:add-page']);
+  });
+
+  it('the chrome keys: Mod+\\ collapses the dock, Mod+S hints, ? opens the cheat sheet, Shift+F10 the menu', async () => {
+    const { root, calls, element } = await mount({ model: { ...MODEL, selection: SHAPE, frame: { x: 100, y: 400, w: 200, h: 100 } }, context: () => SHAPE });
+    const surface = root.querySelector('.surface') as HTMLElement;
+    surface.focus();
+    const dock = (): boolean => root.querySelector('sf-dock[side="start"]')?.hasAttribute('collapsed') ?? false;
+    const before = dock();
+    press(surface, '\\', { ctrl: true });
+    await settle(2);
+    expect(dock()).toBe(!before);
+    element.toggleRegion('dock');
+    await settle(2);
+    expect(dock()).toBe(before);
+    press(surface, 's', { ctrl: true });
+    press(surface, '?', { shift: true });
+    press(surface, 'F10', { shift: true });
+    const menu = root.querySelector('sf-menu.context-menu') as SfMenuElement & { open?: boolean };
+    await until(() => menu.open === true);
+    expect(calls.slice(0, 3).map((c) => c.split(' ')[0])).toEqual(['saveHint', 'openShortcuts', 'contextAt']);
   });
 
   it('the Home link asks the host first (cancelable) and keeps modified clicks', async () => {

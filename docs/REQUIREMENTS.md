@@ -328,6 +328,7 @@
 - **R13.44** A11y **focus return** (`rememberFocusReturn(trigger, { fallback })`): the trigger, else the fallback, else the trigger's nearest surviving landmark recorded at open time (`FOCUS_FALLBACK_SELECTOR`, `data-sf-focus-fallback`), never `body`. *(Instaflow B11a2)*
 - **R13.45** Kit **position**: `computePosition` returns `maxHeight` (the shrink step), `computePointPosition` / `placeAtPoint` place context menus at a point with the corner rule. *(Instaflow B11a2)*
 - **R13.46** Kit **tree rows the app decorates and renames**: `node.trailing` (pointer conveniences after the badge that never select the row; shown on hover, on the active row, always with `trailingPinned`), `node.muted` (50 %), `highlighted` (a row hovered elsewhere), and inline rename (`renaming = id`: a focused field with the text selected; Enter / blur fire `sf-rename` `{ id, value }` only for a changed, non-empty name, Escape fires `sf-rename-cancel`; keys in the field never reach the tree; the row is not draggable meanwhile). *(Instaflow B11b)*
+- **R13.47** Kit **keyboard cheat sheet** (`<sf-shortcut-sheet>`): cards per group over a shortcut-registry snapshot (`shortcutSheetGroups`: shadowed, repeated and ungrouped entries dropped, empty groups absent), a search field that filters rows by label and platform key label and marks matches, a `Mac · Windows` switch (default: the viewer's platform), `sf-row-hover` for pointing at the row's control. *(Instaflow B11b)*
 
 ## 14. Localization (base requirement)
 

@@ -68,6 +68,8 @@ const FOUNDATION_BLOCKS = [
   'sf-dialog',
   'sf-takeover',
   'sf-blocking-error',
+  // B11b: the keyboard cheat sheet.
+  'sf-shortcut-sheet',
 ] as const;
 
 describe('foundation blocks audit coverage', () => {

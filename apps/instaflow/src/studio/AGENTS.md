@@ -34,7 +34,17 @@ fully by hand (D17).
   `inspector-text.ts` (the Text section, `TextCommands`, `WEIGHTS`); `inspector-panel.ts` (`inspectorPanel`, the spec panel
   `instaflow/inspector`); `errors.ts` (IF-POL-050 page size, IF-POL-051 no image to replace).
 - `layers-panel.ts` (B11b) — `<if-layers-panel .model .port>` (Layers, STUDIO §3.1, on the kit tree), `layersPanel` (the spec
-  panel `instaflow/layers`), `LayersModel`, `LayersPort`, `EMPTY_LAYERS`, `filterLayers`, `dropTarget` (display ↔ paint order).
+  panel `instaflow/layers`), `LayersModel`, `LayersPort`, `EMPTY_LAYERS`, `filterLayers`, `dropTarget` (display ↔ paint order);
+  a row's right-click fires `if-layer-context` (`LayerContextDetail`) after selecting it.
+- `context-menu.ts` (B11b slice 4) — `contextMenuGroups(target, env)` (pure: the groups per canvas / selection / page target,
+  STUDIO §8.2), `parseContextValue` (`cap:<id>[?k=v]`, `cmd:<name>[:<arg>]`), `contextMessages`, `ContextTarget`, `ContextEnv`.
+  `<if-studio>` renders them in one `sf-menu.context-menu` and runs the values through `StudioChromePort`.
+- `shortcuts-sheet.ts` (B11b slice 4) — `SHORTCUT_GROUPS`, `shortcutGroupOf(entry, ctx)`, `shortcutSheet(list, ctx)` (the
+  cheat sheet's cards from `registry.list()`), `shortcutsSheetSurface(groups)` (the settings-size dialog over the kit's
+  `<sf-shortcut-sheet>`).
+- `ChromeShortcuts` (in `studio-element.ts`, B11b slice 4) — the chrome's own keys (dock, inspector, rename, copy link,
+  milestone, save hint, cheat sheet, context menu); the port grew `contextAt`, `clipboard`, `selectAll`, `editText`,
+  `textPreset`, `fitToBox`, `replaceImage`, `pageAction`, `saveHint`, `openShortcuts`; the model `clipboard` and `pages`.
 - `canvas.ts` — **`CanvasPort`** (`start(surface, signal) → CanvasSession { forwarded, stop }`), `sequencingCanvas({ boot, env,
   schedule })` (boots A7, forwards surface input into the editor's input ring; IF-SPEC-005 on failure).
 - `hints.ts` (B11a2) — `STUDIO_HINTS` (the M1 first-use hints: frame, shape, text, hand, layers, multi-selection), `HintTargets` (typed

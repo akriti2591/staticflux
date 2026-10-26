@@ -20,6 +20,8 @@ import type { CanvasSnapshot } from '../a11y/projection.js';
 import type { CanvasPipeEndpoints } from '../app/canvas-pipeline.js';
 import type { ExportTarget } from '../export/service.js';
 import type { LibraryEntry } from '../library/library-doc.js';
+import type { ClipboardPayload } from '../app/clipboard.js';
+import type { SelectionSummary } from '../app/scene-summary.js';
 import type { RenderPacing } from '../sequencing/pacing.js';
 import type { RenderModuleStats } from '../sequencing/render-module.js';
 import type { ModuleRole, SequencingMedia } from '../sequencing/topology.js';
@@ -193,6 +195,16 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     zoom: request<{ readonly step: 1 | -1 }, void>(),
     /** B11b: the View menu and zoom pill (fit the page, the selection, a zoom level). */
     camera: request<{ readonly action: CameraCommand }, void>(),
+    /** B11b (STUDIO §8.1): serialise the selection for the clipboard; `cut` also deletes it (one step "Cut"). */
+    copy: request<{ readonly nodes: readonly NodeId[]; readonly cut: boolean }, ClipboardPayload>(),
+    /** B11b: paste a payload (offset per §8.1, or in place); the pasted top level is selected. One step "Paste". */
+    paste: request<{ readonly payload: ClipboardPayload; readonly inPlace: boolean }, void>(),
+    /** B11b: plain text from another app becomes a text element at the viewport centre. */
+    pasteText: request<{ readonly text: string }, void>(),
+    /** B11b: a context menu at a viewport point (or at the selection): select what is there, return the selection. */
+    contextAt: request<{ readonly x?: number; readonly y?: number }, SelectionSummary>(),
+    /** B11b: Edit text on the selected text element (the context menu; Enter on the canvas does the same). */
+    editText: request<Record<string, never>, void>(),
     inspect: request<{ readonly nodes?: readonly NodeId[] }, StudioInspection>(),
     /** C1: freeze Latest for an export and report the pages and the selection (editor role). */
     exportTarget: request<void, ExportTarget>({ timeoutMs: 120_000 }),

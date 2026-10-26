@@ -263,6 +263,14 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     expect(calls).toEqual(['invoke ["instaflow/rename",{"name":"Hero card"}]', 'invoke ["instaflow/lock",{"locked":true}]']);
   });
 
+  it('focusName() puts the header name into editing (Mod+Shift+R, F2, the context menu); none for the page', async () => {
+    const { el, root } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance() });
+    expect(await el.focusName()).toBe(true);
+    expect((root.querySelector('header sf-inline-edit') as HTMLElement & { editing: boolean }).editing).toBe(true);
+    const page = await mount(MODEL);
+    expect(await page.el.focusName()).toBe(false);
+  });
+
   it.each(Object.keys(INSPECTOR_SECTIONS) as SelectionKind[])('%s: renders exactly its sections and passes the audit', async (kind) => {
     const extra: Partial<SelectionSummary> = {
       repeat: { kind: 'radial', count: 6 },

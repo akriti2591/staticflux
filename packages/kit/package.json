@@ -86,6 +86,10 @@
       "types": "./dist/tree.d.ts",
       "import": "./dist/tree.js"
     },
+    "./shortcut-sheet": {
+      "types": "./dist/shortcut-sheet.d.ts",
+      "import": "./dist/shortcut-sheet.js"
+    },
     "./command-palette": {
       "types": "./dist/command-palette.d.ts",
       "import": "./dist/command-palette.js"

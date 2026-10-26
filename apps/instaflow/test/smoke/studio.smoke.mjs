@@ -446,6 +446,58 @@ async function scenario(page) {
   await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 1, null, { timeout: 10_000 });
   log('command bar: Mod+K → "Duplicate" → Enter duplicated the selection (undone)');
 
+  // Clipboard (STUDIO §8.1, B11b slice 4): Mod+C, Mod+V pastes +24 on the same page and selects the copy; Mod+Shift+V
+  // pastes in place; one undo step each.
+  await clickElement(rect);
+  const r1 = (await screenBox(rect)).e;
+  await surface.focus();
+  const uClip = await undoDepth();
+  await page.keyboard.press('Control+C');
+  await page.waitForFunction(() => window.__studio.scene.clipboard.canPaste === true, null, { timeout: 10_000 }).catch(() => fail('Mod+C kept nothing to paste'));
+  await page.keyboard.press('Control+V');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 2, null, { timeout: 10_000 }).catch(async (e) => fail(`Mod+V: ${e.message} (${await shapes()} shapes)`));
+  const pasted = await page.evaluate(() => window.__studio.tab.view.selection[0]);
+  if (pasted === rect) fail('Mod+V did not select the pasted copy');
+  const p1 = (await screenBox(pasted)).e;
+  if (!near(p1.x - r1.x, 24, 0.5) || !near(p1.y - r1.y, 24, 0.5)) fail(`Mod+V pasted at ${p1.x - r1.x}, ${p1.y - r1.y} from the source (want +24, +24)`);
+  await page.keyboard.press('Control+Shift+V');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 3, null, { timeout: 10_000 }).catch(async (e) => fail(`Mod+Shift+V: ${e.message} (${await shapes()} shapes)`));
+  const inPlace = (await screenBox(await page.evaluate(() => window.__studio.tab.view.selection[0]))).e;
+  if (!near(inPlace.x, r1.x, 0.5) || !near(inPlace.y, r1.y, 0.5)) fail(`Mod+Shift+V pasted at ${inPlace.x}, ${inPlace.y} (want ${r1.x}, ${r1.y})`);
+  if ((await undoDepth()) !== uClip + 2) fail(`paste: ${uClip} → ${await undoDepth()} undo steps (want one per paste)`);
+  await page.keyboard.press('Control+Z');
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 1, null, { timeout: 10_000 }).catch(async (e) => fail(`paste undo: ${e.message} (${await shapes()} shapes)`));
+  log('clipboard: Mod+C, Mod+V pasted +24 and selected the copy, Mod+Shift+V pasted in place; Mod+Z ×2 removed both');
+
+  // The context menu (STUDIO §8.2): right-click the rectangle → Duplicate; then undo.
+  const rb = await screenBox(rect);
+  await page.mouse.click(rb.x + rb.w / 2, rb.y + rb.h / 2, { button: 'right' });
+  // The menu's rows are its light-DOM children (slotted into the shadow `role=menu`), so rows are found from the host.
+  await page.getByRole('menu', { name: 'Context menu' }).waitFor({ timeout: 10_000 }).catch(() => fail('right-click opened no context menu'));
+  const contextMenu = page.locator('sf-menu.context-menu');
+  for (const name of ['Cut', 'Copy', 'Paste', 'Duplicate', 'Delete', 'Copy style', 'Rename']) {
+    if ((await contextMenu.getByRole("menuitem", { name, exact: true }).count()) !== 1) fail(`the context menu has no "${name}": ${JSON.stringify(await contextMenu.getByRole("menuitem").evaluateAll((els) => els.map((e) => [e.getAttribute("value"), e.textContent, e.getAttribute("aria-label")])))}`);
+  }
+  await contextMenu.getByRole('menuitem', { name: 'Duplicate', exact: true }).click();
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 2, null, { timeout: 10_000 }).catch(async (e) => fail(`context menu Duplicate: ${e.message} (${await shapes()} shapes)`));
+  await surface.focus();
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 1, null, { timeout: 10_000 });
+  log('context menu: right-click → Duplicate (undone)');
+
+  // The cheat sheet (STUDIO §2.3.1): ? opens it from the registry; the search filters; Escape closes.
+  await page.keyboard.press('Shift+?');
+  const sheet = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+  await sheet.waitFor({ timeout: 10_000 }).catch(() => fail('? opened no cheat sheet'));
+  const sheetSearch = sheet.getByRole('searchbox', { name: 'Search shortcuts' });
+  await sheetSearch.fill('paste');
+  const rows = await sheet.locator('sf-shortcut-sheet li').allTextContents();
+  if (!rows.some((t) => t.includes('Paste in place')) || rows.some((t) => t.includes('Undo'))) fail(`cheat sheet search "paste": ${JSON.stringify(rows)}`);
+  await page.keyboard.press('Escape');
+  await sheet.waitFor({ state: 'detached', timeout: 10_000 }).catch(() => fail('Escape did not close the cheat sheet'));
+  log(`cheat sheet: ? opened it, "paste" kept ${rows.length} rows, Escape closed it`);
+
   // Layers (STUDIO §3.1): rename a row inline, move it up with Alt+↑ (one step each), then undo both.
   const layersOf = () => page.evaluate(() => window.__studio.scene.layers.map((l) => [l.id, l.name]));
   const layersBefore = await layersOf();

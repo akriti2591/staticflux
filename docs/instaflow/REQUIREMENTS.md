@@ -1582,6 +1582,40 @@ Lifecycle: LIFECYCLES §38.
   step across the root part and the page parts; pages join and leave the canvas, exports and the story at runtime.
 - **IF-36.29** Duplicating copies document nodes only: a repeat's derived instances are never copied (its copy derives its
   own), so Mod+D on a repeat and Duplicate page keep working.
+- **IF-36.30** **Clipboard** (STUDIO §8.1): Mod+C / Mod+X / Mod+V use the browser's copy, cut and paste events (no permission
+  prompt). Copy serialises the selection's document nodes (base stage, rich text included) into `text/html` (a base64 span,
+  versioned `instaflow/clipboard`) with the names or text in `text/plain`, and keeps it in memory; Cut is one step `Cut`.
+  Paste re-mints every id, selects the pasted top level and is one step `Paste`: +24, +24 per paste on the source page while
+  the source is there, the same coordinates on another page or design, and always the same coordinates with Mod+Shift+V
+  (Paste in place). Paste reads Studio's payload, else image files (imported into the library, then placed), else plain text
+  (an auto-width text element at the viewport centre), else the memory copy. A blocked system clipboard warns once and the
+  memory copy still pastes inside Studio. Text fields, contenteditable regions and text editing keep their own clipboard.
+- **IF-36.31** **Context menu** (STUDIO §8.2): right-click (or Shift+F10 on the canvas) selects what is under the pointer and
+  opens `sf-menu` at the point with the target's applicable items only: the empty canvas (Paste and Paste in place when
+  something was copied, Select all, Zoom to fit, Zoom to 100 %, Add page), a selection (Cut, Copy, Paste, Duplicate, Delete;
+  Copy style, Paste style and Paste style only ▸ after a Copy style; the four order moves; Group / Ungroup, Frame selection,
+  Lock / Unlock, Hide / Show, Rename; Select same ▸, Copy link; then the kind's items: shape mask, outline stroke, flatten,
+  Make repeat ▸; text Edit text, Text style ▸, Fit to box, Copy as text; image Replace image…, Fit ▸, mask; group / frame
+  Tidy up; repeat Expand, Release, Flatten; boolean Release, Flatten; mask Release; several Align ▸, Distribute ▸,
+  Combine ▸), a locked element (Copy, Unlock) and the page label or the Layers page row (Rename page, Duplicate page,
+  Delete page with two or more pages, Set size ▸, Background…, Copy link to page). A capability item is listed only when the
+  selection's `actions` include it. A Layers row's right-click selects that row first.
+- **IF-36.32** **Style clipboard and structure keys** (APPEARANCE §2.9, STUDIO §7): `instaflow/copy-style` (Mod+Alt+C) remembers
+  the first element's fills, strokes, effects, corners, opacity and blend (no step); `instaflow/paste-style` (Mod+Alt+V)
+  writes them, or one part with `only`, to every other selected element in one step `Paste style` (corners only where there
+  are corners); `instaflow/select-same` selects every element on the page with the first one's top fill, top stroke,
+  effects, font or kind; `instaflow/opacity-step` (Alt+Shift+↑ / ↓) adds ±10 % clamped to 0…100 % in one step. Mod+E
+  flattens, Mod+Shift+O outlines the stroke, Alt+A / H / D / W / V / S align (one element to the page, several to their
+  bounds), Ctrl+Alt+Shift+H / V distribute, Ctrl+Alt+Shift+T tidies up; Free transform is Mod+Alt+T (Mod+T where the
+  browser lets it through).
+- **IF-36.33** **Chrome keys** (STUDIO §7): Mod+\ shows or hides the dock, Mod+Alt+\ the inspector, Mod+Shift+R / F2 renames
+  the single selection in the inspector header, Mod+Alt+L copies a link, Mod+Alt+S creates a milestone, Mod+S says
+  Instaflow saves as you work (a toast offering a milestone), Shift+F10 opens the context menu, `?` the cheat sheet.
+- **IF-36.34** **Keyboard cheat sheet** (STUDIO §2.3.1): `?` toggles a settings-size dialog `Keyboard shortcuts` over the kit's
+  `<sf-shortcut-sheet>` (R13.47) built from a snapshot of Studio's shortcut registry, so it is never stale and shortcuts not
+  registered here are absent: cards Tools · Selection · Edit · Arrange · Transform · Text · View · Studio (empty cards are
+  absent), a focused search that filters and marks rows, and a Mac · Windows switch defaulting to the viewer's platform.
+  Escape closes it. Not yet: the Print button, row hover pointing at controls, Settings › Shortcuts.
 
 ## 37. Engine gaps for B11b (M1c B12)
 

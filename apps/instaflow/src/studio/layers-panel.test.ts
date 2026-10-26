@@ -145,4 +145,24 @@ describe('<if-layers-panel>', () => {
     full.tree.dispatchEvent(new PointerEvent('pointerleave'));
     expect(full.calls).toEqual(['hover ["t"]', 'hover [null]']);
   });
+
+  it('right-click a row selects it (unless already selected) and asks Studio for the context menu (B11b slice 4)', async () => {
+    const { el, tree, calls } = await mount({ ...MODEL, selection: ['g'] });
+    const seen: { page: boolean; x: number }[] = [];
+    el.addEventListener('if-layer-context', (e) => seen.push((e as CustomEvent<{ page: boolean; x: number }>).detail));
+    const menu = (id: string): MouseEvent => {
+      const e = new MouseEvent('contextmenu', { bubbles: true, composed: true, cancelable: true, clientX: 30, clientY: 40 });
+      rowEl(tree, id).dispatchEvent(e);
+      return e;
+    };
+    expect(menu('t').defaultPrevented).toBe(true);
+    menu('g');
+    menu('p1');
+    expect(calls).toEqual(['select [["t"]]', 'selectPage []']);
+    expect(seen.map((d) => [d.page, d.x])).toEqual([
+      [false, 30],
+      [false, 30],
+      [true, 30],
+    ]);
+  });
 });

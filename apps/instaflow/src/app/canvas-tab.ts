@@ -88,7 +88,7 @@ export interface CanvasTabOptions {
   readonly onEditing?: (node: NodeId | undefined, reason?: TextExitReason) => void;
   readonly onProblem?: (error: SfError) => void;
   /** Run a key command's capability on `nodes` (B11b; without it the tab runs undo, redo, delete and duplicate itself). */
-  readonly runKeyCommand?: (capability: string, nodes: readonly NodeId[]) => void;
+  readonly runKeyCommand?: (capability: string, nodes: readonly NodeId[], extra?: Readonly<Record<string, unknown>>) => void;
   readonly scope: Scope;
 }
 
@@ -411,7 +411,7 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
       };
       const run = (): void => {
         if (command.empty !== true && view.selection.length === 0) return;
-        if (runKey !== undefined) runKey(command.capability, view.selection);
+        if (runKey !== undefined) runKey(command.capability, view.selection, command.extra?.(view.selection.length));
         else fallback[command.capability]?.();
       };
       const registered = registry.register(command.def, run, { scope });

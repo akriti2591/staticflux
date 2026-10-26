@@ -358,8 +358,31 @@ export class IfLayersPanelElement extends SfElement<typeof spec> {
         @keydown=${(e: KeyboardEvent) => this.onKey(e, port)}
         @pointerover=${(e: PointerEvent) => this.onHover(e, port)}
         @pointerleave=${() => port.hover(undefined)}
+        @contextmenu=${(e: MouseEvent) => this.onContext(e, port)}
       ></sf-tree>`;
   }
+
+  /** Right-click a row: it joins (or becomes) the selection, then Studio opens the context menu there (STUDIO §8.2). */
+  private onContext(e: MouseEvent, port: LayersPort): void {
+    const row = e.composedPath().find((el): el is HTMLElement => el instanceof HTMLElement && el.getAttribute('role') === 'treeitem');
+    const id = row?.dataset['id'];
+    if (row === undefined || id === undefined) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const page = id === this.model.page?.id;
+    if (page) port.selectPage();
+    else if (!this.model.selection.includes(id)) port.select([id]);
+    const detail: LayerContextDetail = { page, x: e.clientX, y: e.clientY, returnTo: row };
+    this.dispatchEvent(new CustomEvent('if-layer-context', { detail, bubbles: true, composed: true }));
+  }
+}
+
+/** `if-layer-context`: a row's context menu (the selection already follows the row). */
+export interface LayerContextDetail {
+  readonly page: boolean;
+  readonly x: number;
+  readonly y: number;
+  readonly returnTo: Element;
 }
 
 const isContainer = (rows: readonly LayerRow[], id: string): boolean => {
