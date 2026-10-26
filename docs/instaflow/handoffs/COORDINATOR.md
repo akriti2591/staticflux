@@ -41,15 +41,12 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
    to PR activity. After the owner merges: `git checkout -B claude/affectionate-ramanujan-wbyz2g origin/main` and
    force-with-lease push.
 
-## Where things are (2026-10-25, end of day)
-- `main`: M1a, M1b (B0–B7), B8 Studio integration, B9 editor in workers, B10a transform basics, site refresh, C0 Home.
-- **Working branch** `claude/affectionate-ramanujan-wbyz2g`: C1 Export merged and green (full check + smokes), the UX spec (`docs/instaflow/ux/`), the brand assets
-  (`apps/instaflow/brand/`), docs updates. C1 merged (#25). B11a PR #26 and UX primitives PR #27 (docs) open. Owner answered §6 (all recommended); #27 merged. **Fable gap research
-  running** on `claude/wip-ux-research` (GAP-AUDIT.md). B11b waits for it.
-  **B11a2 agent running** (stacked) on `claude/wip-b11a2-overlays`: B11a2 (overlay and feedback blocks; IDs IF-POL-001…049 free, IF-35.14+), then
-  B11b.
-- **Next work, in order:** B11a (foundations: kit building blocks, `<sf-icon>` with Lucide, toasts, menus, number
-  field, inline edit) → B11b (Studio and Home surfaces per the UX docs, logo wiring, nothing inert) → C2 Import →
+## Where things are (2026-10-26)
+- `main`: M1a, M1b, B8–B10a, C0, C1, B11a, B11a2, and the full UX spec set (FOUNDATIONS, OVERLAYS-FEEDBACK, NAVIGATION,
+  DENSITY-DISCLOSURE, GAP-AUDIT, TEXT-FONTS, APPEARANCE-TRANSFORM, STUDIO, HOME-FILES, CHAT, DEVTOOLS, FLOWS; all owner
+  questions answered).
+- **B12 agent running** on `claude/wip-b12-engine` (scope in M1C-NOTES).
+- **Next work, in order:** B12 engine gaps → B11b (Studio and Home surfaces per the UX docs, logo wiring, nothing inert) → C2 Import →
   C3 Modes and identity → C4 Hardening (end-to-end checkpoint in CI, performance and loading pass, exit criteria).
   B10b (distort, perspective, warp) is early M2.
 - **Logo:** chosen 2026-10-25: cursive "if", colour-split dot (tangerine up-left, mint down-right), no tail. Assets

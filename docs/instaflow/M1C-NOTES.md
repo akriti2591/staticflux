@@ -22,6 +22,7 @@ the M1c work packages, their pre-assigned IDs and their order.
 | B9 Editor in the worker | IF-33.1–33.29 | §35 | IF-WRK-001… | `claude/wip-b9-worker` |
 | B10a Transform tools, basics | IF-34.1–34.29 | §36 | IF-XF-001… | `claude/wip-b10a-transform` |
 | B11a Foundations (kit blocks, icons, toasts, menus) | IF-35.1–35.29 | §37 | IF-POL-001…049 | `claude/wip-b11a-foundations` |
+| B12 Engine gaps for B11b (text, appearance, actions) | IF-37.1–37.29 | §39 | IF-FIX-001… | `claude/wip-b12-engine` |
 | B11b Studio and Home surfaces | IF-36.1–36.29 | §38 | IF-POL-050… | `claude/wip-b11b-surfaces` |
 | C0 Home route | IF-28.1–28.29 | §30 | IF-HOME-001… | `claude/wip-c0-home` |
 | C1 Export | IF-29.1–29.29 | §31 | IF-EXP-001… | `claude/wip-c1-export` |
@@ -107,3 +108,16 @@ UI, while every test passed: tests checked plumbing, not what a person expects. 
   them in CI in both topologies on every PR, and make them a required check.
 - **C4** turns every M1 exit criterion (M1-PLAN § Exit criteria) into a CI check, deletes `apps/instaflow/spikes/`,
   and ratchets size budgets. It is the M1 finish line.
+
+## B12 Engine gaps for B11b (scope, owner 2026-10-26: "sequencing is yours")
+Order: B12 (engine) → B11b (surfaces) → Fable motion/video UX pass. B12 fixes what the text and appearance specs
+marked (c) for **M1**, so B11b builds every control against real behaviour (nothing visible is inert):
+- **Text** (TEXT-FONTS-UX-SPEC §11.2 T-1–T-9): fixed box + vertical align laid out; undo coalescing while typing;
+  platform caret keys (Mac word/line jumps); tofu for missing glyphs; sub/superscript; soft break; WOFF2 in
+  `fonts.ts`; Tab indents in lists; the IME control-bounds bug.
+- **Appearance** (APPEARANCE-TRANSFORM-UX-SPEC §10.2 A-1–A-3): the page fill stack (owner Q1: a page property, not a
+  locked layer) through render and export; a `hidden` prop (render, hit test, export, a11y); image fill crop/offset/
+  scale.
+- **Actions** (APPEARANCE §0/§4): group, ungroup, reorder (bring forward/backward/front/back), rename,
+  frame selection; each an undoable change set with tests.
+Engine and model only: no surfaces (B11b). Keep SVG/PDF parity (D21) for anything that renders.
