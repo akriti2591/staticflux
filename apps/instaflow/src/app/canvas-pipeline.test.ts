@@ -10,7 +10,7 @@ import { makeRepeat, newRepeatParams } from '../repeat/actions.js';
 import { createTextOps } from '../text/rich-text.js';
 import { attachCanvasRender, createCanvasPipes, createElementSceneSide, decodeSceneRecord, encodeSceneRecord } from './canvas-pipeline.js';
 import { createElementRenderPort, createRecordingRaster } from './element-port.js';
-import { createTextLayer } from './text-layer.js';
+import { createTextLayer, projectedSceneId } from './text-layer.js';
 import { authoringBuilt, createStudioFixture, person, unwrap } from './test-helpers.js';
 
 const rect = (node: string, x: number, y: number) => ({ op: 'create' as const, node, kind: 'shape', parent: 'p1', props: { [P.x]: x, [P.y]: y, [P.w]: 100, [P.h]: 80, [P.fills]: [{ paint: '#ff5c39' }] } });
@@ -60,7 +60,7 @@ describe.skipIf(!authoringBuilt)('canvas pipeline over the repeat view (A7 ports
     unwrap(commitEdit(document.target('p1'), person, 'Seed', ok([rect('a', 40, 40), rect('b', 300, 40)])));
     const source = createElementRenderSource({ stage: document.view, geometry: document.geometry, kit: document.kit, root: 'p1' });
     const projector = createRenderProjector(ElementProjection, source);
-    const layer = createTextLayer({ document, page: 'p1', fonts: f.fonts, scope: f.scope });
+    const layer = createTextLayer({ document, page: 'p1', fonts: f.fonts, scope: f.scope, sceneParent: projectedSceneId(projector) });
     const sent: Uint8Array[] = [];
     const text = {
       changes: (full: boolean) => {

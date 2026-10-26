@@ -44,7 +44,10 @@
 //! In luminance mode solid and gradient colours become alpha = a × luma; image paints are used as alpha unchanged,
 //! so the sender uploads luminance-as-alpha pixels for an image used as a luminance mask (and a matte's alpha as is).
 //!
-//! `parent` 0 is the root; `index` is the position among the parent's children (`u32::MAX` appends).
+//! `parent` 0 is the root; `index` is the position among the parent's children (`u32::MAX` appends). An `UPSERT`
+//! naming a parent the scene does not hold is dropped, as `REMOVE` of an unknown id is (B12b: a text element's glyphs
+//! sit under its element node; when the element is deleted in a later record of the same frame, the element batch
+//! has already removed it). A node that would become its own ancestor fails the batch.
 //! `flags` bit 0 = visible. Colors are straight-alpha sRGB. Image paint maps the image onto the
 //! shape's `w × h` box. `blend` is a `peniko::Mix` value (0 normal … 15 luminosity).
 //! Every geometry, paint and clip kind must be handled by every backend (exhaustive matches).
@@ -815,7 +818,7 @@ impl Scene {
                 }
                 Op::Upsert { node, index } => {
                     if node.parent != ROOT && !self.nodes.contains_key(&node.parent) {
-                        return fail(format!("node {} names unknown parent {}", node.id, node.parent));
+                        continue; // its parent is gone (see the module header): so is the node
                     }
                     // A node may not become its own ancestor.
                     let mut p = node.parent;
@@ -1498,13 +1501,17 @@ mod tests {
     }
 
     #[test]
-    fn rejects_unknown_parents_and_cycles() {
+    fn drops_nodes_under_unknown_parents_and_rejects_cycles() {
         let mut scene = Scene::new();
         let mut orphan = rect(1, 0.0, 0.0, 1.0, 1.0);
         orphan.parent = 99;
+        let mut child = rect(2, 0.0, 0.0, 1.0, 1.0);
+        child.parent = 1;
         let mut w = IrWriter::new();
-        w.upsert(&orphan, APPEND);
-        assert!(scene.apply(&w.finish()).unwrap_err().0.contains("unknown parent"));
+        w.upsert(&orphan, APPEND).upsert(&child, APPEND).upsert(&rect(3, 0.0, 0.0, 1.0, 1.0), APPEND);
+        scene.apply(&w.finish()).unwrap();
+        assert!(scene.node(1).is_none() && scene.node(2).is_none());
+        assert_eq!(scene.children(ROOT), &[3]);
         let mut w = IrWriter::new();
         w.upsert(&group(1, ROOT), APPEND).upsert(&group(2, 1), APPEND).upsert(&group(1, 2), APPEND);
         assert!(scene.apply(&w.finish()).unwrap_err().0.contains("ancestor"));

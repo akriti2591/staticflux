@@ -49,7 +49,7 @@ import type { StudioDocument } from './document.js';
 import { NoOpenPageError } from './errors.js';
 import type { ImageUploads } from './images.js';
 import { startTextEditing, type TextEditing, textEditBatch, type TextExitReason, type TextHostPort } from './text-editing.js';
-import { createTextLayer, type StudioFonts, type TextLayer } from './text-layer.js';
+import { createTextLayer, projectedSceneId, type StudioFonts, type TextLayer } from './text-layer.js';
 
 export interface CanvasTabOptions {
   readonly tab: TabId;
@@ -192,7 +192,7 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
   const source = createElementRenderSource({ stage: document.view, geometry: document.geometry, kit: document.kit, root: page, orderOf: (id) => part.node(id)?.order, pageFill: true }); // B12: the page's fill stack
   scope.defer(() => source.dispose());
   const projector = createRenderProjector(ElementProjection, source);
-  const text = createTextLayer({ document, page, fonts: options.fonts, scope });
+  const text = createTextLayer({ document, page, fonts: options.fonts, scope, sceneParent: projectedSceneId(projector) }); // B12b P2: glyphs under the element's node
   const images = options.images;
   const ir: SceneIrSource = {
     changes(full) {
