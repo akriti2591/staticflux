@@ -634,6 +634,7 @@ input flows in through A5's ring; the store side answers on the store port.
 | WRK-6 | Every capability run, panel action and Place goes to the editor; main forwards only ids the editor reported | IF-WRK-003, IF-WRK-004; `host.test.ts`, `mirror.test.ts` |
 | WRK-7 | The worker import graph has no Lit, kit, UI runtime or main-thread module | `worker-imports.test.ts` |
 | WRK-8 | A page switch replaces the scene with a snapshot of the new page (the publisher outlives tabs) | `canvas-tab.test.ts` |
+| WRK-9 | The text session posts one text state per handled intent, with the caret after the edit: a commit's own document invalidation never pushes the session's state mid-commit (else main applies the new text with the old caret and the next key lands before it: FIX-TEXT-FIRST-KEY) | `text-editing.first-key.test.ts`; smoke (typing step) |
 
 ## 36. Transform tools: Free Transform session (Instaflow M1c B10a)
 
