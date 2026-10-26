@@ -71,15 +71,16 @@ Focus renders the rail. Tier assignments (the clutter audit, §8.1) are the norm
 
 | Kind | Standard shows at rest | Behind `More ▾` / ▸ in Standard | Pro adds (beyond opening everything) |
 |---|---|---|---|
-| Nothing (Page) | Page: Name, Size (size field pair with `Presets ▾`), Background. Document: Title. | Page: Orientation lock, Layout grid ▸. Document: Pages count, Units, Provenance line. | Page margins and bleed fields (used by Print export), page position X Y on the canvas |
-| Shape | Transform (X Y W H ∠), Fill stack, Stroke stack (width + colour) | Transform `More ▾` (⟂ skew, flips, pivot), Stroke `More ▾` (Position, Cap, Join, Dash), Corners ▸, Effects ▸, Layer ▸ (opacity, blend) | Per-corner radii in one row of four; stroke dash pattern as a mono field; Effects shows each effect's fields inline |
-| Text | Transform, Text (Font, Weight, Size, Colour, Align row), Fill | Text `More ▾` (Line height, Letter spacing, Vertical align, Auto-size, Decoration, Case, Paragraph spacing), Stroke ▸, Effects ▸, Layer ▸ | OpenType features row (ligatures, numerals), baseline offset, hyphenation toggle |
-| Image | Transform, Image (Fit ▾, Replace…) | Image `More ▾` (Source name, pixel size, Crop reset, Adjustments: exposure, warmth, saturation sliders), Effects ▸, Layer ▸ | Adjustments open; a `Reset` per slider; source path as mono |
-| Frame | Transform, Frame (Clip toggle, Name), Fill | Stroke ▸, Layout grid ▸, Effects ▸, Layer ▸ | Layout grid open with the overlay toggle |
-| Group | Transform | Layer ▸ | Child count, bounds mode |
-| Repeat | Transform, Repeat (Kind switcher, the kind's two main numbers: Count + Radius / Rows + Columns / Axis) | Repeat `More ▾` (Start angle, Sweep, Rotate copies, Spacing, Offsets, Brick/Hex) then the source's sections | All parameters open, the source's sections open |
-| Boolean / Mask | Transform, Combine or Mask (operation / mode), Fill | Invert, Stroke ▸, Effects ▸, Layer ▸ | — |
-| Multi | Transform (Mixed), Fill, Stroke | Effects ▸, Layer ▸ | Per-element list (names) at the top with a click-to-isolate |
+| Nothing (Page) | Page: Name, Size (size field pair with `Presets ▾`), Background (a **fill stack**: colour, gradient, image rows — `APPEARANCE-TRANSFORM-UX-SPEC.md` §2.8). Document: Title. | Page: Orientation lock, `Apply background to all pages`, `Use for new pages`, Layout grid ▸. Document: Pages count, Units, Provenance line. | Page margins and bleed fields (used by Print export), page position X Y on the canvas, `Export: background included` line |
+| Shape | Transform (X Y W H ∠, link), Fill stack (rows with thumbnail swatch, 2-line summary, opacity, eye), Stroke stack (swatch, width) | Transform `More ▾` (⟂ skew, flips, pivot), stack rows' second line (blend; stroke Position, Sides, Dash, Cap, Join; effect fields), Corners ▸, Effects ▸, Layer ▸ (opacity, blend) — **tiers per control: `APPEARANCE-TRANSFORM-UX-SPEC.md` §2.10, §3.6** | Per-corner radii in one row of four + Smooth; stroke dash pattern as a mono field, miter limit; Effects shows each effect's fields inline; Transform shows `Relative to ▾`, `Scale %` (M2), pivot picker always; class override list in the header |
+| Text | Transform, Text (Style ▾ preset, Font, Weight, Size, Colour, `B I U S 🔗` row, Align row with List ▾), Fill | Text `More ▾` (Line height, Letter spacing, Paragraph spacing, Vertical align for fixed boxes, Auto-size, Case ▾, Sub/superscript, Fit to box), Stroke ▸, Effects ▸, Layer ▸ | OpenType features row, variable axes, baseline offset, line-height unit, direction, hyphenation, truncate, word count — **tiers per control: `TEXT-FONTS-UX-SPEC.md` §4.2 and §4.4** |
+| Image | Transform, Image (Fit ▾, Replace…, Crop after A-3) | Image `More ▾` (Position X Y %, Scale, Rotate inside, Reset crop (A-3); Source name, pixel size; Adjustments sliders (A-10, M2)), Stroke ▸, Effects ▸, Layer ▸ | Adjustments open; a `Reset` per slider; source path as mono (`APPEARANCE-TRANSFORM-UX-SPEC.md` §2.4) |
+| Frame | Transform, Frame (Clip toggle, Name, the one-line group/frame explanation), Fill | Stroke ▸, Layout grid ▸, Effects ▸, Layer ▸; `Convert to group` | Layout grid open with the overlay toggle; `Layout ▾` auto layout (A-15, M2) |
+| Group | Transform, Layer ▸ summary | Layer ▸; `Convert to frame` | Child count, bounds mode, `Blend ▾ Pass through` (A-14) |
+| Repeat | Transform, Repeat (Kind switcher, the kind's two main numbers: Count + Radius / Rows + Columns / Axis + Offset, Expand, Release) | Repeat `More ▾` (Start angle, Sweep, Rotate copies, Gap X/Y, Offsets, Brick ▾ + shift) then the source's sections under a `Source` hairline | All parameters open, the source's sections open |
+| Boolean / Mask | Transform, Combine (Operation ▾, Release, Flatten) or Mask (Mask mode ▾, Invert, Release, Matte ▾), Fill | Stroke ▸, Effects ▸, Layer ▸ | `Swap mask` |
+| Instance (M2, A-12) | Transform, the component's sections with override dots | `Reset overrides ▾` | Override list open |
+| Multi | Transform (union frame), Fill (`Mixed fills` + `Replace all ▾` when stacks differ), Stroke | Effects ▸, Layer ▸ | Per-element list (names) at the top with a click-to-isolate and per-element X Y W H |
 
 Collapsed sections show a summary line; `More ▾` rows show nothing until opened except a mist count tag when a
 hidden field is non-default (`More ▾ · 2`), so a skewed shape does not look un-skewed in Standard.
@@ -97,8 +98,10 @@ hidden field is non-default (`More ▾ · 2`), so a skewed shape does not look u
 
 The pill is the same six in all modes (people learn it once). Pro changes only tooltips (second line) and adds units
 to the inline numbers (`120 px` instead of `120`). The colour popover, font picker and alignment popover do not change
-by mode except: Pro's colour popover opens with `Custom ▸` **already expanded** and shows the hex of every document
-colour as a mono caption; Focus's colour popover is identical to Standard's.
+by mode except: Pro's colour popover opens with `Custom ▸` **already expanded**, shows the hex of every document
+colour as a mono caption and the gradient handles' positions in `%`; Focus's colour popover is identical to Standard's
+(the contrast tag becomes a tooltip in Focus). Canvas handles are the same everywhere; Pro shows the pivot always and
+the distance tags on hover (`APPEARANCE-TRANSFORM-UX-SPEC.md` §5).
 
 ## 4. Home, per mode
 
@@ -182,15 +185,18 @@ exactly one of the blocks in §2. Presets stay visible. "Folds to" names the blo
 
 | Place | Visible at rest (Standard) | Folds to | Hidden until relevant (gating, not disclosure) |
 |---|---|---|---|
-| Transform | X Y W H ∠ · link toggle | `More ▾`: skew, Flip H/V, pivot picker | — |
-| Fill / Stroke stacks | Each row: swatch · value · opacity · eye · × (hover) · `+ Add` | Stroke `More ▾`: Position, Cap, Join, Dash | Stroke section itself is ▸ for Text and Frame |
-| Corners | ▸ with summary `Radius 24` | Section ▸: Radius, per-corner toggle, Smooth slider | not rendered for ellipse, line, text |
-| Effects | ▸ with summary `Shadow` | Section ▸: effect rows; each row's Kind ▾ and fields | — |
-| Layer | ▸ with summary `50 % · Multiply` | Section ▸: Opacity slider, Blend ▾ | — |
-| Text | Font ▾ · Weight ▾ · Size · Colour · Align row | `More ▾`: Line height, Letter spacing, Vertical align, Auto-size, Decoration, Case, Paragraph spacing | OpenType features (Pro only) |
+| Transform | X Y W H ∠ · link toggle | `More ▾`: skew, Flip H/V, pivot picker, Constraints (A-8) | `Relative to ▾`, `Scale %` (Pro only); Constraints only for frame children |
+| Fill / Stroke stacks | Each row: swatch · 2-line summary · opacity · eye · × (hover) · `+ Add ▾` (Colour · Gradient ▸ · Image…) | A row's **second line** (click the summary): Blend ▾; stroke Position, Sides ⊞, Dash ▾, Cap ▾, Join ▾; gradient Angle, Reverse; image Fit ▾, Replace…, Crop | Stroke section itself is ▸ for Text and Frame; Sides only for rects, frames, images; Arrowheads only for lines (A-5); `Gradient` entry on text only after A-11 |
+| Corners | ▸ with summary `Radius 24` | Section ▸: Radius, per-corner toggle, Smooth slider; Points / Inner radius for stars and polygons | not rendered for ellipse, line, text |
+| Effects | ▸ with summary `Shadow · Soft` | Section ▸: effect rows; `+ Add ▾` preset menu (Shadow ▸ · Inner shadow ▸ · Glow ▸ · Bevel ▸ · Blur ▸ · From brand ▸); each row's fields on its second line | `Noise` (M3, Pro only); `From brand ▸` only with a kit |
+| Layer | ▸ with summary `50 % · Multiply` | Section ▸: Opacity slider, Blend ▾ | `Pass through` only on groups (A-14) |
+| Image | Fit ▾ · Replace… · Crop | `More ▾`: position, scale, rotate inside, reset crop, source, pixel size, Adjustments (A-10) | Crop only after A-3 |
+| Mask / Combine | Mode or Operation ▾ · Invert · Release | `Matte ▾`, `Swap mask`, Flatten | — |
+| Text | Style ▾ · Font ▾ · Weight ▾ · Size · Colour · `B I U S 🔗` · Align row (`⟵ ≡ ⟶ ☰` · List ▾) | `More ▾`: Line height, Letter spacing, Paragraph spacing, Vertical align, Auto-size, Case ▾, Sub/superscript, Fit to box (`TEXT-FONTS-UX-SPEC.md` §4.2) | Vertical align only for fixed boxes; Fit to box only when overflowing; OpenType, axes, baseline, direction, hyphenation, truncate (Pro only) |
 | Image | Fit ▾ · Replace… | `More ▾`: source, pixel size, Crop reset, Adjustments sliders | — |
 | Repeat | Kind switcher · two main numbers · Expand · Release | `More ▾`: the rest of the parameters | — |
-| Page | Name · Size pair with `Presets ▾` · Background | `More ▾`: Orientation lock; Layout grid ▸ | Margins/bleed (Pro only) |
+| Page | Name · Size pair with `Presets ▾` · Background fill stack | `More ▾`: Orientation lock, Apply background to all pages, Use for new pages; Layout grid ▸ | Margins/bleed (Pro only); Background `Gradient`/`Image…` entries only after A-1 |
+| View menu | Zoom, Snapping ▸ (elements, grids, smart guides), Rulers, Density, Panels | `Snapping ▸` holds Snap to pixels and Snap to guides (M2); Pixel grid, Lock guides (Pro) | — |
 | HUD `⋯` More menu | the searchable menu, grouped | n/a (it *is* the fold) | rows the selection cannot run are absent |
 | Context menu | ≤ 18 rows with dividers (STUDIO §8.2) | `Select same ▾`, `Make repeat ▾`, `Align ▾`, `Combine ▾`, `Fit ▾` are submenus | — |
 
@@ -219,8 +225,9 @@ exactly one of the blocks in §2. Presets stay visible. "Folds to" names the blo
 | Settings › About | Version · `Copy diagnostics` | `More ▾`: licences, Developer tools switch (shown only per DEVTOOLS §2) |
 | New design (HOME-FILES §1.3) | Formats row · Size pair · `Start from ▾` template · `Create` | `More ▾`: orientation lock, units, page count, background |
 | Command palette | Field · recents · results | n/a |
-| Colour popover | Value row · Document colours · Brand · Palette · Recent | `Custom ▸` inline |
-| Font picker | Search · Recent · In this design · All | Weight is a separate menu (never in the list) |
+| Colour popover | Tabs `Solid · Gradient · Image` · Value row (model menu, alpha, eyedropper, save) · Contrast tag · Document colours (Gradient tab: Document gradients + Presets) · Brand · Saved · Palette · Recent | `Custom ▸` inline (Pro: open); the model menu remembers; `Image` tab only for fills and strokes (`APPEARANCE-TRANSFORM-UX-SPEC.md` §2.2–2.3) |
+| Font picker | Search · category chips · Recent · In this design · Brand · Your fonts · Library · On this computer | Weight is a separate menu (never in the list); `+ Add fonts ▾` footer holds Upload, Use fonts on this computer, Browse Google Fonts (M2) (`TEXT-FONTS-UX-SPEC.md` §5.1) |
+| Missing fonts dialog | One row per family: Add from this computer · Replace with ▾ · Upload… | `Replace all with the fallback` ghost in the footer (`TEXT-FONTS-UX-SPEC.md` §5.6) |
 
 ### 8.4 Home
 
