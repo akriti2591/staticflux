@@ -28,8 +28,10 @@ import { NoOpenPageError } from './errors.js';
 import { type StudioFonts, textBlockTransform, type TextLayer, textBoxOps } from './text-layer.js';
 import type { TextLayout } from '../text/layout-result.js';
 import { P } from '../elements/components.js';
-import type { TextEditOverlay } from '../tools/overlay.js';
-import type { SceneTransform } from '../render/scene-ir.js';
+import { createSceneWriter, type SceneTransform } from '../render/scene-ir.js';
+import { colorToRgba, type Rgba8 } from '../elements/values.js';
+import type { ThemeDef } from '@staticflux/ui/theme';
+import { cleanPopTheme } from '../theme/clean-pop.js';
 
 export type TextExitReason = 'escape' | 'tab' | 'stopped';
 
@@ -92,6 +94,55 @@ const UNIT_OF_CLICKS: readonly Unit[] = ['grapheme', 'grapheme', 'word', 'paragr
 const CARET_WIDTH = 1.5;
 /** Slop around the text box that still counts as a press in the text (page px at zoom 1). */
 const HIT_SLOP = 4;
+
+const themeColor = (value: unknown): Rgba8 => (typeof value === 'string' ? (colorToRgba(value) ?? [0, 0, 0, 255]) : [0, 0, 0, 255]);
+
+/**
+ * The text being edited (TEXT-FONTS §3.2 drawing): the caret and the selection rects in **block px**, with the block's
+ * page transform (rotated text gets a rotated caret). Drawn above the content, never exported.
+ */
+export interface TextEditOverlay {
+  readonly transform: SceneTransform;
+  /** The caret bar (absent while a range is selected). */
+  readonly caret?: { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number };
+  /** One rect per line of the selection (`selectionRects`, bidi aware). */
+  readonly selection: readonly { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number }[];
+}
+
+export interface TextEditColors {
+  readonly caret: Rgba8;
+  readonly selection: Rgba8;
+}
+
+/** Caret in ink (`text`), selection in the accent at 24 % alpha (TEXT-FONTS §3.2). */
+export function textEditColors(theme: ThemeDef = cleanPopTheme): TextEditColors {
+  const c = theme.values.color as Readonly<Record<string, unknown>>;
+  const accent = themeColor(c['accent']);
+  return { caret: themeColor(c['text']), selection: [accent[0], accent[1], accent[2], 61] };
+}
+
+/** Scene IR for the text being edited (same id and `clear` options as `toolOverlayBatch`). */
+export function textEditBatch(
+  edit: TextEditOverlay,
+  options: { readonly colors?: TextEditColors; readonly firstId?: number; readonly clear?: boolean; readonly ids?: number[] } = {},
+): Uint8Array {
+  const colors = options.colors ?? textEditColors();
+  const w = createSceneWriter();
+  if (options.clear !== false) w.clear();
+  let id = options.firstId ?? 1;
+  const [a, b, c, d, e, f] = edit.transform;
+  const rect = (r: { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number }, color: Rgba8): void => {
+    const width = r.x1 - r.x0;
+    const height = r.y1 - r.y0;
+    if (!(width > 0) || !(height > 0)) return;
+    options.ids?.push(id);
+    // The rect's origin moved into the block transform: page = T · (x0, y0) + T's linear part · (x, y).
+    w.upsert({ id: id++, transform: [a, b, c, d, a * r.x0 + c * r.y0 + e, b * r.x0 + d * r.y0 + f], geometry: { kind: 'rect', w: width, h: height }, fill: { kind: 'solid', color } });
+  };
+  for (const r of edit.selection) rect(r, colors.selection);
+  if (edit.caret !== undefined) rect(edit.caret, colors.caret);
+  return w.finish();
+}
 
 /** Block px → surface px for the node (page transform with the fixed box's vertical alignment, B12 T-1; camera). */
 export function textToSurface(document: StudioDocument, node: NodeId, camera: Camera, laid?: Pick<TextLayout, 'height'>): (r: Rect) => ClientRect {

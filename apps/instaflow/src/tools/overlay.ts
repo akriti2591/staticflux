@@ -47,53 +47,6 @@ export function overlayColors(theme: ThemeDef = cleanPopTheme): OverlayColors {
   return { selection: accent, handleFill: rgba(c['surface1'], [255, 255, 255, 255]), guide: accent, marquee: [subtle[0], subtle[1], subtle[2], 128] };
 }
 
-/**
- * The text being edited (TEXT-FONTS §3.2 drawing): the caret and the selection rects in **block px**, with the block's
- * page transform (rotated text gets a rotated caret). Drawn above the content, never exported.
- */
-export interface TextEditOverlay {
-  readonly transform: SceneTransform;
-  /** The caret bar (absent while a range is selected). */
-  readonly caret?: { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number };
-  /** One rect per line of the selection (`selectionRects`, bidi aware). */
-  readonly selection: readonly { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number }[];
-}
-
-export interface TextEditColors {
-  readonly caret: Rgba8;
-  readonly selection: Rgba8;
-}
-
-/** Caret in ink (`text`), selection in the accent at 24 % alpha (TEXT-FONTS §3.2). */
-export function textEditColors(theme: ThemeDef = cleanPopTheme): TextEditColors {
-  const c = theme.values.color as Readonly<Record<string, unknown>>;
-  const accent = rgba(c['accent'], [0, 0, 0, 255]);
-  return { caret: rgba(c['text'], [0, 0, 0, 255]), selection: [accent[0], accent[1], accent[2], 61] };
-}
-
-/** Scene IR for the text being edited (same id and `clear` options as `toolOverlayBatch`). */
-export function textEditBatch(
-  edit: TextEditOverlay,
-  options: { readonly colors?: TextEditColors; readonly firstId?: number; readonly clear?: boolean; readonly ids?: number[] } = {},
-): Uint8Array {
-  const colors = options.colors ?? textEditColors();
-  const w = createSceneWriter();
-  if (options.clear !== false) w.clear();
-  let id = options.firstId ?? 1;
-  const [a, b, c, d, e, f] = edit.transform;
-  const rect = (r: { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number }, color: Rgba8): void => {
-    const width = r.x1 - r.x0;
-    const height = r.y1 - r.y0;
-    if (!(width > 0) || !(height > 0)) return;
-    options.ids?.push(id);
-    // The rect's origin moved into the block transform: page = T · (x0, y0) + T's linear part · (x, y).
-    w.upsert({ id: id++, transform: [a, b, c, d, a * r.x0 + c * r.y0 + e, b * r.x0 + d * r.y0 + f], geometry: { kind: 'rect', w: width, h: height }, fill: { kind: 'solid', color } });
-  };
-  for (const r of edit.selection) rect(r, colors.selection);
-  if (edit.caret !== undefined) rect(edit.caret, colors.caret);
-  return w.finish();
-}
-
 /** Screen-pixel widths of the overlay strokes. */
 export const OVERLAY_WIDTHS = Object.freeze({ frame: 1.5, transformFrame: 3, hover: 1.5, guide: 1, handle: 1.5, tick: 4, pivotCross: 1 });
 

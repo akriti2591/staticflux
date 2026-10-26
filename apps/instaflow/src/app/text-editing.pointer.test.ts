@@ -5,8 +5,7 @@
 import { ok } from '@staticflux/core';
 import { describe, expect, it } from 'vitest';
 import { placeTextOps } from '../text/commands.js';
-import { textEditBatch } from '../tools/overlay.js';
-import { type TextEditing, startTextEditing } from './text-editing.js';
+import { startTextEditing, type TextEditing, textEditBatch } from './text-editing.js';
 import { authoringBuilt, createStudioFixture, person, scriptedTextInput, unwrap } from './test-helpers.js';
 import { createTextLayer, textBlockTransform } from './text-layer.js';
 

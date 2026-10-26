@@ -38,7 +38,7 @@ import { cleanPopTheme } from '../theme/clean-pop.js';
 import { createToolController, refreshOverlay, type ToolController, type ToolOutcome, type ToolPointer, type ToolSession } from '../tools/gesture.js';
 import { createElementIndex, hitTest } from '../tools/hit-test.js';
 import { bindToolShortcuts, createToolCommands, type ToolCommands, TransformModeShortcutScope } from '../tools/keyboard.js';
-import { textEditBatch, toolOverlayBatch } from '../tools/overlay.js';
+import { toolOverlayBatch } from '../tools/overlay.js';
 import { createTransformMode } from '../tools/transform-mode.js';
 import type { GuideLabel } from '../tools/snapping.js';
 import { type Camera, createViewState, fitCamera, type TabId, type ViewState } from '../tools/view-state.js';
@@ -48,7 +48,7 @@ import { type CreateOutcome, createCreationController, type CreationController }
 import type { StudioDocument } from './document.js';
 import { NoOpenPageError } from './errors.js';
 import type { ImageUploads } from './images.js';
-import { startTextEditing, type TextEditing, type TextExitReason, type TextHostPort } from './text-editing.js';
+import { startTextEditing, type TextEditing, textEditBatch, type TextExitReason, type TextHostPort } from './text-editing.js';
 import { createTextLayer, type StudioFonts, type TextLayer } from './text-layer.js';
 
 export interface CanvasTabOptions {
