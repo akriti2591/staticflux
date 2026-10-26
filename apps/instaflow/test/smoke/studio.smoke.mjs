@@ -425,8 +425,21 @@ async function scenario(page) {
   if (JSON.stringify(labels.slice(0, 3)) !== JSON.stringify(labels4.slice(0, 3))) fail(`undo ×4 left the steps ${JSON.stringify(labels)} (before: ${JSON.stringify(labels4)})`);
   await clickElement(rect);
   await waitAsync(page, () => window.__studio.scene.selection?.fill?.color?.toUpperCase().startsWith('#FF5C39') === true, null, { timeout: 10_000 });
-  await page.mouse.click(box.x + 8, box.y + box.height - 8);
   log('Mod+Z ×4 undid delete, group, duplicate and the recolour');
+  // The command bar (Mod+K): type, Enter runs the top row on the selection; then undo it.
+  const shapes = async () => (await inspect()).elements.filter((e) => e.kind === 'shape').length;
+  await surface.focus();
+  await page.keyboard.press('Control+K');
+  const commandFilter = page.getByRole('searchbox', { name: 'Type a command' });
+  await commandFilter.waitFor({ timeout: 10_000 }).catch(() => fail('Mod+K did not open the command bar'));
+  await commandFilter.fill('Duplicate');
+  await commandFilter.press('Enter');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 2, null, { timeout: 10_000 }).catch(async (e) => fail(`command bar Duplicate: ${e.message} (${await shapes()} shapes)`));
+  await surface.focus();
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 1, null, { timeout: 10_000 });
+  log('command bar: Mod+K → "Duplicate" → Enter duplicated the selection (undone)');
+  await page.mouse.click(box.x + 8, box.y + box.height - 8);
 
   // ---------------------------------------------------------------- tab hidden, then visible
   const state = async () => {

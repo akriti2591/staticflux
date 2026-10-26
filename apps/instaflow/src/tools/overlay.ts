@@ -14,7 +14,7 @@ import { createSceneWriter, type SceneNode, type SceneTransform } from '../rende
 import { colorToRgba, type Rgba8 } from '../elements/values.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
 import type { Guide, GuideLabel } from './snapping.js';
-import type { SelectionFrame, TransformHandle } from './transform.js';
+import { ROTATE_STEM_HANDLE, stemStart, type SelectionFrame, type TransformHandle } from './transform.js';
 
 export interface ToolOverlay {
   readonly frame?: SelectionFrame;
@@ -132,7 +132,10 @@ export function toolOverlayBatch(
       line(h.x, h.y - arm, h.x, h.y + arm, OVERLAY_WIDTHS.pivotCross * s, colors.selection);
       continue;
     }
-    if (h.kind !== 'resize') continue;
+    if (h.id === ROTATE_STEM_HANDLE && overlay.frame !== undefined) {
+      const [sx, sy] = stemStart(overlay.frame);
+      line(sx, sy, h.x, h.y, OVERLAY_WIDTHS.frame * s, colors.selection);
+    } else if (h.kind !== 'resize') continue;
     put({
       transform: translate(h.x - h.radius, h.y - h.radius),
       geometry: { kind: 'ellipse', w: 2 * h.radius, h: 2 * h.radius },

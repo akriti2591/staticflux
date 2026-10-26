@@ -325,6 +325,27 @@ describe('<if-studio> keyboard paths', () => {
     expect(element.isConnected).toBe(true);
   });
 
+  it('Mod+K opens the command bar; its rows run capabilities (no-selection ones without nodes), tools and the camera', async () => {
+    const model = { ...MODEL, selection: SHAPE, frame: { x: 100, y: 400, w: 200, h: 100 }, globalActions: ['instaflow/undo'], actions: new Map([...MODEL.actions, ['instaflow/undo', { id: 'instaflow/undo', title: 'Undo' }]]) };
+    const { root, studio, calls } = await mount({ model });
+    const surface = root.querySelector('.surface') as HTMLElement;
+    surface.focus();
+    press(surface, 'k', { ctrl: true });
+    await settle(4);
+    const bar = root.querySelector('if-command-bar') as HTMLElement;
+    const menu = bar.shadowRoot?.querySelector('sf-menu') as HTMLElement & { open?: boolean };
+    expect(menu.open).toBe(true);
+    const values = [...menu.querySelectorAll('sf-menu-item')].map((i) => i.getAttribute('value'));
+    expect(values).toEqual(expect.arrayContaining(['cap:instaflow/flip-horizontal', 'cap:instaflow/undo', `tool:${StudioIds.tool.text}`, 'camera:fit-selection']));
+    const select = (value: string): boolean => menu.dispatchEvent(new CustomEvent('sf-select', { detail: { value } }));
+    select('cap:instaflow/flip-horizontal');
+    select('cap:instaflow/undo');
+    select('camera:zoom-100');
+    select(`tool:${StudioIds.tool.text}`);
+    expect(calls).toEqual(['invoke ["instaflow/flip-horizontal"]', 'invoke ["instaflow/undo",{},[]]', 'camera ["zoom-100"]']);
+    expect(studio.activeTool).toBe(StudioIds.tool.text);
+  });
+
   it('the Home link asks the host first (cancelable) and keeps modified clicks', async () => {
     const { element, root } = await mount();
     const home = root.querySelector('header a.home') as HTMLAnchorElement;

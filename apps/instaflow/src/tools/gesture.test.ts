@@ -27,7 +27,7 @@ describe.skipIf(!authoringBuilt)('the select tool', () => {
       return unwrap(tool.pointer({ phase: 'up', x, y, ...mods }));
     };
     expect(click(10, 10)).toEqual({ kind: 'selection', selection: ['a'] });
-    expect(f.view.overlay.handles).toHaveLength(12);
+    expect(f.view.overlay.handles).toHaveLength(13); // 8 resize, 4 rotate zones, the rotate stem (B11b)
     click(110, 10, { shift: true });
     expect(f.view.selection).toEqual(['a', 'b']);
     click(110, 10, { shift: true });

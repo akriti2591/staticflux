@@ -22,6 +22,7 @@ import {
   selectionFrame,
   snapRotation,
   transformHandles,
+  ROTATE_STEM_HANDLE,
   valuesToOps,
 } from './transform.js';
 
@@ -56,6 +57,10 @@ describe('handles and resize maths (no Wasm)', () => {
     expect(rotate !== undefined && rotate.x > 100 && rotate.y > 50).toBe(true);
     expect(pickHandle(handles, rotate?.x ?? 0, rotate?.y ?? 0)?.id).toBe('rotate-se');
     expect(pickHandle(handles, 50, 25)).toBeUndefined();
+    // B11b: the visible rotate handle sits 24 screen px (12 page units at zoom 2) below the bottom edge's midpoint.
+    const stem = handles.find((h) => h.id === ROTATE_STEM_HANDLE);
+    expect([stem?.kind, stem?.x, stem?.y, stem?.radius]).toEqual(['rotate', 50, 62, HANDLE_SIZES.radius / 2]);
+    expect(pickHandle(handles, 50, 62)?.id).toBe(ROTATE_STEM_HANDLE);
   });
 
   it('resizes boxes from the opposite edge, about the centre, keeping the aspect, never below the minimum', () => {
