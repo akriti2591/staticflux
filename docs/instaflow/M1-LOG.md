@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** B12 + text fixes: full check green (4552 tests), Studio smoke 0/10 failures in both topologies, Home smoke
+  green. PR opened. B12b (P1 versioned keystrokes, P2 text in the element tree) running on
+  `claude/wip-b12b-text-protocol`; owner approved.
 - **2026-10-26** Text fixes merged on the working branch (all pre-B12, reproduce on main): (1) first-key race since B9:
   each key committed twice and the session pushed new text with the old caret; one state per key now; smoke's
   `waitForFunction` with async checks never waited (fixed with `waitAsync`); (2) click/drag/Shift/Mod+A caret and
