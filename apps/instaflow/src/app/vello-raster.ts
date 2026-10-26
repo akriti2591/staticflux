@@ -2,14 +2,18 @@
  * The browser `CanvasRaster` (B8; B9: in the render module's worker): A6's Vello `RasterBackend` on the transferred
  * `OffscreenCanvas`, behind the framework's tiled renderer
  * and GPU device lifecycle (`@staticflux/surface/raster`). Scene IR batches go to the renderer; `present` schedules
- * frames on `requestAnimationFrame` until every visible tile is sharp (tile prep runs in the same frames, a few
- * tiles per frame so input stays responsive).
+ * frames on `requestAnimationFrame` until every visible tile is sharp (`studioFrame`).
+ *
+ * Each frame first re-renders the visible tiles an edit made stale (up to `STALE_TILES_PER_FRAME`), then composites,
+ * so one frame shows one version of the scene; the interest ring and missing tiles are prepared a few per frame
+ * (`TILES_PER_FRAME`). With stale tiles left to the prep lane, a drag of a repeat presented a mix: tiles late in the
+ * centre-first order (the bottom row) kept the old copies until the pointer stopped (FIX-DRAG-STUTTER).
  *
  * Camera: Studio's camera maps page → CSS px (`screen = page × zoom + t`); the raster camera maps world → device px,
  * so origin = −t / zoom and zoom × devicePixelRatio.
  */
 import { err, ok, type Result } from '@staticflux/core';
-import { createGpuDevice, createTiledRenderer, manualTilePrepLane, type RasterCamera, type TiledRenderer } from '@staticflux/surface/raster';
+import { createGpuDevice, createTiledRenderer, type FrameReport, type ManualTilePrepLane, manualTilePrepLane, type RasterCamera, type TiledRenderer } from '@staticflux/surface/raster';
 import type { RenderWasm } from '../render/render-module.js';
 import { createVelloRasterBackend } from '../render/vello-backend.js';
 import type { CanvasCamera, CanvasRaster } from './element-port.js';
@@ -31,6 +35,25 @@ export interface VelloRasterOptions {
 
 /** Tiles prepared per animation frame (SwiftShader frames are slow; a real GPU does many more). */
 export const TILES_PER_FRAME = 4;
+
+/**
+ * Stale visible tiles re-rendered inside a frame before it composites (see the module header). A cap, not a target:
+ * a 4K viewport at DPR 2 shows about 60 tiles of 512 px.
+ */
+export const STALE_TILES_PER_FRAME = 64;
+
+/** Studio's tile policy for `createTiledRenderer`: no hole raster in the frame (a snapshot or another level covers), stale visible tiles re-rendered in it. */
+export const STUDIO_TILE_POLICY = Object.freeze({ inFrameBudgetMs: 0, inFrameStaleTiles: STALE_TILES_PER_FRAME });
+
+/**
+ * One Studio raster frame: composite (re-rendering stale visible tiles first, `inFrameStaleTiles`), then prepare up
+ * to `TILES_PER_FRAME` more off the composite. Returns whether another frame is owed.
+ */
+export function studioFrame<D>(renderer: TiledRenderer<D>, lane: ManualTilePrepLane): { readonly report: Result<FrameReport>; readonly again: boolean } {
+  const report = renderer.frame();
+  lane.run({ maxSlices: TILES_PER_FRAME });
+  return { report, again: !report.ok || !report.value.sharp || lane.pending > 0 };
+}
 
 /** Map Studio's camera to the raster camera (see the module header). */
 export function rasterCamera(camera: CanvasCamera, width: number, height: number, dpr: number): RasterCamera {
@@ -69,7 +92,7 @@ export async function createVelloRaster(options: VelloRasterOptions): Promise<Re
     lane,
     requestFrame: () => schedule(),
     camera: rasterCamera(camera, width, height, dpr),
-    inFrameBudgetMs: 0,
+    ...STUDIO_TILE_POLICY,
     background: options.background ?? [1, 1, 1, 1],
   });
   if (!created.ok) return failed('renderer', created.error);
@@ -86,9 +109,7 @@ export async function createVelloRaster(options: VelloRasterOptions): Promise<Re
       pending = false;
       if (disposed) return;
       renderer.setCamera(rasterCamera(camera, width, height, dpr));
-      const report = renderer.frame();
-      lane.run({ maxSlices: TILES_PER_FRAME });
-      if (!report.ok || !report.value.sharp || lane.pending > 0) schedule();
+      if (studioFrame(renderer, lane).again) schedule();
     });
   }
   const raster: CanvasRaster = {

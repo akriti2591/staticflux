@@ -123,7 +123,8 @@ const microtask = (fn: () => void): void => queueMicrotask(fn);
 
 /** Overlay scene ids (above B1's even element ids and the text layer's odd ids). */
 export const OVERLAY_FIRST_ID = 0x4000_0001;
-const PAGE_EDGE_ID = OVERLAY_FIRST_ID - 2;
+/** The page edge's scene id (below the tool overlay's). */
+export const PAGE_EDGE_ID = OVERLAY_FIRST_ID - 2;
 
 /** The page edge colour (Clean Pop `border`). */
 const PAGE_EDGE = /* @__PURE__ */ colorToRgba(String(cleanPopTheme.values.color['border'])) ?? [0, 0, 0, 40];
@@ -152,22 +153,30 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
 
   // Overlay (B3): the page edge (the page itself is the raster background) and B3's overlay, as the overlay section of
   // the next record whenever the overlay or the zoom changes (stroke widths stay constant on screen).
+  // The page edge is re-sent only when it changes (page size, or zoom for its constant on-screen width): its bounds are
+  // the whole page, so re-sending it with every overlay change (each pointer move of a drag) made every tile of the
+  // page stale on every move (FIX-DRAG-STUTTER).
   let overlayIds: number[] = [];
   let overlayDirty = true;
+  let edge = '';
   const overlay: SceneIrSource = {
     changes(full) {
       if (!full && !overlayDirty) return undefined;
       overlayDirty = false;
       const prelude = createSceneWriter();
       if (!full) for (const id of overlayIds) prelude.remove(id); // a snapshot starts with CLEAR
-      overlayIds = [PAGE_EDGE_ID];
+      overlayIds = [];
       const size = pageSize();
-      prelude.upsert({
-        id: PAGE_EDGE_ID,
-        transform: [1, 0, 0, 1, 0, 0],
-        geometry: { kind: 'rect', w: size.w, h: size.h },
-        stroke: { width: 1 / view.camera.zoom, paint: { kind: 'solid', color: PAGE_EDGE } },
-      });
+      const nextEdge = `${size.w}:${size.h}:${view.camera.zoom}`;
+      if (full || nextEdge !== edge) {
+        edge = nextEdge;
+        prelude.upsert({
+          id: PAGE_EDGE_ID,
+          transform: [1, 0, 0, 1, 0, 0],
+          geometry: { kind: 'rect', w: size.w, h: size.h },
+          stroke: { width: 1 / view.camera.zoom, paint: { kind: 'solid', color: PAGE_EDGE } },
+        });
+      }
       return { overlay: [prelude.finish(), toolOverlayBatch(view.overlay, view.camera.zoom, { clear: false, firstId: OVERLAY_FIRST_ID, ids: overlayIds })] };
     },
   };
