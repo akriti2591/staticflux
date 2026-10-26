@@ -648,3 +648,269 @@ the popover's `⋯` (Pro: a second row). Position-locked elements stay and count
 | Hide / Show | toggle | More | Layers, ctx | `Mod+Shift+H` | (c) A-2 M1 |
 | Rename | inline | — | Layers, header | `Mod+Shift+R` / F2 | (b) |
 | Layers kind filter | chips | — | Layers (Pro) | — | (b) |
+
+## 5. Per density
+
+DENSITY §3.2 and §8.1 hold the normative tier rows; this is the summary for the kinds this file owns.
+
+| | Focus | Standard | Pro |
+|---|---|---|---|
+| Pill | the six per kind (STUDIO §4.2.4) | same | same, units on numbers, second tooltip line |
+| Inspector at rest (shape) | rail: Transform · Fill · Stroke · Corners · Effects · Layer icons; a click opens one section as a floating card | Transform (X Y W H ∠, link) · Fill stack · Stroke stack (swatch, width) · ▸ Corners (summary) · ▸ Effects (summary) · ▸ Layer (summary) | everything open: Transform with ⟂, flips, pivot, Relative to, Scale; stacks with second lines open; Corners as one row of four + Smooth; Effects fields inline; Layer slider + number |
+| Behind `More ▾` (Standard) | — | Transform: skew, flips, pivot · Stroke: position, sides, dash, cap, join · Image: position, scale, adjustments, source · Page: apply to all, use for new | no `More` |
+| Colour popover | as Standard | tabs, value row (HEX default), contrast tag, rows, `Custom ▸` collapsed | `Custom ▸` open; hex captions on every swatch; the last model remembered; gradient handle tags in `%` |
+| Canvas HUD | handles, pills while dragging | same; radius handle on hover of the corner | same; pivot always; distance tags on hover; gradient handles show positions |
+| Layers | floating card | eye/lock on hover; kind icons | eye/lock always; `Kind ▾` filter; W × H column; mask/boolean/repeat glyphs with a mono summary |
+| View menu | Rulers, Snapping ▸ | same | Rulers on by default; Pixel grid; Lock guides |
+
+## 6. Fidelity and export
+
+| Concern | Rule | Letter |
+|---|---|---|
+| **What you see is what exports** | One scene IR renders the canvas, the thumbnails, the Export preview and the PNG; SVG and PDF are writers over the same recorded scene (D21). The Export preview *is* the renderer, so any fallback below is visible before pressing Export | (a) |
+| **Conic gradients** in SVG/PDF | Rasterised to a pixel pattern at the export scale (`Feature::SweepGradient`); Pro's result line: `1 conic gradient rasterised` | (a) |
+| **Effects** in PDF | Shadows, glows and blurs are raster patches (vector elsewhere); SVG uses filters. Pro result line counts them | (a) |
+| **Background blur** | Needs what is behind at export time: PNG exact; SVG approximates with `backdrop-filter`-free raster patch; PDF raster patch | (a) |
+| **Masks** | SVG `<mask>`; PDF soft masks; luminance in both | (a) |
+| **Image fills** | Embedded at the asset's pixels (never upscaled); `Tile` as patterns in SVG/PDF | (a) |
+| **Per-side strokes, dashes** | SVG: the stroke ring as a filled path when sides differ; PDF the same | (a) |
+| **Gradient and image strokes** | The stroke's outline filled with the paint (SVG and PDF) | (a) |
+| **Page background** | Included unless Export › Advanced `Transparent`; with A-1 the page's whole stack | (a) solid; (c) A-1 |
+| **Hidden and locked** | Hidden elements never export (A-2); locked ones do (lock is editing, not visibility) | (c) A-2 |
+| **Smart guides, grids, rulers, handles, pivot** | Overlay batches; never in the document, a thumbnail or an export | (a) |
+| **Repeats** | Instances render identically live and expanded (IF-26.19) | (a) |
+| **Pixel parity** | GPU = CPU goldens; the owner's eye check is the Export preview | (a) |
+
+## 7. Errors and edge states
+
+| Situation | Code | What the person sees | Fix offered |
+|---|---|---|---|
+| Invalid paint / stack value (a bad hex typed) | `IF-EL-001` | The field shows an invalid state (STUDIO field rules) and keeps the last value; nothing is written | Correct it; Escape restores |
+| Unknown brand token | `IF-EL-002` | Hatched swatch, `Token @primary is not in this brand kit · Replace with #FF5C39` | Replace, or open Brand (M2) |
+| Brand rule blocks a write (`CTAs use @primary`) | `IF-EL-003` | The popover's value row shows a sunflower line `Brand rule: buttons use @primary · Use it · Override…`; `Override…` is rendered only for a `warn` rule (a `block` rule never offers it) | Use the token |
+| Action does not apply (Combine on one shape) | `IF-EL-004` | Never shown: the row is absent from menus and the pill | — |
+| Geometry rejected (a degenerate boolean) | `IF-EL-005` | Toast `Couldn't combine these shapes · Try Flatten first` | Flatten |
+| Authoring Wasm missing | `IF-EL-006` | Banner `Shapes can't be edited right now · Retry` (OVERLAYS §3.4), handles hidden | Retry |
+| Repeat over 1 000 instances | `IF-REP-002` | The Count field clamps with the hint `Up to 1 000 copies` | — |
+| Write targets a repeat instance | `IF-REP-004` | Never shown: clicking an instance selects the source | — |
+| Nothing movable (all position-locked) | `IF-TOOL-002` | The pill reads `Locked · Unlock`; arrows do nothing; a 1.5 s mist toast `Locked · press ⌘⇧L to unlock` on the first arrow press | Unlock |
+| Transform value out of range (W 0, skew 90) | `IF-XF-001` | Field clamps and hints (`min 1`, `max 80°`) | — |
+| Image asset missing (pasted from another workspace) | `IF-LIB-*` | The fill row shows a hatched image swatch and `Image not available on this device · Replace…`; the canvas draws a mist box with the asset name | Replace |
+| Eyedropper API refused / unavailable | — | Falls back to tile sampling silently; nothing to tell | — |
+| Contrast below AA on text | — | Sunflower-bordered tag `× 2.1 : 1`, click → nearest passing colour | Use it |
+| 17th fill / stroke / effect | — | `+ Add ▾` footer `Up to 16 fills` | Remove one |
+| A gradient with one stop | — | Not possible: Delete on the second-to-last stop is a no-op with the hint `A gradient needs two stops · switch to Solid instead` | Solid tab |
+| Rotating a locked or multi-locked selection | `IF-TOOL-002` | As above | — |
+| Mask with nothing to mask (single element) | `IF-EL-004` | `Use as mask` absent on a single element | Select two |
+| Element outside every page (loose) and page background edits | — | Loose elements are unaffected by the page background; the Pages lens says `1 loose element` (F-02) | — |
+
+## 8. Accessibility
+
+- Every control in §2.10, §3.6 and §4.10 has a label, a tooltip with its key and `aria-keyshortcuts`; toggles use
+  `aria-pressed` (with `mixed`); stacks are `list`s of `listitem`s with the row's summary as the name (`Fill 1 · Linear ·
+  3 stops`); the eye is `Show fill` / `Hide fill`; reorder has the `Alt+↑/↓` keyboard path and announces `Fill 2 moved up`.
+- The colour popover: `dialog` named `Colour`; tabs a `tablist`; grids `grid` with hex names; the model menu is a `menu`;
+  the eyedropper has a keyboard loupe (arrows, Enter) and announces the hex under it; the contrast tag is a polite live
+  region (`Contrast 4.9 to 1, AA`).
+- Gradient stops are `slider`s named `Stop 2 of 3, 52 %, #FF5C39`; `Delete` removes; the strip announces `Stop added at 60 %`.
+- Transform fields are standard fields; every handle gesture has a field; the pivot picker is a `radiogroup` of nine.
+- Structure: group/enter/exit announce the breadcrumb (`Entered Frame 1, 3 elements`); masks announce `Mask group, clip`;
+  booleans `Union of 2 shapes`; repeats `Radial repeat, 8 instances` (B6 messages); lock announces the scope.
+- Snapping is visual; the result is always readable in the X Y fields, so no snap announcements (noise). Alignment
+  actions announce `Aligned 3 elements left`.
+- Reduced motion: no guide fades, no zoom glide to the main component, no pill slide.
+- Focus: 2 px deep tangerine outline on every control, including stack rows and gradient stops; colour is never the only
+  signal (the hidden row is 50 % **and** has a crossed eye; the mixed hatch **and** the word `Mixed`).
+- Touch targets stay ≥ 24 px (row controls are 28 px; stops 12 px visual with a 24 px hit area).
+
+## 9. Plumbing (where each piece lives)
+
+| Piece | Code | Status |
+|---|---|---|
+| Controls table (§2.10, §3.6, §4.10) with `tier` and HUD rank | `src/spec/controls.ts` (STUDIO §12) | missing |
+| Fill / Stroke / Effects stacks with summaries, second lines, `+ Add ▾` menus, reorder | `src/elements/panel.ts` over `appearanceModel` / `appearanceEditOps` (exist); kit `<sf-stack-row>` (new) | partly (panel exists, flat) |
+| Colour popover with tabs, models, alpha, eyedropper, save, contrast, rows | kit `<sf-color-popover>` (UX-PRIMITIVES; today `sf-color-field` is native); OKLCH via `@staticflux/ui/theme` colour maths; tile sampling via the canvas's `readback` (render module) | missing |
+| Gradient tab and on-canvas handles | kit `<sf-gradient-strip>`; handles in `src/tools/overlay.ts` + a gesture in `src/tools/gesture.ts` (`gradient-handle`); fields ↔ paint in `src/elements/inspector.ts` | missing |
+| Document colours and gradients | `ColorsMirror` in `src/workers/mirrors.ts` (STUDIO §12), extended with gradients and effect colours | missing |
+| Saved palette, recent, model memory, snap settings, rulers | `src/settings/ui-state.ts` (per device) | missing |
+| Effect presets and the Bevel preset rows | `src/elements/presets.ts` (new): tables of `EffectValue[]` | missing |
+| Page background stack | A-1: `page` gets `Style` (fills) in `components.ts`; projection emits the page rect; `job.ts` `transparent` skips it | (c) |
+| Image crop mode | A-3: `PaintValue.image` gains `offset`, `scale`, `rotation`; `src/tools/gesture.ts` `crop` gesture; `src/elements/resolve.ts` maps to the IR image transform | (c) |
+| Group, ungroup, frame selection, reorder, rename, hide | `src/elements/actions.ts` + capabilities (STUDIO §12); hide needs A-2 (`hidden` prop, projection, export) | missing / (c) |
+| Lock scope UI | `Lock` component scopes exist; the pill and Layers read `lock.scope` | missing |
+| Alt-duplicate drag, radius handle, star handle, key object, Swap mask, Relative to | `src/tools/gesture.ts`, `overlay.ts`, `actions.ts` (`align` already takes `key`) | missing |
+| Copy / paste style | `src/elements/styles.ts` (`copyStyle`, `pasteStyle` over `localValues`), capabilities, clipboard mime `application/x-instaflow-style+json` | missing |
+| Select same, Find Kind Colour | STUDIO §9.1 mirrors | missing |
+| Rulers, pixel grid overlay, snapping submenu | `src/tools/overlay.ts` (rulers batch), `view-state.ts` settings, View menu | missing |
+| Components | A-12: `instance` node kind over the stage's `reference` arc; Assets › Components tab; override UI | (c) |
+
+## 10. Every feature: its outlet, its flow to completion and follow-up, and the (c) schedule
+
+Standing rule (owner, 2026-10-25, `CAPABILITY-COVERAGE.md`): UX designs **every** feature now, deferred ones included — its
+**outlet** (exactly where it lives, per density) and its **flow** (how the person finishes, and what comes next). A deferred
+feature's outlet is **reserved** and not rendered until built (FOUNDATIONS §5.6). Vocabulary: `HUD n` = pill slot, `More` =
+the pill's `⋯`, `Fill · S / M / P` = the section at rest in Standard / behind `More ▾` or the row's second line / Pro only,
+`pop` = the colour popover, `ctx` = context menu, `pal` = palette, `View` = the View menu. Every row's undo is one step
+named after the control unless it says otherwise.
+
+### 10.1 Outlets and flows
+
+| Feature (letter · milestone) | Outlet | Flow to completion | Follow-up and what comes next |
+|---|---|---|---|
+| **Solid fill** (a) | HUD 1 swatch; Fill · S row; pop Solid tab | Click the swatch, pick a document colour or type a hex, Enter. | `☆` saves it; `Select same ▾ Fill` recolours siblings; Find Kind Colour replaces everywhere; `Mod+Alt+C` copies the style |
+| **Several fills, reorder, hide, opacity, blend** (a model · b UI) | Fill · S rows; `+ Add ▾`; grip / `Alt+↑↓`; eye; `%`; `Blend ▾` M | `+ Add ▾ Colour` → a new top row; drag below; set 60 %. | Collapse the section → summary `2 fills`; paste style carries the stack |
+| **Gradient fill, edit in the popover** (a model · b UI) | `+ Add ▾ Gradient ▸ Linear`; pop Gradient tab; HUD swatch | Pick a preset or click the strip to add stops, drag them, set Angle, Reverse. Enter closes. | Document gradients row offers it on the next shape; `☆` saves; the row's second line edits Angle without the popover |
+| **Gradient on canvas** (b) | Handles while the Gradient tab or the row is active | Drag an end (Shift 15°), drag a stop ring, click the line to add. | Fields follow; Escape closes; undo one step `Gradient` |
+| **Radial aspect / ellipse** (c · M2, A-4) | Pop Gradient tab `Aspect` field (Pro) + a second radius handle | Drag the second handle → an elliptical gradient. | Export vector (SVG `gradientTransform`) |
+| **Gradient text** (c · M2, A-11) | Text's Fill `+ Add ▾ Gradient` (hidden until A-11) | Add → glyphs painted with one brush. | Same editor; export PDF/SVG as paths with the paint |
+| **Colour models, alpha** (b) | pop `HEX ▾` menu; alpha field | Pick `OKLCH`, scrub L. | Remembered per device; copy as CSS |
+| **Eyedropper** (b) | pop `⌖`; `I` in the popover | Click → loupe → click a pixel. | Recent gets it; `☆` saves |
+| **Contrast check** (b) | pop tag under the value row | Read `AA 4.9 : 1`; click → `Nearest passing colour · Use it`. | The tag follows every change live |
+| **Saved palette** (b) | pop `☆`; `Saved` row; Pro right-click rows | Star a colour or gradient. | Appears in every design on this device; M2 Brand kit import (B-4) |
+| **Brand tokens on fills, strokes, effects, radii** (a) | pop Brand row; `From brand ▸` in Effects; `@` tag in fields | Click `@cream` → bound. | `Detach`; unresolved → hatched + Replace; Brand panel (B-4) edits the kit |
+| **Style classes, overrides, reset** (a model · b UI) | Pro header `Class · Card`; dot on overridden labels; `Reset overrides ▾` | Change a fill → dot; `Reset` returns the class value. | Brand panel (B-4) applies classes; agents see provenance |
+| **Named document colour / effect styles** (c · M2, A-13) | pop `Styles` row; Effects `⋯ › Save as style…`; Brand panel `Styles` | `Save as style…` → name → every use linked; edit the style → all update. | `Detach`; Find Kind `Style`; brand kits import styles |
+| **Image fill: fit, replace** (a) | Image · S `Fit ▾`, `Replace…`; HUD 2–3; `+ Add ▾ Image…` on any shape | Pick `Fit`; `Replace…` → Assets. | Crop (A-3); mask; opacity wash |
+| **Image crop, position, scale, rotate inside** (c · M1 follow-up, A-3) | HUD `Crop`, double-click, Enter; Image · M fields | Double-click → crop mode → drag the image, scale by its handles, Enter. | `Reset crop` in M; replace keeps the crop when ratios match |
+| **Image adjustments** (c · M2, A-10) | Image · M sliders (Pro open) | Scrub `Exposure`. | `Reset` per slider; Pixel lens (B-2) for destructive work |
+| **✦ Remove background** (M2 assistant) | HUD 6 on images | Proposal → Accept → alpha PNG asset. | Mask matte path; undo |
+| **Stroke: width, colour, position** (a) | HUD 2 swatch (3 width on lines); Stroke · S | `+ Add` → 1 px inside; set width. | Outline stroke; paste style |
+| **Per-side strokes** (a model · b UI) | Stroke · M `⊞` toggle → T R B L | Toggle, set `B` to 2 and the rest 0 → an underline card. | Link toggle returns to one width |
+| **Dash, caps, joins** (a · b presets) | Stroke · M `Dash ▾ Cap ▾ Join ▾`; Pro mono pattern | Pick `Dotted`. | Custom pattern; Outline stroke bakes it |
+| **Arrowheads** (c · M2, A-5) | Lines' HUD 3 `End ▾`; Stroke · S `Start ▾ End ▾` on lines/open paths | Pick `Arrow`. | Size in Pro; Flatten bakes |
+| **Gradient / image stroke** (a) | Stroke swatch → pop tabs | Pick the Gradient tab. | Same handles |
+| **Outline stroke** (a) | More, ctx, `Mod+Shift+O` | One click → a filled vector. | Combine with others |
+| **Shadows, glows, blurs** (a) | Effects ▸ `+ Add ▾` presets; rows' second line | `+ Add ▾ Shadow ▸ Soft`. | Tune X Y Blur; `From brand ▸`; summary in the collapsed header |
+| **Bevel preset** (b) | Effects `+ Add ▾ Bevel ▸ Soft · Hard · Pillow` | Pick → two grouped rows tagged `Bevel`. | Edit either row; remove one → tag goes |
+| **Bevel & emboss kind** (c · M2, A-9) | Same `Bevel ▸` entry; row fields (Style, Depth, Size, Soften, Angle, Altitude, colours) | Pick `Soft bevel` → one row of the kind. | Presets of the kind; export raster patch |
+| **Noise / texture** (c · M3) | Effects · P `+ Add ▾ Noise` | Amount, size. | Export raster |
+| **Layer opacity and blend** (a) | Layer ▸ slider + `Blend ▾`; `Alt+Shift+↑/↓` | Scrub to 50 %. | Summary `50 % · Multiply`; pass-through (A-14) |
+| **Pass-through blend for groups** (c · M2, A-14) | Layer `Blend ▾ Pass through` on groups (default) | Default; pick `Normal` to isolate. | — |
+| **Page background colour** (a) | Page · S Background stack; page label HUD 1; New design `More ▾` | Click the swatch, pick. | `Apply to all pages`; `Use for new pages`; Export `Transparent` |
+| **Page background gradient / image / several rows** (c · M1 follow-up, A-1) | Same stack `+ Add ▾ Gradient · Image…`; `Crop background` in the page label menu; ctx on an element `Use as page background` | `+ Add ▾ Image…` → pick → `Fit ▾ Fill`; add a colour row under it at 40 % for a wash. | Crop (A-3); thumbnails and milestones show it; Export includes it unless Transparent |
+| **Copy / paste style** (b) | More, ctx, `Mod+Alt+C` / `Mod+Alt+V`; ctx `Paste style ▸` | Copy from one card, select five, paste. | `Fill only` etc.; Select same; linked styles (A-13) are the repeatable version |
+| **Select same ▾ / Find Kind Colour** (b) | ctx; `Mod+F` | `Select same ▾ Fill` → pick a colour → all change. | Undo one step |
+| **Move, resize, rotate** (a) | handles, fields, arrows | Drag; `W × H` pill. | Smart guides; undo labels |
+| **Rotate handle** (b) | Below the frame on a stem | Drag (Shift 15°, Alt 90°). | Angle field; `Rotate 90°` buttons |
+| **Skew** (a) | Mod-drag side handles; Transform · M ⟂ | Mod-drag the top handle (Shift 15°). | Field shows the decomposition |
+| **Flip** (a) | More, ctx, `Shift+H/V`, Transform · M toggles | Press. | Twice = identity |
+| **Pivot** (a) | Ring in a session or when moved; Transform · M picker; Pro always | Drag to a corner, rotate. | Alt-click resets; resets on new selection |
+| **Free transform session** (a) | More, ctx, `Mod+Alt+T` | Several edits, Enter. | One step `Transform`; Escape cancels all |
+| **Numeric transform, expressions, link, swap, relative to** (a · b) | Transform · S fields | Type `+10`, Enter. | Tab to the next field |
+| **Image ratio by default** (b) | Corner handles on images | Drag → scaled. | Shift frees |
+| **Alt-duplicate drag** (b) | Alt+drag | Drop → a copy. | `Mod+D` repeats the offset (STUDIO §9) |
+| **Radius handle** (b) | Ring inside the top-left corner | Drag; Alt for one corner. | Corners section |
+| **Scale tool / Scale %** (c · M2, A-7) | Tool `K`; Transform · P `Scale %` | `K`, drag a corner → strokes, text and effects scale too. | `V` returns |
+| **Constraints** (c · M2, A-8) | Transform · M `Constraints ▾` for frame children; Pro pin diagram | Set `Right · Bottom` → resize the frame → the child follows. | Resize design (B-5) uses them |
+| **Auto layout** (c · M2, A-15) | Frame section `Layout ▾`, gap, padding | Pick `Horizontal` → children flow. | Text bound to shapes (TEXT T-16) |
+| **Sibling-angle rotation snap** (c · M2, A-6) | Mod while rotating (Pro) | Snaps to a neighbour's edge angle. | — |
+| **Group / ungroup** (b) | Multi pill `Group`; ctx; `Mod+G` / `Mod+Shift+G` | Select three, `Mod+G`. | Rename; Enter to edit inside; Convert to frame |
+| **Frame selection / unframe / convert** (b) | ctx, More, `Mod+Alt+G`; Frame section | `Mod+Alt+G` → a clipping frame around the content. | Clip toggle; layout grid; auto layout (A-15) |
+| **Enter, exit, select through** (a) | double-click, Enter, Esc, Shift+Enter, Mod+click | Double-click a group → the child under the pointer is selected. | Breadcrumb; Escape ladder |
+| **Components: create, instance, override, reset, detach, swap, go to main** (c · M2, A-12) | §4.2 outlets: `Mod+Alt+K`, Assets › Components, instance pill, `Mod+Alt+B` | `Mod+Alt+K` → component; drag from Assets → instance; change its text → override dot; edit main → all update. | Detach; Swap ▾; variants M3 |
+| **Booleans** (a) | Multi pill `Combine ▾`; boolean pill `Operation ▾ · Release · Flatten`; ctx; `Mod+E` | `Combine ▾ Subtract`. | Enter to move operands; Flatten to bake |
+| **Masks** (a) | Multi pill `Use as mask ▾`; mask pill `Mask mode ▾ · Invert · Release`; Mask section `Matte ▾` | Image over an ellipse (ellipse at the bottom) → `Use as mask ▾ Clip`. | Enter to move the image inside; Invert; Release |
+| **Swap mask** (b) | Mask group More | Makes the top-most the mask. | — |
+| **Corners** (a · b handle) | HUD 3 `Radius` (rects); Corners ▸ section; the handle | Scrub to 24; toggle per-corner; Smooth 60 %. | Paste style carries corners |
+| **Repeat** (a) | More `Make repeat ▾`; repeat pill; Repeat section; handles | `Make repeat ▾ Radial` → 8; drag the radius handle. | Expand; Release; nested |
+| **Per-instance overrides on repeats** (c · M2, A-12) | Instance pill `Reset ▾`; any field while an instance is highlighted | Edit an instance's text → only that instance changes, with a dot. | `Reset ▾`; Expand bakes |
+| **Repeat along a path / scatter** (c · M3) | `Make repeat ▾ Along path…` | Pick a path → copies follow it. | — |
+| **Snapping and smart guides** (a) | automatic; `View › Snapping ▸` | Drag → guides and labels. | Mod suspends; Shift locks an axis |
+| **Rulers** (b) | `View › Rulers` `Shift+R`; Pro default | Toggle → rulers with the selection's extent. | Units menu; guides (A-16) |
+| **Guides** (c · M2, A-16) | Drag from a ruler; double-click for a value; `View › Lock guides` | Drag out → a tangerine hairline; elements snap to it. | Drag back removes; never exports |
+| **Layout grids** (a · b UI) | Frame / Page `Layout grid ▸`; `Ctrl+G` overlay | `+ Add ▾ Columns 12 · gutter 24`. | Snapping to grid lines; eye per grid |
+| **Pixel grid / snap to pixels** (c · M2) | `View › Pixel grid`, `Snapping ▸ Snap to pixels` | Toggle at ≥ 800 %. | — |
+| **Align, distribute, tidy up, key object** (a · b popover) | Multi pill `Align ▾`; ctx; keys | Open the popover, click `Left`, `Distribute H`. | Stays open for a second click; key object by Alt-click (Pro) |
+| **Smart spacing handles** (c · M2, A-17) | Pink-free tangerine gap handles after Tidy up | Drag a gap → all gaps change. | — |
+| **Z-order** (b) | ctx; More; Layers drag; `Mod+]/[`, `Mod+Alt+]/[` | `Mod+]`. | Layers shows the new order |
+| **Lock, lock scope** (a · b) | Layers lock; pill; header; `Mod+Shift+L`; Pro `Lock ▾` | Lock → dashed frame, clicks pass through. | Unlock from the pill or Layers; Position-only for a recolourable background |
+| **Hide / show** (c · M1 follow-up, A-2) | Layers eye; ctx; `Mod+Shift+H`; Layers `⋯ › Show all` | Click the eye → gone from canvas and export. | Ghost outline when selected in Layers |
+| **Rename** (b) | Layers inline; header; `Mod+Shift+R` | Type, Enter. | Names in exports' layer ids |
+| **Layers kind filter** (b) | Layers header chips (Pro) | Click `Hidden`. | — |
+| **Vector point editing, pen, arrowheads on paths** | The Pen WP (not this file) | | |
+
+### 10.2 Follow-ups — every (c), with a milestone (never rendered before it lands)
+
+| # | Item | Where | Milestone |
+|---|---|---|---|
+| A-1 | **Page fill stack**: `page` gets `Style` (fills only); projection emits the page rect node; Export `transparent` skips it; thumbnails and milestones render it | `components.ts`, `projection.ts`, `job.ts`, `plan.rs` | **M1 follow-up** (owner request) |
+| A-2 | **Hidden elements**: a `hidden` prop; projection, hit test, export and a11y skip it; `Show all` | `components.ts`, `projection.ts`, `hit-test.ts`, export plan | M1 follow-up |
+| A-3 | **Image fill crop**: `offset`, `scale`, `rotation` on image paints; crop gesture; IR image transform | `values.ts`, `resolve.ts`, `scene-ir.ts`, `ir.rs`, `gesture.ts` | M1 follow-up (owner's "images like shapes" needs it for backgrounds) |
+| A-4 | Radial gradient aspect (`radiusY`) | `values.ts`, `ir.rs`, export writers | M2 |
+| A-5 | **Arrowheads** on lines and open paths | authoring crate stroke outlines, `values.ts` | M2 (pull to M1 if the Pen WP touches stroke outlines) |
+| A-6 | Rotation snap to a sibling's edge angle (Mod) | `transform.ts` | M2 |
+| A-7 | **Scale tool / Scale %** (`scale-by` applies to strokes, effects, corners, text) | `transform.ts`, capabilities | M2 |
+| A-8 | **Constraints** for frame children | `components.ts`, `transform.ts` resize rule | M2 (with Resize design B-5) |
+| A-9 | **Bevel & emboss** effect kind | `values.ts`, `ir.rs`, render crate edge-lighting pass, export raster patch | M2 |
+| A-10 | **Image adjustments** (non-destructive filters on image paints) | `values.ts`, render filters, export raster | M2 (with the Pixel lens B-2) |
+| A-11 | **Gradient / image text fill** | text projection per element brush | M2 (TEXT A.2) |
+| A-12 | **Components and instances** (+ per-instance overrides on repeats) on the stage `reference` arc | stage, `components.ts`, Assets › Components, override UI | M2 |
+| A-13 | **Named document styles** (colour, effect) over D14 shared styles; Brand panel lists them | D14, Brand panel (B-4) | M2 |
+| A-14 | **Pass-through** blend for groups | `components.ts`, `ir.rs` | M2 |
+| A-15 | **Auto layout** (Frame layout engine) | authoring crate, `components.ts` | M2 (shared with TEXT T-16) |
+| A-16 | **Guides** (page `layout.guides`, snap target, ruler drag) | `components.ts`, `snapping.ts`, `overlay.ts` | M2 |
+| A-17 | **Smart spacing handles** after Tidy up | `gesture.ts`, `overlay.ts` | M2 |
+| A-18 | **Pixel grid snapping** | `transform.ts` commit rounding | M2 |
+| A-19 | Noise / texture effects; repeat along a path; scatter | render, repeat generators | M3 |
+
+## 11. Owner questions (recommendation first)
+
+**Q1. Page background: a property of the page, or a locked layer?** *Recommend:* make the page's background the **same
+fill stack a shape has** (colour, gradient, image, several rows with opacity) as a property of the page — engine work,
+A-1, scheduled as an M1 follow-up. The alternative, which Canva uses, is a special locked rectangle at the bottom of the
+Layers list that the UI pretends is the background. It works at once but you fight it later: people select it by
+accident, drag a photo under it and lose the photo, align to it instead of to the page, and agents see an element where
+you see a page. *Example:* you want a soft photo wash behind a poster: Page › Background `+ Add ▾ Image…`, pick the photo,
+`Fit ▾ Fill`, then `+ Add ▾ Colour` white at 60 % under it — two rows, nothing to select on the canvas. *Question:*
+agreed to spend the engine work (A-1), and to ship the locked-layer version **only** if A-1 cannot land before the
+inspector is built?
+
+**Q2. Bevel.** *Recommend:* ship a `Bevel ▸` preset menu **now** (Soft, Hard, Pillow — two inner-shadow/glow rows the
+person can still edit, honestly tagged `Bevel`), and build a real bevel-and-emboss effect (Photoshop's: style, depth,
+size, soften, angle, highlight and shadow colours) in M2 behind the **same** menu entry. *Example:* a badge gets a soft
+3D edge today in one click; in M2 the same click gives one row with a `Depth` slider instead of two shadow rows.
+*Question:* is the preset enough for M1, or is the real effect needed sooner (it is render-crate work: an edge-lighting
+pass; roughly two weeks)?
+
+**Q3. Components: M1 or M2?** *Recommend:* **M2.** M1 has groups, frames and **repeats** (eight cards in a row that stay
+linked, edit one → all change), plus Copy/Paste style. Components (a main, instances with overrides, detach, swap) are
+M2 on the stage's existing `reference` arc, and the same override mechanism then gives repeats per-instance overrides
+(different text in each card). *Example:* M1: a pricing row is a grid repeat of one card; changing the card's corner
+radius changes all three; the three prices must be three separate texts on top. M2: each card can have its own price
+inside the repeat, or the card is a component with instances. *Question:* agreed? The alternative (components in M1)
+delays the inspector work by roughly an M1 work package.
+
+**Q4. Images keep their ratio by default.** *Recommend:* dragging a corner of a photo scales it (no distortion); Shift
+frees it. Shapes stay free (Shift locks), as in Figma. *Example:* a first-timer drags a corner of a portrait to make it
+bigger and it simply gets bigger; a designer who wants a stretch holds Shift. *Question:* agreed? Figma natives will
+feel the inversion on images only.
+
+**Q5. One colour popover with three tabs.** *Recommend:* `Solid · Gradient · Image` as tabs at the top of the one colour
+popover; switching tabs converts the paint (a colour becomes the first stop of a gradient). Canva puts gradients in a
+separate panel and Figma hides the kind in a dropdown inside the picker. *Example:* a button is tangerine; click the
+swatch, tab `Gradient`, pick the `Tangerine → Sunflower` preset, drag the angle handle on the canvas. *Question:* agreed?
+
+**Q6. Shortcut collision: copy style vs copy link.** *Recommend:* `⌘⌥C` / `⌘⌥V` = Copy style / Paste style (Figma,
+Sketch and Illustrator all use these; muscle memory), and **Copy link** moves from `⌘⌥C` to `⌘⌥L`. *Example:* copy a
+card's look onto four others: select the card, `⌘⌥C`, select the four, `⌘⌥V`. *Question:* agreed to move Copy link?
+
+**Q7. Eyedropper everywhere.** *Recommend:* when the browser has no `EyeDropper` API (Firefox, Safari), the eyedropper
+samples **our own rendered canvas** instead of being hidden; it then cannot pick colours from outside the canvas (the
+browser chrome, another window), and the loupe says `Canvas only`. *Example:* on Safari you pick a colour out of a
+placed photo and it works. *Question:* agreed, or hide the eyedropper where the API is missing (FOUNDATIONS §4.6 today)?
+
+**Q8. Lock has two scopes in Pro.** *Recommend:* the default lock locks everything (one click, as everyone expects); Pro
+gets `Lock ▾ Position only` so a background photo cannot be nudged but can still be swapped or recoloured. *Example:*
+a locked brand bar at the top of every page: position-locked, the copywriter still edits its text. *Question:* worth the
+extra menu, or one lock only?
+
+**Q9. Where to stop with effects.** *Recommend:* shadows (drop, inner), glows, blurs (layer, background) and bevel; **no**
+Photoshop-style colour/gradient/pattern overlays or satin (an extra fill row with a blend mode does each, and the fill
+stack is where people already look); noise and texture (Figma 2025) as M3 Pro-only. *Question:* agreed?
+
+**Q10. Opacity keys.** *Recommend:* **no** Figma-style `1…0` opacity keys, because `1` and `5` switch lenses (Canvas ·
+Pages) and `2–4` are reserved for the other lenses; `Alt+Shift+↑/↓` changes opacity by 10 % instead. *Example:* press `5`
+→ Pages lens; press `Alt+Shift+↓` → the shape is 90 %. *Question:* agreed, or should the lens keys move to make room?
+
+**Q11. Rulers in Standard.** *Recommend:* rulers are off in Standard and Focus (one key or menu away, `Shift+R`) and on in
+Pro; draggable guides arrive in M2 with rulers as their home. *Question:* agreed?
