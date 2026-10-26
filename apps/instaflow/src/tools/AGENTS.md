@@ -102,6 +102,9 @@ bindToolShortcuts(registry, commands, tabScope);           // canvas focus: regi
 // draw: toolOverlayBatch(view.overlay, view.camera.zoom) into the overlay scene (never exported)
 ```
 
+**B12:** hidden elements (`spatial.hidden` on them or an ancestor) are never hittable leaves (`isHittableLeaf`), so hit tests and
+marquees skip them; the page fill is not an element and is never hit.
+
 ## Rules
 - One gesture = one change set = one undo step: previews go to the **session layer** only, commits through B1's
   `commitEdit`. Never write the part directly, never commit per pointer move.

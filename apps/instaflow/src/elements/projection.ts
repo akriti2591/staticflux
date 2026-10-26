@@ -22,7 +22,8 @@ import { BLEND_MODE_NAMES, MASK_MODE_NAMES, P } from './components.js';
 import type { GeometryService, PathData } from './geometry.js';
 import { type ElementContext, isElement, localOutline, strokeRing } from './layout.js';
 import type { ResolvedEffect, ResolvedElement, ResolvedFill, ResolvedStroke } from './resolve.js';
-import { resolveElement } from './resolve.js';
+import { resolveComposed, resolveElement } from './resolve.js';
+import { pageFills } from './values.js';
 
 export const ELEMENT_PROJECTION_KINDS = ['frame', 'group', 'shape', 'vector', 'image'] as const;
 
@@ -200,6 +201,26 @@ export interface ElementRenderSourceOptions extends ElementContext {
   /** Fractional order keys from the document (default: sibling index keys). */
   readonly orderOf?: (node: NodeId) => string | undefined;
   readonly resources?: ResourceTable;
+  /**
+   * Draw the root page's fill stack (`style.fills` on the page, B12 A-1) as a full-page rect under everything, with the
+   * node id `pageFillId(root)`. Absent fills mean `PAGE_FILL_DEFAULT` (white); an empty list draws nothing. Strokes
+   * and effects on a page are never drawn. Export's `transparent` passes false (default false: element-only scenes).
+   */
+  readonly pageFill?: boolean;
+}
+
+export { PAGE_FILL_DEFAULT, pageFills } from './values.js';
+/** Node id of a page's fill in the render projection (never a document id: `#` is not in document ids). */
+export const pageFillId = (page: NodeId): NodeId => `${page}#fill`;
+/** Order key of the page fill: sorts before every fractional order key, so it draws first. */
+const PAGE_FILL_ORDER = '';
+
+/** The page's size (`page.size`), else its spatial box. */
+export function pageBox(stage: Pick<Stage, 'value'>, page: NodeId): { readonly width: number; readonly height: number } {
+  const size = stage.value(page, 'page.size');
+  const o = typeof size === 'object' && size !== null && !Array.isArray(size) ? (size as Record<string, JsonValue>) : {};
+  const n = (v: JsonValue | undefined): number => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
+  return { width: n(o['width']) || n(stage.value(page, P.w)), height: n(o['height']) || n(stage.value(page, P.h)) };
 }
 
 export interface ElementRenderSource extends RenderProjectionSource {
@@ -228,12 +249,13 @@ export function createElementRenderSource(options: ElementRenderSourceOptions): 
   const issues = new Map<NodeId, { path: string; problem: string }[]>();
   const dirty = new Set<NodeId>();
 
-  /** Inside a boolean group (an operand): not drawn on its own. */
+  /** Hidden (`spatial.hidden` on it or an ancestor, B12) or inside a boolean group (an operand): not drawn on its own. */
   const hidden = (el: ResolvedElement): boolean => {
+    if (el.hidden === true) return true;
     for (let at = el.parent; at !== null && at !== options.root; ) {
       const parent = resolveElement(ctx.stage, at, ctx.kit);
       if (parent === undefined) return true;
-      if (parent.geometry.kind === 'boolean') return true;
+      if (parent.geometry.kind === 'boolean' || parent.hidden === true) return true;
       at = parent.parent;
     }
     return false;
@@ -246,7 +268,22 @@ export function createElementRenderSource(options: ElementRenderSourceOptions): 
     return String(Math.max(0, index)).padStart(8, '0');
   };
 
+  const fillId = options.pageFill === true ? pageFillId(options.root) : undefined;
+  /** The page fill as a plain rect element (resolved like any fill stack: tokens, gradients, images). */
+  const computePageFill = (id: NodeId): Projected | undefined => {
+    const page = ctx.stage.read(options.root);
+    if (page === undefined) return undefined;
+    const { width, height } = pageBox(ctx.stage, options.root);
+    const el = resolveComposed({ ...page, id, kind: 'shape', parent: null, values: { [P.fills]: pageFills(ctx.stage, options.root) as JsonValue, [P.w]: width, [P.h]: height } }, ctx.kit);
+    if (el.fills.length === 0 || !(width > 0 && height > 0)) return undefined;
+    issues.set(id, [...el.issues]);
+    const look = resources.intern({ kind: 'look', value: { geometry: { kind: 'rect', radii: [0, 0, 0, 0], smooth: false }, fills: el.fills, strokes: [], effects: [] } });
+    const props: Record<string, JsonValue> = { 'render.a': 1, 'render.b': 0, 'render.c': 0, 'render.d': 1, 'render.e': 0, 'render.f': 0, 'render.w': width, 'render.h': height, 'render.opacity': 1, 'render.blend': 0, 'render.flags': RENDER_FLAGS.visible, 'render.mask': 0, 'render.look': look, 'render.path': 0 };
+    return { record: { id, kind: 'shape', parent: null, order: PAGE_FILL_ORDER, props, texts: [], lists: [] }, holds: [look] };
+  };
+
   const compute = (id: NodeId): Projected | undefined => {
+    if (id === fillId) return computePageFill(id);
     const el = resolveElement(ctx.stage, id, ctx.kit);
     if (el === undefined || !isElement(el.kind) || !(ELEMENT_PROJECTION_KINDS as readonly string[]).includes(el.kind) || hidden(el)) return undefined;
     const problems = [...el.issues];
@@ -311,6 +348,7 @@ export function createElementRenderSource(options: ElementRenderSourceOptions): 
         visitChildren(child);
       }
     };
+    if (fillId !== undefined) visit(fillId);
     visitChildren(options.root);
   };
 
@@ -346,6 +384,7 @@ export function createElementRenderSource(options: ElementRenderSourceOptions): 
       if (dirty.size === 0) return undefined;
       // A changed node can change what its subtree projects (boolean operands, deletes) and its boolean ancestors.
       const queue = [...dirty];
+      if (fillId !== undefined && dirty.has(options.root)) queue.push(fillId); // page fills or size changed
       dirty.clear();
       const touched = new Set<NodeId>();
       while (queue.length > 0) {

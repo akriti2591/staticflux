@@ -6,7 +6,8 @@
 //!
 //! Three Wasm builds by feature (sf-wasm.json), each within its IF-15.1 budget: `authoring` (`geometry`, B1),
 //! `authoring-text` (`text`, B2) and the lazy `authoring-text-complex` chunk (`complex-scripts`: ICU4X dictionary
-//! segmenters for Thai, Lao, Khmer, Myanmar; S3: +1.9 MB). Host builds and tests enable everything.
+//! segmenters for Thai, Lao, Khmer, Myanmar; S3: +1.9 MB), plus the lazy `authoring-webfont` decoder (`webfont`, B12
+//! T-7: WOFF2 / WOFF uploads → OpenType). Host builds and tests enable everything.
 use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "geometry")]
@@ -15,6 +16,8 @@ pub mod geometry;
 pub mod text;
 #[cfg(feature = "text")]
 pub mod wasm;
+#[cfg(feature = "webfont")]
+pub mod webfont;
 
 /// ABI version of the authoring module's exports. Bump on any breaking export change.
 /// 2: `TextEngine` (fonts, layout, caret/selection/char bounds, layout v1 encoding) (B2).

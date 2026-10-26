@@ -16,8 +16,10 @@ import {
   charStyleOf,
   checkCharMark,
   checkParagraphField,
+  LIST_MAX_LEVEL,
   MATCH_KEY_PATH,
   PARA_FIELDS,
+  ParaMark,
   type ParagraphStyle,
   paragraphMarks,
   paragraphStyleOf,
@@ -224,6 +226,23 @@ export function setParagraphStyleOps(block: TextBlockModel, from: number, to: nu
       if (problem !== undefined) return err(TextStyleInvalidError({ message: problem, details: { field: fieldName } }));
       ops.push({ op: 'text.mark', node: block.node, path: TEXT_CONTENT, from: p.end, to: p.end + 1, key, value });
     }
+  }
+  return ok(ops);
+}
+
+/**
+ * Tab / Shift+Tab in a list (B12 T-8, TEXT Q1): the `p.level` of every list paragraph touching `[from, to]` moves by
+ * `delta` (clamped to 0…`LIST_MAX_LEVEL`). Undefined when none of them is a list (the session then ignores Tab).
+ */
+export function listIndentOps(block: TextBlockModel, from: number, to: number, delta: 1 | -1): Result<PartOp[]> | undefined {
+  const range = checkRange(block, from, to);
+  if (!range.ok) return range;
+  const lists = block.paragraphs.filter((p) => p.end >= from && p.start <= to && p.style.list !== undefined && p.style.list !== 'none');
+  if (lists.length === 0) return undefined;
+  const ops: PartOp[] = [];
+  for (const p of lists) {
+    const level = Math.max(0, Math.min(LIST_MAX_LEVEL, (p.style.level ?? 0) + delta));
+    if (level !== (p.style.level ?? 0)) ops.push({ op: 'text.mark', node: block.node, path: TEXT_CONTENT, from: p.end, to: p.end + 1, key: ParaMark.level, value: level === 0 ? null : level });
   }
   return ok(ops);
 }

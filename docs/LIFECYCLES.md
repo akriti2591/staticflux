@@ -697,3 +697,25 @@ toast timers and dismiss guards live in the surface manager (LIFECYCLES §8 is u
 | FND-11 | No error code is ever rendered; `Copy diagnostics` alone carries it | `feedback.test.ts` (kit and Instaflow) |
 | FND-12 | At most two hints per session; a seen hint never shows again on that device until `Reset hints` | `apps/instaflow/src/studio/hints.test.ts` |
 | FND-13 | Every B11a2 block passes the full audit under Clean Pop | `apps/instaflow/src/a11y/foundations.test.ts`, guarded by `chrome.test.ts` |
+
+## 39. Engine gaps for B11b: typing steps, hidden elements, page fill, crops (Instaflow M1c B12)
+
+What B12 adds to B2's text session (§21) and B1's elements. Nothing here is a new `defineMachine`: the typing run lives in
+the session and ends with it; hidden, page fill and crop are document values every reader derives from.
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| typing run (per text session) | none → typing (`insert` of one grapheme from a collapsed caret, or an IME commit: a fresh step key) → typing (the next one at the run's end within 1 s: same key, so the same change set = one undo step) → none (a pause ≥ 1 s, a caret move by arrow or pointer, a style change, Enter, Shift+Enter, Tab in a list, a paste, a selection delete, a failed commit, or an outside change seen by `refresh`); none → deleting (a delete from a collapsed caret) → deleting (the next delete at the caret within 1 s) → none (as above); typing ↔ deleting always starts a new step | `apps/instaflow/src/text/text-session.ts` (step keys), `apps/instaflow/src/app/text-editing.ts` (key → change set) |
+| key intents during a composition | composing: every key intent is ignored (the IME owns the keys); the composition ends with `compose-commit` (one step, coalescing like typing) or `compose-cancel` (nothing written) | `apps/instaflow/src/text/text-session.ts` |
+| web font decoder (per font library) | unloaded → loading (first WOFF2 / WOFF upload) → loaded (decodes every later one) ; loading → unloaded (the load failed: IF-FIX-002, retried on the next web font) | `apps/instaflow/src/text/fonts.ts` (`webfontDecoder`) |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| ENG-1 | Every structure action (group, ungroup, frame selection, reorder, rename, hide, show all, crop, reset crop) is one change set = one undo step; nothing to change is refused, never an empty step | IF-EL-004, IF-FIX-001; `structure-actions.test.ts`, `image-crop.test.ts` |
+| ENG-2 | Group, frame selection and ungroup never move anything on the page (exact bounds before = after) | `structure-actions.test.ts` |
+| ENG-3 | A hidden element and its subtree are in no render scene, export, hit test, marquee, snapping guide, group bound or accessibility tree; showing restores all of them | `page-fill-hidden.test.ts`, `structure-actions.test.ts`, `a11y/projection.test.ts`, `text-layer.b12.test.ts`, `export/job.test.ts` |
+| ENG-4 | The page fill is the first node of the page's scene for the canvas and every export, absent when `transparent`, and never hit | `page-fill-hidden.test.ts`, `export/job.test.ts`, `canvas-tab.test.ts` |
+| ENG-5 | An image paint without a crop is encoded exactly as before (IR tag 4); with one, the TS and Rust writers emit identical bytes and every backend places the picture alike | `scene-ir.test.ts` (`crops` fixture), `draw.rs` crop tests, `ir.rs` round trip |
+| ENG-6 | Coalesced typing never spans an outside change: after an undo or a collaborator's edit the next keystroke is a new step | `b12-text.test.ts` |
+| ENG-7 | During a composition nothing is committed and the control bounds stay the committed block's; the text host never re-lays the block out mid-composition | `text-session.ime.test.ts`, Studio smoke (IME step) |
+| ENG-8 | A web font is stored and hashed as the OpenType it decodes to; a damaged file is never stored | IF-FIX-002; `webfont.test.ts`, `webfont.rs` tests |

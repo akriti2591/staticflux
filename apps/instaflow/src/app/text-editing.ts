@@ -25,7 +25,9 @@ import type { Rect } from '../text/text-engine.js';
 import type { Camera } from '../tools/view-state.js';
 import type { StudioDocument } from './document.js';
 import { NoOpenPageError } from './errors.js';
-import { type StudioFonts, type TextLayer, textBoxOps } from './text-layer.js';
+import { type StudioFonts, textBlockTransform, type TextLayer, textBoxOps } from './text-layer.js';
+import type { TextLayout } from '../text/layout-result.js';
+import { P } from '../elements/components.js';
 
 export type TextExitReason = 'escape' | 'tab' | 'stopped';
 
@@ -48,6 +50,8 @@ export interface TextEditingOptions {
   readonly host: TextHostPort;
   readonly camera: () => Camera;
   readonly actor: () => Actor;
+  /** Apple caret keys (B12 T-3). */
+  readonly isMac?: boolean;
   readonly onExit: (reason: TextExitReason) => void;
   readonly onProblem?: (error: SfError) => void;
   readonly scope: Pick<Scope, 'defer'>;
@@ -62,10 +66,10 @@ export interface TextEditing {
   stop(): void;
 }
 
-/** Block px → surface px for the node (page transform, camera). */
-export function textToSurface(document: StudioDocument, node: NodeId, camera: Camera): (r: Rect) => ClientRect {
+/** Block px → surface px for the node (page transform with the fixed box's vertical alignment, B12 T-1; camera). */
+export function textToSurface(document: StudioDocument, node: NodeId, camera: Camera, laid?: Pick<TextLayout, 'height'>): (r: Rect) => ClientRect {
   return (r) => {
-    const [a, b, c, d, e, f] = pageTransform(document.context(), node);
+    const [a, b, c, d, e, f] = laid === undefined ? pageTransform(document.context(), node) : textBlockTransform(document, node, laid);
     const px = (x: number, y: number): readonly [number, number] => [(a * x + c * y + e) * camera.zoom + camera.tx, (b * x + d * y + f) * camera.zoom + camera.ty];
     const [x0, y0] = px(r.x0, r.y0);
     const [x1, y1] = px(r.x1, r.y1);
@@ -82,14 +86,31 @@ export function startTextEditing(options: TextEditingOptions): Result<TextEditin
   const label = typeof name === 'string' && name.length > 0 ? name : 'Text';
   const input = options.host.open(node, label);
   if (!input.ok) return input;
-  const toSurface = (r: Rect): ClientRect => textToSurface(document, node, options.camera())(r);
-  const placeHost = (): void => {
+  // The committed block's size, measured at start and after each commit only: laying the block out again at any other
+  // time would replace the session's composition preview in the engine (same block id) and lose its character bounds.
+  let blockSize: Pick<TextLayout, 'width' | 'height'> | undefined;
+  const measure = (): void => {
     const laid = layer.layout(node);
-    if (!laid.ok) return;
-    options.host.place(toSurface({ x0: 0, y0: 0, x1: Math.max(4, laid.value.width), y1: Math.max(4, laid.value.height) }));
+    if (laid.ok) blockSize = { width: laid.value.width, height: laid.value.height };
+  };
+  const toSurface = (r: Rect): ClientRect => textToSurface(document, node, options.camera(), blockSize)(r);
+  const placeHost = (): void => {
+    const laid = blockSize;
+    if (laid === undefined) return;
+    // The host covers the editable area: the box of a fixed text (B12 T-1), else the laid-out block.
+    const h = document.view.value(node, P.h);
+    const fixed = document.view.value(node, 'text.box') === 'fixed' && typeof h === 'number';
+    const surface = textToSurface(document, node, options.camera());
+    options.host.place(fixed ? surface({ x0: 0, y0: 0, x1: Math.max(4, laid.width), y1: Math.max(4, h, laid.height) }) : toSurface({ x0: 0, y0: 0, x1: Math.max(4, laid.width), y1: Math.max(4, laid.height) }));
   };
   let stopped = false;
   let session: TextSession | undefined;
+  // B12 T-2: one change set id per session step key (only the open run's key is ever reused).
+  let lastStep: readonly [string, string] | undefined;
+  const stepChangeSet = (step: string): string => {
+    if (lastStep?.[0] !== step) lastStep = [step, newTransactionId()];
+    return lastStep[1];
+  };
   const stop = (reason: TextExitReason = 'stopped'): void => {
     if (stopped) return;
     stopped = true;
@@ -110,18 +131,21 @@ export function startTextEditing(options: TextEditingOptions): Result<TextEditin
     toClient: toSurface,
     target: {
       read: () => readTextBlock(part, node),
-      commit(ops, label): Result<void> {
-        const changeSet = newTransactionId();
+      commit(ops, label, step): Result<void> {
+        // B12 T-2: the session's step key keeps consecutive typing in one change set (one undo step).
+        const changeSet = step === undefined ? newTransactionId() : stepChangeSet(step);
         const committed = document.commitOps(page, options.actor(), label, ops, { changeSet });
         if (!committed.ok) return committed;
         const laid = layer.layout(node);
         if (!laid.ok) return ok();
+        blockSize = { width: laid.value.width, height: laid.value.height };
         const sized = document.commitOps(page, options.actor(), label, textBoxOps(document, node, laid.value), { changeSet });
         placeHost();
         return sized;
       },
     },
     onExit: (reason) => stop(reason),
+    isMac: options.isMac === true,
     ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
   });
   if (!created.ok) {
@@ -136,6 +160,7 @@ export function startTextEditing(options: TextEditingOptions): Result<TextEditin
       else session?.refresh();
     }
   });
+  measure();
   placeHost();
   input.value.focus();
   const editing: TextEditing = { node, session, input: input.value, place: placeHost, stop: () => stop() };

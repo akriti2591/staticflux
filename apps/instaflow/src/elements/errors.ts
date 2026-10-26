@@ -52,3 +52,10 @@ export const MissingClassError = defineError(
   'The style class or brand kit an element inherits from is not available.',
   'Load the brand kit asset (or pick an existing class from `brandKitClasses(kit)`); until then the element shows its own values.',
 );
+
+export const EmptyNameError = defineError(
+  'IF-FIX-001',
+  'validation',
+  'An element name must have at least one visible character and at most 200 (B12 rename).',
+  'Type a name with at least one non-space character (Escape keeps the old name); shorten names longer than 200 characters.',
+);

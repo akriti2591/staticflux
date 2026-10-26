@@ -9,22 +9,25 @@ publish.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-# One crate, three Wasm artifacts (sf-wasm.json), each within its IF-15.1 budget: `authoring` = geometry (B1),
+# One crate, four Wasm artifacts (sf-wasm.json), each within its IF-15.1 budget: `authoring` = geometry (B1),
 # `authoring-text` = Parley text layout (B2; both together are ≈ 390 KB brotli, over the 350 KB budget), and the lazy
-# `authoring-text-complex` chunk. Host builds and `cargo test` use the default (everything).
+# `authoring-text-complex` chunk, and the lazy `authoring-webfont` decoder (B12). Host builds and `cargo test` use the default (everything).
 [features]
-default = ["geometry", "text"]
+default = ["geometry", "text", "webfont"]
 geometry = ["dep:kurbo", "dep:linesweeper"]
 text = ["dep:parley"]
 # ICU4X dictionary segmenters (Thai, Lao, Khmer, Myanmar line breaks; CJ word segmentation). S3: +1.9 MB brotli,
 # so it is only built into the lazy `authoring-text-complex` chunk, never into `authoring-text`.
 complex-scripts = ["text", "parley/complex-scripts"]
+# WOFF2 / WOFF → OpenType (B12, T-7): only the lazy `authoring-webfont` build, loaded when someone uploads a web font.
+webfont = ["dep:wuff"]
 
 [dependencies]
 wasm-bindgen = { workspace = true }
 kurbo = { workspace = true, optional = true }
 linesweeper = { workspace = true, optional = true }
 parley = { workspace = true, optional = true }
+wuff = { workspace = true, optional = true }
 
 # Host-only test helpers: the render crate's IR writer and vello_cpu reference renders (text goldens).
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]

@@ -9,7 +9,7 @@
 //! `DestOut` when inverted), drawn in its mode: clip (geometry only, opaque), alpha (as drawn) or luminance (colours
 //! become alpha = a × luma).
 
-use crate::ir::{Clip, Effect, Geometry, GlyphRun, Node, Paint, ROOT, Rgba8, Scene, StrokeStyle, fit, mask};
+use crate::ir::{Clip, Crop, Effect, Geometry, GlyphRun, Node, Paint, ROOT, Rgba8, Scene, StrokeStyle, fit, mask};
 use std::collections::HashSet;
 use vello_common::color::{AlphaColor, Srgb};
 use vello_common::filter_effects::{EdgeMode, Filter as Effects, FilterPrimitive};
@@ -168,34 +168,95 @@ fn apply_paint<P: Painter>(p: &mut P, paint: &Paint, size: (f64, f64), mode: Mod
             p.set_paint(g.into());
             Some(None)
         }
-        Paint::Image(id, how) => {
-            let (source, iw, ih) = p.image_source(*id)?;
-            let (iw, ih) = (iw as f64, ih as f64);
-            let (w, h) = size;
-            let mut sampler = ImageSampler::default();
-            let mut keep = None;
-            let t = match *how {
-                fit::COVER | fit::CONTAIN => {
-                    let s = if *how == fit::COVER { (w / iw).max(h / ih) } else { (w / iw).min(h / ih) };
-                    let (tx, ty) = ((w - iw * s) / 2.0, (h - ih * s) / 2.0);
-                    if *how == fit::CONTAIN {
-                        keep = Some(Rect::new(tx, ty, tx + iw * s, ty + ih * s));
-                    }
-                    Affine::translate((tx, ty)) * Affine::scale(s)
-                }
-                fit::TILE => {
-                    sampler.x_extend = Extend::Repeat;
-                    sampler.y_extend = Extend::Repeat;
-                    Affine::IDENTITY
-                }
-                _ => Affine::scale_non_uniform(w / iw, h / ih),
-            };
-            p.set_paint_transform(t);
-            p.set_paint(Image { image: source, sampler }.into());
-            Some(keep)
-        }
+        Paint::Image(id, how) => image_paint(p, *id, *how, Crop::DEFAULT, size),
+        Paint::ImageCrop(id, how, crop) => image_paint(p, *id, *how, *crop, size),
     }
 }
+
+/// Image → box transform of an image paint (B12 A-3): turn by `crop.quarter`, fit, scale by `crop.scale`, place at
+/// `crop.x, crop.y` of the free space. With `Crop::DEFAULT` this is B1's fit exactly (centred cover / contain,
+/// stretch, tile at 1:1). Returns the transform and, for `contain`, the rect the picture covers.
+pub fn image_transform(how: u8, crop: Crop, image: (f64, f64), size: (f64, f64)) -> (Affine, Option<Rect>) {
+    let (w, h) = size;
+    let q = crop.quarter % 4;
+    // The picture turned clockwise by q quarter turns, back in the positive quadrant.
+    let (iw, ih) = if q % 2 == 1 { (image.1, image.0) } else { image };
+    let turn = match q {
+        1 => Affine::new([0.0, 1.0, -1.0, 0.0, image.1, 0.0]),
+        2 => Affine::new([-1.0, 0.0, 0.0, -1.0, image.0, image.1]),
+        3 => Affine::new([0.0, -1.0, 1.0, 0.0, 0.0, image.0]),
+        _ => Affine::IDENTITY,
+    };
+    let k = if crop.scale.is_finite() && crop.scale > 0.0 { crop.scale } else { 1.0 };
+    let (sx, sy) = match how {
+        fit::COVER => {
+            let s = (w / iw).max(h / ih);
+            (s, s)
+        }
+        fit::CONTAIN => {
+            let s = (w / iw).min(h / ih);
+            (s, s)
+        }
+        fit::TILE => (1.0, 1.0),
+        _ => (w / iw, h / ih),
+    };
+    let (dw, dh) = (iw * sx * k, ih * sy * k);
+    let (tx, ty) = if how == fit::TILE { (0.0, 0.0) } else { ((w - dw) * crop.x, (h - dh) * crop.y) };
+    let t = Affine::translate((tx, ty)) * Affine::scale_non_uniform(sx * k, sy * k) * turn;
+    let keep = (how == fit::CONTAIN).then(|| Rect::new(tx, ty, tx + dw, ty + dh));
+    (t, keep)
+}
+
+fn image_paint<P: Painter>(p: &mut P, id: u32, how: u8, crop: Crop, size: (f64, f64)) -> Option<Option<Rect>> {
+    let (source, iw, ih) = p.image_source(id)?;
+    let mut sampler = ImageSampler::default();
+    if how == fit::TILE {
+        sampler.x_extend = Extend::Repeat;
+        sampler.y_extend = Extend::Repeat;
+    }
+    let (t, keep) = image_transform(how, crop, (iw as f64, ih as f64), size);
+    p.set_paint_transform(t);
+    p.set_paint(Image { image: source, sampler }.into());
+    Some(keep)
+}
+
+#[cfg(test)]
+mod crop_tests {
+    use super::*;
+    use vello_common::kurbo::Point;
+
+    #[test]
+    fn the_default_crop_is_b1s_fit() {
+        let (t, keep) = image_transform(fit::COVER, Crop::DEFAULT, (100.0, 50.0), (40.0, 40.0));
+        // cover: scale 0.8, centred horizontally (100 × 0.8 = 80 wide in a 40 box: −20)
+        assert_eq!(t, Affine::translate((-20.0, 0.0)) * Affine::scale(0.8));
+        assert!(keep.is_none());
+        let (_, keep) = image_transform(fit::CONTAIN, Crop::DEFAULT, (100.0, 50.0), (40.0, 40.0));
+        assert_eq!(keep, Some(Rect::new(0.0, 10.0, 40.0, 30.0)));
+        let (t, _) = image_transform(fit::STRETCH, Crop::DEFAULT, (100.0, 50.0), (40.0, 40.0));
+        assert_eq!(t, Affine::scale_non_uniform(0.4, 0.8));
+    }
+
+    #[test]
+    fn offset_scale_and_quarter_turns_place_the_picture() {
+        // 2 × the cover size, aligned top-left: the picture's origin stays at the box origin.
+        let (t, _) = image_transform(fit::COVER, Crop { x: 0.0, y: 0.0, scale: 2.0, quarter: 0 }, (100.0, 50.0), (40.0, 40.0));
+        assert_eq!(t * Point::new(0.0, 0.0), Point::new(0.0, 0.0));
+        assert_eq!(t * Point::new(100.0, 50.0), Point::new(160.0, 80.0));
+        // bottom-right: the far corner meets the box's far corner
+        let (t, _) = image_transform(fit::COVER, Crop { x: 1.0, y: 1.0, scale: 2.0, quarter: 0 }, (100.0, 50.0), (40.0, 40.0));
+        assert_eq!(t * Point::new(100.0, 50.0), Point::new(40.0, 40.0));
+        // a quarter turn makes a landscape picture portrait: it covers a tall box at its width
+        let (t, _) = image_transform(fit::COVER, Crop { quarter: 1, ..Crop::DEFAULT }, (100.0, 50.0), (50.0, 100.0));
+        let a = t * Point::new(0.0, 0.0);
+        let b = t * Point::new(100.0, 50.0);
+        let (x0, x1, y0, y1) = (a.x.min(b.x), a.x.max(b.x), a.y.min(b.y), a.y.max(b.y));
+        assert!((x0 - 0.0).abs() < 1e-9 && (x1 - 50.0).abs() < 1e-9 && (y0 - 0.0).abs() < 1e-9 && (y1 - 100.0).abs() < 1e-9, "{a:?} {b:?}");
+        // the top-left pixel of the picture lands top-right after a clockwise turn
+        assert!((a.x - 50.0).abs() < 1e-9 && a.y.abs() < 1e-9, "{a:?}");
+    }
+}
+
 
 fn stroke_of(s: &StrokeStyle) -> Stroke {
     let join = match s.join {

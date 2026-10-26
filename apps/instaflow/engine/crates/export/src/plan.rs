@@ -161,8 +161,8 @@ fn resources(scene: &Scene, nodes: &[&Node], w: &mut IrWriter) {
             fonts.insert(run.font);
         }
         for p in n.fills.iter().map(|f| &f.paint).chain(n.strokes.iter().map(|s| &s.paint)) {
-            if let Paint::Image(image, _) = p {
-                images.insert(*image);
+            if let Some(image) = p.image_id() {
+                images.insert(image);
             }
         }
     }

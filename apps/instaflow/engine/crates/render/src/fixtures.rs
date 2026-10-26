@@ -180,6 +180,23 @@ pub fn elements() -> Vec<u8> {
     w.finish()
 }
 
+/// Image crops (B12, A-3): the same picture as B1's cover, then moved to a corner at 2×, turned a quarter, and a
+/// contain placed at the start of its free space (`IMAGE_CROP` paints).
+pub fn crops() -> Vec<u8> {
+    use crate::ir::Crop;
+    let mut w = IrWriter::new();
+    w.image(1, 16, 16, &checker());
+    let plain = at(leaf(1, ROOT, Geometry::Rect { w: 52.0, h: 26.0, radius: 0.0 }, Paint::Image(1, fit::COVER)), 6.0, 6.0);
+    w.upsert(&plain, APPEND);
+    let corner = at(leaf(2, ROOT, Geometry::Rect { w: 52.0, h: 26.0, radius: 6.0 }, Paint::ImageCrop(1, fit::COVER, Crop { x: 0.0, y: 1.0, scale: 2.0, quarter: 0 })), 70.0, 6.0);
+    w.upsert(&corner, APPEND);
+    let turned = at(leaf(3, ROOT, Geometry::Ellipse { w: 52.0, h: 40.0 }, Paint::ImageCrop(1, fit::COVER, Crop { quarter: 1, ..Crop::DEFAULT })), 6.0, 44.0);
+    w.upsert(&turned, APPEND);
+    let start = at(leaf(4, ROOT, Geometry::Rect { w: 52.0, h: 20.0, radius: 0.0 }, Paint::ImageCrop(1, fit::CONTAIN, Crop { x: 0.0, y: 0.5, scale: 0.75, quarter: 2 })), 70.0, 44.0);
+    w.upsert(&start, APPEND);
+    w.finish()
+}
+
 /// IR v2 appearance stacks (B1): several fills with their own opacity and blend, a conic gradient, dashed and
 /// ringed (outside) strokes, a glow, and a background blur (frosted glass) over stripes.
 pub fn appearance() -> Vec<u8> {
@@ -248,6 +265,7 @@ pub fn all() -> Vec<Fixture> {
         square("layers", layers()),
         square("elements", elements()),
         square("appearance", appearance()),
+        square("crops", crops()),
         Fixture { name: "tiles", batch: tiles(), world: Rect::new(384.0, 384.0, 640.0, 640.0), width: 256, height: 256 },
     ]
 }

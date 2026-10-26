@@ -69,6 +69,17 @@ send(source.takeResources()); send(projector.project(source.changes()));
 // render worker: resources.apply(batch); store.apply(payload); renderer.apply(encoder.encode(store, resources));
 ```
 
+**B12 (engine gaps for B11b; IF-37.1–37.11):** `actions.ts` adds `group`, `ungroup` (groups and frames; releases masks
+inside), `frameSelection` (exact union, optional padding, clip on, no fill), `reorder` / `reorderedChildren` (`forward` ·
+`backward` · `front` · `back`), `rename` (IF-FIX-001), `setHidden` / `showAll`, `cropImage` / `imageFillIndex`; each is a
+capability (`instaflow/group`, `ungroup`, `frame-selection`, `bring-forward`, `send-backward`, `bring-to-front`,
+`send-to-back`, `rename`, `hide`, `show-all`, `image-crop`, `image-crop-reset`) whose output may name `select`.
+`components.ts`: `spatial.hidden` (`P.hidden`); `layout.ts`: `isHidden`, hidden children leave group bounds, hits, guides and
+masks; `projection.ts`: hidden subtrees are not projected, `pageFill: true` projects the page's `style.fills` as the first
+node (`pageFillId`, `pageBox`, `PAGE_FILL_DEFAULT` / `pageFills` from `values.ts`); `inspector.ts`: `pageAppearanceModel`;
+`values.ts` / `resolve.ts` / `scene.ts`: image paints carry `offset`, `scale`, `rotation` (`cropOf`, `ResolvedCrop`) and
+encode as the scene IR's `IMAGE_CROP` paint.
+
 ## Rules
 - Document values are data: no functions, tokens are `@name` strings, stacks are lists with stable item `id`s.
 - Booleans and masks are derived: never write a boolean result or a masked copy into the document.

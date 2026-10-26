@@ -108,6 +108,22 @@ export function runText(layout: TextLayout, run: ReturnType<TextLayout['runs']>[
 
 const FALLBACK_BRUSH: TextBrush = { color: [0, 0, 0, 255] };
 
+/** Glyphs the layout found no font for (`.notdef`, glyph 0: drawn as tofu, B12 T-4) and the characters they stand for. */
+export function missingGlyphs(layout: TextLayout): { readonly glyphs: number; readonly clusters: number } {
+  let glyphs = 0;
+  const clusters = new Set<number>();
+  for (const run of layout.runs())
+    for (const g of run.glyphs)
+      if (g.id === NOTDEF_GLYPH) {
+        glyphs += 1;
+        clusters.add(g.cluster);
+      }
+  return { glyphs, clusters: clusters.size };
+}
+
+/** Glyph id of `.notdef` (the render crate's `NOTDEF`). */
+export const NOTDEF_GLYPH = 0;
+
 /** The element's scene nodes: a group, one glyph leaf per run, one rect per underline/strike (paint order). */
 export function textSceneNodes(layout: TextLayout, options: TextSceneOptions): SceneNode[] {
   const nodes: SceneNode[] = [{ id: options.id, ...(options.parent === undefined ? {} : { parent: options.parent }), ...(options.transform === undefined ? {} : { transform: options.transform }), geometry: { kind: 'group' } }];
@@ -115,6 +131,7 @@ export function textSceneNodes(layout: TextLayout, options: TextSceneOptions): S
     const font = options.fontId(run.font);
     if (font === undefined || run.glyphs.length === 0) continue;
     const brush = options.brushes[run.brush] ?? FALLBACK_BRUSH;
+    const shift = brush.shift ?? 0; // B12 T-5: subscript / superscript
     nodes.push({
       id: options.nextId(),
       parent: options.id,
@@ -122,7 +139,7 @@ export function textSceneNodes(layout: TextLayout, options: TextSceneOptions): S
         kind: 'glyphs',
         font,
         size: run.size,
-        glyphs: run.glyphs.map((g) => [g.id, g.x, g.y] as const),
+        glyphs: run.glyphs.map((g) => [g.id, g.x, g.y + shift] as const),
         ...(run.embolden ? { embolden: true } : {}),
         ...(run.skew !== 0 ? { skew: run.skew } : {}),
         ...(run.coords.length > 0 ? { coords: run.coords } : {}),
@@ -136,7 +153,7 @@ export function textSceneNodes(layout: TextLayout, options: TextSceneOptions): S
     nodes.push({
       id: options.nextId(),
       parent: options.id,
-      transform: [1, 0, 0, 1, d.bounds.x0, d.bounds.y0],
+      transform: [1, 0, 0, 1, d.bounds.x0, d.bounds.y0 + (brush.shift ?? 0)],
       geometry: { kind: 'rect', w: Math.max(0, d.bounds.x1 - d.bounds.x0), h: Math.max(0.5, d.bounds.y1 - d.bounds.y0) },
       fill: { kind: 'solid', color: brush.color },
     });

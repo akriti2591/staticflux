@@ -6,8 +6,9 @@
  * - **Colour:** `#rgb[a]`, `#rrggbb[aa]`, `rgb()` / `rgba()`, or a token `@name`.
  * - **Paint:** colour | `{ kind: 'linear', from, to, stops }` | `{ kind: 'radial', center, radius, stops }` |
  *   `{ kind: 'conic', center, angle?, stops }` (points in the unit box: 0…1 of w and h; a radial radius is a fraction
- *   of max(w, h); `angle` in degrees, clockwise from 3 o'clock) | `{ kind: 'image', asset: { asset }, fit? }`
- *   (`fit` cover | contain | stretch | tile). Stops are `{ offset: 0…1, color }`.
+ *   of max(w, h); `angle` in degrees, clockwise from 3 o'clock) | `{ kind: 'image', asset: { asset }, fit?, offset?,
+ *   scale?, rotation? }` (`fit` cover | contain | stretch | tile; B12 crop: `offset` [x, y] 0…1 of the free space,
+ *   `scale` × the fit, `rotation` 0 · 90 · 180 · 270). Stops are `{ offset: 0…1, color }`.
  * - **Fill** (`style.fills`, bottom first): `{ paint, opacity?, blend?, visible?, id? }`.
  * - **Stroke** (`style.strokes`, bottom first): `{ paint, width, sides?: [top, right, bottom, left], align?: center |
  *   inside | outside, dash?: number[], dashOffset?, cap?: butt | round | square, join?: miter | round | bevel,
@@ -42,7 +43,23 @@ export type PaintValue =
   | { readonly kind: 'linear'; readonly from: Vec2; readonly to: Vec2; readonly stops: readonly GradientStopValue[] }
   | { readonly kind: 'radial'; readonly center: Vec2; readonly radius: number; readonly stops: readonly GradientStopValue[] }
   | { readonly kind: 'conic'; readonly center: Vec2; readonly angle?: number; readonly stops: readonly GradientStopValue[] }
-  | { readonly kind: 'image'; readonly asset: { readonly asset: string; readonly at?: string }; readonly fit?: ImageFitName };
+  | {
+      readonly kind: 'image';
+      readonly asset: { readonly asset: string; readonly at?: string };
+      readonly fit?: ImageFitName;
+      /** B12 A-3: where the fitted picture sits, `[x, y]` ∈ 0…1 of the free space (default `[0.5, 0.5]`, centred). */
+      readonly offset?: Vec2;
+      /** B12 A-3: × the fit's size, `IMAGE_SCALE_RANGE` (default 1). */
+      readonly scale?: number;
+      /** B12 A-3: the picture turned clockwise inside the element, in degrees (default 0). */
+      readonly rotation?: ImageRotation;
+    };
+
+/** Quarter turns an image paint can take (B12 A-3). */
+export const IMAGE_ROTATIONS = [0, 90, 180, 270] as const;
+export type ImageRotation = (typeof IMAGE_ROTATIONS)[number];
+/** Image paint scale bounds (B12 A-3): 1 % … 10 000 % of the fit. */
+export const IMAGE_SCALE_RANGE = [0.01, 100] as const;
 export type SizeValue = number | TokenRef;
 
 interface ItemBase {
@@ -143,7 +160,14 @@ export function isPaintValue(v: unknown): v is PaintValue {
     case 'conic':
       return isVec2(v['center']) && (v['angle'] === undefined || finite(v['angle'])) && isStops(v['stops']);
     case 'image':
-      return isObject(v['asset']) && typeof v['asset']['asset'] === 'string' && oneOf(IMAGE_FIT_NAMES, v['fit']);
+      return (
+        isObject(v['asset']) &&
+        typeof v['asset']['asset'] === 'string' &&
+        oneOf(IMAGE_FIT_NAMES, v['fit']) &&
+        (v['offset'] === undefined || (isVec2(v['offset']) && (v['offset'] as unknown as number[]).every((n) => n >= 0 && n <= 1))) &&
+        (v['scale'] === undefined || (finite(v['scale']) && v['scale'] >= IMAGE_SCALE_RANGE[0] && v['scale'] <= IMAGE_SCALE_RANGE[1])) &&
+        (v['rotation'] === undefined || (IMAGE_ROTATIONS as readonly unknown[]).includes(v['rotation']))
+      );
     default:
       return false;
   }
@@ -264,4 +288,13 @@ export function validateElementOps(ops: readonly PartOp[]): Result<void> {
     }
   }
   return ok();
+}
+
+/** The page's fills when it has none written (B12 A-1, APPEARANCE §2.8: one white row). */
+export const PAGE_FILL_DEFAULT: readonly JsonValue[] = Object.freeze([Object.freeze({ paint: '#ffffff' })]);
+
+/** Raw page fills as written (tokens kept), with the default when the page has none (the Page section's model). */
+export function pageFills(stage: { value(node: string, path: string): JsonValue | undefined }, page: string): readonly JsonValue[] {
+  const raw = stage.value(page, P.fills);
+  return Array.isArray(raw) ? raw : PAGE_FILL_DEFAULT;
 }

@@ -33,6 +33,32 @@ export interface TextDefaults {
 export interface TextBrush {
   readonly color: Rgba8;
   readonly link?: string;
+  /** Baseline shift in px, positive down (B12 T-5: subscript and superscript); the scene moves the run by it. */
+  readonly shift?: number;
+}
+
+/** Subscript / superscript (B12 T-5): glyphs at this fraction of the size, shifted by a fraction of the base size. */
+export const SCRIPT_METRICS = Object.freeze({ scale: 0.65, superShift: -0.35, subShift: 0.15 });
+
+/** The size and baseline shift (px, down) of a run of `size` px with `script`. */
+export function scriptMetrics(size: number, script: CharStyle['script']): { readonly size: number; readonly shift: number } {
+  if (script === undefined) return { size, shift: 0 };
+  return { size: size * SCRIPT_METRICS.scale, shift: size * (script === 'super' ? SCRIPT_METRICS.superShift : SCRIPT_METRICS.subShift) };
+}
+
+/**
+ * Vertical offset of the laid-out text in its box (B12 T-1, TEXT §2.2–2.3): only a **fixed** box aligns its text
+ * (top · middle · bottom); text taller than the box starts at the top and overflows below (never clipped by its box).
+ */
+export function verticalAlignOffset(box: string | undefined, align: string | undefined, boxHeight: number, textHeight: number): number {
+  if (box !== 'fixed' || !(boxHeight > textHeight)) return 0;
+  const free = boxHeight - textHeight;
+  return align === 'middle' ? free / 2 : align === 'bottom' ? free : 0;
+}
+
+/** Lines of a fixed box that do not fit (the overflow tag `⤓ n`, TEXT §2.3): lines whose bottom is below the box. */
+export function overflowLines(lines: readonly { readonly bounds: { readonly y1: number } }[], boxHeight: number, offset = 0): number {
+  return lines.filter((l) => l.bounds.y1 + offset > boxHeight + 0.5).length;
 }
 
 export interface ResolvedTextLayout {
@@ -104,9 +130,9 @@ export function resolveTextLayout(block: TextBlockModel, options: ResolveTextOpt
   };
   const baseColor = take(resolveColor(defaults.color, brand), [0, 0, 0, 255] as Rgba8);
   const baseFamilies = take(resolveFont(defaults.font, brand, options.families), [] as readonly string[]);
-  const brushOf = (style: CharStyle): number => {
+  const brushOf = (style: CharStyle, shift: number): number => {
     const color = style.color === undefined ? baseColor : take(resolveColor(style.color, brand), baseColor);
-    const brush: TextBrush = style.link === undefined ? { color } : { color, link: style.link.href };
+    const brush: TextBrush = { color, ...(style.link === undefined ? {} : { link: style.link.href }), ...(shift === 0 ? {} : { shift }) };
     const key = JSON.stringify(brush);
     let index = brushIndex.get(key);
     if (index === undefined) {
@@ -118,17 +144,18 @@ export function resolveTextLayout(block: TextBlockModel, options: ResolveTextOpt
   };
   const span = (style: CharStyle, start: number, end: number): LayoutSpanSpec => {
     const families = style.font === undefined ? baseFamilies : take(resolveFont(style.font, brand, options.families), baseFamilies);
+    const script = scriptMetrics(style.size ?? defaults.size, style.script);
     return {
       start,
       end,
       family: familyList([...families, ...(defaults.fallback ?? [])]),
-      size: style.size ?? defaults.size,
+      size: script.size,
       weight: style.weight ?? (style.bold === true ? 700 : (defaults.weight ?? 400)),
       italic: style.italic === true,
       letterSpacing: style.letterSpacing ?? 0,
       underline: style.underline === true || style.link !== undefined,
       strike: style.strike === true,
-      brush: brushOf(style),
+      brush: brushOf(style, script.shift),
     };
   };
   const paragraphs: LayoutParagraphSpec[] = block.paragraphs.map((p) => {

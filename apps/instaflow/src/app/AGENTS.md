@@ -59,6 +59,10 @@ Main side:
   `Mod+Z`), `INSTAFLOW_SURFACE_UNITS` (messaging under `strictSurfacePolicy`). B11b binds the units and the token.
 - `test-helpers.ts` (test-only) — `createStudioFixture`, `scriptedTextInput`, `lendDom`, `manualTimers`.
 
+**B12:** `text-layer.ts` `textBlockTransform` (a fixed box's vertical alignment) places text groups; hidden text is not drawn.
+`text-editing.ts`: one change set per typing run (the session's step key), `isMac`, and the host uses the committed block's
+size (never re-lays out mid-composition). `canvas-tab.ts` projects the page fill (`pageFill: true`) and passes `isMac`.
+
 ## Rules
 - No feature logic here: if a fix belongs to a feature, make it there (and note it in the handoff).
 - Editor-side files never touch the DOM or import Lit (the worker loads them; `../workers/worker-imports.test.ts`).

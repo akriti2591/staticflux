@@ -388,7 +388,7 @@ describe('sf wasm build (CLI)', () => {
   it('the repo engine config builds render, authoring and export with SIMD', () => {
     const json = JSON.parse(readFileSync(new URL('../../../apps/instaflow/engine/sf-wasm.json', import.meta.url), 'utf8')) as unknown;
     const config = parseWasmConfig(json);
-    expect(config.ok && config.value.crates.map((c) => c.name)).toEqual(['render', 'authoring', 'authoring-text', 'authoring-text-complex', 'export']);
+    expect(config.ok && config.value.crates.map((c) => c.name)).toEqual(['render', 'authoring', 'authoring-text', 'authoring-text-complex', 'authoring-webfont', 'export']);
     expect(config.ok && wasmRustflags(config.value)).toBe('-C target-feature=+simd128');
   });
 });

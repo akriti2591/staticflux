@@ -119,6 +119,11 @@ wasm-opt and the flags; an unchanged hash skips the build. `--force` rebuilds.
 **No Rust installed:** the build is skipped with a warning (TypeScript-only work needs no Rust). CI sets
 `SF_REQUIRE_RUST=1`, which makes a missing toolchain or unbuilt artifact an error (SF-TOOL-008, SF-TOOL-010).
 
+**B12:** `render`: `Paint::ImageCrop` + `Crop` (`IMAGE_CROP`, tag 6) and `draw::image_transform` (turn, fit, scale, place;
+`Crop::DEFAULT` = B1's fit) for every backend and the exporters; `glyphs.rs` draws glyph 0 (`.notdef`) as a tofu box
+(`tofu_outline`) in every face, render and export alike. `authoring`: feature `webfont` (`webfont.rs`, `decode_webfont`, the
+`wuff` crate) built only into the lazy fourth artifact `authoring-webfont` (≤ 80 KB brotli, measured 77.2 KB).
+
 ## Rules
 - Toolchain pinned in `rust-toolchain.toml` (1.97.0 + `wasm32-unknown-unknown`). Change it in its own PR.
 - Dependencies are exact pins (`=x.y.z`) in `[workspace.dependencies]`; `Cargo.lock` is committed. CI builds with

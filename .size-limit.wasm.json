@@ -32,6 +32,14 @@
     "ratchet": false
   },
   {
+    "name": "Instaflow web font decoder Wasm: WOFF2 / WOFF uploads to OpenType (lazy, loaded only when a web font is added; B12 T-7; measured 77.2 KB)",
+    "category": "authoring-webfont-wasm",
+    "path": "apps/instaflow/engine/dist/authoring_webfont.*.wasm",
+    "compression": "brotli",
+    "limit": "80 KB",
+    "ratchet": false
+  },
+  {
     "name": "Instaflow export Wasm: SVG and PDF writers, rasterize-list plan (IF-15.1 export extras ≤ 400 KB; loaded only in the export worker, for SVG, PDF and selection exports; C1)",
     "category": "export-wasm",
     "path": "apps/instaflow/engine/dist/export.*.wasm",
