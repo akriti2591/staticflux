@@ -72,6 +72,13 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** Text fixes merged on the working branch (all pre-B12, reproduce on main): (1) first-key race since B9:
+  each key committed twice and the session pushed new text with the old caret; one state per key now; smoke's
+  `waitForFunction` with async checks never waited (fixed with `waitAsync`); (2) click/drag/Shift/Mod+A caret and
+  selection never built (B2/B8/B9): now wired and drawn; (3) text group lacked layer opacity, blend, effects (canvas
+  and all exports): fixed. Proposals needing a decision: P1 typing right after a caret move lands at the old caret
+  (protocol change), P2 text drawn outside the element tree (always on top, ignores parent opacity/clip). Budgets
+  tools 27.97/28, text 18.24/18.25 KB.
 - **2026-10-26** Caret/selection is a B8 integration gap: IF-21.10 engine support + `text-session.ts:77` place-caret API
   exist, but `app/text-editing.ts` never routes pointer clicks and Mod+A always hits the canvas select-all. Owner also:
   opacity has no effect on text (likely `text-scene.ts` group never gets layer opacity). Both added to the text agent.
