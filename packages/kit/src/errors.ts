@@ -33,3 +33,11 @@ export const InvalidNameError = defineError(
   'An inline edit was committed empty while a name is required, or longer than its maximum length.',
   'Type at least one non-space character (or set `required` to false), and stay within `maxlength`; Escape restores the previous name.',
 );
+
+/** A side of a size field is outside its limits (`<sf-size-field>`, R13.48). */
+export const SizeOutOfRangeError = defineError(
+  'SF-KIT-005',
+  'validation',
+  'A width or height typed into a size field is outside the field’s limits (`min`…`max` pixels).',
+  'Type a size between `details.min` and `details.max` pixels (the field converts mm, in and pt at 96 px per inch); larger pages do not fit this device’s canvas.',
+);

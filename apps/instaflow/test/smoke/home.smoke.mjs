@@ -114,16 +114,33 @@ async function scenario(page) {
   if (screenshot !== undefined) await page.screenshot({ path: `${screenshot}-home-empty.png`, fullPage: true });
 
   // ---------------------------------------------------------------- New design, from the keyboard
+  // B11b (HOME-FILES §1.3): the New design dialog — Custom, W × H typed, a name, Enter creates.
   await tabTo(page, (el) => el?.localName === 'sf-button' && /New design/.test(el.textContent ?? ''), 'New design');
   await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'New design' });
+  await dialog.waitFor({ timeout: 10_000 }).catch(() => fail('New design opened no dialog'));
+  const dialogIssues = await audit(page);
+  if (dialogIssues.length > 0) fail(`accessibility audit (New design dialog):\n${dialogIssues.join('\n')}`);
+  await dialog.getByRole('radio', { name: /^Custom/ }).click();
+  const width = dialog.getByRole('spinbutton', { name: 'Width' });
+  await width.fill('1500');
+  await width.press('Tab');
+  const height = dialog.getByRole('spinbutton', { name: 'Height' });
+  await height.fill('500');
+  await height.press('Tab');
+  const name = dialog.getByRole('textbox', { name: 'Name' });
+  await name.fill('Smoke banner');
+  await name.press('Enter');
   await page.waitForURL(/\/s\/as_[a-z0-9]+(\?|$)/, { timeout: 60_000 });
   await studioReady(page);
   const asset = new URL(page.url()).pathname.split('/').pop();
   const plan = await page.evaluate(() => window.__studio.workers.plan.topology);
   const empty = await inspect(page);
   if (empty.elements.length !== 0) fail(`a new design should be empty: ${JSON.stringify(empty.elements)}`);
+  const made = await page.evaluate(() => ({ page: window.__studio.scene.page, title: window.__studio.scene.title }));
+  if (made.page?.width !== 1500 || made.page?.height !== 500 || made.title !== 'Smoke banner') fail(`New design made ${JSON.stringify(made)} (want Smoke banner, 1500 × 500)`);
   const studioGpu = await page.evaluate(() => globalThis.__gpuRequests);
-  log(`New design (Enter on the focused button) → Studio on ${asset} (${plan}), empty document`);
+  log(`New design dialog (Custom 1500 × 500, "Smoke banner", Enter) → Studio on ${asset} (${plan}), empty document of that size`);
 
   // ---------------------------------------------------------------- draw one shape
   const surface = page.getByRole('application', { name: 'Canvas surface' });
@@ -146,7 +163,7 @@ async function scenario(page) {
   await page.waitForURL(`${origin}/`, { timeout: 30_000 });
   await homeReady(page);
   const recents = page.getByRole('region', { name: 'Jump back in' });
-  const tile = recents.getByRole('link', { name: /Untitled design/ });
+  const tile = recents.getByRole('link', { name: /Smoke banner/ });
   await tile.waitFor({ timeout: 10_000 });
   const listed = await page.evaluate(() => window.__home.model.recents().map((e) => e.asset));
   if (listed[0] !== asset) fail(`recents should start with ${asset}: ${JSON.stringify(listed)}`);

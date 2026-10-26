@@ -52,3 +52,10 @@ export const DesignOpenError = defineError(
   'Studio could not create or list the design it was asked to open (store, library or template).',
   'Read the cause and `details.step`; reload the page, or go back to Home and pick the design again.',
 );
+
+export const CustomSizeError = defineError(
+  'IF-POL-054',
+  'validation',
+  'New design was asked for a custom size without both a width and a height.',
+  'Pass `width` and `height` in px (1…16 384 each) with `format: "custom"`, or pick a format id (`post`, `story`, …) instead.',
+);

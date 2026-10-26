@@ -795,6 +795,23 @@
     "limit": "2.5 KB"
   },
   {
+    "name": "@staticflux/kit/size-field (<sf-size-field>: the size field pair of New design; with the number field, segmented, icon button; B11b)",
+    "path": "packages/kit/dist/size-field.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "9 KB"
+  },
+  {
     "name": "@staticflux/kit/command-palette",
     "path": "packages/kit/dist/command-palette.js",
     "ignore": [

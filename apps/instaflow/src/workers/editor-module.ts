@@ -195,7 +195,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
   if (!head.ok) return failed(SEED_DOCUMENT_STEP, head.error);
   let doc: OpenDocument;
   if (head.value === undefined && ref.create !== undefined) {
-    const created = await createStudioDocument({ repo }, { asset: ref.asset, title: ref.title, pages: ref.create.pages, ...(ref.create.size === undefined ? {} : { size: ref.create.size }), signal });
+    const created = await createStudioDocument({ repo }, { asset: ref.asset, title: ref.title, pages: ref.create.pages, ...(ref.create.size === undefined ? {} : { size: ref.create.size }), ...(ref.create.background === undefined ? {} : { background: ref.create.background }), signal });
     if (!created.ok) return failed('create document', created.error);
     doc = created.value;
   } else {

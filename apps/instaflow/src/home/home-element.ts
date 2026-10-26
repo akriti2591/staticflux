@@ -14,6 +14,10 @@ import type { Result, SfError } from '@staticflux/core';
 import { I18nToken, type MessageArgs, type MessageRef } from '@staticflux/i18n';
 import { defineButton } from '@staticflux/kit/button';
 import { defineCard } from '@staticflux/kit/card';
+import { chevronDownIcon } from '@staticflux/kit/icons/chevron-down';
+import { defineIconElement } from '@staticflux/kit/icon';
+import { defineIconButton } from '@staticflux/kit/icon-button';
+import { defineMenu } from '@staticflux/kit/menu';
 import { defineTag } from '@staticflux/kit/tag';
 import { component, defineComponent, SfElement } from '@staticflux/ui';
 import { themeTokens as t } from '@staticflux/ui/theme';
@@ -21,9 +25,10 @@ import { css, html, nothing, type TemplateResult } from 'lit';
 import type { LibraryAssetKind } from '../library/kinds.js';
 import { lensMarkStyle, lensOf, lenses, lensTag } from '../theme/lenses.js';
 import type { HomeActionOutput, HomeQuickAction } from './capabilities.js';
-import { aspectOf } from './formats.js';
+import { aspectOf, CUSTOM_FORMAT, DESIGN_FORMATS, type DesignFormatId, groupDigits, NEW_DESIGN_CHIPS } from './formats.js';
 import type { HomeEntry } from './index-record.js';
 import { homeMessages as m, homeText, relativeTime } from './messages.js';
+import { defineNewDesign, type IfNewDesignElement, type NewDesignCreateDetail } from './new-design.js';
 import { homeHref, newDesignHref } from './routes.js';
 import { HomeModelToken } from './tokens.js';
 
@@ -84,8 +89,25 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
       outline: 2px solid ${t.color.focusRing.css};
       outline-offset: 2px;
     }
-    .top sf-button {
+    .new {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
       margin-inline-start: auto;
+    }
+    .formats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: ${t.space.sm.css};
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .formats sf-button .size {
+      font-family: ${t.font.familyMono.css};
+      color: ${t.color.textMuted.css};
+      font-size: ${t.type.sizeXs.css};
     }
     main {
       display: flex;
@@ -307,7 +329,15 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     const home = homeHref();
     return html`<header class="top">
         <a class="brand" href=${home.ok ? home.value : nothing} aria-current="page" aria-label=${this.text(m.home)}>${logo()}<span aria-hidden="true">instaflow</span></a>
-        <sf-button variant="primary" @click=${() => void this.run(() => model.newDesign(), this.text(m.newDesign))}>＋ ${this.text(m.newDesign)}</sf-button>
+        <div class="new" role="group" aria-label=${this.text(m.newDesign)}>
+          <sf-button class="new-design" variant="primary" @click=${() => void this.openNewDesign()}>＋ ${this.text(m.newDesign)}</sf-button>
+          <sf-menu label=${this.text(m.newFormats)} align="end" @sf-select=${(e: CustomEvent<{ value: string }>) => this.onFormatMenu(e.detail.value)}>
+            <sf-icon-button slot="trigger" variant="primary" label=${this.text(m.newFormats)}><sf-icon .icon=${chevronDownIcon} size="16"></sf-icon></sf-icon-button>
+            ${NEW_DESIGN_CHIPS.map((id) => html`<sf-menu-item value=${id}>${DESIGN_FORMATS[id].title} · ${groupDigits(DESIGN_FORMATS[id].size.width)} × ${groupDigits(DESIGN_FORMATS[id].size.height)}</sf-menu-item>`)}
+            <div role="separator"></div>
+            <sf-menu-item value=${CUSTOM_FORMAT}>${this.text(m.customSize)}</sf-menu-item>
+          </sf-menu>
+        </div>
       </header>
       <main aria-busy=${state === 'loading' ? 'true' : 'false'}>
         <section class="hero" aria-labelledby="hero">
@@ -315,6 +345,17 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
             ${this.text(m.heroBefore)} <span class="bold">${this.text(m.heroBold)}</span> ${this.text(m.heroAfter)}
           </h1>
           <p class="lead">${this.text(m.heroLead)}</p>
+          <ul class="formats" role="list" aria-label=${this.text(m.formats)}>
+            ${NEW_DESIGN_CHIPS.map(
+              (id) => html`<li>
+                <sf-button variant="secondary" data-format=${id} @click=${() => void this.run(() => model.newDesign(id), DESIGN_FORMATS[id].title)}>
+                  <span aria-hidden="true" style=${lensMarkStyle(lensOf(DESIGN_FORMATS[id].lens), 1)}></span>
+                  ${DESIGN_FORMATS[id].title} <span class="size">${groupDigits(DESIGN_FORMATS[id].size.width)} × ${groupDigits(DESIGN_FORMATS[id].size.height)}</span>
+                </sf-button>
+              </li>`,
+            )}
+            <li><sf-button variant="secondary" data-format=${CUSTOM_FORMAT} @click=${() => void this.openNewDesign(CUSTOM_FORMAT, 'width')}>${this.text(m.customSizeShort)}</sf-button></li>
+          </ul>
         </section>
         ${state === 'failed' ? this.renderProblem() : nothing}
         ${this.renderQuick(model.quickActions)}
@@ -323,7 +364,24 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
         ${this.renderFiles(model.files())}
         ${state === 'loading' ? html`<p class="empty" role="status">${this.text(m.loading)}</p>` : nothing}
       </main>
+      <if-new-design .templates=${model.templates()} .last=${model.recents()[0]?.format} @if-create=${(e: CustomEvent<NewDesignCreateDetail>) => void this.onCreate(e.detail)}></if-new-design>
       <div class="sr-only" role="status" aria-live="polite">${this.announcement}</div>`;
+  }
+
+  /** The New design dialog (HOME-FILES §1.3): on the remembered choice, or a format; Custom size… focuses W. */
+  async openNewDesign(format?: DesignFormatId | typeof CUSTOM_FORMAT, focus?: 'width'): Promise<void> {
+    await this.updateComplete;
+    await this.renderRoot.querySelector<IfNewDesignElement>('if-new-design')?.show({ ...(format === undefined ? {} : { format }), ...(focus === undefined ? {} : { focus }) });
+  }
+
+  private onFormatMenu(value: string): void {
+    if (value === CUSTOM_FORMAT) void this.openNewDesign(CUSTOM_FORMAT, 'width');
+    else if ((NEW_DESIGN_CHIPS as readonly string[]).includes(value)) void this.run(() => this.deps.model.newDesign(value as DesignFormatId), DESIGN_FORMATS[value as DesignFormatId].title);
+  }
+
+  private onCreate(detail: NewDesignCreateDetail): Promise<void> {
+    const model = this.deps.model;
+    return detail.kind === 'template' ? this.run(() => model.useTemplate(detail.template, detail.name), detail.name) : this.run(() => model.newDesign(detail.input), detail.input.name ?? this.text(m.newDesign));
   }
 
   private renderProblem(): TemplateResult {
@@ -450,6 +508,10 @@ export function defineHome(registry: CustomElementRegistry = customElements): vo
   defineButton(registry);
   defineCard(registry);
   defineTag(registry);
+  defineIconElement(registry);
+  defineIconButton(registry);
+  defineMenu(registry);
+  defineNewDesign(registry);
   if (registry.get(homeSpec.tag) === undefined) defineComponent(IfHomeElement, registry);
 }
 
