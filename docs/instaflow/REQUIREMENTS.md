@@ -1499,3 +1499,67 @@ DENSITY-DISCLOSURE §2, §6). Framework pieces R13.36–R13.45; IF-35.30–35.32
   collapsed, `More ▾` rows a count, and Pro everything open (`pinned`).
 - **IF-35.32** Every B11a2 block passes the full audit under Clean Pop in the states people meet (open, submenu, filtered, held
   changes, refused copy) and the colours they add keep AA contrast; `chrome.test.ts` pins the list.
+
+## 37. Engine gaps for B11b (M1c B12)
+
+The engine and model pieces the text and appearance specs marked (c) for M1 (TEXT-FONTS-UX-SPEC §11.2 T-1–T-9,
+APPEARANCE-TRANSFORM-UX-SPEC §10.2 A-1–A-3 and the missing structure actions of §0/§4), so B11b builds every control against
+real behaviour. Code: `apps/instaflow/src/elements` (`actions.ts`, `capabilities.ts`, `components.ts`, `layout.ts`,
+`projection.ts`, `resolve.ts`, `values.ts`, `inspector.ts`, `scene.ts`), `apps/instaflow/src/text` (`text-session.ts`, `model.ts`,
+`rich-text.ts`, `text-style.ts`, `text-scene.ts`, `fonts.ts`, `authoring-module.ts`), `apps/instaflow/src/app` (`text-layer.ts`,
+`text-editing.ts`, `canvas-tab.ts`), `apps/instaflow/src/export` (`scene.ts`, `job.ts`), `apps/instaflow/src/tools/hit-test.ts`,
+`apps/instaflow/src/a11y/projection.ts`, `apps/instaflow/src/render/scene-ir.ts` and the engine (`crates/render` `ir.rs`,
+`draw.rs`, `glyphs.rs`; `crates/authoring` `webfont.rs`). Error codes `IF-FIX-001…002`. Lifecycle: LIFECYCLES §39.
+
+- **IF-37.1** **Group** (`instaflow/group`, Mod+G): sibling elements are wrapped in a plain `group` named `Group` at the top-most
+  one's place in paint order; nothing moves on the page; one change set. Elements of different parents are refused (IF-EL-004).
+- **IF-37.2** **Ungroup / Unframe** (`instaflow/ungroup`, Mod+Shift+G): each group or frame puts its children back in its place
+  (page position and paint order kept) and goes; a boolean is released the same way, and a mask inside a mask group is released
+  with it (it would otherwise start masking the parent's later siblings). One change set.
+- **IF-37.3** **Frame selection** (`instaflow/frame-selection`, Mod+Alt+G): sibling elements are wrapped in a `frame` sized to their
+  exact union in the parent's space plus an optional `padding`, clip on, no fill, named `Frame`; nothing moves on the page.
+- **IF-37.4** **Reorder** (`instaflow/bring-forward` Mod+], `send-backward` Mod+[, `bring-to-front` Mod+Alt+], `send-to-back`
+  Mod+Alt+[): within each parent; the selected keep their relative order; a step moves past the next unselected sibling;
+  nothing to move is not applicable (no empty undo step).
+- **IF-37.5** **Rename** (`instaflow/rename`, Mod+Shift+R): one element; the name is trimmed; empty or longer than 200 characters
+  is refused (IF-FIX-001).
+- **IF-37.6** Every structure action is one change set = one undo step, runs through the element capability seam (validated,
+  attributed, locks checked) and is placed in Studio's selection HUD (`more`); actions that create or release containers name
+  what to select afterwards (`select` in the capability output). The spec's HUD limit is 64 actions.
+- **IF-37.7** **Page fill stack** (A-1, owner Q1): the page node carries `style.fills` (the element fill stack: colour, gradients,
+  image, several rows with opacity and blend). No fills written means one white row; an empty list means no background. Strokes
+  and effects on a page are never drawn. `pageAppearanceModel` gives the Page section the same appearance edits as elements.
+- **IF-37.8** The render projection draws the page fill as the first node of the page's scene (`pageFill: true`): the canvas,
+  PNG, SVG and PDF draw it from the same scene (D21 parity); Export's `transparent` leaves it out; it is never hit, snapped to or
+  selected.
+- **IF-37.9** **Hidden elements** (A-2): `spatial.hidden` on an element hides it and everything inside it from the canvas, every
+  export, hit tests and marquees, snapping guides, its group's bounds, masking (a hidden mask masks nothing) and the
+  accessibility tree. `instaflow/hide` (Mod+Shift+H; `hidden` omitted toggles) and `instaflow/show-all`.
+- **IF-37.10** **Image fill crop** (A-3): an image paint carries `offset` ([x, y] 0…1 of the free space, 0.5 centred), `scale`
+  (× the fit, 1 %…10 000 %) and `rotation` (0 · 90 · 180 · 270, clockwise); the default draws exactly B1's fit.
+  `instaflow/image-crop` writes any subset on the top-most image fill (one change set), `instaflow/image-crop-reset` removes it.
+- **IF-37.11** The crop travels as the scene IR `IMAGE_CROP` paint (tag 6; plain images keep tag 4, so earlier scenes are
+  byte-identical) and is drawn by the shared draw traversal, so the GPU, the CPU reference, SVG and PDF place the picture alike
+  (`crops` fixture, byte-identical TS and Rust writers).
+- **IF-37.12** **Fixed text boxes** (T-1): a `fixed` box wraps at its width, keeps its height whatever the text, and sits at
+  `text.verticalAlign` (top · middle · bottom); text taller than the box starts at the top and overflows below, never clipped by
+  its own box; `overflowLines` counts the lines that do not fit (the `⤓ n` tag). The editing host covers the box.
+- **IF-37.13** **Undo coalescing while typing** (T-2, TEXT §3.6): consecutive typed characters in one element are one undo step
+  until a 1 s pause, a caret move, a style change, a paragraph break, a paste or an outside change (undo, a collaborator);
+  deletes from a caret coalesce the same way, separately from typing; paste, Enter, line breaks and Tab are their own steps.
+- **IF-37.14** **Platform caret keys** (T-3): on Mac ⌥←/→ move by word and ⌘←/→ to the line start / end; elsewhere Ctrl←/→ move by
+  word; Home / End and Mod+Home / End as before.
+- **IF-37.15** **Missing glyphs** (T-4): a character no font covers is drawn as a tofu box (a hollow rectangle 0.7 em tall in the
+  glyph's advance) on the canvas and in every export, whatever the font's own `.notdef`.
+- **IF-37.16** `missingGlyphs(layout)` counts the characters drawn as tofu (the `▯ n` marker of TEXT §3.9).
+- **IF-37.17** **Subscript and superscript** (T-5): the `script` mark (`sub` | `super`) lays the run out at 65 % of its size and
+  draws it 0.35 em above (super) or 0.15 em below (sub) the baseline; marks extend while typing like other styles.
+- **IF-37.18** **Soft line break** (T-6): Shift+Enter inserts U+2028, a new line inside the same paragraph (same paragraph style).
+- **IF-37.19** **Tab** (T-8, owner Q1): in a list paragraph Tab indents and Shift+Tab outdents (`p.level` 0…8, one step); anywhere
+  else Tab does nothing; it never leaves editing. Levels are drawn with list markers (T-10, M2).
+- **IF-37.20** **IME** (T-9): while a composition is open, key intents reaching the session are ignored (the IME owns the keys), so
+  nothing splits, moves or commits under a composition and the control bounds stay the committed block's.
+- **IF-37.21** **Web fonts** (T-7): WOFF2 and WOFF uploads are decoded to OpenType before they are hashed, stored and registered;
+  a damaged file or a decoder that cannot load is reported (IF-FIX-002), never stored.
+- **IF-37.22** The decoder is the lazy `authoring-webfont` Wasm (≤ 80 KB brotli, measured 77.2 KB), fetched only on the first web
+  font; the text Wasm's budget is unchanged.

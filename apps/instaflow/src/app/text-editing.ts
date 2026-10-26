@@ -86,13 +86,16 @@ export function startTextEditing(options: TextEditingOptions): Result<TextEditin
   const label = typeof name === 'string' && name.length > 0 ? name : 'Text';
   const input = options.host.open(node, label);
   if (!input.ok) return input;
-  const laidOut = (): TextLayout | undefined => {
+  // The committed block's size, measured at start and after each commit only: laying the block out again at any other
+  // time would replace the session's composition preview in the engine (same block id) and lose its character bounds.
+  let blockSize: Pick<TextLayout, 'width' | 'height'> | undefined;
+  const measure = (): void => {
     const laid = layer.layout(node);
-    return laid.ok ? laid.value : undefined;
+    if (laid.ok) blockSize = { width: laid.value.width, height: laid.value.height };
   };
-  const toSurface = (r: Rect): ClientRect => textToSurface(document, node, options.camera(), laidOut())(r);
+  const toSurface = (r: Rect): ClientRect => textToSurface(document, node, options.camera(), blockSize)(r);
   const placeHost = (): void => {
-    const laid = laidOut();
+    const laid = blockSize;
     if (laid === undefined) return;
     // The host covers the editable area: the box of a fixed text (B12 T-1), else the laid-out block.
     const h = document.view.value(node, P.h);
@@ -135,6 +138,7 @@ export function startTextEditing(options: TextEditingOptions): Result<TextEditin
         if (!committed.ok) return committed;
         const laid = layer.layout(node);
         if (!laid.ok) return ok();
+        blockSize = { width: laid.value.width, height: laid.value.height };
         const sized = document.commitOps(page, options.actor(), label, textBoxOps(document, node, laid.value), { changeSet });
         placeHost();
         return sized;
@@ -156,6 +160,7 @@ export function startTextEditing(options: TextEditingOptions): Result<TextEditin
       else session?.refresh();
     }
   });
+  measure();
   placeHost();
   input.value.focus();
   const editing: TextEditing = { node, session, input: input.value, place: placeHost, stop: () => stop() };
