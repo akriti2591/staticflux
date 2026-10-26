@@ -18,7 +18,7 @@ import type { PartOp } from '@staticflux/document/v2';
 import type { ClientRect, TextInput, TextIntent, TextKey } from '@staticflux/surface/text-input';
 import type { TextLayout } from './layout-result.js';
 import type { CharStyle } from './model.js';
-import { deleteTextOps, insertTextOps, previewReplace, replaceTextOps, splitParagraphOps, type TextBlockModel } from './rich-text.js';
+import { deleteTextOps, insertTextOps, listIndentOps, previewReplace, replaceTextOps, splitParagraphOps, type TextBlockModel } from './rich-text.js';
 import type { CaretMotionName, CaretPosition, Rect, TextLayoutEngine } from './text-engine.js';
 
 export interface TextSessionTarget {
@@ -51,7 +51,7 @@ export interface TextSessionOptions {
   readonly now?: () => number;
   /**
    * Indent (+1) or outdent (-1) the list paragraphs touching `[from, to]` (T-8): the ops of one step, or
-   * `undefined` when the caret is not in a list (Tab then does nothing: TEXT Q1, it never leaves editing).
+   * `undefined` when the caret is not in a list (Tab then does nothing: TEXT Q1, it never leaves editing). Default `listIndentOps`.
    */
   readonly indent?: (model: TextBlockModel, from: number, to: number, delta: 1 | -1) => Result<PartOp[]> | undefined;
 }
@@ -217,7 +217,7 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
     // T-8 / TEXT Q1: Tab indents a list paragraph (Shift+Tab outdents); anywhere else it does nothing.
     Tab: (shift) => {
       const [a, b] = ordered();
-      const ops = options.indent?.(model, a, b, shift ? -1 : 1);
+      const ops = (options.indent ?? listIndentOps)(model, a, b, shift ? -1 : 1);
       if (ops === undefined) return;
       const keep = [anchor, focus] as const;
       commit(ops, shift ? LABELS.outdent : LABELS.indent, a);
@@ -311,6 +311,10 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
         moveFocus({ offset: intent.selection[1], upstream: false }, true);
         return;
       case 'key':
+        // B12 T-9: while a composition is open the IME owns the keys (candidate arrows, Enter to accept, Tab); a key
+        // intent that slips through must not split, move or commit, or the control bounds and the text change under
+        // the composition (owner's IME check, finding 2: one line more per key intent).
+        if (composition !== undefined) return;
         KEYS[intent.key]?.(intent.shift, intent.mod, intent.alt);
         return;
       case 'format':

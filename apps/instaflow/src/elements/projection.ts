@@ -23,6 +23,7 @@ import type { GeometryService, PathData } from './geometry.js';
 import { type ElementContext, isElement, localOutline, strokeRing } from './layout.js';
 import type { ResolvedEffect, ResolvedElement, ResolvedFill, ResolvedStroke } from './resolve.js';
 import { resolveComposed, resolveElement } from './resolve.js';
+import { pageFills } from './values.js';
 
 export const ELEMENT_PROJECTION_KINDS = ['frame', 'group', 'shape', 'vector', 'image'] as const;
 
@@ -208,18 +209,11 @@ export interface ElementRenderSourceOptions extends ElementContext {
   readonly pageFill?: boolean;
 }
 
-/** The page's fills when it has none written (APPEARANCE §2.8: one white row). */
-export const PAGE_FILL_DEFAULT: readonly JsonValue[] = Object.freeze([Object.freeze({ paint: '#ffffff' })]);
+export { PAGE_FILL_DEFAULT, pageFills } from './values.js';
 /** Node id of a page's fill in the render projection (never a document id: `#` is not in document ids). */
 export const pageFillId = (page: NodeId): NodeId => `${page}#fill`;
 /** Order key of the page fill: sorts before every fractional order key, so it draws first. */
 const PAGE_FILL_ORDER = '';
-
-/** Raw page fills as written (tokens kept), with the default when the page has none (the Page section's model). */
-export function pageFills(stage: Pick<Stage, 'value'>, page: NodeId): readonly JsonValue[] {
-  const raw = stage.value(page, P.fills);
-  return Array.isArray(raw) ? raw : PAGE_FILL_DEFAULT;
-}
 
 /** The page's size (`page.size`), else its spatial box. */
 export function pageBox(stage: Pick<Stage, 'value'>, page: NodeId): { readonly width: number; readonly height: number } {

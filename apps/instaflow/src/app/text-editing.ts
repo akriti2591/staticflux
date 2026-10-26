@@ -19,7 +19,7 @@ import type { NodeId } from '@staticflux/document/v2';
 import { type Actor, newTransactionId } from '@staticflux/stage';
 import type { ClientRect, TextInput } from '@staticflux/surface/text-input';
 import { pageTransform } from '../elements/layout.js';
-import { listIndentOps, readTextBlock } from '../text/rich-text.js';
+import { readTextBlock } from '../text/rich-text.js';
 import { createTextSession, type TextSession } from '../text/text-session.js';
 import type { Rect } from '../text/text-engine.js';
 import type { Camera } from '../tools/view-state.js';
@@ -142,7 +142,6 @@ export function startTextEditing(options: TextEditingOptions): Result<TextEditin
     },
     onExit: (reason) => stop(reason),
     isMac: options.isMac === true,
-    indent: (model, from, to, delta) => listIndentOps(model, from, to, delta),
     ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
   });
   if (!created.ok) {

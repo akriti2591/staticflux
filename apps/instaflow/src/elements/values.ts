@@ -265,3 +265,12 @@ export function validateElementOps(ops: readonly PartOp[]): Result<void> {
   }
   return ok();
 }
+
+/** The page's fills when it has none written (B12 A-1, APPEARANCE §2.8: one white row). */
+export const PAGE_FILL_DEFAULT: readonly JsonValue[] = Object.freeze([Object.freeze({ paint: '#ffffff' })]);
+
+/** Raw page fills as written (tokens kept), with the default when the page has none (the Page section's model). */
+export function pageFills(stage: { value(node: string, path: string): JsonValue | undefined }, page: string): readonly JsonValue[] {
+  const raw = stage.value(page, P.fills);
+  return Array.isArray(raw) ? raw : PAGE_FILL_DEFAULT;
+}

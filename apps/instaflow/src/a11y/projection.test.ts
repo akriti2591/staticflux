@@ -202,4 +202,14 @@ describe.skipIf(!authoringBuilt)('canvas projection', () => {
     const missing = projectCanvas({ ...f.tools, view: createViewState({ tab: 'x', root: 'nope' }) });
     expect(!missing.ok && missing.error.code).toBe('IF-A11Y-001');
   });
+
+  it('does not announce hidden elements or anything inside them (B12, A-2)', async () => {
+    const f = await createToolFixture([sq('a', 0, 0), sq('g', 0, 0, {}, 'p1', 'group'), sq('b', 100, 0, {}, 'g'), sq('c', 200, 0)]);
+    expect(unwrap(projectCanvas(f.tools)).ids).toEqual(['a', 'g', 'b', 'c']);
+    f.seed([
+      { op: 'set', node: 'a', path: P.hidden, value: true },
+      { op: 'set', node: 'g', path: P.hidden, value: true },
+    ]);
+    expect(unwrap(projectCanvas(f.tools)).ids).toEqual(['c']);
+  });
 });
