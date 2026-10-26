@@ -50,6 +50,8 @@ units.push(...a11yContributionUnits({ canvas: () => a11y }));
 // split topology: createCanvasProjector in the editor worker → post snapshots → mountCanvasA11y(...).apply on main
 ```
 
+**B12:** hidden elements and their subtrees get no accessible node.
+
 ## Rules
 - No branch on mode, lens or kind in code paths: roles, shapes, repeat kinds and semantic roles are table rows.
 - Derived repeat instances never get nodes; map any view id through `sourceOf` before using it as a DOM id.

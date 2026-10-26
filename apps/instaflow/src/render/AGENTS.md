@@ -42,6 +42,10 @@ await renderer.warmUp(signal);                                              // i
 renderer.apply(createSceneWriter()....finish());                            // from the delta stream (A7)
 ```
 
+**B12:** `scene-ir.ts` image paints take an optional `crop` (`ImageCrop`: `x`, `y`, `scale`, `quarter`), written as the
+`IMAGE_CROP` paint (tag 6, `crates/render/src/ir.rs` `Paint::ImageCrop` / `Crop`); paints without a crop keep tag 4, so earlier
+batches are byte-identical. Shared fixture `crops` (`engine/crates/render/fixtures/crops.sfir`, `.cpu.png`).
+
 ## Rules
 - Policy never lives here: no tile choice, budgets or retries in this folder (they belong to the framework port).
 - The scene IR is a wire format: change `ir.rs` and `scene-ir.ts` together, bump `SCENE_IR_VERSION`/`ir::VERSION`,

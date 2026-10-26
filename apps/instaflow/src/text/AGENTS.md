@@ -78,6 +78,14 @@ const input = (await injector.get(TextInputFactoryToken)).value.create({ host: c
 createTextSession({ input, target: { read, commit }, engine, blockId, layout: relayout, toClient });
 ```
 
+**B12 (IF-37.12–37.22):** `text-session.ts`: typing and deleting coalesce into one undo step per run (`TYPING_PAUSE_MS`; the
+target's `commit(ops, label, step?)` gets the run's key), `caretMotionFor` + `isMac` (Mac word / line keys), Shift+Enter
+inserts `LINE_SEPARATOR` (U+2028), Tab indents lists (`indent`, default `listIndentOps`) and never leaves editing, key intents
+are ignored during a composition. `model.ts`: the `script` mark (`SCRIPTS`), `p.level` (`LIST_MAX_LEVEL`). `text-style.ts`:
+`scriptMetrics` / `SCRIPT_METRICS` (brush `shift`), `verticalAlignOffset`, `overflowLines`. `text-scene.ts`: runs move by their
+brush shift; `missingGlyphs` / `NOTDEF_GLYPH` (drawn as tofu by the render crate). `fonts.ts`: `webFontKind`, `webfontDecoder`,
+the `decodeWebfont` option (WOFF2 / WOFF → OpenType, IF-FIX-002). `authoring-module.ts`: `loadWebfontModule`, `WebfontWasm`.
+
 ## Rules
 - UTF-16 offsets everywhere; block text = content without its final `\n`; never delete the final break (TXT-1).
 - Compositions are previews until commit (TXT-2); collapsed deletes are expanded by the layout (TXT-3).

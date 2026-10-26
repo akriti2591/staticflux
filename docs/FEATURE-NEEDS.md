@@ -439,3 +439,15 @@ Consumer: `apps/instaflow/src/export` (service, capability, panel, the export wo
 - "The export panel is keyboard-first under Clean Pop" → `@staticflux/kit` segmented control, button (`pressed`), inspector group,
   status (polite live region).
 - "The job's steps are a checked state machine" → `@staticflux/core` `defineMachine`, scopes, `AbortedError`.
+
+### Engine gaps for B11b (Instaflow M1c · B12)
+Consumer: `apps/instaflow/src/elements`, `src/text`, `src/app`, `src/export`, `src/tools`, `src/a11y`, `src/render` and the engine crates.
+No new framework API and no new R-ID: B12 composes what B1, B2, B3, B6 and C1 already use.
+- "Group, order, rename and hide are one undo step each and agents can call them" → `@staticflux/stage` change sets through the undo
+  service and `@staticflux/capabilities` declarations (`s.object` input with optional fields, an optional `select` output).
+- "Typing a word is one undo step" → the undo service's `changeSet` grouping (`@staticflux/stage`), one key per typing run.
+- "Mac word and line jumps" → the platform fact already on the shortcut registry (`isMac`), passed to the session as data.
+- "A WOFF2 font just works, without growing the text engine" → a lazy Wasm artifact in `sf-wasm.json` with its own budget
+  (`/.size-limit.wasm.json`), loaded through the app's manifest loader.
+- "The page background is a fill stack that exports exactly as drawn" → the A7 render projection (`defineRenderProjection`) with one
+  more record, and the shared draw traversal of the render crate for PNG, SVG and PDF (D21).
