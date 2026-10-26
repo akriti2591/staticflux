@@ -28,7 +28,8 @@ Editor side (imported by the worker; DOM-free, Lit-free):
   `createStudioDocument`, **`openStudioDocument`** (one stage, session layer, undo service and B7 repeat view over every page
   part), `freshPeer`, `STUDIO_BRAND`.
 - `fonts.ts` — `createStudioFonts`, `STUDIO_SCRIPT_FALLBACKS`, `STUDIO_TEXT_DEFAULTS`.
-- `text-layer.ts` — `createTextLayer`, `textBoxOps`, `StudioFonts`.
+- `text-layer.ts` — `createTextLayer` (B12b: `sceneParent` required), `projectedSceneId(projector)`, `textBoxOps`,
+  `textBlockTransform`, `textLocalOffset`, `StudioFonts`.
 - `text-editing.ts` — `startTextEditing` over a **`TextHostPort`** (`open`, `place`, `close`; rects in surface px),
   `textToSurface`, `TextExitReason`.
 - `creation.ts` — `CREATION_TOOLS`, `createCreationController`, `dragBox`, machine `CreateGestureLifecycle`.
@@ -57,11 +58,15 @@ Main side:
 - `feedback.ts` (B11a2, main side) — `feedbackFor(error, origin, copy?)` (level by origin refined by `FAMILY_LEVELS`; Instaflow words per error
   definition; never the code), `ToastsToken` / `createToasts(manager, owner)` (`show`, `undoable` → `Restored`, `error`, `undoNewest` for Home's
   `Mod+Z`), `INSTAFLOW_SURFACE_UNITS` (messaging under `strictSurfacePolicy`). B11b binds the units and the token.
-- `test-helpers.ts` (test-only) — `createStudioFixture`, `scriptedTextInput`, `lendDom`, `manualTimers`.
+- `test-helpers.ts` (test-only) — `createStudioFixture`, `scriptedTextInput`, `lendDom`, `manualTimers`, `textPortRig` (the
+  TextInput port with both queues held by the test).
 
 **B12:** `text-layer.ts` `textBlockTransform` (a fixed box's vertical alignment) places text groups; hidden text is not drawn.
 `text-editing.ts`: one change set per typing run (the session's step key), `isMac`, and the host uses the committed block's
 size (never re-lays out mid-composition). `canvas-tab.ts` projects the page fill (`pageFill: true`) and passes `isMac`.
+
+**B12b P2:** text is a node of the element projection; the text layer draws each glyph group under its element's scene node
+(`sceneParent: projectedSceneId(projector)`, in local space), so tree order, clips, masks and parents' looks apply to text.
 
 ## Rules
 - No feature logic here: if a fix belongs to a feature, make it there (and note it in the handoff).

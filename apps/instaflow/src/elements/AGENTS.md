@@ -75,7 +75,8 @@ inside), `frameSelection` (exact union, optional padding, clip on, no fill), `re
 capability (`instaflow/group`, `ungroup`, `frame-selection`, `bring-forward`, `send-backward`, `bring-to-front`,
 `send-to-back`, `rename`, `hide`, `show-all`, `image-crop`, `image-crop-reset`) whose output may name `select`.
 `components.ts`: `spatial.hidden` (`P.hidden`); `layout.ts`: `isHidden`, hidden children leave group bounds, hits, guides and
-masks; `projection.ts`: hidden subtrees are not projected, `pageFill: true` projects the page's `style.fills` as the first
+masks; `projection.ts`: hidden subtrees are not projected (B12b: `text` is a projection kind, drawn as a group the text layer
+fills with glyphs; projection version 2), `pageFill: true` projects the page's `style.fills` as the first
 node (`pageFillId`, `pageBox`, `PAGE_FILL_DEFAULT` / `pageFills` from `values.ts`); `inspector.ts`: `pageAppearanceModel`;
 `values.ts` / `resolve.ts` / `scene.ts`: image paints carry `offset`, `scale`, `rotation` (`cropOf`, `ResolvedCrop`) and
 encode as the scene IR's `IMAGE_CROP` paint.

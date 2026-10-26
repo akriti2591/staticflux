@@ -1563,3 +1563,33 @@ real behaviour. Code: `apps/instaflow/src/elements` (`actions.ts`, `capabilities
   a damaged file or a decoder that cannot load is reported (IF-FIX-002), never stored.
 - **IF-37.22** The decoder is the lazy `authoring-webfont` Wasm (≤ 80 KB brotli, measured 77.2 KB), fetched only on the first web
   font; the text Wasm's budget is unchanged.
+
+**B12b (owner-approved proposals P1 and P2 of FIX-TEXT-FIRST-KEY).** Code: `apps/instaflow/src/workers/text-port.ts` (P1);
+`apps/instaflow/src/elements/projection.ts`, `src/app/text-layer.ts`, `src/text/text-scene.ts`, `src/export/scene.ts`,
+`src/app/canvas-tab.ts` and `crates/render` `ir.rs` (P2). No error codes, no framework API. Lifecycle: LIFECYCLES §39 (ENG-9…11).
+
+- **IF-37.23** **Text state versions** (P1): every `state` the editor posts across the TextInput port carries a version (1, 2, …);
+  main records the version of the last state it applied (0: none, the empty initial state) and stamps every intent with it (`base`).
+- **IF-37.24** **Rebasing** (`rebaseIntent`): the editor rebuilds what main's platform input held when it produced an intent (the
+  state `base` plus main's own local edits since: EditContext applies inserts, deletes and compositions itself, the hidden textarea
+  only compositions) and compares it with its current state. When they differ (the editor moved the caret by End, Home, a click,
+  a drag or Shift+arrows, or a remote edit landed, within one round trip), an insert, a composition start or a delete **at main's
+  caret** goes to the editor's selection (a delete there removes the selection, or expands from the caret by grapheme, or by word for
+  a longer EditContext range); any other range maps through the text change. The next state resyncs main as before.
+- **IF-37.25** No typed character or composition is lost or misplaced after a caret move in either topology; undo coalescing (IF-37.13)
+  is unchanged (a rebased key lands at the run's end); two keys typed into the hidden textarea before its first state land in order.
+- **IF-37.26** A rebased composition keeps its character bounds in main's offsets: bounds requests and pushes cross shifted by the
+  distance between main's composition start and the editor's, until the composition ends.
+- **IF-37.27** **Text in the element tree** (P2): `text` is a kind of the element render projection, drawn as a group (its transform,
+  opacity, blend, effects, mask, order key and parent; no fills or strokes of its own: the glyph runs carry their colours).
+- **IF-37.28** The text layer puts each text element's glyph group under that element's scene node (`sceneParent`, B1's scene id of its
+  projection slot) in the element's local space (only the fixed box's vertical-align offset). Paint order, parents' opacity, blend
+  and effects, frame clips, masks (text masked, and text as the mask), `hidden` and reorder actions apply to text exactly as to
+  shapes. A text element the projection does not draw (hidden, a boolean operand) draws no glyphs; when its node changes (shown again
+  under a new slot) its glyphs are drawn under the new one.
+- **IF-37.29** Canvas, PNG, SVG and PDF draw one scene (D21): the canvas's scene after its records equals the export scene of the same
+  page; the hit test's paint order (tree order, frame clips) is the drawn one. Selection exports name a node's own scene node, which
+  draws its text.
+- **IF-37.30** The scene IR drops an `UPSERT` naming a parent the scene does not hold, as it drops a `REMOVE` of an unknown id (a text
+  element edited and then deleted within one render frame: the element batch has already removed its node); a node that would
+  become its own ancestor still fails the batch.

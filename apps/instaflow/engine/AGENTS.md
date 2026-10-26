@@ -56,7 +56,8 @@ each in its own cargo invocation (`--no-default-features --features …`) so fea
 - Test fonts: `apps/instaflow/test/fonts` (OFL subsets, README there).
 
 ## `crates/render` (A6; IF-7.4, 7.5, 7.10, 7.11)
-- `ir.rs` — scene IR wire format **v4** (C1: glyph runs carry their UTF-8 text; v3, B2: `FONT` / `DROP_FONT` ops — font bytes retained once per sha-256, aliases
+- `ir.rs` — (B12b: an `UPSERT` under a parent the scene does not hold is dropped, like a `REMOVE` of an unknown id; cycles still
+  fail) scene IR wire format **v4** (C1: glyph runs carry their UTF-8 text; v3, B2: `FONT` / `DROP_FONT` ops — font bytes retained once per sha-256, aliases
   without bytes, released when unreferenced — and glyph runs with synthetic bold, skew and variation coordinates; v2, B1: fill and stroke stacks with opacity and blend, conic gradients, dashes and
   ring strokes, per-corner rects, image fit, even-odd, effects — drop / inner shadow, layer and background blur — and
   masks: clip, alpha, luminance, invert; grammar in the module docs; the TypeScript writer is
