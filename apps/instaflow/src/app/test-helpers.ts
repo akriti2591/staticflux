@@ -164,7 +164,7 @@ export async function textPortRig(): Promise<TextPortRig> {
   const surface = dom.document.createElement('div');
   dom.document.body.append(surface);
   unwrap(f.document.commitOps('p1', person, 'Add text', unwrap(placeTextOps({ node: 't', parent: 'p1', x: 100, y: 50 }))));
-  const layer = createTextLayer({ document: f.document, page: 'p1', fonts: f.fonts, scope: f.scope });
+  const layer = createTextLayer({ document: f.document, page: 'p1', fonts: f.fonts, scope: f.scope, sceneParent: () => 2 });
   const toMain: TextHostCommand[] = [];
   const toEditor: TextHostEvent[] = [];
   let ec: FakeEditContext | undefined;

@@ -13,7 +13,7 @@ describe.skipIf(!authoringBuilt)('text layer: fixed boxes and hidden text (B12)'
     const f = await createStudioFixture();
     const { document } = f;
     unwrap(document.commitOps('p1', person, 'Seed', unwrap(placeTextOps({ node: 't', parent: 'p1', x: 100, y: 50, width: 300, text: 'Hello' }))));
-    const layer = createTextLayer({ document, page: 'p1', fonts: f.fonts, scope: f.scope });
+    const layer = createTextLayer({ document, page: 'p1', fonts: f.fonts, scope: f.scope, sceneParent: () => 2 });
     const laid = unwrap(layer.layout('t'));
     expect(textBlockTransform(document, 't', laid)[5]).toBe(50); // auto height: no offset
     unwrap(document.commitOps('p1', person, 'Fixed', [

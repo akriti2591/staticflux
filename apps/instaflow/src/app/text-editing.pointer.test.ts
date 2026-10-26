@@ -14,7 +14,7 @@ const TEXT = 'Hello world';
 async function rig(zoom = 1) {
   const f = await createStudioFixture();
   unwrap(f.document.commitOps('p1', person, 'Add text', unwrap(placeTextOps({ node: 't', parent: 'p1', x: 100, y: 50, text: TEXT }))));
-  const layer = createTextLayer({ document: f.document, page: 'p1', fonts: f.fonts, scope: f.scope });
+  const layer = createTextLayer({ document: f.document, page: 'p1', fonts: f.fonts, scope: f.scope, sceneParent: () => 2 });
   const input = scriptedTextInput();
   const editing: TextEditing = unwrap(
     startTextEditing({

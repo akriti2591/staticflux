@@ -25,11 +25,16 @@ import type { ResolvedEffect, ResolvedElement, ResolvedFill, ResolvedStroke } fr
 import { resolveComposed, resolveElement } from './resolve.js';
 import { pageFills } from './values.js';
 
-export const ELEMENT_PROJECTION_KINDS = ['frame', 'group', 'shape', 'vector', 'image'] as const;
+/**
+ * `text` (B12b P2, IF-37.27): a text element is projected like a group (its transform, opacity, blend, effects, mask,
+ * order and parent; no paints). The text layer draws its glyph runs as children of that node, so paint order, the
+ * parents' opacity and effects, frame clips, masks and `hidden` apply to text exactly as to shapes.
+ */
+export const ELEMENT_PROJECTION_KINDS = ['frame', 'group', 'shape', 'vector', 'image', 'text'] as const;
 
 export const ElementProjection = /* @__PURE__ */ defineRenderProjection({
   id: 'instaflow/elements',
-  version: 1,
+  version: 2,
   kinds: ELEMENT_PROJECTION_KINDS,
   fields: {
     a: { path: 'render.a', default: 1 },
@@ -82,6 +87,8 @@ export type SceneResource = { readonly kind: 'look'; readonly value: Look } | { 
 
 /** The look of a resolved element (`rings[i]`: the ring resource of stroke `i`, 0 for a plain stroke). */
 export function lookOf(el: ResolvedElement, rings: readonly number[] = []): Look {
+  // Text: a group whose children are the text layer's glyph runs (B12b P2); the runs carry the colours.
+  if (el.kind === 'text') return { geometry: { kind: 'group' }, fills: [], strokes: [], effects: el.effects };
   const g = el.geometry;
   let geometry: LookGeometry;
   switch (g.kind) {
@@ -291,8 +298,9 @@ export function createElementRenderSource(options: ElementRenderSourceOptions): 
     let path = 0;
     const rings: number[] = [];
     const g = el.geometry;
-    const analytic = g.kind === 'ellipse' || g.kind === 'group' || ((g.kind === 'rect' || g.kind === 'frame' || g.kind === 'image') && g.smoothing === 0);
-    const special = el.strokes.some((s) => s.align !== 'center' || s.sides !== undefined);
+    const text = el.kind === 'text';
+    const analytic = text || g.kind === 'ellipse' || g.kind === 'group' || ((g.kind === 'rect' || g.kind === 'frame' || g.kind === 'image') && g.smoothing === 0);
+    const special = !text && el.strokes.some((s) => s.align !== 'center' || s.sides !== undefined);
     if (!analytic || special) {
       const outline = localOutline(ctx, el);
       if (!outline.ok) problems.push({ path: 'geometry', problem: outline.error.message });
