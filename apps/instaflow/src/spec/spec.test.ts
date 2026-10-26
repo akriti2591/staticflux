@@ -38,7 +38,7 @@ import {
   toShellSpec,
   createEditorRegistries,
 } from './index.js';
-import { BrandGate, editorGate, studioRegistries } from './testing/fixtures.js';
+import { BrandGate, editorGate, gatedStudioSpec, studioRegistries } from './testing/fixtures.js';
 
 const vocabulary = () => studioRegistries().vocabulary;
 const valid = async (spec: EditorSpec, gated = false, decide = editorGate('pro').gate) => validateSpec(toShellSpec(spec), studioRegistries({ gated }).vocabulary, { decide: gateSpecDecide(decide) });
@@ -62,7 +62,7 @@ describe('contributions', () => {
     expect(registries.tool('x/extra')?.label).toBe('Extra');
     expect(registries.lenses.map((l) => l.label)).toEqual(['Canvas', 'Pixel', 'Timeline', 'Flow', 'Pages']);
     expect((await test.get(LensContributionsToken)).length).toBe(5);
-    expect((await test.get(ToolContributionsToken)).length).toBe(12);
+    expect((await test.get(ToolContributionsToken)).length).toBe(16); // B11b: the shape family
     expect((await test.get(PanelContributionsToken)).length).toBe(10);
     expect((await test.get(HudActionContributionsToken)).length).toBe(5);
     expect([lensContribution, panelContribution, hudActionContribution].every((f) => typeof f === 'function')).toBe(true);
@@ -131,7 +131,7 @@ describe('registries', () => {
 
   it('toShellSpec: context, slot order and placements, pins', () => {
     const shell = toShellSpec({ ...studioSpec, pinned: ['panel:instaflow/layers'] });
-    expect(shell.context).toEqual({ lens: StudioIds.lens.canvas, scope: 'asset', density: 'pro' });
+    expect(shell.context).toEqual({ lens: StudioIds.lens.canvas, scope: 'asset', density: 'standard' });
     expect(shell.slots[0]).toEqual({ section: 'lens', id: StudioIds.lens.canvas });
     expect(shell.slots.find((s) => s.id === StudioIds.panel.typography)?.placement).toBe('inspector');
     expect(shell.slots.find((s) => s.id === StudioIds.panel.milestones)?.placement).toBe('dock');
@@ -158,10 +158,11 @@ describe('Studio and example specs', () => {
     const pixel = await valid(studioSpecFor(StudioIds.lens.pixel));
     if (!canvas.ok || !pixel.ok) throw new Error('invalid');
     const diff = diffSpecs(diffSpecs(EMPTY_LAYOUT, canvas.value).target, pixel.value);
-    expect(diff.unmount.map((s) => s.id)).toEqual([StudioIds.hud.animate, StudioIds.hud.rewrite, StudioIds.panel.typography, StudioIds.tool.pen, StudioIds.tool.text, StudioIds.tool.shape, StudioIds.tool.frame, StudioIds.lens.canvas]);
-    expect(diff.mount.map((s) => s.id)).toEqual([StudioIds.lens.pixel, StudioIds.tool.brush, StudioIds.tool.heal, StudioIds.tool.crop, StudioIds.panel.adjust, StudioIds.hud.removeBackground]);
+    const T = StudioIds.tool;
+    expect(diff.unmount.map((s) => s.id)).toEqual([StudioIds.panel.typography, T.text, T.line, T.star, T.polygon, T.ellipse, T.shape, T.frame, StudioIds.lens.canvas]);
+    expect(diff.mount.map((s) => s.id)).toEqual([StudioIds.lens.pixel, T.brush, T.heal, T.crop, StudioIds.panel.adjust, StudioIds.hud.removeBackground, StudioIds.hud.ask]);
     expect(diff.move).toEqual([]);
-    expect(diff.kept).toEqual(expect.arrayContaining(['panel:instaflow/chat', 'panel:instaflow/layers', 'panel:instaflow/milestones', 'tool:instaflow/select', 'tool:instaflow/hand']));
+    expect(diff.kept).toEqual(expect.arrayContaining(['panel:instaflow/pages', 'panel:instaflow/milestones', 'tool:instaflow/select', 'tool:instaflow/hand']));
   });
 
   it('the pixel touch-up mini editor validates; out-of-scope and unknown slots are rejected', async () => {
@@ -181,10 +182,10 @@ describe('Studio and example specs', () => {
 describe('gateSpecDecide (through @staticflux/gate)', () => {
   it('denies a gated panel with the policy reason, per subject', async () => {
     const free = editorGate('free');
-    const denied = await valid(studioSpec, true, free.gate);
+    const denied = await valid(gatedStudioSpec, true, free.gate);
     expect(!denied.ok && specIssues(denied.error)).toMatchObject([{ code: 'SF-SHELL-012', slot: 'panel:instaflow/brand', details: { reason: 'upgrade' } }]);
     free.setPlan('pro');
-    expect((await valid(studioSpec, true, free.gate)).ok).toBe(true);
+    expect((await valid(gatedStudioSpec, true, free.gate)).ok).toBe(true);
     const asAgent = gateSpecDecide(free.gate, 'agent');
     expect(asAgent.decide(BrandGate)).toEqual({ effect: 'allow' });
     expect(asAgent.decide({ kind: 'gate-resource', level: 'ui-slot', id: 'instaflow/undelegated' })).toMatchObject({ effect: 'deny' });
@@ -194,7 +195,7 @@ describe('gateSpecDecide (through @staticflux/gate)', () => {
   it('a runtime over the Studio vocabulary mounts Studio and keeps a pinned panel across a narrow spec', async () => {
     const port = recordingSpecPort();
     const runtime = createSpecRuntime({ vocabulary: vocabulary(), port });
-    expect((await runtime.apply(toShellSpec(studioSpec))).ok).toBe(true);
+    expect((await runtime.apply(toShellSpec(gatedStudioSpec))).ok).toBe(true);
     expect(runtime.pin('panel:instaflow/layers').ok).toBe(true);
     const narrow = await runtime.apply(toShellSpec({ ...pixelTouchUpSpec(['img-1']), scope: { kind: 'asset' } }));
     expect(narrow.ok && narrow.value.diff.retained).toEqual(['panel:instaflow/layers']);

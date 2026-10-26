@@ -129,7 +129,7 @@ async function scenario(page) {
   const surface = page.getByRole('application', { name: 'Canvas surface' });
   const box = await surface.boundingBox();
   if (box === null) fail('no canvas surface');
-  await page.getByRole('button', { name: 'Shape' }).click();
+  await page.getByRole('button', { name: 'Rectangle', exact: true }).click();
   await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.35);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.47, box.y + box.height * 0.42, { steps: 4 });

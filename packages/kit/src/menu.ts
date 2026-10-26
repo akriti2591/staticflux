@@ -212,7 +212,7 @@ export class SfMenuItemElement extends SfElement<typeof itemSpec> {
       if (!this.hasAttribute('aria-expanded')) this.setAttribute('aria-expanded', 'false');
     }
     if (changed.has('shortcut')) {
-      if (this.shortcut === undefined || this.shortcut === '') this.removeAttribute('aria-keyshortcuts');
+      if (this.shortcut == null || this.shortcut === '') this.removeAttribute('aria-keyshortcuts');
       else this.setAttribute('aria-keyshortcuts', ariaKeyShortcuts(this.shortcut, this.ownerDocument));
     }
   }
@@ -225,7 +225,7 @@ export class SfMenuItemElement extends SfElement<typeof itemSpec> {
             >${this.checked ? (this.type === 'radio' ? html`<sf-icon class="dot" .icon=${circleIcon}></sf-icon>` : html`<sf-icon .icon=${checkIcon}></sf-icon>`) : nothing}</span
           >`;
     const icon = this.icon === undefined ? nothing : html`<sf-icon class="icon" .icon=${this.icon}></sf-icon>`;
-    const hint = this.shortcut === undefined || this.shortcut === '' ? nothing : html`<kbd aria-hidden="true">${shortcutLabel(this.shortcut, this.ownerDocument)}</kbd>`;
+    const hint = this.shortcut == null || this.shortcut === '' ? nothing : html`<kbd aria-hidden="true">${shortcutLabel(this.shortcut, this.ownerDocument)}</kbd>`;
     const chevron = this.submenu === undefined ? nothing : html`<sf-icon class="chevron" .icon=${chevronRightIcon}></sf-icon>`;
     return html`${mark}${icon}<slot name="start"></slot><span class="label"><slot></slot></span>${hint}${chevron}`;
   }

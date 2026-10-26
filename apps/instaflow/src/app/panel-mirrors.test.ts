@@ -5,6 +5,7 @@ import { TOOL_KEYMAP } from '../tools/keyboard.js';
 import { createMirrorHub, type MirrorCall } from '../workers/mirror.js';
 import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, StoryMirror, TypographyMirror } from '../workers/mirrors.js';
 import { canvasShortcutDefs, DeleteShortcut, UndoShortcut } from './canvas-shortcuts.js';
+import { STUDIO_KEY_COMMANDS } from './studio-commands.js';
 import { appearanceSource, latestFromMirror, milestonesFromMirror, repeatSource, storyFromMirror, structureFromMirror, typographyFromMirror } from './panel-mirrors.js';
 
 const nope = sfError({ code: 'IF-TEST-002' as never, kind: 'validation', message: 'Refused.' });
@@ -99,7 +100,7 @@ describe('panel models over mirrors (B9)', () => {
 describe('canvas shortcuts (B9: registered on main, run in the editor)', () => {
   it('are B3’s keymap plus Undo, Redo, Delete and Duplicate, without conflicts', () => {
     const defs = canvasShortcutDefs();
-    expect(defs.length).toBe(TOOL_KEYMAP.length + 4);
+    expect(defs.length).toBe(TOOL_KEYMAP.length + STUDIO_KEY_COMMANDS.length); // B11b: plus the structure keys
     expect(defs).toEqual(expect.arrayContaining([UndoShortcut, DeleteShortcut]));
     expect(checkShortcuts(defs).filter((i) => i.severity === 'error')).toEqual([]);
   });

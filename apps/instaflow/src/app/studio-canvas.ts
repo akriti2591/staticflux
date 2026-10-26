@@ -224,7 +224,11 @@ export function studioCanvas(options: StudioCanvasOptions): StudioCanvas {
         }
         let deactivate: (() => void) | undefined;
         const sync = (): void => {
-          const active = doc.activeElement;
+          // The focused element through shadow roots (the surface lives in `<if-studio>`'s shadow root, so the
+          // document's active element is the host): B11b found the canvas scope never activated, so key commands that
+          // also run from the chrome ran twice (once here, once in the editor from the ring).
+          let active: Element | null = doc.activeElement;
+          while (active?.shadowRoot?.activeElement != null) active = active.shadowRoot.activeElement;
           const inside = active !== null && surface.contains(active) && active !== text?.host;
           if (inside && deactivate === undefined) deactivate = registry.activate(CanvasToolsShortcutScope, scope);
           if (!inside && deactivate !== undefined) {

@@ -53,6 +53,11 @@ const element = (kind: string, props: Record<string, JsonValue>) => (r: CreateRe
 /** Tool id → what it creates (data). */
 export const CREATION_TOOLS: Readonly<Record<ToolId, CreationTool>> = Object.freeze({
   [StudioIds.tool.shape]: { label: 'Draw rectangle', size: { w: 100, h: 100 }, ops: element('shape', { [P.fills]: FILL }), then: 'select' },
+  // B11b: the shape family (STUDIO-UX-SPEC §4.1 Shape menu); a line is a stroked shape with no fill.
+  [StudioIds.tool.ellipse]: { label: 'Draw ellipse', size: { w: 100, h: 100 }, ops: element('shape', { [P.shape]: 'ellipse', [P.fills]: FILL }), then: 'select' },
+  [StudioIds.tool.polygon]: { label: 'Draw polygon', size: { w: 100, h: 100 }, ops: element('shape', { [P.shape]: 'polygon', [P.sides]: 5, [P.fills]: FILL }), then: 'select' },
+  [StudioIds.tool.star]: { label: 'Draw star', size: { w: 100, h: 100 }, ops: element('shape', { [P.shape]: 'star', [P.sides]: 5, [P.fills]: FILL }), then: 'select' },
+  [StudioIds.tool.line]: { label: 'Draw line', size: { w: 160, h: 1 }, ops: element('shape', { [P.shape]: 'line', [P.fills]: [] as unknown as JsonValue, [P.strokes]: [{ paint: '@ink', width: 2, align: 'center' }] as unknown as JsonValue }), then: 'select' },
   [StudioIds.tool.frame]: { label: 'Draw frame', size: { w: 400, h: 300 }, ops: element('frame', { [P.fills]: [{ paint: '#ffffff' }] as unknown as JsonValue }), then: 'select' },
   [StudioIds.tool.text]: {
     label: 'Add text',

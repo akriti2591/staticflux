@@ -20,7 +20,7 @@ import { createShortcutRegistry, type Timers } from '@staticflux/a11y';
 import type { BlobStore } from '@staticflux/blob';
 import { type AnyCapabilityImplementation, type CapabilitySubject, type InvocationOrigin, type RunContext } from '@staticflux/capabilities';
 import { box, createNoopTelemetry, createScope, err, ok, type Result, type Scope, type SfError, untracked, watch } from '@staticflux/core';
-import { type CrdtEngine, createDocumentRepo, type DocumentStore, type NodeId, type OpenDocument } from '@staticflux/document/v2';
+import { type CrdtEngine, createDocumentRepo, type DocumentStore, type JsonValue, type NodeId, type OpenDocument, type PartOp } from '@staticflux/document/v2';
 import { type Actor, createAttributionPort } from '@staticflux/stage';
 import { type CompactInputEvent, InputCode, InputModifier } from '@staticflux/surface';
 import type { TextInputKind } from '@staticflux/surface/text-input';
@@ -38,7 +38,7 @@ import { P } from '../elements/components.js';
 import type { GeometryService } from '../elements/geometry.js';
 import { appearanceEditOps, appearanceModel } from '../elements/inspector.js';
 import { createStoryWriter } from '../lenses/story.js';
-import { structureFeed } from '../lenses/structure.js';
+import { STRUCTURE_PATHS, structureFeed } from '../lenses/structure.js';
 import type { LibraryEntry } from '../library/library-doc.js';
 import type { ImageDecoder } from '../library/renditions.js';
 import { commitRepeatEdit } from '../repeat/actions.js';
@@ -60,8 +60,13 @@ import { ExportSnapshotError } from '../export/errors.js';
 import type { ExportTarget } from '../export/service.js';
 import { CapabilityNotServedError, WorkerBootError } from './errors.js';
 import { createMirrorServers, type MirrorCall, type MirrorServers, type MirrorUpdate } from './mirror.js';
-import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, StoryMirror, type TransformBarModel, TransformMirror, TypographyMirror } from './mirrors.js';
-import type { InspectedElement, StudioDocumentRef, StudioInspection, StudioStarted, ViewProjection } from './protocol.js';
+import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, SceneMirror, StoryMirror, type TransformBarModel, TransformMirror, TypographyMirror } from './mirrors.js';
+import type { CameraCommand, InspectedElement, RanCommand, StudioDocumentRef, StudioInspection, StudioStarted, ViewProjection } from './protocol.js';
+import { implementStudioCommands, STUDIO_SELECTION_COMMANDS } from '../app/studio-commands.js';
+import { ELEMENT_ACTIONS, elementActionId, selectionFacts } from '../elements/capabilities.js';
+import { REPEAT_ACTIONS, repeatActionId, repeatSelectionFacts } from '../repeat/capabilities.js';
+import { documentColors, layerTree, type SceneReader, selectionSummary } from '../app/scene-summary.js';
+import { ROOT_PART } from '../app/document.js';
 import { createRemoteTextHost, type TextHostCommand, type TextHostEvent } from './text-port.js';
 
 /** What the editor posts to main (the host turns each into a protocol event). */
@@ -75,6 +80,8 @@ export interface EditorEvents {
   problem(error: SfError): void;
   /** A creation tool finished: Studio's toolbar goes back to `tool`. */
   tool(tool: string): void;
+  /** B11b: a key command ran its capability (main's feedback). */
+  ran?(ran: RanCommand): void;
 }
 
 /** What the editor worker loaded (engine Wasm, fonts): the browser entry loads them, tests use fixtures. */
@@ -136,6 +143,8 @@ export interface StudioEditor {
   hud(action: string): Result<void>;
   /** Zoom one step in or out about the viewport centre. */
   zoom(step: 1 | -1): Result<void>;
+  /** B11b: a camera command (fit the page or the selection, a zoom level). */
+  camera(action: CameraCommand): Result<void>;
   inspect(nodes?: readonly NodeId[]): StudioInspection;
   /**
    * C1: freeze Latest for an export (B5's snapshot: content blobs only, no record, no head change, D10) and report the
@@ -248,8 +257,39 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
     ...toolCapabilityImplementations({ session: () => tab()?.tools, actorFor }),
     ...a11yCapabilityImplementations({ canvas: () => tab()?.a11y }),
     implementCreateMilestone({ milestones: versioning.milestones, actorFor, prompt: () => announce('Name the milestone in the Milestones panel.') }),
+    ...implementStudioCommands({ tab, document, actorFor }),
   ];
   const byId = new Map(implementations.map((impl) => [impl.capability.id as string, impl]));
+  /**
+   * Run one capability here; an output naming what to select (B12's structure actions, duplicate) selects it on the
+   * open tab (B11b: a new group is selected, ungrouped children are).
+   */
+  const runCapability = async (call: Parameters<StudioEditor['invoke']>[0], callSignal: AbortSignal): Promise<Result<unknown>> => {
+    const impl = byId.get(call.capability);
+    if (impl === undefined) return err(CapabilityNotServedError({ details: { capability: call.capability } }));
+    const run: RunContext = {
+      invocationId: call.invocationId,
+      subject: call.subject,
+      origin: call.origin,
+      signal: callSignal,
+      span: telemetry.span('instaflow/editor-invoke', { subsystem: 'instaflow/editor' }),
+      reserved: undefined,
+      reportCost: () => undefined,
+    };
+    const out = await impl.run(call.input, run);
+    const select = out.ok ? (out.value as { select?: unknown } | undefined)?.select : undefined;
+    if (Array.isArray(select)) tab()?.view.select(select as NodeId[]);
+    return out;
+  };
+  let keyRuns = 0;
+  /** A key command (canvas focus): its capability on the selection, attributed to the person. */
+  const runKeyCommand = (capability: string, nodes: readonly NodeId[]): void => {
+    const input = nodes.length === 0 ? {} : { nodes: [...nodes] };
+    void runCapability({ capability, input, subject: 'user', origin: { channel: 'ui/keyboard' }, invocationId: `key:${(keyRuns += 1)}` }, signal).then((r) => {
+      events.ran?.({ capability, nodes: [...nodes], ok: r.ok });
+      if (!r.ok) problem(r.error);
+    });
+  };
 
   // ---------------------------------------------------------------- mirrors
   const mirrors = createMirrorServers((update) => events.mirror(update), { schedule });
@@ -363,6 +403,117 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
   mirrors.serve(LatestMirror, { reads: { state: () => versioning.latest.state() }, actions: { flush: () => versioning.latest.flush(signal) }, changes: (l) => versioning.latest.onChange(() => l()) }, scope);
   mirrors.serve(StoryMirror, { reads: { structure: () => structure.read() }, actions: { movePage: (p, to) => story.movePage(p, to) }, changes: (l) => structure.observe(l) }, scope);
 
+  // B11b: the open page as the chrome reads it (layers, selection summary, selection frame) and the pill's edits.
+  const reader: SceneReader = {
+    stage: document.view,
+    kit: document.kit,
+    text: (node) => {
+      const part = document.part(page());
+      const block = part === undefined ? undefined : readTextBlock(part, node);
+      return block?.ok === true ? block.value.text : undefined;
+    },
+    repeat: (node) => {
+      const model = repeatModel(document.context(), node);
+      return model === undefined ? undefined : { kind: model.params.kind, count: model.instances };
+    },
+    applicable: (nodes) => {
+      if (nodes.length === 0) return [];
+      const ctx = document.context();
+      const facts = selectionFacts(ctx, nodes);
+      const repeats = repeatSelectionFacts(ctx, nodes);
+      return [
+        ...ELEMENT_ACTIONS.filter((a) => a.applies(facts)).map((a) => elementActionId(a.name)),
+        ...REPEAT_ACTIONS.filter((a) => a.applies(repeats)).map((a) => repeatActionId(a.name)),
+        ...STUDIO_SELECTION_COMMANDS,
+      ];
+    },
+  };
+  const editable = (): NodeId[] => selection().filter((n) => document.view.read(n) !== undefined && !document.view.isDerived(n));
+  const commitSelection = (label: string, ops: readonly PartOp[]): Result<void> => (ops.length === 0 ? ok() : commitEdit(document.target(page()), actor(), label, ok(ops)));
+  mirrors.serve(
+    SceneMirror,
+    {
+      reads: {
+        page: () => {
+          const id = tab()?.page;
+          if (id === undefined) return undefined;
+          const name = document.root.prop(id, 'name');
+          const size = document.part(id)?.prop(id, STRUCTURE_PATHS.pageSize) as { width?: number; height?: number } | undefined;
+          return { id, name: typeof name === 'string' && name !== '' ? name : 'Page', width: size?.width ?? 1080, height: size?.height ?? 1350 };
+        },
+        layers: () => {
+          const id = tab()?.page;
+          return id === undefined ? [] : layerTree(reader, id);
+        },
+        selection: () => selectionSummary(reader, selection()),
+        colors: () => {
+          const id = tab()?.page;
+          return id === undefined ? [] : documentColors(reader, id);
+        },
+        frame: () => {
+          const corners = tab()?.view.overlay.frame?.corners;
+          if (corners === undefined) return undefined;
+          const xs = corners.map((c) => c[0]);
+          const ys = corners.map((c) => c[1]);
+          const x = Math.min(...xs);
+          const y = Math.min(...ys);
+          return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+        },
+      },
+      actions: {
+        setPaint(stack, paint, label) {
+          const path = stack === 'fills' ? P.fills : P.strokes;
+          const ops: PartOp[] = editable().map((node): PartOp => {
+            const raw = document.view.value(node, path);
+            const list = Array.isArray(raw) ? [...raw] : [];
+            let index = -1;
+            for (let i = list.length - 1; i >= 0; i--) {
+              const item = list[i];
+              if (typeof item === 'object' && item !== null && !Array.isArray(item) && (item as Record<string, JsonValue>)['visible'] !== false) {
+                index = i;
+                break;
+              }
+            }
+            if (index < 0) list.push(stack === 'fills' ? { paint } : { paint, width: 1, align: 'inside' });
+            else list[index] = { ...(list[index] as Record<string, JsonValue>), paint };
+            return { op: 'set', node, path, value: list };
+          });
+          // A commit that changes nothing is no undo step (the colour popover commits on Enter and again on blur).
+          return commitSelection(label, ops.filter((op) => op.op !== 'set' || JSON.stringify(document.view.value(op.node, op.path) ?? null) !== JSON.stringify(op.value)));
+        },
+        setProp: (path, value, label) =>
+          commitSelection(
+            label,
+            editable()
+              .filter((node) => JSON.stringify(document.view.value(node, path) ?? null) !== JSON.stringify(value))
+              .map((node): PartOp => ({ op: 'set', node, path, value })),
+          ),
+        move(nodes, parent, before) {
+          const ops: PartOp[] = nodes
+            .filter((n) => n !== parent && document.view.read(n) !== undefined && !document.view.isDerived(n))
+            .map((node): PartOp => ({ op: 'move', node, parent, position: before === null ? { index: document.view.children(parent).length } : { before } }));
+          return commitSelection('Reorder', ops);
+        },
+        renamePage(name) {
+          const id = tab()?.page;
+          const trimmed = name.trim();
+          if (id === undefined || trimmed === '') return err(NoOpenPageError({ message: 'A name is required.' }));
+          const done = document.undo.commit(actor(), 'Rename page', { [ROOT_PART]: [{ op: 'set', node: id, path: 'name', value: trimmed }] });
+          return done.ok ? ok() : done;
+        },
+      },
+      changes: (listener) => {
+        const stopDoc = docChanges(listener);
+        const stopRoot = structure.observe(listener);
+        return () => {
+          stopDoc();
+          stopRoot();
+        };
+      },
+    },
+    scope,
+  );
+
   // ---------------------------------------------------------------- the tab
   const textHost = options.textInput === undefined ? undefined : createRemoteTextHost((command) => events.text(command), options.textInput);
   const shortcuts = createShortcutRegistry({ isMac: options.isMac });
@@ -402,6 +553,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       onSnapshot: (snapshot) => events.a11y(snapshot),
       onEditing: (node) => editingBox.set(node),
       onProblem: problem,
+      runKeyCommand,
       scope: next,
     });
     if (!opened.ok) {
@@ -539,20 +691,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       if (view === undefined) return;
       if (view.selection.length !== nodes.length || view.selection.some((n, i) => n !== nodes[i])) view.select(nodes);
     },
-    async invoke(call, callSignal) {
-      const impl = byId.get(call.capability);
-      if (impl === undefined) return err(CapabilityNotServedError({ details: { capability: call.capability } }));
-      const run: RunContext = {
-        invocationId: call.invocationId,
-        subject: call.subject,
-        origin: call.origin,
-        signal: callSignal,
-        span: telemetry.span('instaflow/editor-invoke', { subsystem: 'instaflow/editor' }),
-        reserved: undefined,
-        reportCost: () => undefined,
-      };
-      return impl.run(call.input, run);
-    },
+    invoke: (call, callSignal) => runCapability(call, callSignal),
     call: (call) => mirrors.call(call),
     text: (event) => textHost?.receive(event),
     async place(entry, placeSignal) {
@@ -572,6 +711,24 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       const t = tab();
       if (t === undefined) return err(NoOpenPageError());
       const r = t.commands.zoomStep(step);
+      return r.ok ? ok() : r;
+    },
+    camera(action) {
+      const t = tab();
+      if (t === undefined) return err(NoOpenPageError());
+      const run: Readonly<Record<CameraCommand, () => Result<unknown>>> = {
+        'fit-page': () => {
+          t.fit();
+          return ok();
+        },
+        'fit-selection': () => t.commands.fitSelection(),
+        'zoom-100': () => t.commands.zoomTo(1),
+        'zoom-50': () => t.commands.zoomTo(0.5),
+        'zoom-200': () => t.commands.zoomTo(2),
+        'zoom-in': () => t.commands.zoomStep(1),
+        'zoom-out': () => t.commands.zoomStep(-1),
+      };
+      const r = run[action]();
       return r.ok ? ok() : r;
     },
     hud(action) {
@@ -600,6 +757,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
         docVersion: options.publisher.docVersion,
         records: options.publisher.records,
         undo: doc.undoHistory().length,
+        steps: document.undo.history(person.id).undo.slice(0, 12).map((step) => ({ label: step.label, commits: step.commits, ...(step.invocation === undefined ? {} : { invocation: step.invocation }), ...(step.changeSet === undefined ? {} : { changeSet: step.changeSet }) })),
       };
     },
   };

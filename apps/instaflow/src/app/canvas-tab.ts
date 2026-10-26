@@ -28,6 +28,8 @@ import { type CanvasA11yEditor, createCanvasA11yEditor } from '../a11y/editor-si
 import type { CanvasSnapshot } from '../a11y/projection.js';
 import { partTextSource } from '../a11y/text-source.js';
 import { commitEdit, duplicate } from '../elements/actions.js';
+import { P } from '../elements/components.js';
+import { isHidden, pageTransform } from '../elements/layout.js';
 import { createElementRenderSource, ElementProjection } from '../elements/projection.js';
 import { colorToRgba } from '../elements/values.js';
 import { STRUCTURE_PATHS } from '../lenses/structure.js';
@@ -43,7 +45,7 @@ import { createTransformMode } from '../tools/transform-mode.js';
 import type { GuideLabel } from '../tools/snapping.js';
 import { type Camera, createViewState, fitCamera, type TabId, type ViewState } from '../tools/view-state.js';
 import type { CanvasPublisher, SceneIrChanges, SceneIrSource } from './canvas-pipeline.js';
-import { DeleteShortcut, DuplicateShortcut, RedoShortcut, UndoShortcut } from './canvas-shortcuts.js';
+import { DeleteCapability, DuplicateCapability, RedoCapability, STUDIO_KEY_COMMANDS, UndoCapability } from './studio-commands.js';
 import { type CreateOutcome, createCreationController, type CreationController } from './creation.js';
 import type { StudioDocument } from './document.js';
 import { NoOpenPageError } from './errors.js';
@@ -85,6 +87,8 @@ export interface CanvasTabOptions {
   /** Text editing started (`node`) or ended (`undefined`). */
   readonly onEditing?: (node: NodeId | undefined, reason?: TextExitReason) => void;
   readonly onProblem?: (error: SfError) => void;
+  /** Run a key command's capability on `nodes` (B11b; without it the tab runs undo, redo, delete and duplicate itself). */
+  readonly runKeyCommand?: (capability: string, nodes: readonly NodeId[]) => void;
   readonly scope: Scope;
 }
 
@@ -125,11 +129,11 @@ const microtask = (fn: () => void): void => queueMicrotask(fn);
 
 /** Overlay scene ids (above B1's even element ids and the text layer's odd ids). */
 export const OVERLAY_FIRST_ID = 0x4000_0001;
-/** The page edge's scene id (below the tool overlay's). */
-export const PAGE_EDGE_ID = OVERLAY_FIRST_ID - 2;
+/** The first frame hairline's scene id (B11b; below the tool overlay's, above the content's). */
+export const FRAME_OUTLINE_FIRST_ID = OVERLAY_FIRST_ID - 0x10_0000;
 
-/** The page edge colour (Clean Pop `border`). */
-const PAGE_EDGE = /* @__PURE__ */ colorToRgba(String(cleanPopTheme.values.color['border'])) ?? [0, 0, 0, 40];
+/** The frames' non-printing hairline (Clean Pop `border`, `#DCE3EA`). */
+const FRAME_HAIRLINE = /* @__PURE__ */ colorToRgba(String(cleanPopTheme.values.color['border'])) ?? [0, 0, 0, 40];
 
 /** Open the tool session of one tab on one page (see the module header). */
 export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<CanvasTab>> {
@@ -153,14 +157,32 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
     return { w: typeof size?.width === 'number' ? size.width : 1080, h: typeof size?.height === 'number' ? size.height : 1350 };
   }
 
-  // Overlay (B3): the page edge (the page itself is the raster background) and B3's overlay, as the overlay section of
-  // the next record whenever the overlay or the zoom changes (stroke widths stay constant on screen).
-  // The page edge is re-sent only when it changes (page size, or zoom for its constant on-screen width): its bounds are
-  // the whole page, so re-sending it with every overlay change (each pointer move of a drag) made every tile of the
-  // page stale on every move (FIX-DRAG-STUTTER).
+  // Overlay (B3): the frames' non-printing hairlines (B11b, STUDIO-UX-SPEC §1: a white frame on a white page stays
+  // visible; the page card itself is the chrome's, behind the transparent canvas) and B3's overlay, as the overlay
+  // section of the next record whenever the overlay or the zoom changes (stroke widths stay constant on screen).
+  // The hairlines are re-sent only when a frame's box or the zoom changes: re-sending large outlines with every overlay
+  // change (each pointer move of a drag) made every tile under them stale on every move (FIX-DRAG-STUTTER).
   let overlayIds: number[] = [];
   let overlayDirty = true;
-  let edge = '';
+  let outlineKey = '';
+  let outlineIds: number[] = [];
+  const frameOutlines = (): { key: string; nodes: { id: NodeId; t: readonly number[]; w: number; h: number }[] } => {
+    const nodes: { id: NodeId; t: readonly number[]; w: number; h: number }[] = [];
+    const walk = (parent: NodeId): void => {
+      for (const child of document.view.children(parent)) {
+        if (document.view.isDerived(child) || isHidden(ctx, child)) continue;
+        const kind = document.view.read(child)?.kind;
+        if (kind === 'frame') {
+          const w = Number(document.view.value(child, P.w) ?? 0);
+          const h = Number(document.view.value(child, P.h) ?? 0);
+          nodes.push({ id: child, t: pageTransform(ctx, child), w, h });
+        }
+        if (kind === 'frame' || kind === 'group') walk(child);
+      }
+    };
+    walk(page);
+    return { key: `${view.camera.zoom}|${nodes.map((n) => `${n.id}:${n.t.map((v) => v.toFixed(3)).join(',')}:${n.w}:${n.h}`).join(';')}`, nodes };
+  };
   const overlay: SceneIrSource = {
     changes(full) {
       if (!full && !overlayDirty) return undefined;
@@ -168,16 +190,19 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
       const prelude = createSceneWriter();
       if (!full) for (const id of overlayIds) prelude.remove(id); // a snapshot starts with CLEAR
       overlayIds = [];
-      const size = pageSize();
-      const nextEdge = `${size.w}:${size.h}:${view.camera.zoom}`;
-      if (full || nextEdge !== edge) {
-        edge = nextEdge;
-        prelude.upsert({
-          id: PAGE_EDGE_ID,
-          transform: [1, 0, 0, 1, 0, 0],
-          geometry: { kind: 'rect', w: size.w, h: size.h },
-          stroke: { width: 1 / view.camera.zoom, paint: { kind: 'solid', color: PAGE_EDGE } },
-        });
+      const outlines = frameOutlines();
+      if (full || outlines.key !== outlineKey) {
+        outlineKey = outlines.key;
+        if (!full) for (const id of outlineIds) prelude.remove(id);
+        outlineIds = outlines.nodes.map((_, i) => FRAME_OUTLINE_FIRST_ID + 2 * i);
+        outlines.nodes.forEach((n, i) =>
+          prelude.upsert({
+            id: FRAME_OUTLINE_FIRST_ID + 2 * i,
+            transform: n.t as [number, number, number, number, number, number],
+            geometry: { kind: 'rect', w: Math.max(0, n.w), h: Math.max(0, n.h) },
+            stroke: { width: 1 / view.camera.zoom, paint: { kind: 'solid', color: FRAME_HAIRLINE } },
+          }),
+        );
       }
       const tools = toolOverlayBatch(view.overlay, view.camera.zoom, { clear: false, firstId: OVERLAY_FIRST_ID, ids: overlayIds });
       // The caret and selection of the text being edited (TEXT-FONTS §3.2), after the tool overlay's ids.
@@ -256,6 +281,16 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
   // Entering or leaving transform mode shows or hides the pivot and the thick frame.
   watch(() => mode.state, () => schedule(reframe), { scope });
   scope.defer(document.view.onInvalidate(() => schedule(reframe)));
+  // Elements that are gone leave the selection (B11b: after an undo removed a copy, its frame and handles stayed and
+  // took the next click).
+  scope.defer(
+    document.view.onInvalidate(() =>
+      schedule(() => {
+        const live = view.selection.filter((n) => document.view.read(n) !== undefined);
+        if (live.length !== view.selection.length) view.select(live);
+      }),
+    ),
+  );
 
   // B6: the editor side of the accessibility layer over the same pieces; snapshots go to main.
   const a11y = createCanvasA11yEditor({
@@ -331,14 +366,21 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
     if (done.ok) view.select(nodes.flatMap((n) => copied.value.copies.get(n) ?? []));
     return done;
   };
-  const step = async (run: 'undo' | 'redo'): Promise<Result<void>> => {
-    // Undo during a transform session cancels the session (nothing of it was written yet).
-    if (mode.state === 'active') {
-      const cancelled = mode.cancel();
-      return cancelled.ok ? ok() : cancelled;
-    }
-    const outcome = await document.undo[run](options.actor(), scope.signal);
-    return outcome.ok ? ok() : outcome;
+  // Undo and redo run one after another (B11b: Mod+Z pressed four times quickly started four undos against the same
+  // history, which undid one step twice and skipped another).
+  let steps: Promise<unknown> = Promise.resolve();
+  const step = (run: 'undo' | 'redo'): Promise<Result<void>> => {
+    const next = steps.then(async (): Promise<Result<void>> => {
+      // Undo during a transform session cancels the session (nothing of it was written yet).
+      if (mode.state === 'active') {
+        const cancelled = mode.cancel();
+        return cancelled.ok ? ok() : cancelled;
+      }
+      const outcome = await document.undo[run](options.actor(), scope.signal);
+      return outcome.ok ? ok() : outcome;
+    });
+    steps = next;
+    return next;
   };
 
   if (options.shortcuts !== undefined) {
@@ -358,13 +400,21 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
       },
       { scope },
     );
-    for (const [def, run] of [
-      [UndoShortcut, () => void step('undo').then(report)],
-      [RedoShortcut, () => void step('redo').then(report)],
-      [DeleteShortcut, () => report(deleteSelection())],
-      [DuplicateShortcut, () => report(duplicateSelection())],
-    ] as const) {
-      const registered = registry.register(def, run, { scope });
+    // Key commands (B11b): each runs its capability on the selection, the same one the pill and the menus run.
+    const runKey = options.runKeyCommand;
+    for (const command of STUDIO_KEY_COMMANDS) {
+      const fallback: Readonly<Record<string, () => void>> = {
+        [UndoCapability.id]: () => void step('undo').then(report),
+        [RedoCapability.id]: () => void step('redo').then(report),
+        [DeleteCapability.id]: () => report(deleteSelection()),
+        [DuplicateCapability.id]: () => report(duplicateSelection()),
+      };
+      const run = (): void => {
+        if (command.empty !== true && view.selection.length === 0) return;
+        if (runKey !== undefined) runKey(command.capability, view.selection);
+        else fallback[command.capability]?.();
+      };
+      const registered = registry.register(command.def, run, { scope });
       if (!registered.ok) return registered;
     }
   }

@@ -4,7 +4,8 @@
  * (`editor-module.ts`). Data and types only: both threads import this file.
  */
 import type { Result } from '@staticflux/core';
-import type { NodeId } from '@staticflux/document/v2';
+import type { JsonValue, NodeId } from '@staticflux/document/v2';
+import type { LayerRow, PageSummary, SelectionSummary } from '../app/scene-summary.js';
 import type { AppearanceEdit, AppearanceModel } from '../elements/inspector.js';
 import type { CompositionStructure } from '../lenses/structure.js';
 import type { RepeatEdit, RepeatModel } from '../repeat/inspector.js';
@@ -88,6 +89,32 @@ export interface LatestMirrorShape {
   readonly actions: { flush(): Promise<Result<void>> };
 }
 export const LatestMirror = /* @__PURE__ */ defineMirror<LatestMirrorShape>('instaflow/mirror/latest', { state: { status: 'saved', stalled: false, since: 0 } });
+
+/**
+ * B11b: the open page as the chrome reads it — the layers tree (Layers, names), the page, the selection summary (the
+ * HUD pill's and inspector's control set by selection kind) and the selection frame on the page (pill placement).
+ * Actions are the multi-element edits the pill and Layers make without a capability of their own: the top fill or
+ * stroke paint of every selected element, one property on every one (radius, sides, fit, clip), moving a row in Layers.
+ */
+export interface SceneMirrorShape {
+  readonly reads: {
+    readonly page: PageSummary | undefined;
+    readonly layers: readonly LayerRow[];
+    readonly selection: SelectionSummary;
+    /** Page-space axis-aligned bounds of the selection frame (undefined: nothing selected). */
+    readonly frame: { readonly x: number; readonly y: number; readonly w: number; readonly h: number } | undefined;
+    /** Colours used on the page, most used first (≤ 12). */
+    readonly colors: readonly { readonly hex: string; readonly uses: number }[];
+  };
+  readonly actions: {
+    setPaint(stack: 'fills' | 'strokes', paint: JsonValue, label: string): Result<void>;
+    setProp(path: string, value: JsonValue, label: string): Result<void>;
+    /** Layers drag: move `nodes` into `parent` before `before` (null: on top). One step `Reorder`. */
+    move(nodes: readonly NodeId[], parent: NodeId, before: NodeId | null): Result<void>;
+    renamePage(name: string): Result<void>;
+  };
+}
+export const SceneMirror = /* @__PURE__ */ defineMirror<SceneMirrorShape>('instaflow/mirror/scene', { page: undefined, layers: [], selection: { kind: 'none', nodes: [], label: '', typeLabel: '', locked: false, anyLocked: false, hidden: false, actions: [] }, frame: undefined, colors: [] });
 
 /** B4's composition structure (the Pages panel's lens controller reads it on main) and story edits. */
 export interface StoryMirrorShape {

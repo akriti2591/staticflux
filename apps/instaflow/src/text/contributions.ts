@@ -30,8 +30,8 @@ export const typographyPanel: PanelContribution = /* @__PURE__ */ definePanel({
   id: TextIds.panel,
   label: 'Typography',
   placements: ['inspector', 'side'],
-  // The inspector column is Pro (UX §3), like Properties: Focus and Standard keep it closed.
-  minDensity: 'pro',
+  // B11b: the inspector is open in Standard (DENSITY-DISCLOSURE §3.1).
+  minDensity: 'standard',
   lenses: LENSES,
   scopes: ['selection', 'asset', 'page'],
   description: 'Font, size, style, alignment, line height and colour of the selected text.',

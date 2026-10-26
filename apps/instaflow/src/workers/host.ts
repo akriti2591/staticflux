@@ -178,6 +178,7 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
         announce: (message) => void server.emit('announce', { message }),
         problem: (error) => void server.emit('problem', { error: toWireError(error) }),
         tool: (tool) => void server.emit('tool', { tool }),
+        ran: (ran) => void server.emit('ran', ran),
       },
       ...(env.timers === undefined ? {} : { timers: env.timers }),
       ...(env.schedule === undefined ? {} : { schedule: env.schedule }),
@@ -314,6 +315,10 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
     async zoom({ step }) {
       const e = needEditor();
       return e.ok ? e.value.zoom(step) : e;
+    },
+    async camera({ action }) {
+      const e = needEditor();
+      return e.ok ? e.value.camera(action) : e;
     },
     async inspect({ nodes }) {
       const e = needEditor();

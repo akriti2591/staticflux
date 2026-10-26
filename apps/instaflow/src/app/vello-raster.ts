@@ -33,6 +33,13 @@ export interface VelloRasterOptions {
   readonly signal: AbortSignal;
 }
 
+/**
+ * Studio's raster background (B11b, STUDIO-UX-SPEC §1): transparent, so the canvas region's mist room and the page card
+ * (drawn by the chrome behind the canvas) show where the scene draws nothing; the page's own fill stack is the first
+ * node of the scene (B12 A-1).
+ */
+export const STUDIO_BACKGROUND: readonly [number, number, number, number] = Object.freeze([0, 0, 0, 0]) as readonly [number, number, number, number];
+
 /** Tiles prepared per animation frame (SwiftShader frames are slow; a real GPU does many more). */
 export const TILES_PER_FRAME = 4;
 

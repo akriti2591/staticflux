@@ -135,6 +135,18 @@ export interface StudioInspection {
   readonly docVersion: number;
   readonly records: number;
   readonly undo: number;
+  /** B11b: the person's undo steps, newest first (labels; the overflow's `Undo: …` and tests). */
+  readonly steps?: readonly { readonly label: string; readonly commits: number; readonly invocation?: string; readonly changeSet?: string }[];
+}
+
+/** B11b: camera commands of the View menu and the zoom pill. */
+export type CameraCommand = 'fit-page' | 'fit-selection' | 'zoom-100' | 'zoom-in' | 'zoom-out' | 'zoom-50' | 'zoom-200';
+
+/** B11b: a capability the editor ran from a key (its id, the nodes, and how many it touched). */
+export interface RanCommand {
+  readonly capability: string;
+  readonly nodes: readonly NodeId[];
+  readonly ok: boolean;
 }
 
 /** Frame metrics (A7) and editor counters, for C4's budgets. */
@@ -173,6 +185,8 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     hud: request<{ readonly action: string }, void>(),
     /** The zoom buttons (B3 `zoomStep`). */
     zoom: request<{ readonly step: 1 | -1 }, void>(),
+    /** B11b: the View menu and zoom pill (fit the page, the selection, a zoom level). */
+    camera: request<{ readonly action: CameraCommand }, void>(),
     inspect: request<{ readonly nodes?: readonly NodeId[] }, StudioInspection>(),
     /** C1: freeze Latest for an export and report the pages and the selection (editor role). */
     exportTarget: request<void, ExportTarget>({ timeoutMs: 120_000 }),
@@ -191,5 +205,7 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     problem: event<{ readonly error: WireError }>(),
     /** A creation tool finished: hand the toolbar back to this tool. */
     tool: event<{ readonly tool: string }>(),
+    /** B11b: a key command ran a capability in the editor (main gives the feedback a toast needs). */
+    ran: event<RanCommand>(),
   },
 });
