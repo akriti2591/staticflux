@@ -246,14 +246,14 @@ describe.skipIf(!authoringBuilt)('canvas tab in the editor module: B3 tools, cre
     const first = createScope('p1');
     await open('p1', first);
     render.render.update('arrival');
-    expect(render.render.scene.count).toBe(1);
+    expect(render.render.scene.count).toBe(2); // B12: the page's fill (white by default) under the rectangle
     const resnapshots = render.render.stats.resnapshots;
     await first.dispose();
     expect(pipes.publisher.attached).toBe(false);
     const second = createScope('p2');
     await open('p2', second);
     render.render.update('arrival');
-    expect(render.render.scene.count).toBe(0); // p2 is empty: the snapshot replaced the scene
+    expect(render.render.scene.count).toBe(1); // p2 has only its page fill: the snapshot replaced the scene
     expect(render.render.stats.resnapshots).toBeGreaterThanOrEqual(resnapshots);
     expect(OVERLAY_FIRST_ID).toBeGreaterThan(1 << 29);
     await second.dispose();

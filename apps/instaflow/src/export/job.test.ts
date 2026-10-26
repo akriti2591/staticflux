@@ -41,7 +41,8 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('export job (Node: real composi
     expect(file.mime).toBe('image/png');
     expect(pngSize(file.bytes)).toEqual([2160, 2700]);
     const raster = f.rasters[0]!;
-    expect(raster.regions[0]).toMatchObject({ world: { x0: 0, y0: 0, x1: 1080, y1: 1350 }, width: 2160, height: 2700, background: [1, 1, 1, 1] });
+    // B12 (A-1): the page's white comes from its fill stack (the first scene node), drawn over nothing.
+    expect(raster.regions[0]).toMatchObject({ world: { x0: 0, y0: 0, x1: 1080, y1: 1350 }, width: 2160, height: 2700, background: [0, 0, 0, 0] });
     // elements (CLEAR first), the photo, then text: the scene the canvas would get, without the overlay
     expect(raster.batches.length).toBe(3);
     expect(out.value.missingImages).toEqual([]);
@@ -59,6 +60,35 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('export job (Node: real composi
       [0, 0, 0, 0],
       [0, 0, 0, 0],
     ]);
+  });
+
+  it('B12 (A-1, D21): the page fill stack exports as the page in PNG, SVG and PDF; transparent leaves it out; hidden elements never export', { timeout: 60_000 }, async () => {
+    const f = await createExportFixture();
+    f.commit(
+      [
+        { op: 'set', node: 'p2', path: P.fills, value: [{ paint: '#123456' }, { paint: { kind: 'linear', stops: [{ offset: 0, color: '#abcdef' }, { offset: 1, color: '#fedcba' }] }, opacity: 0.5 }] },
+        { op: 'create', node: 'ghost', kind: 'shape', parent: 'p2', props: { [P.x]: 0, [P.y]: 0, [P.w]: 50, [P.h]: 50, [P.fills]: [{ paint: '#0badc0' }], [P.hidden]: true } },
+      ],
+      'p2',
+    );
+    const snapshot = await f.freeze();
+    const io = { store: f.studio.workspace.store, blobs: f.blobs };
+    const run = async (o: Partial<ExportOptions>): Promise<string> => {
+      const out = await runExportJob({ snapshot, options: opts(o), title: 'Page fill', pages: ['p2'], selection: [], images: f.images }, f.env, io, { signal: f.studio.signal });
+      if (!out.ok) throw out.error;
+      return utf8.decode(out.value.files[0]!.bytes);
+    };
+    const svg = await run({ format: 'svg' });
+    expect(svg).toContain('#123456');
+    expect(svg).toContain('#abcdef'); // the gradient row
+    expect(svg).not.toContain('#0badc0'); // hidden
+    const clear = await run({ format: 'svg', transparent: true });
+    expect(clear).not.toContain('#123456');
+    expect(clear).toContain('#3b6cff'); // the page's rect still exports
+    const pdf = await run({ format: 'pdf' });
+    expect(pdf.startsWith('%PDF-1.7')).toBe(true);
+    await run({ format: 'png', scale: 1 });
+    expect(f.rasters.at(-1)?.regions.at(-1)?.background).toEqual([0, 0, 0, 0]);
   });
 
   it('SVG: one document per page with the real elements, text outlines labelled with their text, embedded images', { timeout: 60_000 }, async () => {

@@ -52,7 +52,7 @@ export const STUDIO_SELECTION_HUD = Object.freeze({
     'instaflow/mask-invert',
     'instaflow/mask-release',
     'instaflow/apply-token',
-    // B12: structure actions (B11b places them in the pill, context menu and Layers).
+    // B12: structure actions (all `more`; B11b also places them in the pill, the context menu and Layers).
     'instaflow/group',
     'instaflow/ungroup',
     'instaflow/frame-selection',
