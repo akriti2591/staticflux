@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** Caret/selection is a B8 integration gap: IF-21.10 engine support + `text-session.ts:77` place-caret API
+  exist, but `app/text-editing.ts` never routes pointer clicks and Mod+A always hits the canvas select-all. Owner also:
+  opacity has no effect on text (likely `text-scene.ts` group never gets layer opacity). Both added to the text agent.
 - **2026-10-26** Owner: in text editing you can't click to place the caret, use Ctrl/Cmd+A, or make a selection. Added to the
   text-fix agent's scope (same code path as the first-key race); report separately. Suggested-task card for split
   input lag: dismissed by owner; queued here after the text fix.
