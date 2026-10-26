@@ -18,14 +18,17 @@ import type { PartOp } from '@staticflux/document/v2';
 import type { ClientRect, TextInput, TextIntent, TextKey } from '@staticflux/surface/text-input';
 import type { TextLayout } from './layout-result.js';
 import type { CharStyle } from './model.js';
-import { deleteTextOps, insertTextOps, previewReplace, replaceTextOps, splitParagraphOps, type TextBlockModel } from './rich-text.js';
+import { deleteTextOps, insertTextOps, listIndentOps, previewReplace, replaceTextOps, splitParagraphOps, type TextBlockModel } from './rich-text.js';
 import type { CaretMotionName, CaretPosition, Rect, TextLayoutEngine } from './text-engine.js';
 
 export interface TextSessionTarget {
   /** The element's current model (after local and remote changes). */
   read(): Result<TextBlockModel>;
-  /** Commit ops as one undo step with a readable label. */
-  commit(ops: readonly PartOp[], label: string): Result<void>;
+  /**
+   * Commit ops as one undo step with a readable label. `step` (B12, T-2): commits that pass the same step key are
+   * **one** undo step (typing coalescing, TEXT §3.6); omitted: a step of its own.
+   */
+  commit(ops: readonly PartOp[], label: string, step?: string): Result<void>;
 }
 
 export interface TextSessionOptions {
@@ -42,7 +45,21 @@ export interface TextSessionOptions {
   readonly onExit?: (reason: 'escape' | 'tab') => void;
   /** Problems (rejected ops, layout failures) for a toast or the log. */
   readonly onProblem?: (error: SfError) => void;
+  /** Apple key conventions for caret motions (T-3): Option moves by word, Command to the line or text edges. Default false. */
+  readonly isMac?: boolean;
+  /** Milliseconds clock for undo coalescing (default `Date.now`; tests pass a fake). */
+  readonly now?: () => number;
+  /**
+   * Indent (+1) or outdent (-1) the list paragraphs touching `[from, to]` (T-8): the ops of one step, or
+   * `undefined` when the caret is not in a list (Tab then does nothing: TEXT Q1, it never leaves editing). Default `listIndentOps`.
+   */
+  readonly indent?: (model: TextBlockModel, from: number, to: number, delta: 1 | -1) => Result<PartOp[]> | undefined;
 }
+
+/** A pause this long (ms) ends a coalesced typing or deleting step (TEXT §3.6). */
+export const TYPING_PAUSE_MS = 1000;
+/** Soft line break (T-6, Shift+Enter): a new line inside the same paragraph. */
+export const LINE_SEPARATOR = '\u2028';
 
 export interface TextSessionState {
   readonly model: TextBlockModel;
@@ -67,7 +84,16 @@ export interface TextSession {
   dispose(): void;
 }
 
-const LABELS = { type: 'Type', delete: 'Delete text', paste: 'Paste', ime: 'Type', paragraph: 'New paragraph' } as const;
+const LABELS = { type: 'Type', delete: 'Delete text', paste: 'Paste', ime: 'Type', paragraph: 'New paragraph', lineBreak: 'Line break', indent: 'Indent', outdent: 'Outdent' } as const;
+
+/** The caret motion of an arrow / Home / End key on a platform (T-3, TEXT §3.3). */
+export function caretMotionFor(key: 'ArrowLeft' | 'ArrowRight' | 'Home' | 'End', mods: { readonly mod: boolean; readonly alt: boolean }, isMac: boolean): CaretMotionName {
+  const left = key === 'ArrowLeft';
+  if (key === 'Home' || key === 'End') return mods.mod ? (key === 'Home' ? 'textStart' : 'textEnd') : key === 'Home' ? 'lineStart' : 'lineEnd';
+  // Mac: Option = word, Command = line edge. Windows / Linux: Ctrl = word (Alt+arrow is the browser's back / forward).
+  if (isMac) return mods.mod ? (left ? 'lineStart' : 'lineEnd') : mods.alt ? (left ? 'wordLeft' : 'wordRight') : left ? 'left' : 'right';
+  return mods.mod ? (left ? 'wordLeft' : 'wordRight') : left ? 'left' : 'right';
+}
 
 export function createTextSession(options: TextSessionOptions): Result<TextSession> {
   const { input, engine, blockId } = options;
@@ -86,6 +112,21 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
   let composition: TextSessionState['composition'];
   let typingStyle: CharStyle | undefined;
   let stickyX: number | undefined;
+  const now = options.now ?? Date.now;
+  /** The open coalesced step (T-2): its kind, key, when it last grew and where the caret is at its end. */
+  let run: { readonly kind: 'type' | 'delete'; readonly key: string; readonly at: number; readonly end: number } | undefined;
+  let runs = 0;
+  /** The text as this session last committed or read it (an external change, e.g. undo, ends the run). */
+  let known = model.text;
+  /**
+   * FIX-TEXT-FIRST-KEY: true while `target.commit` runs. The target's commit invalidates the element (Studio: once for
+   * the text, once for the box size), which calls `refresh` before this session has moved the caret. A sync there
+   * would push the new text with the **old** caret; across the worker port main applies it when no key is in flight,
+   * the platform caret jumps back before the typed character and the next key lands in front of it ("ello StudioH").
+   * The commit rereads, lays out and syncs once itself; `refreshDue` only matters when the commit fails half-way.
+   */
+  let committing = false;
+  let refreshDue = false;
   const listeners = new Set<(s: TextSessionState) => void>();
 
   const problem = (e: SfError): void => options.onProblem?.(e);
@@ -128,21 +169,57 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
     return true;
   };
 
-  const commit = (ops: Result<PartOp[]>, label: string, caret: number): void => {
+  /**
+   * The step key for an edit of `kind` starting with a collapsed caret at `caret` (TEXT §3.6): the open run's key when
+   * it is the same kind, continuous and recent; else a fresh one. Paste, Enter and styles take no key (own step).
+   */
+  const stepFor = (kind: 'type' | 'delete', caret: number | undefined): string => {
+    if (run !== undefined && run.kind === kind && caret === run.end && now() - run.at < TYPING_PAUSE_MS) return run.key;
+    return `${kind}-${blockId}-${(runs += 1)}`;
+  };
+
+  /** Re-read the document and push the result with the current selection (kept in range). */
+  const refreshNow = (): void => {
+    if (!reread()) return;
+    if (model.text !== known) run = undefined; // undo or a remote edit: the next keystroke starts a new step
+    known = model.text;
+    anchor = clamp(anchor);
+    focus = { offset: clamp(focus.offset), upstream: focus.upstream };
+    relayout();
+    sync();
+  };
+
+  /**
+   * Commit `ops`, then place the caret at `caret` (or keep `select`: anchor and focus) and push text + selection
+   * **once** (FIX-TEXT-FIRST-KEY: no push with the old caret while the commit runs).
+   */
+  const commit = (ops: Result<PartOp[]>, label: string, caret: number, coalesce?: { readonly kind: 'type' | 'delete'; readonly key: string }, select?: readonly [number, CaretPosition]): void => {
     if (!ops.ok) {
       problem(ops.error);
       return;
     }
     if (ops.value.length > 0) {
-      const done = options.target.commit(ops.value, label);
+      committing = true;
+      refreshDue = false;
+      let done: Result<void>;
+      try {
+        done = options.target.commit(ops.value, label, coalesce?.key);
+      } finally {
+        committing = false;
+      }
       if (!done.ok) {
+        run = undefined;
         problem(done.error);
+        // Part of it may have landed (the text, not the box size): show what the document holds now.
+        if (refreshDue) refreshNow();
         return;
       }
     }
     if (!reread()) return;
-    anchor = clamp(caret);
-    focus = { offset: anchor, upstream: false };
+    known = model.text;
+    run = coalesce === undefined ? undefined : { kind: coalesce.kind, key: coalesce.key, at: now(), end: clamp(caret) };
+    anchor = clamp(select?.[0] ?? caret);
+    focus = select === undefined ? { offset: anchor, upstream: false } : { offset: clamp(select[1].offset), upstream: select[1].upstream };
     relayout();
     sync();
   };
@@ -155,6 +232,7 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
 
   const moveFocus = (to: CaretPosition, extend: boolean, keepColumn = false): void => {
     if (!keepColumn) stickyX = undefined;
+    run = undefined; // a caret move by mouse or arrow ends a coalesced step
     focus = { offset: clamp(to.offset), upstream: to.upstream };
     if (!extend) anchor = focus.offset;
     typingStyle = undefined;
@@ -162,20 +240,29 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
   };
 
   const KEYS: Readonly<Partial<Record<TextKey, (shift: boolean, mod: boolean, alt: boolean) => void>>> = {
-    Enter: () => {
+    Enter: (shift) => {
       const [a, b] = ordered();
+      // Shift+Enter: a soft line break inside the paragraph (T-6); Enter: a new paragraph.
+      if (shift) return commit(replaceTextOps(model, a, b, LINE_SEPARATOR, typingStyle), LABELS.lineBreak, a + LINE_SEPARATOR.length);
       commit(a === b ? splitParagraphOps(model, a) : replaceTextOps(model, a, b, '\n'), LABELS.paragraph, a + 1);
     },
     Escape: () => options.onExit?.('escape'),
-    Tab: () => options.onExit?.('tab'),
+    // T-8 / TEXT Q1: Tab indents a list paragraph (Shift+Tab outdents); anywhere else it does nothing.
+    Tab: (shift) => {
+      const [a, b] = ordered();
+      const ops = (options.indent ?? listIndentOps)(model, a, b, shift ? -1 : 1);
+      if (ops === undefined) return;
+      // The selection stays; one push with it (not a push at `a` followed by another).
+      commit(ops, shift ? LABELS.outdent : LABELS.indent, a, undefined, [anchor, focus]);
+    },
     SelectAll: () => {
       anchor = 0;
       moveFocus({ offset: model.text.length, upstream: true }, true);
     },
-    ArrowLeft: (shift, mod, alt) => step(mod || alt ? 'wordLeft' : 'left', shift),
-    ArrowRight: (shift, mod, alt) => step(mod || alt ? 'wordRight' : 'right', shift),
-    Home: (shift, mod) => step(mod ? 'textStart' : 'lineStart', shift),
-    End: (shift, mod) => step(mod ? 'textEnd' : 'lineEnd', shift),
+    ArrowLeft: (shift, mod, alt) => step(caretMotionFor('ArrowLeft', { mod, alt }, options.isMac === true), shift),
+    ArrowRight: (shift, mod, alt) => step(caretMotionFor('ArrowRight', { mod, alt }, options.isMac === true), shift),
+    Home: (shift, mod, alt) => step(caretMotionFor('Home', { mod, alt }, options.isMac === true), shift),
+    End: (shift, mod, alt) => step(caretMotionFor('End', { mod, alt }, options.isMac === true), shift),
     ArrowUp: (shift) => vertical('up', shift),
     ArrowDown: (shift) => vertical('down', shift),
     PageUp: (shift) => step('textStart', shift),
@@ -203,16 +290,22 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
       case 'insert': {
         const from = clamp(Math.min(intent.range[0], intent.range[1]));
         const to = clamp(Math.max(intent.range[0], intent.range[1]));
-        commit(replaceTextOps(model, from, to, intent.text, typingStyle), intent.text.length > 1 ? LABELS.paste : LABELS.type, from + intent.text.length);
+        // One typed character (a grapheme) coalesces; a longer insert is a paste, its own step.
+        const typed = [...intent.text].length === 1 && intent.text !== '\n' && intent.text !== LINE_SEPARATOR;
+        const coalesce = typed ? { kind: 'type' as const, key: stepFor('type', from === to ? from : undefined) } : undefined;
+        commit(replaceTextOps(model, from, to, intent.text, typingStyle), typed ? LABELS.type : LABELS.paste, from + intent.text.length, coalesce);
         return;
       }
       case 'delete': {
         let [from, to] = [clamp(Math.min(...intent.range)), clamp(Math.max(...intent.range))];
-        if (from === to && intent.unit !== 'selection') {
+        const collapsed = from === to;
+        if (collapsed && intent.unit !== 'selection') {
           const edge = boundary(from, intent.direction, intent.unit);
           [from, to] = [Math.min(from, edge), Math.max(from, edge)];
         }
-        commit(deleteTextOps(model, from, to), LABELS.delete, from);
+        // Deletes from a collapsed caret coalesce like typing (separately from it); a selection delete is its own step.
+        const coalesce = collapsed ? { kind: 'delete' as const, key: stepFor('delete', clamp(Math.min(...intent.range))) } : undefined;
+        commit(deleteTextOps(model, from, to), LABELS.delete, from, coalesce);
         return;
       }
       case 'compose-start': {
@@ -234,7 +327,8 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
       case 'compose-commit': {
         const c = composition ?? { from: clamp(intent.range[0]), to: clamp(intent.range[0]), text: '' };
         composition = undefined;
-        commit(c.from === c.to ? insertTextOps(model, c.from, intent.text, typingStyle) : replaceTextOps(model, c.from, c.to, intent.text, typingStyle), LABELS.ime, c.from + intent.text.length);
+        const coalesce = { kind: 'type' as const, key: stepFor('type', c.from === c.to ? c.from : undefined) };
+        commit(c.from === c.to ? insertTextOps(model, c.from, intent.text, typingStyle) : replaceTextOps(model, c.from, c.to, intent.text, typingStyle), LABELS.ime, c.from + intent.text.length, coalesce);
         return;
       }
       case 'compose-cancel':
@@ -247,6 +341,10 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
         moveFocus({ offset: intent.selection[1], upstream: false }, true);
         return;
       case 'key':
+        // B12 T-9: while a composition is open the IME owns the keys (candidate arrows, Enter to accept, Tab); a key
+        // intent that slips through must not split, move or commit, or the control bounds and the text change under
+        // the composition (owner's IME check, finding 2: one line more per key intent).
+        if (composition !== undefined) return;
         KEYS[intent.key]?.(intent.shift, intent.mod, intent.alt);
         return;
       case 'format':
@@ -283,14 +381,16 @@ export function createTextSession(options: TextSessionOptions): Result<TextSessi
       moveFocus({ offset: b, upstream: false }, true);
     },
     refresh() {
-      if (!reread()) return;
-      anchor = clamp(anchor);
-      focus = { offset: clamp(focus.offset), upstream: focus.upstream };
-      relayout();
-      sync();
+      // The session's own commit invalidated the element: the commit pushes once, with the caret after the edit.
+      if (committing) {
+        refreshDue = true;
+        return;
+      }
+      refreshNow();
     },
     setTypingStyle(style) {
       typingStyle = style;
+      run = undefined; // a style change ends a coalesced step
     },
     onChange(listener) {
       listeners.add(listener);

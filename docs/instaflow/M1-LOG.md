@@ -72,6 +72,41 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** B12 + text fixes: full check green (4552 tests), Studio smoke 0/10 failures in both topologies, Home smoke
+  green. PR opened. B12b (P1 versioned keystrokes, P2 text in the element tree) running on
+  `claude/wip-b12b-text-protocol`; owner approved.
+- **2026-10-26** Text fixes merged on the working branch (all pre-B12, reproduce on main): (1) first-key race since B9:
+  each key committed twice and the session pushed new text with the old caret; one state per key now; smoke's
+  `waitForFunction` with async checks never waited (fixed with `waitAsync`); (2) click/drag/Shift/Mod+A caret and
+  selection never built (B2/B8/B9): now wired and drawn; (3) text group lacked layer opacity, blend, effects (canvas
+  and all exports): fixed. Proposals needing a decision: P1 typing right after a caret move lands at the old caret
+  (protocol change), P2 text drawn outside the element tree (always on top, ignores parent opacity/clip). Budgets
+  tools 27.97/28, text 18.24/18.25 KB.
+- **2026-10-26** Caret/selection is a B8 integration gap: IF-21.10 engine support + `text-session.ts:77` place-caret API
+  exist, but `app/text-editing.ts` never routes pointer clicks and Mod+A always hits the canvas select-all. Owner also:
+  opacity has no effect on text (likely `text-scene.ts` group never gets layer opacity). Both added to the text agent.
+- **2026-10-26** Owner: in text editing you can't click to place the caret, use Ctrl/Cmd+A, or make a selection. Added to the
+  text-fix agent's scope (same code path as the first-key race); report separately. Suggested-task card for split
+  input lag: dismissed by owner; queued here after the text fix.
+- **2026-10-26** #33 merged; owner confirms on a real machine: "the stutter is gone". Drag layer (lift/drag) moves to the
+  C4 performance pass unless the owner wants it sooner.
+- **2026-10-26** Drag stutter root-caused → PR #33: the page-edge overlay re-sent per move dirtied the whole page;
+  stale tiles redrawn only after present, 4/frame, centre-first (bottom row last). Fix: page edge only on change;
+  `inFrameStaleTiles` (Studio 64). Stale frames during drag 95%+ → 0. Trade-off: heavier frames on SwiftShader; not
+  measured on a real GPU. Proposal (owner decision): drag layer via renderer `lift`/`drag` (zero tile redraws per
+  move). Unexplained: split-topology input latency 2–8 s under Playwright; separate investigation suggested.
+- **2026-10-26** B12 full check green (4538 tests). Smoke 16 runs: 1 fail, **colocated** ("ello StudioH": first char's
+  caret update lost), so not split-specific. Root-cause agent on `claude/fix-text-first-key` (B12 or pre-existing,
+  deterministic repro, fix, 20× smoke). B12 PR waits for it.
+- **2026-10-26** B12 merged on the working branch (clean; size entries 115/115). All items in: actions (group, ungroup,
+  frame selection, reorder ×4, rename, hide/show, crop), `hidden` prop everywhere, page fill stack, text T-1–T-9, image
+  crop; IF-37.1–37.22, §39, IF-FIX-001/002; lazy WOFF decoder Wasm 77.2/80 KB. Agent saw split smoke fail 1/4 with
+  reordered PDF text ("ello StudioH"), believes B9 race. Not accepted as a flake: running 8× here, then on main.
+- **2026-10-26** #32 merged; #29 closed. Owner report: drag stutter in Studio, worst in a grid repeat (lower half lags
+  ~1 s on quick moves). Root-cause agent on `claude/fix-drag-stutter` (measure both topologies; fix if contained, else
+  propose). B12 still running.
+- **2026-10-26** Motion/timeline/video UX done → PR #32 (MOTION-TIMELINE-UX-SPEC, F-73–F-81, V-1…V-31 schedule M3–M5+,
+  Q1–Q12 asked). B12 still running.
 - **2026-10-26** #30 (B11a2) and #31 (appearance + text specs) merged; #29 closed (verified fully included in #31:
   ancestry + byte-identical docs). Owner: "all recommended" (text Q1–Q10, appearance Q1–Q11, recorded in both specs)
   and "sequencing is yours". Order: B12 engine gaps → B11b surfaces → Fable motion/video pass. B12 launched on

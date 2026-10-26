@@ -39,7 +39,26 @@ export type ResolvedPaint =
   | { readonly kind: 'radial'; readonly center: readonly [number, number]; readonly radius: number; readonly stops: readonly GradientStop[] }
   /** `start` in radians, clockwise from 3 o'clock. */
   | { readonly kind: 'conic'; readonly center: readonly [number, number]; readonly start: number; readonly stops: readonly GradientStop[] }
-  | { readonly kind: 'image'; readonly asset: string; readonly fit: ImageFitName };
+  | { readonly kind: 'image'; readonly asset: string; readonly fit: ImageFitName; readonly crop?: ResolvedCrop };
+
+/** An image paint's crop (B12, A-3): offset 0…1 of the free space, scale × the fit, clockwise quarter turns. */
+export interface ResolvedCrop {
+  readonly x: number;
+  readonly y: number;
+  readonly scale: number;
+  readonly quarter: 0 | 1 | 2 | 3;
+}
+
+/** The crop of an image paint value (undefined when it has none or it is the default: B1's plain fit). */
+export function cropOf(v: Readonly<Record<string, JsonValue>>): ResolvedCrop | undefined {
+  const offset = vec2(v['offset'], [0.5, 0.5]);
+  const clamp01 = (n: number): number => Math.max(0, Math.min(1, n));
+  const scale = typeof v['scale'] === 'number' && Number.isFinite(v['scale']) && v['scale'] > 0 ? v['scale'] : 1;
+  const turns = typeof v['rotation'] === 'number' && Number.isFinite(v['rotation']) ? Math.round(v['rotation'] / 90) : 0;
+  const quarter = (((turns % 4) + 4) % 4) as 0 | 1 | 2 | 3;
+  const crop: ResolvedCrop = { x: clamp01(offset[0]), y: clamp01(offset[1]), scale, quarter };
+  return crop.x === 0.5 && crop.y === 0.5 && crop.scale === 1 && crop.quarter === 0 ? undefined : crop;
+}
 
 export interface ResolvedFill {
   readonly paint: ResolvedPaint;
@@ -108,6 +127,8 @@ export interface ResolvedElement {
   readonly effects: readonly ResolvedEffect[];
   readonly mask?: ResolvedMask;
   readonly matchKey?: string;
+  /** `spatial.hidden` (B12, A-2): present only when the element itself is hidden (ancestors: `isHidden` in layout). */
+  readonly hidden?: true;
   /** Tokens that did not resolve, and values that could not be read (drawn as nothing). */
   readonly issues: readonly { readonly path: string; readonly problem: string }[];
 }
@@ -233,7 +254,8 @@ function readPaint(raw: JsonValue | undefined, path: string, r: Reader): Resolve
       if (typeof asset !== 'object' || asset === null || Array.isArray(asset) || typeof (asset as Record<string, JsonValue>)['asset'] !== 'string') return { kind: 'none' };
       const ref = asset as Record<string, JsonValue>;
       const key = typeof ref['at'] === 'string' && ref['at'] !== 'latest' ? `${ref['asset'] as string}@${ref['at']}` : (ref['asset'] as string);
-      return { kind: 'image', asset: key, fit: str(v['fit'], ['cover', 'contain', 'stretch', 'tile'] as const, 'cover') };
+      const crop = cropOf(v);
+      return { kind: 'image', asset: key, fit: str(v['fit'], ['cover', 'contain', 'stretch', 'tile'] as const, 'cover'), ...(crop === undefined ? {} : { crop }) };
     }
     default:
       r.issues.push({ path, problem: 'unknown paint kind' });
@@ -434,6 +456,7 @@ export function resolveComposed(composed: ComposedNode, kit?: BrandKitView): Res
         }
       : {}),
     ...(typeof matchKey === 'string' ? { matchKey } : {}),
+    ...(values[P.hidden] === true ? { hidden: true as const } : {}),
     issues: r.issues,
   };
 }

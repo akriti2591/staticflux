@@ -48,7 +48,7 @@ import { type CreateOutcome, createCreationController, type CreationController }
 import type { StudioDocument } from './document.js';
 import { NoOpenPageError } from './errors.js';
 import type { ImageUploads } from './images.js';
-import { startTextEditing, type TextEditing, type TextExitReason, type TextHostPort } from './text-editing.js';
+import { startTextEditing, type TextEditing, textEditBatch, type TextExitReason, type TextHostPort } from './text-editing.js';
 import { createTextLayer, type StudioFonts, type TextLayer } from './text-layer.js';
 
 export interface CanvasTabOptions {
@@ -66,6 +66,8 @@ export interface CanvasTabOptions {
   readonly selectTool?: (tool: ToolId) => void;
   /** The editor's shortcut registry (the canvas scope is active there whenever keys arrive). */
   readonly shortcuts?: ShortcutRegistry;
+  /** Apple key conventions while editing text (B12 T-3: Option word, Command line). Default false. */
+  readonly isMac?: boolean;
   /** Where the text host lives (text editing is off without it). */
   readonly textHost?: TextHostPort;
   readonly announcer: Pick<Announcer, 'announce'>;
@@ -177,12 +179,17 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
           stroke: { width: 1 / view.camera.zoom, paint: { kind: 'solid', color: PAGE_EDGE } },
         });
       }
-      return { overlay: [prelude.finish(), toolOverlayBatch(view.overlay, view.camera.zoom, { clear: false, firstId: OVERLAY_FIRST_ID, ids: overlayIds })] };
+      const tools = toolOverlayBatch(view.overlay, view.camera.zoom, { clear: false, firstId: OVERLAY_FIRST_ID, ids: overlayIds });
+      // The caret and selection of the text being edited (TEXT-FONTS §3.2), after the tool overlay's ids.
+      const edit = editing?.overlay(view.camera.zoom);
+      const batches = [prelude.finish(), tools];
+      if (edit !== undefined) batches.push(textEditBatch(edit, { clear: false, firstId: OVERLAY_FIRST_ID + 2 * (overlayIds.length + 1), ids: overlayIds }));
+      return { overlay: batches };
     },
   };
 
   // Canvas pipeline: B1's source over the repeat view, B2's text on the IR section, uploads and the overlay.
-  const source = createElementRenderSource({ stage: document.view, geometry: document.geometry, kit: document.kit, root: page, orderOf: (id) => part.node(id)?.order });
+  const source = createElementRenderSource({ stage: document.view, geometry: document.geometry, kit: document.kit, root: page, orderOf: (id) => part.node(id)?.order, pageFill: true }); // B12: the page's fill stack
   scope.defer(() => source.dispose());
   const projector = createRenderProjector(ElementProjection, source);
   const text = createTextLayer({ document, page, fonts: options.fonts, scope });
@@ -284,16 +291,20 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
       host,
       camera: () => view.camera,
       actor: options.actor,
+      isMac: options.isMac === true,
       onExit: (reason) => {
         editing = undefined;
         options.onEditing?.(undefined, reason);
-        publish();
+        dirtyOverlay(); // the caret goes
       },
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
       scope,
     });
     if (!started.ok) return started;
     editing = started.value;
+    // The caret and selection are drawn in the overlay: redraw it whenever the session's state changes.
+    scope.defer(started.value.session.onChange(dirtyOverlay));
+    dirtyOverlay();
     view.select([node]);
     options.onEditing?.(node);
     return ok();
@@ -382,12 +393,19 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
       return editing;
     },
     pointer(event) {
+      // FIX-TEXT-FIRST-KEY item 2: while editing, presses in the text box place the caret and drags select (TEXT-FONTS
+      // §3.2); a press anywhere else ends editing and goes on to the tools as before.
+      const [px, py] = pagePoint(view, event);
+      const textPointer = { phase: event.phase, x: px, y: py, ...(event.shift === undefined ? {} : { shift: event.shift }), ...(event.clicks === undefined ? {} : { clicks: event.clicks }) };
+      if (editing !== undefined && editing.pointer(textPointer)) return ok({ kind: 'none' });
       if (event.phase === 'down' && editing !== undefined) editing.stop();
       if (event.phase === 'down' && (event.clicks ?? 1) >= 2) {
-        const hit = hitTest(ctx, index, ...pagePoint(view, event), { tolerance: 3 / view.camera.zoom, context: view.context });
+        const hit = hitTest(ctx, index, px, py, { tolerance: 3 / view.camera.zoom, context: view.context });
         const node = hit.ok ? hit.value?.target : undefined;
         if (node !== undefined && isText(node) && !creation.handles(view.tool as ToolId)) {
           const started = editText(node);
+          // Edit mode with the caret at the click (TEXT-FONTS §3.1); a drag from here selects.
+          if (started.ok) editing?.pointer({ ...textPointer, clicks: 1 });
           return started.ok ? ok({ kind: 'selection', selection: view.selection }) : started;
         }
       }

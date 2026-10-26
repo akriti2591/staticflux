@@ -194,8 +194,10 @@ export function studioCanvas(options: StudioCanvasOptions): StudioCanvas {
       }
 
       // Input → the editor's ring (A5).
-      const target = filteredTarget(surface);
-      const forwarder = createInputForwarder({ target, keyboardTarget: target, env: options.env ?? { now: () => performance.now(), timeOrigin: performance.timeOrigin }, sinks: [inputRingSink(workers.input)], captureWheel: true });
+      // Keys typed into the text host belong to it (WRK-2); its pointer events go to the editor like any other, which
+      // places the caret and selects in the text (FIX-TEXT-FIRST-KEY item 2: they used to be dropped here).
+      const keys = filteredTarget(surface);
+      const forwarder = createInputForwarder({ target: surface as unknown as InputTarget, keyboardTarget: keys, env: options.env ?? { now: () => performance.now(), timeOrigin: performance.timeOrigin }, sinks: [inputRingSink(workers.input)], captureWheel: true });
       scope.defer(() => forwarder.dispose());
       // No native text selection or drag-and-drop on the surface (the accessibility layer holds text): the browser would
       // cancel the pointer (pointercancel) to start its own drag and end the gesture.
@@ -206,9 +208,9 @@ export function studioCanvas(options: StudioCanvasOptions): StudioCanvas {
       surface.addEventListener(
         'pointerdown',
         (e) => {
-          if (e.button !== 0 || fromTextHost(e)) return;
-          surface.setPointerCapture?.(e.pointerId);
-          surface.focus({ preventScroll: true });
+          if (e.button !== 0) return;
+          surface.setPointerCapture?.(e.pointerId); // a drag-select may leave the text host
+          if (!fromTextHost(e)) surface.focus({ preventScroll: true }); // the host keeps the focus while editing
         },
         listening,
       );

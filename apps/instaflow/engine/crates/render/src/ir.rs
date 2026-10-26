@@ -25,6 +25,7 @@
 //! path     = verbs:u32 verb:u8* points:u32 (x:f64 y:f64)*     verbs: move 0, line 1, quad 2, cubic 3, close 4
 //! paint    = NONE(0) | SOLID(1) rgba8 | LINEAR(2) x0 y0 x1 y1:f64 stops | RADIAL(3) cx cy r:f64 stops | IMAGE(4) image:u32 fit:u8
 //!          | SWEEP(5) cx cy start end:f64 stops                    (conic; angles in radians, clockwise from +x)
+//!          | IMAGE_CROP(6) image:u32 fit:u8 x y scale:f64 quarter:u8  (B12 A-3: an image paint with a crop, see `Crop`)
 //! stops    = count:u8 (offset:f32 rgba8)*
 //! fills    = count:u8 (paint opacity:f32 blend:u8)*                        (bottom first)
 //! strokes  = count:u8 (width:f32 paint opacity:f32 blend:u8 join:u8 cap:u8 miter:f32
@@ -139,6 +140,32 @@ pub mod fit {
     pub const TILE: u8 = 3;
 }
 
+/// How an image paint's picture sits in the shape's box (B12, A-3: crop, offset, scale, rotation inside the element).
+/// The picture is turned by `quarter` quarter turns (clockwise), fitted (`fit::*`) at `scale` × the fit's size, and
+/// placed at `x, y` ∈ 0…1 of the free space (`box − picture`, negative when the picture overflows): 0.5, 0.5 centres
+/// it, 0, 0 aligns the top-left corners. `Crop::DEFAULT` draws exactly what `Paint::Image` draws.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Crop {
+    pub x: f64,
+    pub y: f64,
+    pub scale: f64,
+    pub quarter: u8,
+}
+
+impl Crop {
+    pub const DEFAULT: Crop = Crop { x: 0.5, y: 0.5, scale: 1.0, quarter: 0 };
+}
+
+impl Paint {
+    /// The image id of an image paint (with or without a crop).
+    pub fn image_id(&self) -> Option<u32> {
+        match self {
+            Paint::Image(id, _) | Paint::ImageCrop(id, _, _) => Some(*id),
+            _ => None,
+        }
+    }
+}
+
 /// Mask modes (`Node::mask` low bits) and the invert bit.
 pub mod mask {
     pub const NONE: u8 = 0;
@@ -165,6 +192,8 @@ pub enum Paint {
     Radial { center: Point, radius: f64, stops: Vec<(f32, Rgba8)> },
     /// Image id and fit (`fit::*`).
     Image(u32, u8),
+    /// An image paint with a crop (B12, A-3): image id, fit and how the fitted image sits in the box.
+    ImageCrop(u32, u8, Crop),
     /// Conic (sweep) gradient around `center` from `start` to `end` (radians).
     Sweep { center: Point, start: f64, end: f64, stops: Vec<(f32, Rgba8)> },
 }
@@ -440,6 +469,19 @@ impl<'a> Reader<'a> {
                     return fail(format!("unknown image fit {fit}"));
                 }
                 Paint::Image(image, fit)
+            }
+            6 => {
+                let image = self.u32()?;
+                let fit = self.u8()?;
+                if fit > fit::TILE {
+                    return fail(format!("unknown image fit {fit}"));
+                }
+                let (x, y, scale) = (self.f64()?, self.f64()?, self.f64()?);
+                let quarter = self.u8()?;
+                if !(x.is_finite() && y.is_finite() && scale.is_finite() && scale > 0.0) || quarter > 3 {
+                    return fail("invalid image crop");
+                }
+                Paint::ImageCrop(image, fit, Crop { x, y, scale, quarter })
             }
             5 => Paint::Sweep { center: Point::new(self.f64()?, self.f64()?), start: self.f64()?, end: self.f64()?, stops: self.stops()? },
             other => return fail(format!("unknown paint kind {other}")),
@@ -874,8 +916,8 @@ impl Scene {
     fn dirty_users_of(&self, image: u32, dirty: &mut Vec<Rect>) {
         for node in self.nodes.values() {
             let uses = matches!(node.geometry, Geometry::Image { image: i, .. } if i == image)
-                || node.fills.iter().any(|f| matches!(f.paint, Paint::Image(i, _) if i == image))
-                || node.strokes.iter().any(|s| matches!(s.paint, Paint::Image(i, _) if i == image));
+                || node.fills.iter().any(|f| f.paint.image_id() == Some(image))
+                || node.strokes.iter().any(|s| s.paint.image_id() == Some(image));
             if uses {
                 if let Some(b) = self.bounds.get(&node.id) {
                     dirty.push(*b);
@@ -1042,6 +1084,15 @@ impl IrWriter {
                 self.u8(4);
                 self.u32(*i);
                 self.u8(*fit);
+            }
+            Paint::ImageCrop(i, fit, crop) => {
+                self.u8(6);
+                self.u32(*i);
+                self.u8(*fit);
+                for v in [crop.x, crop.y, crop.scale] {
+                    self.f64(v);
+                }
+                self.u8(crop.quarter);
             }
             Paint::Sweep { center, start, end, stops } => {
                 self.u8(5);
@@ -1293,6 +1344,29 @@ mod tests {
         let mut n = leaf(id, ROOT, Geometry::Rect { w, h, radius: 0.0 }, Paint::Solid([255, 0, 0, 255]));
         n.transform = Affine::translate((x, y));
         n
+    }
+
+    #[test]
+    fn round_trips_image_crops_and_refuses_bad_ones() {
+        let crop = Crop { x: 0.25, y: 1.0, scale: 1.5, quarter: 3 };
+        let mut n = leaf(7, ROOT, Geometry::Rect { w: 20.0, h: 10.0, radius: 0.0 }, Paint::ImageCrop(9, fit::COVER, crop));
+        n.strokes = vec![StrokeStyle::new(2.0, Paint::ImageCrop(9, fit::TILE, Crop::DEFAULT), 0, 0)];
+        let mut w = IrWriter::new();
+        w.upsert(&n, APPEND);
+        let ops = decode(&w.finish()).unwrap();
+        assert_eq!(ops[0], Op::Upsert { node: n.clone(), index: APPEND });
+        assert_eq!(n.fills[0].paint.image_id(), Some(9));
+        assert_eq!(Paint::Solid([0, 0, 0, 0]).image_id(), None);
+        // a node using the image as a cropped paint keeps the image alive (drop checks see it)
+        let mut scene = Scene::new();
+        let mut w = IrWriter::new();
+        w.image(9, 1, 1, &[1, 2, 3, 255]).upsert(&n, APPEND);
+        assert!(scene.apply(&w.finish()).is_ok());
+        for bad in [Crop { scale: 0.0, ..crop }, Crop { quarter: 4, ..crop }, Crop { x: f64::NAN, ..crop }] {
+            let mut w = IrWriter::new();
+            w.upsert(&leaf(8, ROOT, Geometry::Rect { w: 1.0, h: 1.0, radius: 0.0 }, Paint::ImageCrop(1, fit::COVER, bad)), APPEND);
+            assert!(decode(&w.finish()).is_err(), "{bad:?}");
+        }
     }
 
     #[test]

@@ -10,6 +10,7 @@ Open-licensed fonts for text tests, shaping parity and golden renders. All are *
 | `NotoSansDevanagari.wght.ttf` | google/fonts `ofl/notosansdevanagari/NotoSansDevanagari[wdth,wght].ttf` | subset to Devanagari blocks; `wdth` = 100 |
 | `NotoSansThai.wght.ttf` | google/fonts `ofl/notosansthai/NotoSansThai[wdth,wght].ttf` | subset to Thai; `wdth` = 100 |
 | `Inter-subset.otf` | Inter 4 (rsms/inter, Debian `fonts-inter`) `Inter-Regular.otf` (CFF) | subset to "AHlo Instaflow" (CFF outline test) |
+| `NotoSans-Hello.woff2`, `NotoSans-Hello.woff` | `NotoSans-Latin.wght.ttf` above | subset to "Hello WOFF" as WOFF2 / WOFF (B12 web font decoding: `pyftsubset … --text="Hello WOFF" --flavor=woff2`) |
 
 Made with fonttools: `pyftsubset <font> --unicodes=… --layout-features='*' --no-hinting`, then
 `fonttools varLib.instancer <font> wdth=100`. Layout features are kept whole, so shaping matches the full fonts on the

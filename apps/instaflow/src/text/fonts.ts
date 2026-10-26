@@ -5,7 +5,9 @@
  * - **Local Font Access** (`queryLocalFonts`): a permission flow (`LocalFontsMachine`, LIFECYCLES §22). Listing needs
  *   a user gesture; S3: without it Chrome throws `SecurityError: User activation is required`. Picked faces are
  *   stored in the workspace blob store, so documents keep working on machines without that font.
- * - **Uploads** (.ttf/.otf/.ttc): validated, stored as blobs (A3 `BlobStore`).
+ * - **Uploads** (.ttf/.otf/.ttc, and since B12 T-7 .woff2/.woff): validated, stored as blobs (A3 `BlobStore`). Web
+ *   fonts are decoded to OpenType first (`decodeWebfont`, the lazy `authoring-webfont` Wasm), so the stored blob, its
+ *   hash and everything downstream are plain OpenType.
  * - **Brand-kit font tokens** resolve to one of the above (`text-style.ts`, `BrandTokenSource`).
  *
  * Registered fonts feed the layout engine (`registerFont(hash, bytes)`) and the scene font table (`bytesOf(hash)`).
@@ -13,7 +15,8 @@
  */
 import type { BlobStore } from '@staticflux/blob';
 import { createMachine, defineMachine, err, type Machine, ok, type Result, type SfError, toSfError } from '@staticflux/core';
-import { FontInvalidError, FontStoreError, LocalFontsPermissionError, LocalFontsUnavailableError } from './errors.js';
+import { FontInvalidError, FontStoreError, LocalFontsPermissionError, LocalFontsUnavailableError, WebFontDecodeError } from './errors.js';
+import type { WebfontWasm } from './authoring-module.js';
 import type { RegisteredFont } from './text-engine.js';
 
 export const LocalFontsMachine = /* @__PURE__ */ defineMachine({
@@ -69,6 +72,33 @@ export interface FontLibraryOptions {
   /** Registers bytes with the layout engine (`TextLayoutEngine.registerFont`). */
   readonly register: (hash: string, bytes: Uint8Array) => Result<RegisteredFont>;
   readonly platform?: FontPlatform;
+  /** WOFF2 / WOFF → OpenType (B12 T-7; `webfontDecoder(load)`). Omitted: web fonts are refused (IF-TXT-006). */
+  readonly decodeWebfont?: WebfontDecoder;
+}
+
+/** Decodes a web font to OpenType bytes. */
+export type WebfontDecoder = (bytes: Uint8Array, signal?: AbortSignal) => Promise<Result<Uint8Array>>;
+
+/**
+ * A decoder over the lazy web font Wasm: `load` runs once, on the first web font (e.g. `() => loadWebfontModule({
+ * manifestUrl })`); a failed load is retried on the next call.
+ */
+export function webfontDecoder(load: (signal?: AbortSignal) => Promise<Result<Pick<WebfontWasm, 'decode_webfont'>>>): WebfontDecoder {
+  let module: Promise<Result<Pick<WebfontWasm, 'decode_webfont'>>> | undefined;
+  return async (bytes, signal) => {
+    module ??= load(signal);
+    const wasm = await module;
+    if (!wasm.ok) {
+      module = undefined;
+      return err(WebFontDecodeError({ cause: wasm.error, message: 'The web font decoder could not be loaded.' }));
+    }
+    try {
+      const out = wasm.value.decode_webfont(bytes);
+      return isFontFile(out) ? ok(out) : err(WebFontDecodeError({ details: { reason: 'not OpenType after decoding' } }));
+    } catch (cause) {
+      return err(WebFontDecodeError({ cause, details: { reason: String((cause as Error)?.message ?? cause) } }));
+    }
+  };
 }
 
 export interface FontLibrary {
@@ -99,6 +129,14 @@ export function isFontFile(bytes: Uint8Array): boolean {
   return bytes.length > 12 && MAGICS.some((m) => m.every((b, i) => bytes[i] === b));
 }
 
+const WEB_MAGICS = { woff2: [0x77, 0x4f, 0x46, 0x32], woff: [0x77, 0x4f, 0x46, 0x46] } as const;
+
+/** The web font container of `bytes` (`wOF2` / `wOFF`), or undefined (B12 T-7). */
+export function webFontKind(bytes: Uint8Array): 'woff2' | 'woff' | undefined {
+  if (bytes.length <= 12) return undefined;
+  return (Object.keys(WEB_MAGICS) as ('woff2' | 'woff')[]).find((k) => WEB_MAGICS[k].every((b, i) => bytes[i] === b));
+}
+
 const isSecurityError = (cause: unknown): boolean => (cause as { name?: string } | null)?.name === 'SecurityError' || (cause as { name?: string } | null)?.name === 'NotAllowedError';
 
 export function createFontLibrary(options: FontLibraryOptions): FontLibrary {
@@ -110,8 +148,15 @@ export function createFontLibrary(options: FontLibraryOptions): FontLibrary {
     if (machine.can(event)) machine.send(event);
   };
 
-  const add = async (bytes: Uint8Array, source: FontSource, name: string, signal?: AbortSignal): Promise<Result<FontAsset>> => {
-    if (!isFontFile(bytes)) return err(FontInvalidError({ details: { name } }));
+  const add = async (input: Uint8Array, source: FontSource, name: string, signal?: AbortSignal): Promise<Result<FontAsset>> => {
+    let bytes = input;
+    const web = webFontKind(input);
+    if (web !== undefined && options.decodeWebfont !== undefined) {
+      const decoded = await options.decodeWebfont(input, signal);
+      if (!decoded.ok) return decoded;
+      bytes = decoded.value;
+    }
+    if (!isFontFile(bytes)) return err(FontInvalidError({ details: { name, ...(web === undefined ? {} : { format: web }) } }));
     const stored = await options.blobs.put(bytes, { mime: FONT_MIME, ...(signal === undefined ? {} : { signal }) });
     if (!stored.ok) return err(FontStoreError({ cause: stored.error, details: { name } }));
     return registerBytes(stored.value.digest, bytes, source, name);

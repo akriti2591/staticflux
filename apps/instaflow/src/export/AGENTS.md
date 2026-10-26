@@ -41,6 +41,10 @@ design (D10). One capability (`instaflow/export`) serves the panel, `Mod+Shift+E
 - **Lazy**: the export worker is spawned per export; the export Wasm loads only for SVG, PDF and selection exports.
 - **Data, not branches**: the format row decides raster vs vector and one file vs one per page.
 
+**B12:** `buildPageScene` draws the page's fill stack as the scene's first node (`pageFill`, default true); a page export
+renders over nothing and `transparent` leaves the fill out (a selection export keeps `PAGE_BACKGROUND` unless transparent).
+Hidden elements never export; cropped image fills export as drawn (shared draw traversal).
+
 ## Rules
 - Repo rules 1–10. Panel from the kit under Clean Pop only; keep it minimal (B11 aligns it with the UX spec).
 - New format: a row in `EXPORT_FORMATS` plus a writer in the export crate; a feature a format cannot express: a row in D21's list.

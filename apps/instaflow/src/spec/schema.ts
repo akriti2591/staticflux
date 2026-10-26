@@ -81,8 +81,9 @@ export const EditorSpecSchema = s.object(
     scope: ScopeRefSchema,
     tools: s.array(id('A registered tool'), { maxItems: 32 }),
     panels: s.array(s.object({ panel: id('A registered panel'), dock: s.enum(PANEL_PLACEMENTS) }), { maxItems: 16 }),
-    // 48 (B8, was 12): actions of tone `more` share the HUD's one More menu, so a selection's actions fit.
-    hud: s.array(id('A registered HUD action'), { maxItems: 48 }),
+    // 64 (B12, was 48; B8 raised it from 12): actions of tone `more` share the HUD's one More menu, so a selection's
+    // actions fit, B12's ten structure actions (group, order, rename, hide…) included.
+    hud: s.array(id('A registered HUD action'), { maxItems: 64 }),
     capabilities: s.array(id('A declared capability'), { maxItems: 64 }),
     density: s.optional(s.enum(DENSITIES)),
     pinned: s.optional(s.array(s.string({ pattern: SLOT_PATTERN, maxLength: 112 }), { maxItems: 32 })),

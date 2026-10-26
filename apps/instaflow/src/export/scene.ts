@@ -9,6 +9,9 @@
  *   ahead of nothing else (the encoder resolves them by asset key), straight RGBA plus the luminance matte.
  * - **Text** (B2): the text layer's full IR (fonts once per hash, glyph runs carrying their text: scene IR v4).
  *
+ * - **Page fill** (B12, A-1): the page's fill stack is the first element node (a full-page rect under everything), so
+ *   PNG, SVG and PDF draw it exactly as the canvas does (D21); `pageFill: false` leaves it out (transparent export).
+ *
  * Batches apply in order: elements (a full encode starts with CLEAR), images, text.
  */
 import type { BlobStore } from '@staticflux/blob';
@@ -36,6 +39,8 @@ export interface PageSceneOptions {
   readonly decoder: ImageDecoder;
   readonly signal: AbortSignal;
   readonly scope: Scope;
+  /** Draw the page's fill stack (B12 A-1; default true). Export's `transparent` passes false. */
+  readonly pageFill?: boolean;
 }
 
 export interface PageScene {
@@ -64,7 +69,7 @@ export async function buildPageScene(options: PageSceneOptions): Promise<Result<
   const { document, page, scope } = options;
   const part = document.part(page);
   if (part === undefined) return err(NothingToExportError({ message: `The snapshot has no page "${page}".`, details: { page } }));
-  const source = createElementRenderSource({ stage: document.view, geometry: document.geometry, kit: document.kit, root: page, orderOf: (id) => part.node(id)?.order });
+  const source = createElementRenderSource({ stage: document.view, geometry: document.geometry, kit: document.kit, root: page, orderOf: (id) => part.node(id)?.order, pageFill: options.pageFill !== false });
   scope.defer(() => source.dispose());
   const projector = createRenderProjector(ElementProjection, source);
   source.changes();

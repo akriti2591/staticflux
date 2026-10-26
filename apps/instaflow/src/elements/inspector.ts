@@ -13,7 +13,7 @@ import { BLEND_MODE_NAMES, type BlendModeName, CORNER_PATHS, P } from './compone
 import { type BrandKitView, tokenType } from './brand-kit.js';
 import { ActionNotApplicableError } from './errors.js';
 import { styleSource } from './styles.js';
-import { checkElementValue, colorToRgba, type EffectValue, type FillValue, rgbaToHex, type StrokeValue, tokenName } from './values.js';
+import { checkElementValue, colorToRgba, type EffectValue, type FillValue, pageFills, rgbaToHex, type StrokeValue, tokenName } from './values.js';
 
 export type StackName = 'fills' | 'strokes' | 'effects';
 const STACK_PATHS: Readonly<Record<StackName, PropertyPath>> = { fills: P.fills, strokes: P.strokes, effects: P.effects };
@@ -144,6 +144,17 @@ export function appearanceEditOps(model: AppearanceModel, edit: AppearanceEdit):
   const path = STACK_PATHS[edit.stack];
   const checked = checkElementValue(path, current);
   return checked.ok ? ok([{ op: 'set', node, path, value: current }]) : checked;
+}
+
+/**
+ * The Page section's Background model (B12 A-1, APPEARANCE §2.8): the page's fill stack as an appearance model
+ * (one white row when the page has none written), so `appearanceEditOps` edits it like any element's fills.
+ * Strokes and effects are empty: a page draws neither.
+ */
+export function pageAppearanceModel(stage: Pick<Stage, 'read' | 'explain' | 'value'>, page: NodeId, kit?: BrandKitView): AppearanceModel | undefined {
+  const model = appearanceModel(stage, page, kit);
+  if (model === undefined) return undefined;
+  return { ...model, fills: pageFills(stage, page) as unknown as FillValue[], strokes: [], effects: [] };
 }
 
 /** A paint's swatch colour for the panel (`#rrggbb[aa]`; tokens resolved through the kit; gradients use their first stop). */

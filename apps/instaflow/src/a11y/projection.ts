@@ -188,7 +188,8 @@ export function projectCanvas(input: ProjectionInput): Result<CanvasSnapshot> {
   const walk = (node: NodeId): AccessibleNode[] => {
     const out: AccessibleNode[] = [];
     for (const child of childrenOf(node)) {
-      if (!keep.has(child) || !isElement(stage.read(child)?.kind)) continue;
+      const composed = stage.read(child);
+      if (!keep.has(child) || !isElement(composed?.kind) || composed?.values[P.hidden] === true) continue; // B12: hidden elements are not announced
       const projected = project(child);
       if (projected !== undefined) out.push(projected);
     }

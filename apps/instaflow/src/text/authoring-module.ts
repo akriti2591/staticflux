@@ -1,6 +1,6 @@
 /**
  * The authoring Wasm module (`apps/instaflow/engine/crates/authoring`, ABI 2) as TypeScript sees it, and its
- * loader. Two builds share the exports: `authoring` (loaded by the editor worker at boot, ≤ 350 KB brotli) and
+ * loader (plus the lazy web font decoder build, B12: `loadWebfontModule`). Two text builds share the exports: `authoring` (loaded by the editor worker at boot, ≤ 350 KB brotli) and
  * `authoring-complex` (Parley `complex-scripts`, ≈ 2.2 MB brotli, loaded only when text needs dictionary line
  * breaking: Thai, Lao, Khmer, Myanmar; S3). Hashed names come from `sf-wasm-manifest.json`; never hard-code them.
  */
@@ -10,7 +10,7 @@ import { AuthoringModuleError } from './errors.js';
 /** ABI this TypeScript expects (`abi_version()` in the crate's lib.rs). */
 export const AUTHORING_ABI_VERSION = 2;
 
-export const AUTHORING_BUILDS = { base: 'authoring-text', complex: 'authoring-text-complex' } as const;
+export const AUTHORING_BUILDS = { base: 'authoring-text', complex: 'authoring-text-complex', webfont: 'authoring-webfont' } as const;
 export type AuthoringBuild = keyof typeof AUTHORING_BUILDS;
 
 /** `TextEngine` in `crates/authoring/src/wasm.rs`. Rect arrays are flat `[x0, y0, x1, y1, …]`. */
@@ -35,6 +35,19 @@ export interface AuthoringWasm {
   abi_version(): number;
   complex_scripts(): boolean;
   TextEngine: new () => TextEngineWasm;
+}
+
+/** The lazy `authoring-webfont` build (B12, T-7): WOFF2 / WOFF → OpenType (`crates/authoring/src/webfont.rs`). */
+export interface WebfontWasm {
+  abi_version(): number;
+  /** OpenType bytes; throws the reason for a file that is not a (valid) WOFF2 or WOFF. */
+  decode_webfont(bytes: Uint8Array): Uint8Array;
+}
+
+/** Load the web font decoder build (fetched only when someone adds a WOFF2 or WOFF font). */
+export async function loadWebfontModule(options: Omit<LoadAuthoringModuleOptions, 'build'>): Promise<Result<WebfontWasm>> {
+  const loaded = await loadAuthoringModule({ ...options, build: 'webfont' });
+  return loaded.ok ? ok(loaded.value as unknown as WebfontWasm) : loaded;
 }
 
 interface WasmManifest {

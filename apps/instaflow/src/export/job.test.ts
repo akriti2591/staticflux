@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { AbortedError, createMachine } from '@staticflux/core';
 import { describe, expect, it } from 'vitest';
-import { authoringBuilt } from '../app/test-helpers.js';
+import { authoringBuilt, unwrap } from '../app/test-helpers.js';
 import { P } from '../elements/components.js';
 import { RP } from '../repeat/components.js';
+import { placeTextOps } from '../text/commands.js';
 import { decodePlan } from './export-module.js';
 import { DEFAULT_EXPORT_OPTIONS, type ExportOptions } from './formats.js';
 import { ExportJobLifecycle, type ExportJobRequest, type ExportJobState, type ExportProgress, runExportJob } from './job.js';
@@ -41,7 +42,8 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('export job (Node: real composi
     expect(file.mime).toBe('image/png');
     expect(pngSize(file.bytes)).toEqual([2160, 2700]);
     const raster = f.rasters[0]!;
-    expect(raster.regions[0]).toMatchObject({ world: { x0: 0, y0: 0, x1: 1080, y1: 1350 }, width: 2160, height: 2700, background: [1, 1, 1, 1] });
+    // B12 (A-1): the page's white comes from its fill stack (the first scene node), drawn over nothing.
+    expect(raster.regions[0]).toMatchObject({ world: { x0: 0, y0: 0, x1: 1080, y1: 1350 }, width: 2160, height: 2700, background: [0, 0, 0, 0] });
     // elements (CLEAR first), the photo, then text: the scene the canvas would get, without the overlay
     expect(raster.batches.length).toBe(3);
     expect(out.value.missingImages).toEqual([]);
@@ -59,6 +61,72 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('export job (Node: real composi
       [0, 0, 0, 0],
       [0, 0, 0, 0],
     ]);
+  });
+
+  it('B12 (A-1, D21): the page fill stack exports as the page in PNG, SVG and PDF; transparent leaves it out; hidden elements never export', { timeout: 60_000 }, async () => {
+    const f = await createExportFixture();
+    f.commit(
+      [
+        { op: 'set', node: 'p2', path: P.fills, value: [{ paint: '#123456' }, { paint: { kind: 'linear', stops: [{ offset: 0, color: '#abcdef' }, { offset: 1, color: '#fedcba' }] }, opacity: 0.5 }] },
+        { op: 'create', node: 'ghost', kind: 'shape', parent: 'p2', props: { [P.x]: 0, [P.y]: 0, [P.w]: 50, [P.h]: 50, [P.fills]: [{ paint: '#0badc0' }], [P.hidden]: true } },
+      ],
+      'p2',
+    );
+    const snapshot = await f.freeze();
+    const io = { store: f.studio.workspace.store, blobs: f.blobs };
+    const run = async (o: Partial<ExportOptions>): Promise<string> => {
+      const out = await runExportJob({ snapshot, options: opts(o), title: 'Page fill', pages: ['p2'], selection: [], images: f.images }, f.env, io, { signal: f.studio.signal });
+      if (!out.ok) throw out.error;
+      return utf8.decode(out.value.files[0]!.bytes);
+    };
+    const svg = await run({ format: 'svg' });
+    expect(svg).toContain('#123456');
+    expect(svg).toContain('#abcdef'); // the gradient row
+    expect(svg).not.toContain('#0badc0'); // hidden
+    const clear = await run({ format: 'svg', transparent: true });
+    expect(clear).not.toContain('#123456');
+    expect(clear).toContain('#3b6cff'); // the page's rect still exports
+    const pdf = await run({ format: 'pdf' });
+    expect(pdf.startsWith('%PDF-1.7')).toBe(true);
+    await run({ format: 'png', scale: 1 });
+    expect(f.rasters.at(-1)?.regions.at(-1)?.background).toEqual([0, 0, 0, 0]);
+  });
+
+  it('FIX-TEXT-FIRST-KEY item 3: a text element’s opacity, blend and effects export on its group, like a shape’s, in SVG and PDF', { timeout: 60_000 }, async () => {
+    const f = await createExportFixture();
+    f.commit([{ op: 'delete', node: 'r2' }], 'p2');
+    f.commit(unwrap(placeTextOps({ node: 'fade', parent: 'p2', x: 100, y: 100, text: 'Faded' })), 'p2');
+    f.commit(unwrap(placeTextOps({ node: 'shade', parent: 'p2', x: 100, y: 400, text: 'Shaded' })), 'p2');
+    f.commit([
+      { op: 'set', node: 'fade', path: P.opacity, value: 0.4 },
+      { op: 'set', node: 'fade', path: P.blend, value: 'multiply' },
+      { op: 'set', node: 'shade', path: P.effects, value: [{ kind: 'drop-shadow', x: 0, y: 6, blur: 8, spread: 0, color: '#00000080' }] },
+    ], 'p2');
+    const snapshot = await f.freeze();
+    const io = { store: f.studio.workspace.store, blobs: f.blobs };
+    const run = async (o: Partial<ExportOptions>) => {
+      const out = await runExportJob({ snapshot, options: opts(o), title: 'Fade', pages: ['p2'], selection: [], images: f.images }, f.env, io, { signal: f.studio.signal });
+      if (!out.ok) throw out.error;
+      return out.value;
+    };
+    const svg = utf8.decode((await run({ format: 'svg' })).files[0]!.bytes);
+    // One layer for the whole text: the glyphs (labelled "Faded") sit inside a group with the opacity and the blend.
+    const layer = /<g[^>]*opacity="0\.4"[^>]*>/.exec(svg)?.[0] ?? '';
+    expect(layer).toContain('mix-blend-mode:multiply');
+    expect(svg.indexOf('aria-label="Faded"')).toBeGreaterThan(svg.indexOf(layer));
+    // The shadowed text: its glyphs inside a filtered group (D21: shadows are SVG filters).
+    const filtered = svg.lastIndexOf('filter="url(#', svg.indexOf('aria-label="Shaded"'));
+    expect(filtered).toBeGreaterThan(0);
+    const pdf = await run({ format: 'pdf' });
+    const pdfText = utf8.decode(pdf.files[0]!.bytes);
+    // The faded text's layer ExtGState: fill alpha 0.4 (as an f32) and the blend; the shadowed text is a raster patch.
+    const alphas = [...pdfText.matchAll(/\/ca ([0-9.]+)/g)].map((m) => Number(m[1]));
+    const blends = [...pdfText.matchAll(/\/BM \/(\w+)/g)].map((m) => m[1]);
+    expect({ alphas, blends }).toMatchObject({ blends: expect.arrayContaining(['Multiply']) });
+    expect(alphas.some((a) => Math.abs(a - 0.4) < 1e-4)).toBe(true);
+    expect(pdf.patches).toBeGreaterThan(0); // the shadow as a raster patch (D21)
+    await run({ format: 'png', scale: 1 }); // the PNG raster gets the same text batch as the writers
+    expect(f.rasters.at(-1)?.batches.length).toBeGreaterThan(0);
   });
 
   it('SVG: one document per page with the real elements, text outlines labelled with their text, embedded images', { timeout: 60_000 }, async () => {

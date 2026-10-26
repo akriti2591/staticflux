@@ -8,6 +8,8 @@
  * - **Placement**: each text element is a top-level scene group with its page transform (B1 `pageTransform`), drawn
  *   above the page's other elements. Text inside a moved group re-lays out when the group's subtree is invalidated.
  *   One paint order with the element projection is a follow-up (text as a projection kind).
+ * - **Fixed boxes** (B12 T-1): the text wraps at the box width, keeps the box height and sits at its vertical alignment
+ *   (`textBlockTransform`); text taller than the box overflows below it, never clipped by its own box.
  * - **Box size**: `textBoxOps` writes the laid-out width / height back to `spatial.w|h` in the same commit as a text
  *   edit, so B3's hit tests, snapping and the selection frame see the real text box.
  *
@@ -15,16 +17,17 @@
  */
 import { err, ok, type Result, type Scope } from '@staticflux/core';
 import type { JsonValue, NodeId, PartOp } from '@staticflux/document/v2';
-import { P } from '../elements/components.js';
+import { BLEND_MODE_NAMES, P } from '../elements/components.js';
 import { pageTransform } from '../elements/layout.js';
-import { createSceneWriter, type SceneTransform } from '../render/scene-ir.js';
+import { BLEND_MODES, createSceneWriter, type SceneTransform } from '../render/scene-ir.js';
 import type { TextLayout } from '../text/layout-result.js';
 import { encodeLayoutSpec } from '../text/layout-spec.js';
 import { TEXT_KIND } from '../text/model.js';
 import { readTextBlock, type TextBlockModel } from '../text/rich-text.js';
 import type { TextLayoutEngine } from '../text/text-engine.js';
 import { createSceneFontTable, textSceneNodes } from '../text/text-scene.js';
-import { type BrandTokenSource, type FontFamilies, resolveTextLayout, type TextDefaults } from '../text/text-style.js';
+import { type BrandTokenSource, type FontFamilies, resolveTextLayout, type TextDefaults, verticalAlignOffset } from '../text/text-style.js';
+import { type Affine, multiply, resolveElement } from '../elements/resolve.js';
 import type { SceneIrSource } from './canvas-pipeline.js';
 import type { StudioDocument } from './document.js';
 import { NoOpenPageError } from './errors.js';
@@ -57,6 +60,14 @@ export interface TextLayer extends SceneIrSource {
   dispose(): void;
 }
 
+/** Block px → page of a laid-out text element: its page transform, moved down by its vertical alignment (B12 T-1). */
+export function textBlockTransform(document: StudioDocument, node: NodeId, laid: Pick<TextLayout, 'height'>): Affine {
+  const t = pageTransform(document.context(), node);
+  const h = document.view.value(node, P.h);
+  const dy = verticalAlignOffset(document.view.value(node, 'text.box') as string | undefined, document.view.value(node, 'text.verticalAlign') as string | undefined, typeof h === 'number' ? h : 0, laid.height);
+  return dy === 0 ? t : multiply(t, [1, 0, 0, 1, 0, dy]);
+}
+
 /** Wrap width of a text element (≤ 0: auto width). */
 function wrapWidth(document: StudioDocument, node: NodeId): number {
   const box = document.view.value(node, 'text.box');
@@ -80,7 +91,9 @@ export function createTextLayer(options: TextLayerOptions): TextLayer {
     const out: NodeId[] = [];
     const walk = (parent: NodeId): void => {
       for (const child of document.view.children(parent)) {
-        if (document.view.read(child)?.kind === TEXT_KIND && !document.view.isDerived(child)) out.push(child);
+        const composed = document.view.read(child);
+        if (composed?.values[P.hidden] === true) continue; // B12: hidden text (or a hidden container) is not drawn
+        if (composed?.kind === TEXT_KIND && !document.view.isDerived(child)) out.push(child);
         walk(child);
       }
     };
@@ -141,10 +154,13 @@ export function createTextLayer(options: TextLayerOptions): TextLayer {
       const placed: number[] = [group];
       const source = part();
       const block = source === undefined ? undefined : readTextBlock(source, node);
+      // The element's layer look (opacity, blend, effects) on the text group, as for shapes (FIX-TEXT-FIRST-KEY item 3).
+      const element = resolveElement(document.view, node, document.kit);
       const nodes = textSceneNodes(laid.value, {
         ...(block?.ok === true ? { text: block.value.text } : {}),
+        ...(element === undefined ? {} : { layer: { opacity: element.opacity, blend: BLEND_MODES[BLEND_MODE_NAMES.indexOf(element.blend)] ?? 'normal', effects: element.effects } }),
         id: group,
-        transform: [...pageTransform(document.context(), node)] as unknown as SceneTransform,
+        transform: [...textBlockTransform(document, node, laid.value)] as unknown as SceneTransform,
         brushes: brushes(node),
         fontId: (id) => {
           const hash = fonts.engine.fontOf(id)?.hash;

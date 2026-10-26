@@ -56,4 +56,46 @@ describe.skipIf(!authoringBuilt)('text session under an IME composition', () => 
     expect(input.controlBounds.at(-1)?.height).toBeCloseTo(height, 3);
     session.value.dispose();
   });
+
+  it('ignores key intents during a composition: no split, no move, the control bounds stay (B12 T-9)', async () => {
+    const engine = await testTextEngine();
+    let text = 'Type here: ';
+    const input = scriptedTextInput();
+    const layout = (model: TextBlockModel) =>
+      engine.layout(1, encodeLayoutSpec({ width: 400, paragraphs: model.paragraphs.map((p) => ({ text: p.text, spans: [{ start: 0, end: p.text.length, family: STACK, size: 28 }] })) }), model.text);
+    const commits: string[] = [];
+    const session = createTextSession({
+      input,
+      engine,
+      blockId: 1,
+      layout,
+      target: {
+        read: () => ok(blockOf(text)),
+        commit: (ops, label) => {
+          commits.push(label);
+          for (const op of ops) if (op.op === 'text.insert') text = text.slice(0, op.at as number) + op.text + text.slice(op.at as number);
+          return ok();
+        },
+      },
+      toClient: (r) => ({ x: r.x0, y: r.y0, width: r.x1 - r.x0, height: r.y1 - r.y0 }),
+    });
+    if (!session.ok) throw new Error(session.error.message);
+    const height = input.controlBounds.at(-1)?.height as number;
+    const at = text.length;
+    input.emit({ kind: 'compose-start', range: [at, at] });
+    let previous = '';
+    for (const composed of ['n', 'ni', 'nih', 'niho', 'nihon']) {
+      input.emit({ kind: 'compose-update', text: composed, range: [at, at + previous.length], selection: [at + composed.length, at + composed.length] });
+      previous = composed;
+      for (const key of ['Enter', 'ArrowDown', 'ArrowLeft', 'Tab'] as const) input.emit({ kind: 'key', key, shift: false, mod: false, alt: false });
+      expect(input.controlBounds.at(-1)?.height, composed).toBeCloseTo(height, 3);
+    }
+    expect(commits).toEqual([]);
+    expect(session.value.state.composition?.text).toBe('nihon');
+    input.emit({ kind: 'compose-commit', text: '日本', range: [at, at + previous.length] });
+    expect(commits).toEqual(['Type']);
+    expect(text).toBe('Type here: 日本');
+    expect(input.controlBounds.at(-1)?.height).toBeCloseTo(height, 3);
+    session.value.dispose();
+  });
 });

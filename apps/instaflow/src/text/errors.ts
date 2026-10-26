@@ -42,7 +42,14 @@ export const FontInvalidError = defineError(
   'IF-TXT-006',
   'validation',
   'The file is not a usable font (OpenType/TrueType/collection), or the text engine could not register it.',
-  'Offer .ttf, .otf or .ttc files; WOFF/WOFF2 must be decompressed first.',
+  'Offer .ttf, .otf, .ttc, .woff2 or .woff files (web fonts are decoded to OpenType first, B12).',
+);
+
+export const WebFontDecodeError = defineError(
+  'IF-FIX-002',
+  'validation',
+  'A WOFF2 or WOFF font could not be decoded to OpenType (a damaged file, or the web font decoder could not load).',
+  'Re-download the font or add its .ttf / .otf instead; when `cause` says the decoder failed to load, run `pnpm build` and serve `engine/dist` (`authoring-webfont` in the Wasm manifest).',
 );
 
 export const LocalFontsPermissionError = defineError(
