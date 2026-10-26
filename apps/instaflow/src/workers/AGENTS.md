@@ -34,7 +34,9 @@ setting into roles and media; the host wires endpoints directly in one worker an
 - `store-port.ts` — `StudioStoreProtocol`, `serveStudioStore(link, { store, blobs })` (store side), `remoteDocumentStore(client)`,
   `remoteBlobs(client)` (editor side).
 - `text-port.ts` — `createRemoteTextHost(send, kind)` (editor side: a `TextHostPort` whose TextInputs talk to main),
-  `createTextHostBridge(options)` (main: host div + platform TextInput), `TextHostCommand`, `TextHostEvent`.
+  `createTextHostBridge(options)` (main: host div + platform TextInput), `TextHostCommand`, `TextHostEvent`. B12b P1: states
+  carry a `version`, intents the `base` version main last applied; `rebaseIntent(intent, seen, current)` and
+  `textOffsetMap(from, to)` move intents main produced before an editor caret move onto the editor's selection.
 - `wire.ts` — `toWire` / `fromWire` (`SfError`s inside values cross as marked wire errors), `WIRE_ERROR_KEY`.
 - `errors.ts` — `IF-WRK-001` boot · `002` role · `003` mirror · `004` capability not served · `005` store port · `006` canvas
   hand-off.

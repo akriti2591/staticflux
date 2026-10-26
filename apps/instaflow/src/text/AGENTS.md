@@ -37,8 +37,9 @@ screen layout (M1B-NOTES).
   `needsComplexScripts`, `CaretMotion`.
 - `text-style.ts` — `resolveTextLayout(block, { width, align, defaults, brand, families })` → `{ spec, brushes, problems }`,
   `BrandTokenSource` (B1/B4 brand kits implement it), `resolveColor`, `resolveFont`, `parseCssColor`.
-- `text-scene.ts` — `textSceneNodes(layout, { id, transform, brushes, fontId, nextId })` (group + glyph leaves + decoration
-  rects), `createSceneFontTable()` (`idFor`, `ensure`, `resnapshot`, `reset`), `hashBytes`.
+- `text-scene.ts` — `textSceneNodes(layout, { id, parent, transform, brushes, fontId, nextId })` (group + glyph leaves + decoration
+  rects; B12b: no layer look, the element's own node carries it), `createSceneFontTable()` (`idFor`, `ensure`, `resnapshot`,
+  `reset`), `hashBytes`.
 - `fonts.ts` — `createFontLibrary({ blobs, register, platform })` → `checkLocalFonts`, `requestLocalFonts` (gesture),
   `importLocalFont`, `importUpload`, `load(hash)`, `assets`, `bytesOf`, `families`; `LocalFontsMachine`
   (`instaflow/local-fonts`), `isFontFile`, `FONT_MIME`.

@@ -7,7 +7,8 @@
  *   snapshot and resources, encoded by B1's scene encoder exactly as the render side does it (`element-port.ts`).
  * - **Images** (B4): the image assets the page's paints name are decoded from the workspace blobs and uploaded
  *   ahead of nothing else (the encoder resolves them by asset key), straight RGBA plus the luminance matte.
- * - **Text** (B2): the text layer's full IR (fonts once per hash, glyph runs carrying their text: scene IR v4).
+ * - **Text** (B2): the text layer's full IR (fonts once per hash, glyph runs carrying their text: scene IR v4), each
+ *   glyph group under its text element's node from the projection (B12b P2), so exports keep the canvas's tree order.
  *
  * - **Page fill** (B12, A-1): the page's fill stack is the first element node (a full-page rect under everything), so
  *   PNG, SVG and PDF draw it exactly as the canvas does (D21); `pageFill: false` leaves it out (transparent export).
@@ -20,13 +21,12 @@ import { createRenderProjector, createSceneStore } from '@staticflux/document/re
 import type { NodeId } from '@staticflux/document/v2';
 import type { StudioDocument } from '../app/document.js';
 import { createImageUploads } from '../app/images.js';
-import { createTextLayer, type StudioFonts } from '../app/text-layer.js';
+import { createTextLayer, projectedSceneId, type StudioFonts } from '../app/text-layer.js';
 import { createElementRenderSource, ElementProjection } from '../elements/projection.js';
-import { createElementSceneEncoder, createSceneResources, sceneIdOf } from '../elements/scene.js';
+import { createElementSceneEncoder, createSceneResources } from '../elements/scene.js';
 import { STRUCTURE_PATHS } from '../lenses/structure.js';
 import type { LibraryEntry } from '../library/library-doc.js';
 import type { ImageDecoder } from '../library/renditions.js';
-import { TEXT_KIND } from '../text/model.js';
 import { NothingToExportError } from './errors.js';
 
 export interface PageSceneOptions {
@@ -98,35 +98,17 @@ export async function buildPageScene(options: PageSceneOptions): Promise<Result<
     if (uploaded === undefined || !uploaded.ok) missingImages.push(asset);
   }
   const elements = createElementSceneEncoder({ images: (asset, variant) => uploads.images(asset, variant) }).encode(store, resources, { full: true });
-  const text = createTextLayer({ document, page, fonts: options.fonts, scope });
+  // Text glyphs go under their elements' nodes (B12b P2): tree order, clips, masks and parents' looks apply.
+  const sceneParent = projectedSceneId(projector);
+  const text = createTextLayer({ document, page, fonts: options.fonts, scope, sceneParent });
   const textIr = text.changes(true)?.ir;
   const assets = uploads.changes(true)?.assets;
   const batches = [elements, assets, textIr].filter((b): b is Uint8Array => b !== undefined && b.length > 0);
-
-  const textOf = (node: NodeId): NodeId[] => {
-    const out: NodeId[] = [];
-    const walk = (n: NodeId): void => {
-      if (document.view.read(n)?.kind === TEXT_KIND) out.push(n);
-      for (const child of document.view.children(n)) walk(child);
-    };
-    walk(node);
-    return out;
-  };
   return ok({
     batches,
     size: pageSize(document, page),
     missingImages,
-    sceneIds(nodes) {
-      const ids = new Set<number>();
-      for (const node of nodes) {
-        const slot = projector.slotOf(node);
-        if (slot !== undefined) ids.add(sceneIdOf(slot));
-        for (const t of textOf(node)) {
-          const group = text.sceneGroup(t);
-          if (group !== undefined) ids.add(group);
-        }
-      }
-      return [...ids];
-    },
+    // A node's scene node draws its subtree, text included (its glyphs are children of the text element's node).
+    sceneIds: (nodes) => [...new Set(nodes.flatMap((node) => sceneParent(node) ?? []))],
   });
 }

@@ -451,3 +451,12 @@ No new framework API and no new R-ID: B12 composes what B1, B2, B3, B6 and C1 al
   (`/.size-limit.wasm.json`), loaded through the app's manifest loader.
 - "The page background is a fill stack that exports exactly as drawn" → the A7 render projection (`defineRenderProjection`) with one
   more record, and the shared draw traversal of the render crate for PNG, SVG and PDF (D21).
+
+### Text protocol and text in the tree (Instaflow M1c · B12b)
+Consumer: `apps/instaflow/src/workers` (TextInput port), `src/app` (text layer, canvas tab), `src/elements` (projection),
+`src/export` and the render crate. No new framework API and no new R-ID.
+- "A key typed right after End or a click lands at the new caret, in both topologies" → the `TextInput` port's states and intents
+  (`@staticflux/surface/text-input`, SF-Δ27) as they are, plus a version on the app's own worker messages; the platform's local
+  edits are replayed with the port's reference model `applyTextIntent`.
+- "Text sits in the layer stack like any shape and exports as drawn" → one more kind in the A7 render projection
+  (`defineRenderProjection`) and the render crate's existing group, clip and mask traversal for canvas, PNG, SVG and PDF (D21).

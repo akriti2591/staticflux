@@ -121,3 +121,9 @@ marked (c) for **M1**, so B11b builds every control against real behaviour (noth
 - **Actions** (APPEARANCE §0/§4): group, ungroup, reorder (bring forward/backward/front/back), rename,
   frame selection; each an undoable change set with tests.
 Engine and model only: no surfaces (B11b). Keep SVG/PDF parity (D21) for anything that renders.
+
+## B11b acceptance notes from the owner's testing (append as they come)
+- Every engine capability the specs mark (a) or B12-built must be reachable in the UI, per the control tables
+  (TEXT-FONTS §control table, APPEARANCE §2 control table), not only the common ones. Owner, 2026-10-26: sub- and
+  superscript, case transforms and strikethrough exist in the engine but are not exposed in the typography panel.
+  Audit the typography panel and inspector against the text control table; nothing (a)/(b) left unexposed.
