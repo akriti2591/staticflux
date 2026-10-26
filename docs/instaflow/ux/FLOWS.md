@@ -7,7 +7,8 @@
 > **M2**. Pointer and keyboard paths are both given; a flow passes only when both do, unless a step says otherwise.
 >
 > Conventions: `Mod` = ⌘ / Ctrl. "Pill" = the selection pill. "Toast", "banner", "takeover" = `OVERLAYS-FEEDBACK.md`;
-> URLs and fallbacks = `NAVIGATION-DEEPLINKS.md`; text and fonts = `TEXT-FONTS-UX-SPEC.md` (F-60…F-64). Fixture: a fresh workspace
+> URLs and fallbacks = `NAVIGATION-DEEPLINKS.md`; text and fonts = `TEXT-FONTS-UX-SPEC.md` (F-60…F-64); appearance,
+> transforms and structure = `APPEARANCE-TRANSFORM-UX-SPEC.md` (F-65…F-72). Fixture: a fresh workspace
 > unless a precondition says otherwise. Every step's result must be checkable by a test (DOM text, accessibility tree,
 > the editor's `inspect`, a screenshot region, or the polite live region).
 
@@ -56,7 +57,8 @@ Enter → finished and selected, Escape → cancels an unfinished path. 5. Doubl
 two shapes in a row without re-choosing; `V` leaves sticky. 6. `Escape` with a creation tool → Select.
 
 ### F-04 Transforming — **M1 must-pass**
-Blocks: Handles (resize, rotate handle + zones, skew, pivot), size/angle pills, Scrubbable number, snapping guides.
+Blocks: Handles (resize, rotate handle + zones, skew, pivot), size/angle pills, Scrubbable number, snapping guides. Spec:
+`APPEARANCE-TRANSFORM-UX-SPEC.md` §3 (F-69 extends this flow).
 
 | # | Pointer | Keyboard | Visible result |
 |---|---|---|---|
@@ -124,7 +126,8 @@ Blocks: Selection pill (Align ▾, Distribute ▾, Group), Context menu (z-order
 | 8 | Select two overlapping shapes, pill `Combine ▾ › Union` | — | One boolean group; the pill shows `Operation ▾ · Release · Flatten`. |
 
 ### F-09 Styling — **M1 must-pass**
-Blocks: Inspector sections, Colour field popover, Scrubbable number, Slider, stacks.
+Blocks: Inspector sections, Colour field popover, Scrubbable number, Slider, stacks. Spec: `APPEARANCE-TRANSFORM-UX-SPEC.md`
+§2 (F-65…F-68 below extend this flow).
 
 1. Select a rectangle → inspector sections exactly `Transform · Fill · Stroke · ▸ Corners · ▸ Effects · ▸ Layer` (no
    Typography, no Repeat). 2. Click the Fill swatch → popover with hex, brand tokens, recents, opacity; type `#3D5AFE`
@@ -167,15 +170,20 @@ Blocks: Tree and list, Inline rename, Drag and drop, row actions, Filter field.
 
 ### F-12 Masks and booleans — **M1**
 
-1. Select an image over an ellipse (ellipse on top), pill `Use as mask ▾ › Clip` → the image is clipped to the ellipse;
-   Layers shows a masked group; the pill shows `Mask mode ▾ · Invert · Release`. 2. `Invert` → the outside shows.
+Spec: `APPEARANCE-TRANSFORM-UX-SPEC.md` §4.3–4.4.
+
+1. Select an image over an ellipse (the **ellipse below** the image: the bottom-most selected element becomes the mask,
+   `useAsMask`), pill `Use as mask ▾ › Clip` → the image is clipped to the ellipse; Layers shows a `Mask group` with the
+   ellipse row marked ◐ and the image indented; the pill shows `Mask · Clip` chip · `Mask mode ▾ · Invert · Release`; the
+   first time, the hint `The bottom layer is the mask`. 2. `Invert` → the outside shows.
    3. `Release` → back to two elements. 4. Two overlapping shapes, `Combine ▾ › Subtract` → the result; `Operation ▾ ›
    Exclude` changes it live; `Flatten` → one path (Layers icon changes to path). 5. `Outline stroke` on a stroked shape →
    the stroke becomes a filled path. 6. Each is one undo step named after the action.
 
 ### F-13 Repeats — **M1**
+Spec: `APPEARANCE-TRANSFORM-UX-SPEC.md` §4.6.
 
-1. Select a shape, pill `⋯ › Radial repeat` → 8 instances on a circle; the pill becomes `Radial · 8 · Count · Edit ·
+1. Select a shape, pill `⋯ › Make repeat ▾ › Radial` → 8 instances on a circle; the pill becomes `Radial · 8 · Count · Edit ·
    Expand · Release`; the inspector shows the Repeat section (Count, Radius, Start angle, Sweep, Rotate). 2. Scrub Count
    to 12 → live. 3. `Edit` → repeat handles on the canvas; drag the radius handle → live; release = one undo step.
    4. Switch kind to Grid → rows/columns fields; Mirror → axis. 5. Clicking an instance selects the **source** and shows
@@ -719,6 +727,120 @@ Blocks: one layout pipeline, greeking, caret over transformed text, Export previ
    paths labelled with the text. 6. Pick a synthetic `Bold` on a single-weight font → canvas and PDF show the same faux
    stroke. 7. Make a fixed box overflow → the export shows the overflow exactly as the canvas does, tag excluded.
 
+## H. Appearance, transforms and structure (2026-10-25 appearance pass; spec `APPEARANCE-TRANSFORM-UX-SPEC.md`)
+
+### F-65 Gradient fill: edit in the popover and on the canvas — **M1 must-pass**
+Blocks: Fill stack rows, colour popover tabs, gradient strip, on-canvas gradient handles, document gradients, undo labels.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Select a tangerine rectangle, click the HUD Fill swatch | `Alt+Enter`, Enter on the swatch | The colour popover opens on `Solid` with `#FF5C39`, the contrast tag against the page (`AA 4.9 : 1`), Document colours, Palette, Recent. |
+| 2 | Click the `Gradient` tab | arrow to the tab, Enter | The fill becomes a two-stop linear gradient: tangerine → transparent at 0°; the strip shows two stops; the canvas shows two round handles on a tangerine line across the rectangle; the Fill row reads `Linear · 2 stops · 0°`; one undo step `Fill kind`. |
+| 3 | Click the strip at 60 % | Tab to the strip, `+` | A third stop appears with the interpolated colour, selected (tangerine ring); the Stop row shows its hex; `Position` reads `60 %`. |
+| 4 | Pick `#FFC23D` for it from the Palette | arrows, Enter | The canvas and the strip update live; one undo step `Gradient`. |
+| 5 | Drag the canvas end handle with Shift | type `45` in `Angle`, Enter | The angle snaps to 45°; `Angle` reads `45°`; the handles rotate about the midpoint. |
+| 6 | Press `Reverse ⇄` | Tab, Enter | Stops mirror; the strip and canvas agree. |
+| 7 | Switch the type to `Radial` | arrows | A centre handle and a radius handle replace the line; the row reads `Radial · 3 stops`; stops kept. |
+| 8 | Select a second rectangle, open its Fill swatch › Gradient | — | The `Document gradients` row shows the first gradient; click it → applied with this rectangle's own geometry; one step `Fill`. |
+| 9 | Press `☆` on the gradient | — | It joins the `Saved` row (a square thumbnail); it is there in another design on this device. |
+| 10 | Escape | Escape | The popover closes, the handles go, the selection stays; `Mod+Z` three times walks back `Fill`, `Reverse gradient`, `Gradient` with labels in the Pro top bar. |
+
+### F-66 Image fill with crop — **M1** (crop steps after A-3)
+Blocks: Fill `+ Add ▾ Image…`, Assets picker, Fit ▾, crop mode, image ratio-by-default, missing-asset row.
+
+1. Select a rectangle, Fill `+ Add ▾ Image…` → the Assets picker (recent first) or a file dialog; pick a photo → a new top
+   row `Image · Fill` with the photo as its thumbnail; the HUD swatch shows the photo. 2. Row second line `Fit ▾ Fit` →
+   letterboxed; `Tile` → repeated; back to `Fill`. 3. Drag the rectangle's corner → the **rectangle** keeps ratio by default
+   (it is image-filled); Shift frees it; tooltip `Drag to scale · Shift for free`. 4. (after A-3) Double-click → crop mode:
+   the image shows at 40 % outside the box with its own eight handles; drag inside to pan, drag a handle to scale, pill
+   `1 920 × 1 080 · 142 %`; Enter commits one step `Crop`; Escape cancels. 5. `Replace…` with a photo of another ratio → crop
+   reset, 1.5 s toast `Crop reset · new image ratio`. 6. Set the row opacity to 60 % and add a `Colour` row **under** it in
+   white → a wash; collapse Fill → summary `2 fills`. 7. Paste the rectangle into a design on a device that lacks the asset
+   → the row is hatched `Image not available on this device · Replace…`; the canvas shows a mist box with the name.
+   8. `Mod+Alt+C` on it, select three other shapes, `Mod+Alt+V` → all three carry the two fills; one step `Paste style`.
+
+### F-67 Page background: colour, gradient, image — **M1** (gradient and image steps after A-1)
+Blocks: Page section fill stack, page label HUD, `Apply to all pages`, Export `Transparent`, `Use as page background`.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Click empty canvas | Escape | The inspector shows **Page**: Name, Size pair, `Background` stack with one row `#FFFFFF`. |
+| 2 | Click the row's swatch, pick `#F1F4F7` | Enter on the swatch, arrows | The page card turns mist; the Pages thumbnail follows; one step `Page background`. |
+| 3 | (after A-1) `+ Add ▾ Gradient ▸ Linear` | — | A gradient row on top; the popover opens on `Gradient`; pick `Dusk` → the whole page fades; handles span the page. |
+| 4 | (after A-1) `+ Add ▾ Image…`, pick a photo, `Fit ▾ Fill` | — | The photo covers the page under nothing else; set its opacity to 40 % → the gradient under it shows through. |
+| 5 | (after A-1) Page label menu › `Crop background` | — | Crop mode on the page's image (as F-66 step 4); Enter. |
+| 6 | Page `More ▾ › Apply to all pages` | — | Every page gets the stack; toast `Background applied to 5 pages · Undo`; one step. |
+| 7 | Right-click a photo element › `Use as page background` | `Shift+F10`, arrows | A confirm row in the pill `Replace the background and remove this image · Replace`; confirm → the page's stack is the photo, the element is gone; undo restores both. |
+| 8 | `Mod+Shift+E`, Advanced › `Transparent` | — | The preview drops the page's stack (PNG alpha); the Pro line of the Page section reads `Export: transparent`. |
+
+### F-68 Effects, bevel and layer blend — **M1 must-pass**
+Blocks: Effects stack preset menu, row second lines, Bevel preset rows, `From brand ▸`, Layer section, Mixed effects.
+
+1. Select a rectangle, expand ▸ Effects, `+ Add ▾ Shadow ▸ Soft` → a row `Shadow · 0 4 16 · 16 %`; the section's collapsed
+   summary reads `Shadow · Soft`. 2. Click the summary → the second line: scrub `Y` to 12, `Blur` to 24, click the colour
+   swatch → the popover (Solid only, no Image tab), set alpha 30 %. 3. `+ Add ▾ Bevel ▸ Soft bevel` → two inner rows tagged
+   `Bevel`; remove one with × → the tag disappears; undo. 4. `+ Add ▾ Blur ▸ Background blur`, set 20, lower the Fill
+   opacity to 50 % → frosted glass over what is behind; the first-use hint explains. 5. Eye on the shadow → hidden row at
+   50 %; drag the glow row above it → `Reorder effects`. 6. Layer ▸: slider to 50 %, `Blend ▾ Multiply` → summary `50 % ·
+   Multiply`; `Alt+Shift+↑` → 60 %. 7. Select two shapes with different effects → `Mixed effects` row with `Replace all ▸`
+   → `Shadow ▸ Hard` → both get it. 8. With a brand kit: `+ Add ▾ From brand ▸ @shadow-md` → the section header shows the
+   token tag; `Detach` returns values. 9. Export PNG → identical; PDF → the Pro result line counts raster patches.
+
+### F-69 Rotate, skew and flip numerically — **M1 must-pass** (extends F-04)
+Blocks: Transform fields, expressions, rotate 90° buttons, skew field, flip toggles, pivot picker, Free transform.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Select a shape; type `30` in ∠ | Tab to ∠, type, Enter | Rotates 30° about the pivot; the field reads `30°`; one step `Rotate`. |
+| 2 | Type `+15` in ∠ | same | `45°`; the handle frame follows. |
+| 3 | Hover ∠, click `↻ 90` | — | `135°`; label `Rotate 90°`. |
+| 4 | Inspector `More ▾`, type `15` in ⟂ | Tab, type, Enter | The shape leans; `15°`; tooltip explains the horizontal lean; `Mixed` never appears for one element. |
+| 5 | Mod-drag the **left** handle | — | A vertical lean: the fields show the decomposition (∠ and ⟂ both change) — honest to the model. |
+| 6 | Click `Flip H` | `Shift+H` | Mirrored, including its gradient; the toggle is pressed; twice restores. |
+| 7 | Pro: pivot picker → bottom-left dot; type `90` in ∠ | arrows in the radiogroup, Enter | Rotates about the bottom-left corner. |
+| 8 | `Mod+Alt+T`, nudge, type `200` in W, `Shift+V`, Enter | same | One undo step `Transform`; Escape instead would cancel all three. |
+| 9 | Select three shapes; type `400` in W | — | The union scales to 400 wide, each shape proportionally; one step `Resize`. |
+| 10 | Select an image, drag a corner | — | Scales with the ratio kept; with Shift it stretches. |
+
+### F-70 Groups, frames, masks and booleans end to end — **M1**
+Blocks: Group/Ungroup, Frame selection, enter/exit, select through, Combine ▾, Use as mask, Layers glyphs, lock scopes, hide.
+
+1. Draw three shapes, `Mod+G` → `Group` in Layers with a chevron; the pill `Ungroup · Align ▾ · Duplicate · Delete`;
+   the Layer ▸ summary. 2. Double-click → enters; a child is selected; breadcrumb `Group › Rectangle`; Escape twice leaves.
+   3. `Mod+click` a child from outside → selected directly. 4. `Mod+Alt+G` on the group → `Frame` with clip on and no fill;
+   the Frame section shows the one-line explanation once; `Clip content` off → children show outside with the hairline.
+   5. Two overlapping shapes, `Combine ▾ Subtract` → a boolean group with the operation glyph in Layers; `Operation ▾
+   Exclude` live; Enter → move an operand → the result follows; `Mod+E` → one path. 6. A photo over an ellipse (ellipse
+   below), `Use as mask ▾ Clip` → F-12. 7. Lock the frame (`Mod+Shift+L`) → dashed frame, clicks pass through; Pro `Lock ▾
+   Position only` → it cannot move but its fill swatch still edits. 8. (after A-2) Eye on a shape → gone from canvas and the
+   Export preview; Layers `⋯ › Show all` returns it. 9. `Mod+]` on the bottom shape → it moves up one in Layers; `Mod+Alt+[`
+   → to the back. 10. Rename the group `Hero` in Layers → the header and announcer say `Hero`.
+
+### F-71 Build a component, place instances, override, detach — **M2** (after A-12)
+Blocks: Create component, Assets › Components, instance pill, override dots, Reset ▾, Go to main, Detach, Swap ▾.
+
+1. Select a card (frame with text and image), `Mod+Alt+K` → mint outline, ◈ in Layers, header `Component · Card`, a row
+   in Assets › Components with a thumbnail; the hint `Drag it from Assets to place a copy that stays linked`. 2. Drag it
+   onto the page twice → two instances with the ◇ icon and the chip `Instance of Card`. 3. Edit the second instance's
+   headline → only it changes; the Text section's label shows an override dot; `Reset ▾` lists `Text`. 4. Try to delete the
+   instance's image → refused with the pill line `Edit the main component to change its structure · Go to main`. 5. `Go to
+   main`, set the corner radius to 24 → both instances follow; toast `2 instances updated`; the overridden headline stays.
+   6. `Mod+Alt+B` on the first instance → a plain frame; the chip is gone. 7. `Swap ▾` on the second → pick another
+   component → swapped; the headline override kept where names match. 8. Undo walks every step with labels.
+
+### F-72 Snapping, rulers, align and distribute — **M1**
+Blocks: smart guides, equal spacing labels, `View › Snapping ▸`, rulers, alignment popover, key object, tidy up.
+
+1. Drag a shape toward another's edge → a tangerine guide and a distance tag; release → snapped exactly (X field shows
+   it). 2. Drag a third into the row → equal-spacing ticks and labels; it snaps to the equal gap. 3. Hold `Mod` while
+   dragging → no snapping; `Shift` → the move locks to one axis. 4. `View › Snapping ▸ Snap to elements` off → no guides;
+   on again. 5. `Shift+R` → rulers with the selection's extent highlighted; right-click a ruler → `Units ▾ mm`; (M2, A-16)
+   drag out a guide and snap to it. 6. Select three shapes, pill `Align ▾` → the popover; `Top`, then `Distribute H` → the
+   popover stays open; `Align to: Page`, `Centre` → centred on the page. 7. Pro: `Alt+click` one of the three → key object
+   (double outline), `Align to` reads `Key object`; `Left` → the others move to it. 8. Scatter five shapes roughly in a
+   grid, `Ctrl+Alt+T` → tidy rows and columns; (M2, A-17) drag a gap handle → all gaps change. 9. Frame › `Layout grid ▸ +
+   Add ▾ Columns 12` → the overlay (`Ctrl+G` toggles), dragging a child snaps to the column lines; export shows no grid.
+
 ## D. Coverage matrix (block → flows)
 
 | Block | Flows |
@@ -760,3 +882,12 @@ Blocks: one layout pipeline, greeking, caret over transformed text, Export previ
 | Font picker, add fonts (upload, this computer, library), licence notice | F-63, F-55 |
 | Missing fonts tag and dialog | F-62, F-56 (Kind Font) |
 | Text fidelity (caret over transforms, greeking, zoom to edit, export parity) | F-64, F-53 |
+| Fill / Stroke / Effects stacks, colour popover tabs, gradient editor and canvas handles | F-65, F-66, F-68, F-09, F-52 |
+| Image fills, crop mode, ratio-by-default, missing asset row | F-66, F-14 |
+| Page background stack, apply to all pages, transparent export | F-67, F-53 |
+| Effects presets, bevel, layer opacity and blend, Mixed effects | F-68, F-09 |
+| Transform fields, rotate/skew/flip/pivot, Free transform, multi resize | F-69, F-04 |
+| Groups, frames, booleans, masks, lock scopes, hide, z-order, rename | F-70, F-12, F-11 |
+| Components and instances (M2) | F-71 |
+| Snapping, rulers, guides, layout grids, align popover, key object, tidy up | F-72, F-04, F-08 |
+| Copy / paste style, Select same | F-66, F-56 |

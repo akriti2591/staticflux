@@ -265,7 +265,7 @@ The HUD and the inspector are **two views of one control model**; neither has lo
 
 | Kind of control | Inline in the pill | Opens a popover | Lives in More `⋯` |
 |---|---|---|---|
-| Colour (fill, stroke, text colour, page background) | the 16 px round swatch showing the **resolved** colour; hatched when a token cannot resolve | the **colour popover** | — |
+| Colour (fill, stroke, text colour, page background) | the 16 px round swatch showing the **resolved** paint (a gradient or image thumbnail when the top fill is one); hatched when a token cannot resolve | the **colour popover** (tabs `Solid · Gradient · Image`, `APPEARANCE-TRANSFORM-UX-SPEC.md` §2.2–2.3) | — |
 | Font | `Font ▾` showing the family name in that font | the **font picker** | — |
 | Number (size, radius, count, stroke width) | a 64 px scrubbable number (§5.3) with its unit | — | the rest of the section's numbers |
 | Toggle (bold, clip, invert, lock) | an icon button with `aria-pressed`; pressed = soft tangerine | — | — |
@@ -285,7 +285,7 @@ Standard density; Pro adds the second tooltip line; Focus is identical. `⋯` is
 | Selection | Pill (≤ 6, in rank order) | Always in More |
 |---|---|---|
 | Nothing | No pill. | — |
-| **Shape** (rect · ellipse · polygon · star · line · path) | Fill swatch · Stroke swatch · Radius (rect; polygon/star: Points; line: Stroke width) · Duplicate · Delete | Rotate 90°, Flip H/V, Free transform, Bring forward/backward, Group with…, Use as mask, Radial/Grid/Mirror repeat, Outline stroke, Flatten, Copy link to selection, Describe |
+| **Shape** (rect · ellipse · polygon · star · line · path) | Fill swatch · Stroke swatch · Radius (rect; polygon/star: Points; line: Stroke width) · Duplicate · Delete — **everything about fills, gradients, strokes, effects, corners, transforms and structure is `APPEARANCE-TRANSFORM-UX-SPEC.md`** (§2.10, §3.6, §4.10 are the control tables) | Rotate 90°, Flip H/V, Free transform, Bring forward/backward, Group with…, Use as mask, Radial/Grid/Mirror repeat, Outline stroke, Flatten, Copy style, Paste style ▸, Copy link to selection, Describe |
 | **Text** | Font ▾ · Size · Colour swatch · Bold · Align ▾ · Delete (M2: `✦ Rewrite` takes slot 6 and Delete moves to More); a leading mono chip names the preset when the range matches one (`Heading 1`). **Everything about text — creation, editing, the control table with tiers, fonts, fidelity, actions, errors — is `TEXT-FONTS-UX-SPEC.md`** (§4.1 for this row). | Fit to box, Italic, Underline, Strikethrough, Line height, Letter spacing, Vertical align, Auto-size ▾, Style ▾, List ▾, Link…, Convert case ▾, Clear formatting, Copy as text, Rotate 90°, Flip, Duplicate, Repeat…, Convert to outlines (M2), Describe |
 | **Image** | Crop · Fit ▾ (Fill / Fit / Stretch) · Replace… · Use as mask ▾ · Duplicate · Delete (M2: `✦ Remove background` as slot 6) | Rotate, Flip, Bring/Send, Repeat…, Describe |
 | **Frame** | Fill swatch · Clip toggle · Rename · Duplicate · Delete | Align children, Tidy up, Layout grid…, Stroke, Rotate, Repeat…, Describe |
@@ -296,7 +296,7 @@ Standard density; Pro adds the second tooltip line; Focus is identical. `⋯` is
 | **Repeat** (source selected, or an instance clicked) | chip `Radial · 8` (or `Instance 3 of 8` when an instance was clicked) · Count · Edit · Expand · Release | Duplicate, Delete, Align, Flip, Go to source (instance), Describe |
 | **Boolean group** | Operation ▾ (Union…) · Fill swatch · Release · Flatten · Delete | Duplicate, Align, Rotate, Flip, Describe |
 | **Masked group** | Mask mode ▾ (Clip / Alpha / Luminance) · Invert · Release · Duplicate · Delete | Align, Rotate, Describe |
-| **Page** (label clicked) | Background swatch · Size ▾ · Rename · Duplicate page · Delete page | Fit, Export this page…, Copy link to page |
+| **Page** (label clicked) | Background swatch (the page's **fill stack**, `APPEARANCE-TRANSFORM-UX-SPEC.md` §2.8) · Size ▾ · Rename · Duplicate page · Delete page | Fit, Export this page…, Crop background (after A-1), Apply background to all pages, Copy link to page |
 | **Milestone preview** (read-only) | Copy | Copy link to selection, Describe |
 
 - `Delete` is visible on every editable non-text pill (the owner could not find it); tooltip `Delete · ⌫`.
@@ -307,6 +307,10 @@ Standard density; Pro adds the second tooltip line; Focus is identical. `⋯` is
   and `Mixed` rules as the inspector.
 
 #### 4.2.5 The colour popover (one for the pill, the inspector and dialogs)
+
+**Normative version: `APPEARANCE-TRANSFORM-UX-SPEC.md` §2.2–2.3** (tabs `Solid · Gradient · Image`, colour models
+HEX/RGB/HSB/HSL/OKLCH, alpha, eyedropper with tile-sampling fallback, saved palette, contrast tag, document gradients, the
+gradient editor and its on-canvas handles). The table below is the Solid tab's short form and stays consistent with it.
 
 264 px wide (the inspector's width), 12 px corners, 14 px padding, anchored to the swatch that opened it, light dismiss
 passes the click through (`OVERLAYS-FEEDBACK.md` §1.4). Top to bottom:
@@ -378,8 +382,8 @@ rectangle is selected; no Repeat panel unless the selection is or can become a r
 
 | Selection | Sections, in order (▸ collapsed by default) |
 |---|---|
-| Nothing | **Page** (Name, Size preset ▾ with W × H fields, Background swatch, Orientation) · **Document** (Title, Pages count, Units) |
-| Shape | Transform · Fill · Stroke · ▸ Corners (rect; per-corner toggle and smooth slider) · ▸ Effects · ▸ Layer (opacity, blend) |
+| Nothing | **Page** (Name, Size preset ▾ with W × H fields, **Background** as a fill stack — `APPEARANCE-TRANSFORM-UX-SPEC.md` §2.8, Orientation) · **Document** (Title, Pages count, Units) |
+| Shape | Transform · Fill · Stroke · ▸ Corners (rect; per-corner toggle and smooth slider) · ▸ Effects · ▸ Layer (opacity, blend) — **stacks, popover, gradient editor, effects presets, control tables: `APPEARANCE-TRANSFORM-UX-SPEC.md` §2** |
 | Text | Transform · **Text** (Style ▾ preset, Font family ▾ with preview, Weight ▾, Size, Colour, `B I U S 🔗` row, Align row with List ▾; `More ▾`: Line height, Letter spacing, Paragraph spacing, Vertical align, Auto-size, Case ▾, Sub/superscript, Fit to box; Pro: OpenType, axes, baseline, direction, hyphenation) · Fill · ▸ Stroke · ▸ Effects · ▸ Layer — **the control table with tiers and letters is `TEXT-FONTS-UX-SPEC.md` §4.2** |
 | Image | Transform · **Image** (Fit ▾, Replace…, Source name, Size in px) · ▸ Effects · ▸ Layer |
 | Frame | Transform · **Frame** (Clip content, Name) · Fill · ▸ Stroke · ▸ Layout grid · ▸ Effects · ▸ Layer |
@@ -405,9 +409,10 @@ W [  920 ]   H [  346 ]  🔗
 
 Fields are 32 px, 12 px corners, Geist Mono 12 px, control edge. Units live inside the field as a muted suffix (`px`,
 `°`, `%`) and are not typed. Fill, Stroke and Effects are **stacks**: each row is a 34 px pill-field with a 16 px round
-swatch, the value (`@cream` mono tag, then `#FFF4E0`), an opacity field, a visibility eye and a × on hover; `+ Add` at
-the bottom of each stack. Stroke rows add Width and Position ▾ (Inside / Centre / Outside). Effect rows add a Kind ▾
-(Shadow / Glow / Blur / Background blur) and the kind's fields on a second line.
+swatch (a thumbnail for gradients and images), a 2-line summary (`@cream · #FFF4E0`, `Linear · 3 stops · 45°`), an
+opacity field, a visibility eye and a × on hover; `+ Add ▾` at the bottom of each stack (`Colour · Gradient ▸ · Image…`;
+effects: a preset menu). Stroke rows add Width and Position ▾ (Inside / Centre / Outside). Effect rows show the kind's
+fields on a second line. **Normative anatomy: `APPEARANCE-TRANSFORM-UX-SPEC.md` §2.1, §2.5, §2.6.**
 
 ### 5.3 Numbers, units and mixed values
 
@@ -451,6 +456,8 @@ Clean Pop: handles are **round**, 9 px white with a 1.5 px `#CF3D17` ring (Studi
 - **Multi-selection:** one frame around the union, rotation 0, no individual frames; individual outlines appear on
   hover.
 - **Locked element:** the frame is dashed `#7D8897`, no handles, and the pill shows `Unlock` only.
+- **The complete gesture set** (Alt-duplicate, the image ratio-by-default rule, the corner-radius handle, gradient
+  handles, crop mode) is `APPEARANCE-TRANSFORM-UX-SPEC.md` §3.1 and §2.3.2.
 
 ### 6.2 Cursors
 
@@ -519,7 +526,11 @@ Help (`?`), tooltips and the palette show the same keys. Browser-reserved combos
 | Delete | ⌫ / ⌦ | Backspace / Delete | works whenever a selection exists and focus is not in a text field (§11) |
 | Rename | Enter in Layers, or ⌘⇧R | F2, or Ctrl+Shift+R | ⌘R is reload |
 | Group / Ungroup | ⌘G / ⌘⇧G | Ctrl+G / Ctrl+Shift+G | new (§11) |
-| Lock / unlock, Hide / show | ⌘⇧L / ⌘⇧H | Ctrl+Shift+L / Ctrl+Shift+H | new; Hide shadows Figma's; Shift+H stays flip (below) |
+| Frame selection | ⌘⌥G | Ctrl+Alt+G | Figma; `APPEARANCE-TRANSFORM-UX-SPEC.md` §4.1 |
+| Copy style / Paste style | ⌘⌥C / ⌘⌥V | Ctrl+Alt+C / Ctrl+Alt+V | Figma, Sketch, Illustrator; **Copy link moved to ⌘⌥L** (below) |
+| Flatten / Outline stroke | ⌘E / ⌘⇧O | Ctrl+E / Ctrl+Shift+O | Figma |
+| Lock / unlock, Hide / show | ⌘⇧L / ⌘⇧H | Ctrl+Shift+L / Ctrl+Shift+H | new; Hide shadows Figma's; Shift+H stays flip (below); Hide after A-2 |
+| Opacity −10 % / +10 % | ⌥⇧↓ / ⌥⇧↑ | Alt+Shift+↓ / ↑ | not while editing text (then line height); no `1…0` keys (lens keys) |
 | **Arrange** | | | |
 | Bring forward / Send backward | ⌘] / ⌘[ | Ctrl+] / Ctrl+[ | new |
 | Bring to front / Send to back | ⌘⌥] / ⌘⌥[ | Ctrl+Alt+] / Ctrl+Alt+[ | new; the existing 1° rotate keys move (below) |
@@ -538,6 +549,7 @@ Help (`?`), tooltips and the palette show the same keys. Browser-reserved combos
 | Zoom in / out | ⌘= / ⌘− (and ⌘ wheel) | Ctrl+= / Ctrl+− | prevented default |
 | Zoom 100 % / fit / selection | ⇧0 / ⇧1 / ⇧2 | same | |
 | Toggle dock / inspector | ⌘\ / ⌘⌥\ | Ctrl+\ / Ctrl+Alt+\ | new |
+| Rulers / Layout grids overlay | ⇧R / ⌃G | Shift+R / Ctrl+Alt+G | `APPEARANCE-TRANSFORM-UX-SPEC.md` §4.7 |
 | Canvas / Pages lens | 1 / 5 | same | 2–4 reserved for their lenses |
 | Previous / next page | PageUp / PageDown | same | existing |
 | **Studio** | | | |
@@ -547,7 +559,7 @@ Help (`?`), tooltips and the palette show the same keys. Browser-reserved combos
 | Export | ⌘⇧E | Ctrl+Shift+E | when C1 lands |
 | Settings | ⌘, | Ctrl+, | |
 | Shortcuts help | ? | ? | opens Settings › Shortcuts as a dialog |
-| Copy link to the design / selection | ⌘⌥C | Ctrl+Alt+C | the selection's link when one exists, else the design's (`NAVIGATION-DEEPLINKS.md` §5) |
+| Copy link to the design / selection | ⌘⌥L | Ctrl+Alt+L | **moved** from ⌘⌥C (now Copy style; APPEARANCE Q6); the selection's link when one exists, else the design's (`NAVIGATION-DEEPLINKS.md` §5) |
 | Developer tools | ⌘⇧D | Ctrl+Shift+D | only while Settings › About › Developer tools is on (`DEVTOOLS-UX-SPEC.md`) |
 | **Text editing** (inside a text element; the full table is `TEXT-FONTS-UX-SPEC.md` §3.3) | | | |
 | Bold / Italic / Underline / Strikethrough | ⌘B / ⌘I / ⌘U / ⌘⇧X | Ctrl+B/I/U, Ctrl+Shift+X | |
@@ -589,14 +601,14 @@ A `sf-menu` at the pointer, kit styling, items with icons and shortcuts; only ap
 | Target | Items |
 |---|---|
 | Empty canvas (nothing selected) | Paste · Paste in place · ─ · Select all · ─ · Zoom to fit · 100 % · ─ · Add page · ─ · Show rulers (Pro) |
-| Element (any) | Cut · Copy · Paste · Duplicate · Delete · ─ · Bring to front · Bring forward · Send backward · Send to back · ─ · Group / Ungroup · Lock / Unlock · Hide · Rename · ─ · Select same ▾ (Fill, Stroke, Font, Kind) · Copy link to selection · ─ · (kind items) |
+| Element (any) | Cut · Copy · Paste · Duplicate · Delete · ─ · Copy style · Paste style · Paste style ▸ (Fill · Stroke · Effects · Corners) · ─ · Bring to front · Bring forward · Send backward · Send to back · ─ · Group / Ungroup · Frame selection · Lock / Unlock (Pro: Lock ▾) · Hide · Rename · ─ · Select same ▾ (Fill, Stroke, Effects, Font, Kind) · Use as page background (shapes, images) · Copy link to selection · ─ · (kind items) |
 | + Shape | Use as mask · Outline stroke · Flatten · Make repeat ▾ |
 | + Text | Edit text · Text style ▾ · Fit to box · Copy as text · Missing fonts… (when any) · Convert to outlines (M2); the menu **while editing** is `TEXT-FONTS-UX-SPEC.md` §7.4 |
 | + Image | Crop · Replace image… · Use as mask · Fit ▾ |
 | + Group / Frame | Enter · Ungroup / Unframe · Tidy up · Align children ▾ |
 | + Multi | Align ▾ · Distribute ▾ · Combine ▾ · Group · Frame selection · Make repeat ▾ · Use as mask |
 | + Repeat / Boolean / Mask | Edit · Expand / Release · Flatten |
-| Page label | Rename · Duplicate page · Delete page · Set size ▾ · Export this page… · Copy link to page |
+| Page label | Rename · Duplicate page · Delete page · Set size ▾ · Background… · Crop background (A-1) · Apply background to all pages · Export this page… · Copy link to page |
 | Layers row | Same as the element, plus Expand all / Collapse all |
 | Milestones row | Preview · Compare with Latest · Open as new design · ─ · Rename · Pin / Unpin · Copy link · ─ · Delete milestone (`OVERLAYS-FEEDBACK.md` §2.3) |
 
