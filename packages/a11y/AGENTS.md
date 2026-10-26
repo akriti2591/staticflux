@@ -13,7 +13,9 @@ typed declarations, scopes and conflict detection, platform preference facts, an
 ## Public API (by file)
 - `env.ts` — `A11yEnvironment` (`document`, `matchMedia`, `timers`, `isMac`), `browserA11yEnvironment()`, `defaultTimers`, `SF-A11Y-004` (no document).
 - `focus.ts` — `createFocusManager({ document, telemetry })` → `focusRouteTarget({ target? })`, `registerRouteTarget(el, scope?)`, `trap(container, { initialFocus, restoreFocus, inertBackground, onEscape, scope, label })`,
-  `activeTrap`, `trapCount`, `tabbables`; `tabbablesOf`, `KEEP_INTERACTIVE_ATTR`; machine `FocusTrapMachine` (`a11y/focus-trap`: active ⇄ paused → released); `SF-A11Y-001`.
+  `activeTrap`, `trapCount`, `tabbables`; `tabbablesOf`, `KEEP_INTERACTIVE_ATTR`; machine `FocusTrapMachine` (`a11y/focus-trap`: active ⇄ paused → released); `SF-A11Y-001`;
+  `rememberFocusReturn(trigger, { fallback })` → `restore()` (trigger, else fallback, else the nearest surviving landmark recorded at open time, never `body`),
+  `FOCUS_FALLBACK_SELECTOR` (`data-sf-focus-fallback` marks the canvas or a dock panel). *(B11a2)*
 - `announcer.ts` — `createAnnouncer({ document, timers, debounceMs, clearAfterMs, container })` → `announce(msg, { politeness, dedupe })`, `flush`, `clear`, `text`, `dispose`; `LIVE_REGION_ATTR`.
 - `shortcuts.ts` — `defineShortcutScope(id, { parent })`, `GlobalShortcutScope`, `defineShortcut({ id, keys: KeyCombo[], scope, description, allowInInputs, preventDefault })`,
   `createShortcutRegistry({ isMac })` → `register`, `activate`, `handle`, `attach`, `list`, `conflicts`, `label`, `activeScopes`;

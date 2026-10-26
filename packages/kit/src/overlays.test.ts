@@ -79,14 +79,16 @@ describe('<sf-popover>', () => {
     expect(toggles.map((e) => e.detail.open)).toEqual([true, false]);
   });
 
-  it('closes on an outside press without stealing focus back', async () => {
-    const { element } = await fixture<HTMLDivElement>(html`<div><sf-popover label="P"><sf-button slot="trigger">Open</sf-button><p>Text</p></sf-popover><button class="other">x</button></div>`);
+  it('pass-through: closes on an outside press, lets it through and does not steal focus back', async () => {
+    const { element } = await fixture<HTMLDivElement>(html`<div><sf-popover label="P" outside="pass"><sf-button slot="trigger">Open</sf-button><p>Text</p></sf-popover><button class="other">x</button></div>`);
     const popover = element.querySelector('sf-popover') as SfPopoverElement;
     popover.show();
     await settle();
-    expect(document.activeElement).not.toBe(popover.querySelector('sf-button'));
     const other = element.querySelector('.other') as HTMLButtonElement;
-    other.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+    const down = new PointerEvent('pointerdown', { bubbles: true, composed: true, cancelable: true });
+    other.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(false);
+    other.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, composed: true }));
     other.focus();
     await settle();
     expect(popover.open).toBe(false);
@@ -103,9 +105,11 @@ describe('<sf-popover>', () => {
     const anchor = document.createElement('div');
     document.body.append(anchor);
     const { element } = await fixture<SfPopoverElement>(html`<sf-popover label="Selection" .anchor=${anchor}><span>Hi</span></sf-popover>`);
+    const before = deepFocused();
     element.show();
     await settle();
-    expect(deepFocused()).toBe(shadow(element, '.panel'));
+    // Nothing to type into or press: focus stays where it was (OVERLAYS-FEEDBACK §1.3).
+    expect(deepFocused()).toBe(before);
     const box = document.createElement('div');
     box.innerHTML = '<span></span><a href="#">link</a>';
     expect(firstFocusable([box])?.localName).toBe('a');

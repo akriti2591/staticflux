@@ -72,6 +72,30 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** Appearance pass done → PR #31 (stacked on #29; APPEARANCE-TRANSFORM-UX-SPEC, F-65–F-72, Q1–Q11 asked).
+  Engine follow-ups for M1 (with or before B11b): text T-1–T-9, appearance A-1 page fill stack, A-2 hidden prop,
+  A-3 image crop; plus missing actions group/ungroup/reorder/rename/frameSelection. Proposal: a B12 engine work
+  package for these before B11b. Waiting on owner: text Q1–Q10, appearance Q1–Q11.
+- **2026-10-25** B11a2 merged on the working branch (2b9c860; 21 squash-trap conflicts resolved by side-unchanged rule;
+  size entries all renames). Full check (4506 tests), smokes and agents:check green. Kit full budget 27.5 → 42.5 KB
+  (overlays, dialogs, pickers): C4 checks first-paint loading. PR opened. Next: appearance pass → B11b.
+- **2026-10-25** #28 merged. Text UX done → PR #29 (TEXT-FONTS-UX-SPEC, F-60–F-64, Q1–Q10 asked). Engine text bugs to
+  schedule before or with B11b (M1, spec §11.2 T-1–T-9): Mac caret word/line keys, fixed box + vertical align never
+  laid out, undo per keystroke, no tofu for missing glyphs, WOFF2 rejected by fonts.ts, sub/superscript, soft break,
+  Tab in lists, IME control bounds. Appearance pass (Fable) launched on `claude/wip-ux-appearance` (stacked on text).
+- **2026-10-25** Owner: text lacks basics (paragraph/heading/list presets, sub/superscript, B/I/U…) and other facets likely
+  miss core things too. Text agent told to build an exhaustive competitor feature checklist. Next Fable pass (queued,
+  after text): appearance, transforms, groups/components, booleans/masks, repeat, snapping, a11y, each with its
+  feature-checklist appendix, before B11b.
+- **2026-10-25** Owner flag: fonts/text (actions, fidelity, usability) had no UX spec of its own. Fable text research
+  launched on `claude/wip-ux-text` (stacked on #28's branch) → TEXT-FONTS-UX-SPEC.md. Runs beside B11a2 (docs only).
+  B11b waits for both.
+- **2026-10-25** Owner accepted GAP-AUDIT Q-A–Q-H (recorded on #28, 73f597a). B11a2 resumed (reads DENSITY-DISCLOSURE).
+  Next: merge #28; B11a2 → merge loop → B11b; later a Fable pass on backlog B-1 Timeline and B-5 Resize design.
+- **2026-10-25** #26 (B11a + hit-test root-cause fix: index by hitBox) merged. Fable gap research done → PR #28 (docs):
+  GAP-AUDIT.md (backlog B-1 Timeline lens … B-13), DENSITY-DISCLOSURE.md, custom size, first run, import, find and
+  replace, cheat sheet, perf states, localisation, F-54–F-59; owner questions Q-A–Q-H asked. B11a2 paused at
+  a47960e (overlay model, menus, messaging policy, tooltip WIP); resume next, one agent at a time.
 - **2026-10-25** #27 merged. Owner: Export 7 and 8 accepted; 9 unclear (to be rewritten plainly); custom size in New design
   and Export; dropdowns/disclosure to cut clutter; two density personalities (calm like the Claude artifact UI, dense
   like Figma/Adobe). Owner's standing intent for Fable: an open-ended researcher that FINDS gaps (market analysis,

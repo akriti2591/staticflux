@@ -54,6 +54,9 @@ Main side:
   `mount(container)`, `spoken`, `view`, `tab`; C0: `library`, `flush()` (Latest durable), `leave(href)` (the Home link: flush, then
   `options.leave`), `saveAsTemplate(title?)` (`instaflow/save-as-template` on main over `options.templates`), `homeHref`).
 - `errors.ts` — `IF-INT-001` pipeline start · `002` scene record · `003` no open page · `004` canvas backend · `005` document.
+- `feedback.ts` (B11a2, main side) — `feedbackFor(error, origin, copy?)` (level by origin refined by `FAMILY_LEVELS`; Instaflow words per error
+  definition; never the code), `ToastsToken` / `createToasts(manager, owner)` (`show`, `undoable` → `Restored`, `error`, `undoNewest` for Home's
+  `Mod+Z`), `INSTAFLOW_SURFACE_UNITS` (messaging under `strictSurfacePolicy`). B11b binds the units and the token.
 - `test-helpers.ts` (test-only) — `createStudioFixture`, `scriptedTextInput`, `lendDom`, `manualTimers`.
 
 ## Rules

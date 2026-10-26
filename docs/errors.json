@@ -1227,6 +1227,18 @@
       "fix": "Type at least one non-space character (or set `required` to false), and stay within `maxlength`; Escape restores the previous name."
     },
     {
+      "code": "SF-KIT-003",
+      "kind": "invariant",
+      "summary": "An overlay was opened inside a parent that may not hold it (a popover from a popover or a menu, a submenu inside a submenu); it was not opened.",
+      "fix": "Grow or swap the open popover in place, close the menu and anchor the popover to the menu’s trigger (`menu.trigger`), or turn a third menu level into a searchable menu or a dialog step (OVERLAYS-FEEDBACK §1.2)."
+    },
+    {
+      "code": "SF-KIT-004",
+      "kind": "forbidden",
+      "summary": "The text could not be copied: the browser refused clipboard access or has no Clipboard API here.",
+      "fix": "Serve the page over HTTPS and copy from a user gesture; people can allow clipboard access in site settings or select the field and copy by hand."
+    },
+    {
       "code": "SF-LOAD-001",
       "kind": "not-found",
       "summary": "The logical chunk id is not in the build manifest.",
@@ -1357,6 +1369,12 @@
       "kind": "unavailable",
       "summary": "The routable dialog’s lazy content failed to load.",
       "fix": "Inspect `cause` (chunk load/network). The dialog was not entered; the router should keep the parent path."
+    },
+    {
+      "code": "SF-MSG-008",
+      "kind": "conflict",
+      "summary": "A dialog was requested while another dialog is open; under the strict surface policy a second modal is refused, never queued or stacked.",
+      "fix": "Put the confirmation inline (an inline confirm row) or make the sub-task a step of the open dialog; only a blocking error may replace an open dialog (request it with `replace: true`)."
     },
     {
       "code": "SF-NAV-001",

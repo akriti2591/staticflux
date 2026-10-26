@@ -64,6 +64,10 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
 - Fable's job is open-ended UX research that finds gaps itself (market analysis, shortcuts, every flow end to end).
   Never brief it as "write X and Y"; give it the baseline (spec + design + code) and ask it to discover what's missing.
   Briefing only named items is how the Export flow stayed frame-only.
+- Every UX research brief includes `handoffs/CAPABILITY-COVERAGE.md` (built from REQUIREMENTS sections + src modules)
+  and the agent must account for every row. A topic list in a brief is never the inventory; that is how text was missed.
+- Owner: I sequence the build; UX designs every feature now (deferred too): its outlet in the UI and its flows to
+  completion and follow-up. Put this in every UX brief (CAPABILITY-COVERAGE.md has the wording).
 - Owner: convention is not the default. Design the better thing when we can; keep convention only where it serves
   people (muscle-memory shortcuts, gestures) and say why.
 - Tests can pass while a person can't use the product. Acceptance comes from `docs/instaflow/ux/FLOWS.md`, written from

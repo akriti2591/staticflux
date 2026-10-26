@@ -46,6 +46,10 @@ schema, Studio spec and the proposal pipeline.
 - `errors.ts` — `IF-SPEC-001` schema · `002` registry · `003` proposal state · `004` proposer failed · `005` canvas start.
   Slot problems are the framework's SF-SHELL-009…013 issues.
 - `testing/` (test-only) — `scriptedProposer(turns, source)`, `fixtures.ts` (`studioRegistries({ gated })`, `editorGate(plan)`).
+- `controls.ts` (B11a2) — the HUD / inspector **control model** types: `ControlDecl` (`id`, `kind`, `label`, `icon`, `shortcut`, `fact`,
+  `capability`, `section`, `order`, `tier: essential|more`, `hudRank` 1–6, `description`), `defineFact`, `InspectorSection`, `defineControls`
+  (IF-POL-001), `hudControls` (≤ 6 by rank), `inspectorSections(set, mode)` (`more` folded except in Pro), `moreMenuControls`. The per-kind
+  sets (STUDIO-UX-SPEC §4.2.4) and wiring are B11b's.
 
 ## Contributing from another work package (B1–B6)
 Define your contribution with the `define*` helper and contribute it with the unit helper; reuse a `StudioIds` id to replace a

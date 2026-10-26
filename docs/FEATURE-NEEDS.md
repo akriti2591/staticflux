@@ -396,6 +396,20 @@ SF-KIT-001…002.
 - "Rename in place: Enter saves, Escape cancels, empty is refused" → `<sf-inline-edit>` (R13.34).
 - "A swatch shows the resolved colour, hatched when a token is missing" → `<sf-swatch>` (R13.35).
 
+### Overlays, feedback and hints (Instaflow M1c · B11a2)
+Consumer: Studio and Home surfaces (B11b) through `apps/instaflow/src/app/feedback.ts`, `src/studio/hints.ts`, `src/spec/controls.ts`
+and the kit. New framework API: R13.36–R13.45, SF-KIT-003…004, SF-MSG-008.
+- "A dialog never opens over a menu, and never over another dialog" → `@staticflux/messaging` `strictSurfacePolicy` (R13.43) and the kit
+  overlay sessions (`@staticflux/kit/overlay`, R13.36).
+- "A mis-click outside a menu never draws on the canvas; a click outside a HUD popover selects the next element" → kit `outside="consume|pass"`.
+- "Focus never gets lost when the row that opened a menu is deleted" → `@staticflux/a11y` `rememberFocusReturn` (R13.44).
+- "Menus have icons, submenus, a filter and open at the pointer" → `<sf-menu>` (R13.37); "tooltips feel instant along a toolbar" → R13.38.
+- "Confirmations are inline, sub-tasks are steps" → `<sf-confirm-row>`, `<sf-dialog step dirty>`, `<sf-takeover>` (R13.39).
+- "Errors say what happened and what to do, never a code" → `errorFeedback`, `<sf-banner>`, `<sf-blocking-error>`, toasts (R13.40).
+- "Copy link says Copied right there; hints show once; sections fold with a summary" → `<sf-copy-field>`, `<sf-hint>`, `<sf-disclosure>` (R13.41).
+- "One colour picker, one font picker, one alignment popover for the HUD and the inspector" → R13.42.
+- "Context menus never cover the pointer and long menus scroll" → `computePointPosition`, the shrink step (R13.45).
+
 ### Home route (Instaflow M1c · C0)
 Consumer: `apps/instaflow/src/home` (Home's model, element and boot), `apps/instaflow/src/workspace` (the persistent workspace and the
 store-side pieces Home relies on) and their dev entries. New framework API: `<sf-card>` (R13.31).

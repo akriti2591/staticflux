@@ -71,6 +71,9 @@ importers:
       '@staticflux/loader':
         specifier: workspace:*
         version: link:../../packages/loader
+      '@staticflux/messaging':
+        specifier: workspace:*
+        version: link:../../packages/messaging
       '@staticflux/platform':
         specifier: workspace:*
         version: link:../../packages/platform

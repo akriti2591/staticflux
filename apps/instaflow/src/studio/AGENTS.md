@@ -27,6 +27,10 @@ fully by hand (D17).
   `focusHud`, `focusCommandBar`, `focusCanvas`, `canvasActive`. `studioMessages`.
 - `canvas.ts` — **`CanvasPort`** (`start(surface, signal) → CanvasSession { forwarded, stop }`), `sequencingCanvas({ boot, env,
   schedule })` (boots A7, forwards surface input into the editor's input ring; IF-SPEC-005 on failure).
+- `hints.ts` (B11a2) — `STUDIO_HINTS` (the M1 first-use hints: frame, shape, text, hand, layers, multi-selection), `HintTargets` (typed
+  coach targets to mark with `coachTarget`), `localSeenStore(localStorage)` (`instaflow/ui/hints`, memory when blocked; pass it to the
+  surface manager as `seen`), `createHintSession({ manager, owner, seen, enabled })` (`offer`, `used`, `suppress`/`resume`, `reset`; two per
+  session), `HINTS_PER_SESSION`, `seenKeyOf`.
 
 ## Layout rules
 - Regions come from placements: `panel@side` → contextual side panel, `panel@dock` → tabbed left dock, `panel@inspector` →

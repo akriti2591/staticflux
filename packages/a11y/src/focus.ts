@@ -124,6 +124,61 @@ function isFocusable(el: Element): boolean {
   return el instanceof HTMLElement && (el.tabIndex >= 0 || el.hasAttribute('tabindex'));
 }
 
+/**
+ * Landmarks focus may fall back to when an overlay's trigger is gone (OVERLAYS-FEEDBACK §1.3): regions, toolbars,
+ * trees, dialogs and anything marked `data-sf-focus-fallback` (the canvas, a dock panel).
+ */
+export const FOCUS_FALLBACK_SELECTOR =
+  '[data-sf-focus-fallback], main, nav, aside, [role="main"], [role="region"], [role="navigation"], [role="complementary"], [role="application"], [role="toolbar"], [role="tree"], [role="dialog"], [role="alertdialog"], dialog, section[aria-label], section[aria-labelledby]';
+
+export interface FocusReturn {
+  /** The element focus returns to while it is still in the document. */
+  readonly trigger: Element | null;
+  /**
+   * Focus the trigger; when it is gone (deleted row, changed selection), the explicit fallback, else its nearest
+   * surviving ancestor landmark. Never `body`: returns undefined when nothing survives.
+   */
+  restore(options?: { readonly preventScroll?: boolean }): HTMLElement | undefined;
+}
+
+/** The composed parent: parent element, else the shadow host. */
+function composedParent(node: Element): Element | null {
+  if (node.parentElement !== null) return node.parentElement;
+  const root = node.getRootNode();
+  return root instanceof ShadowRoot ? root.host : null;
+}
+
+function usable(element: Element | null | undefined): element is HTMLElement {
+  if (!(element instanceof HTMLElement) || !element.isConnected) return false;
+  if (element.localName === 'body' || element.localName === 'html') return false;
+  for (let node: Element | null = element; node !== null; node = composedParent(node)) {
+    if (node.hasAttribute('inert') || node.hasAttribute('hidden')) return false;
+  }
+  return true;
+}
+
+/**
+ * Remember where focus returns when an overlay closes (OVERLAYS-FEEDBACK §1.3). Call when it opens: the trigger's
+ * landmark ancestors are recorded then, because once the trigger is removed its ancestors can no longer be found.
+ */
+export function rememberFocusReturn(trigger: Element | null, options: { readonly fallback?: Element | (() => Element | null | undefined) } = {}): FocusReturn {
+  const landmarks: Element[] = [];
+  for (let node = trigger === null ? null : composedParent(trigger); node !== null; node = composedParent(node)) {
+    if (node.matches(FOCUS_FALLBACK_SELECTOR)) landmarks.push(node);
+  }
+  return {
+    trigger,
+    restore(restoreOptions = {}) {
+      const explicit = typeof options.fallback === 'function' ? options.fallback() : options.fallback;
+      const target = [trigger, explicit, ...landmarks].find(usable);
+      if (target === undefined) return undefined;
+      if (target !== trigger && target.tabIndex < 0 && !target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: restoreOptions.preventScroll ?? true });
+      return target;
+    },
+  };
+}
+
 interface InertRecord {
   count: number;
   /** Traps on top whose container lies inside this element: inertness is lifted while > 0. */
