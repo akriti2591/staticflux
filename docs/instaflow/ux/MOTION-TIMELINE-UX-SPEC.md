@@ -894,4 +894,475 @@ drawn by the next frame.
 | Fidelity suite (§13) | `src/timeline/fidelity.gpu.test.ts`, export corpus | M3 |
 | Reduced-motion content rule, flashing guard | `@staticflux/a11y` facts, evaluator option `reducedMotion` (preview only) | M4 |
 
-<!-- CONTINUE -->
+## 17. Every feature: its outlet, its flow to completion and follow-up, and the (c) schedule
+
+Standing rule (owner, 2026-10-25, `CAPABILITY-COVERAGE.md`): UX designs **every** feature now, deferred ones included — its
+**outlet** (exactly where it lives, per density) and its **flow** (how the person finishes, and what comes next). A deferred
+feature's outlet is **reserved** and not rendered until built (FOUNDATIONS §5.6). Vocabulary: `HUD n` = pill slot, `More` = the
+pill's `⋯`, `Clip · S / M / P` = the inspector section at rest in Standard / behind `More ▾` / Pro only, `tray` = the strip under
+Canvas and Pages, `lens` = the Timeline lens, `sheet` = the preset sheet, `transport`, `header`, `ctx` = context menu, `pal` =
+palette, `View`, `Export` = the Export dialog. Every row's undo is one step named after the control unless it says otherwise.
+
+### 17.1 Outlets and flows
+
+| Feature (letter · milestone) | Outlet | Flow to completion | Follow-up and what comes next |
+|---|---|---|---|
+| **Timeline lens appears with content** (c · M3) | Lens switcher slot 3, key `3`; appears on first motion / media / transition / `Animate` | Drop a video on the story track → the lens slides in; `3` opens it | Leaves when the content is gone and the person is elsewhere (STUDIO §2.1) |
+| **Tray under Canvas / Pages** (c · M3) | Bottom of the canvas region, `Shift+T`; opens itself on first duration / preset / transition | Scrub, see the layout move, trim a page | Drag its top edge past 200 px → the lens |
+| **Page duration (pages as clips)** (c · M3) | Page pill 1 `Duration`; Page · S `Duration`; story clip edge; Pages row mono tag | Type `6`, Enter, or drag the clip edge; everything after ripples | `Fit content`; `Apply to all pages` in Page `More ▾`; the ruler's total updates |
+| **Reorder pages in time** (a story · c time) | Drag a story clip; Pages panel drag; `Alt+↑/↓` | Drop between neighbours | Transitions stay with their gaps where both pages remain adjacent, else are removed with a toast |
+| **Import video / audio** (a kinds · c probe, proxies) | Assets `Import`; drop on a track, the story track, the preview, Home | Drop → placed; proxy and waveform fill in | `Replace…`; `Locate…` when missing |
+| **Place a clip on a track** (c · M3) | Drag from Assets; `Enter` on an asset places at the playhead on the first free track | Drop at a time (overwrite into empty; `Shift` insert) | Trim, move, split |
+| **Add / remove / reorder / rename tracks** (c · M3) | `+ Add track ▾`; header `⋯ › Remove track`; header drag; inline rename | Pick the kind; `Remove` with clips asks inline `Remove track and 4 clips? · Remove` | Track order = z-order of overlays |
+| **Lock / mute / solo / hide a track** (c · M3) | Header icons; `Mod+Shift+L` on a focused header | Click | Locked tracks ignore ripple |
+| **Playhead, scrub, hover scrub** (c · M3) | Ruler, transport, `J K L Space ← →`, `Alt`+hover | Click the ruler, drag, step frames | The time field; `Alt+G` go to time |
+| **Transport** (c · M3) | Transport bar (docked; floating pill in Focus) | `Space`; `J`/`L` rates | Loop `Alt+L`; quality `⋯` |
+| **In / out range** (c · M3) | Ruler drag; `I` `O` `X`; right-click | Set in, set out → band | Range pill: Split at edges, Speed, Zoom here, Export range…, Delete |
+| **Markers** (c · M3) | `M`; ruler right-click; `▼` click | `M` at the playhead; `Shift+M` with a name; colour chip | `Alt+M` jumps; Export `Chapters` (M4) |
+| **Snapping** (c · M3) | Transport `◉ Snap`, `N`; `Mod` suspends | Toggle | Snap targets listed in the tooltip |
+| **Zoom the timeline** (c · M3) | `=` `−`, slider, `Mod`+wheel, `Shift+Z` fit | | Wheel scrolls time; `Shift`+wheel tracks |
+| **Move a clip** (c · M3) | Drag; `,` `.`; `Alt+↑/↓` to another track | Drop (hatched overwrite preview) | Undo `Move clip` |
+| **Trim** (c · M3) | Edge drag; `[` `]` then `,` `.`; Clip · S `In` `Out` | Drag with the two-line label | Ripple with `Shift` (default on the story track) |
+| **Ripple trim to playhead / extend** (c · M3) | `Q` `W` `E` | Press | Label in the Pro undo line |
+| **Roll · slip · slide** (c · M3) | `Alt`+edge, `Alt`+body, `Alt+Shift`+body; `Alt+,/.` | Drag; slip shows first/last frames | — |
+| **Split** (c · M3) | Tool `S`, pill `Split`, ctx | `S` at the playhead | `Join` on the pieces |
+| **Delete · ripple delete · lift** (c · M3) | `Delete`, `Shift+Delete`, pill, ctx | Press; range deletes confirm inline when > 3 clips | Undo toast when > 5 clips |
+| **Duplicate a clip / page** (a page · c time) | `Mod+D`; `Alt`+drag | | Match keys kept for Smart move |
+| **Speed · reverse · pitch** (c · M3) | Pill 1 `Speed ▾`; Clip · S | Pick 2× → the clip halves (ripple with `Shift`) | `Pitch ▾`; speed ramps (M5+, A.2) |
+| **Freeze frame** (c · M3) | Pill `⋯`, `Alt+F` | 2 s hold inserted | Trim the hold |
+| **Link / unlink / detach audio** (c · M3) | Pill `⋯`, `Alt+Shift+L` | | Audio clip appears on the Audio row |
+| **Filmstrip · waveform · proxies** (c · M3) | On the clip; Assets ring; transport `Quality ▾` | Automatic | `Retry` on failure |
+| **Clip gain · fades · crossfade** (c · M3) | Pill 1–3; Audio · S; gain line; fade handles | Drag a fade handle; drag past a neighbour → crossfade | Keyable gain; `Curve ▾` |
+| **Track fader · master · limiter · meters** (c · M3) | Header fader; transport meter + `⋯ › Master` | Drag; double-click = 0 dB | Pro per-track meters |
+| **Pan · normalise** (c · M3) | Audio · M | Pick `−14 LUFS` | Hint shows the measured value |
+| **Duck under voice** (c · M5) | Audio · M toggle on music clips | Toggle → auto gain keys | `Freeze keys`; edit keys |
+| **Record voice-over** (c · M5) | Transport `⋯`; Assets `Import ▾ › Record…` | Count-in, record, `Esc` | Trim; `Normalise` |
+| **Audio scrubbing** (c · M3) | Transport `⋯`, `Shift+S` | Toggle | — |
+| **Keyframes: first key, next keys, move, scale, copy, delete, hold** (c · M3) | Field `◇`, `Shift+K`; keys strip; Pro lanes; motion path; Keys · P | §5.3 | `Bake`, `Clear channel`, `Save keys as preset…` |
+| **Rubber-band automation (gain, any channel on the clip)** (c · M3) | The gain line; Pro lanes | Drag the line with keys | — |
+| **Curve picker** (c · M3 bezier · M4 springs catalogue) | `Curve ▾` on a key / segment / preset; Pro inline | Pick `Overshoot`; `Custom ▸` handles or spring sliders | `Apply to ▾ all segments`; paste CSS |
+| **Value graph (graph editor)** (c · M4, Pro) | Clip header `Graph` toggle | Drag handles on the lane | — |
+| **Motion path on canvas** (c · M4) | Automatic for position channels when selected | Drag a dot; `Alt` pulls tangents | — |
+| **Animate presets: in / emphasis / out / loop** (c · M4) | Pill 4 `Animate ▾`; Motion · S rows; sheet; Assets › Motion drag | Hover tiles → preview in place; click → applied; tune Duration / Direction / Curve | `Bake to keyframes`; `Save as preset`; `Apply to all <kind>`; copy style carries motion |
+| **Text animation by letter · word · line** (c · M4) | Sheet text row; Motion · S summary `In · Fade up · word` | Pick `Word`, set stagger, `Order ▾` | Typewriter, cascade, roll up; karaoke (M5) |
+| **Page-level presets (Ken Burns, zoom, pan, parallax, Animate all)** (c · M4) | Page pill `Animate ▾`; Page · S Motion | Pick `Ken Burns` → draw start / end rectangles | Stagger children |
+| **Preset timing on the page (caps, emphasis diamond)** (c · M4) | Tray / lens clip caps | Drag a cap edge | Duration field follows |
+| **Save / share / brand presets** (c · M4; brand B-4) | Sheet `⋯ › Save as preset…`; Assets › Motion; brand kit `Motion` | Name → an asset | `Saved` chip; template carries it |
+| **Transitions between pages** (c · M4) | Gap `⟋` / `+` dot (filmstrip and story track); gap pill; Transition · S; sheet | Select the gap, pick `Push ←`, set 0.5 s | `Apply to all gaps`; reduced motion → fades |
+| **Transitions between clips** (c · M4) | Same on touching clips | Pick `Dissolve`; `Trim for me` when media is short | Dragging apart removes with a toast |
+| **Smart move (Auto Animate)** (c · M4) | Gap pill 3; sheet tile; `Matches` list; canvas arrows | Duplicate the page, move things, select the gap, `Smart move` | `Link…` / `Unlink`; `Morph text ▾`; `Unmatched ▾`; apply to all |
+| **Match keys visible** (a keys · c UI) | `Matches` list; Pro Layers mono tag `key` on hover; Explain in DevTools | Read the pairs; link a suggestion | Rename never breaks a match |
+| **Zoom here / punch-in** (c · M4) | Range pill; transcript range pill; `Z` + drag on the preview | Draw a rectangle → eased keys | Keys editable afterwards; `Reset zoom` |
+| **Builds (on click) and build order** (c · M4) | Page · S `Advance ▾ On click`; Pages row `Builds ▸` | Reorder; `With previous` | Presentation advances per group |
+| **Presentation mode** (c · M4) | Top bar `▶ Present ▾`; `Mod+Alt+P`; pal; Pages row `⋯` | Full screen; arrows; `Esc` | Presenter view; viewer HTML release (D10) |
+| **Presenter view** (c · M4) | `▶ ▾ › Present with presenter view`; `/s/:asset/presenter` | Second window with notes, next, timer | `✦ Write speaker notes` (M2+) |
+| **Speaker notes** (c · M4) | Page · M `Notes`; Pages row disclosure | Type | Presenter view; agents read them |
+| **Export MP4** (c · M3) | Export `Video` chip; `Mod+Shift+E`; range pill `Export range…`; pal | Pick container, size, fps, quality, range; estimate; `Export MP4` | Pause / resume; background toast; `Show in folder`; `Play` |
+| **Export WebM · GIF · image sequence · audio only** (c · M4) | Container chips (rendered when encodable) | As MP4 | GIF loop / colours in Advanced |
+| **Transparent video** (c · M4) | Advanced `Transparent` (WebM / sequence only) | Toggle | Checkerboard preview |
+| **Chapters from markers** (c · M4) | Advanced switch | Toggle | — |
+| **Export estimate (size · time · poster)** (c · M3) | Export preview card | Read before pressing | Scrub the poster |
+| **Resume a render after reload** (c · M3) | Toast on boot | `Resume` | `Discard` deletes the partial |
+| **Captions: generate** (c · M5) | Clip pill `⋯ › Captions ▾ › Generate…`; Transcript tab; chat | Pick where and style → job → captions stream in | Fix words; restyle; export sidecar |
+| **Captions: import / type / from text** (c · M5) | Drop `.srt`; `+ Add track ▾ › Captions`, `Alt+C`; text pill `Make caption` | | Same track afterwards |
+| **Caption styles** (c · M5) | Caption pill `Style ▾`; Captions · S; brand kit | Pick `Bold pop` for the track | `This caption only`; every TEXT control |
+| **Caption position and safe areas** (c · M3 overlay · M5 captions) | Captions · S grid; `View › Safe areas ▾`; drag on preview | Pick bottom-centre; snaps to the safe guide | Platform overlays (Reels, Shorts) |
+| **Edit by transcript** (c · M5) | Transcript tab: select words, `Delete` | Ripple cut across tracks; `‖` marks | Undo; `Keep · Cut` review |
+| **Filler and silence removal** (c · M5) | Transcript `Filler words` chip; range pill `✦`/`Remove silences`; chat | `Remove all · Review` | Review steps each cut |
+| **Speakers** (c · M5) | Transcript `Speaker 1 ▾` | Rename | `lower-third` style uses it |
+| **Export captions as `.srt` / `.vtt`** (c · M5) | Export `Captions ▾ Sidecar`; caption pill `⋯ › Export captions…` | | — |
+| **Cutout (matte)** (c · M5) | Video pill `✦ Cut out person` (M2 slot 6); Cutout section | Live mask at once, baked matte as a job | `Shape ▾`, `Feather`, `Outline`, `Shadow`, position presets; `✦ Fix edges` |
+| **Extend / regenerate a clip or range** (c · M5) | Range pill `✦ Extend from here`, `✦ Regenerate range`; clip pill `Lineage` | Inline sheet, prompt prefilled, 8 s | Lineage badge; `Regenerate` new seed |
+| **Generate clip / audio / sound effect** (c · M5) | Chat; range pill `✦ Sound effect`; Assets `Generate ▾` | Placeholder clip with a progress chip | Takes A/B; lineage |
+| **Agent timeline edits and timeline diff** (c · M3 views · M2 proposals) | Proposals draw on the tracks: added clips hatched, cut ranges red | Accept / Reject / Apply part | History log |
+| **Agent transcript view** (c · M5) | `agent/read-view kind: transcript` | — | `Zoom here` from a word range |
+| **Lottie import** (c · M5+, A.5) | Drop `.json` → a `lottie` asset clip | Plays as a clip; parameters read-only | Export as video; Rive **reject** (A.12) |
+| **Audio-only page / waveform element** (defer, A.8) | Element `Waveform` bound to a clip | — | — |
+| **Speed ramps** (defer M5+, A.2) | Clip · P `Speed` channel keyable | Keys on speed; the filmstrip stretches | — |
+| **Beat markers** (defer, A.8) | Audio pill `⋯ › Detect beats` → markers | — | Snap to beats |
+| **Component states Smart move / prototype interactions** (defer, A.6) | — | — | — |
+| **3D flip / cube / particles** (reject / defer, A.5, A.7) | — | — | — |
+
+### 17.2 Follow-ups — every (c), with a milestone (never rendered before it lands)
+
+| # | Item | Where | Milestone |
+|---|---|---|---|
+| V-1 | **Temporal model**: `Temporal`, `Source`, `Track`, `Page.duration`, story time with transition overlaps; validation `IF-CS-011`; CRDT parts per page keep tracks; story audio on the root part | `components.ts`, document parts, `@staticflux/motion` ticks | **M3** |
+| V-2 | **`@staticflux/motion`** evaluator `evaluate(stage, t)`, channels, easing (bezier, hold, steps, sampled springs), interpolators, seeded PRNG, lint | new package (Δ15) | M3 |
+| V-3 | **`@staticflux/media`**: `MediaClock`, `DecoderPool`, Mediabunny port, `MediaIndex`, AudioWorklet host, mixer, offline render | new package (Δ16) | M3 |
+| V-4 | **Playback and scrub**: audio-master clock, coarse-then-exact scrub, hover scrub, `J K L`, frame step, loop, quality switch; render-worker motion override (E-6) | `src/timeline/`, render module | M3 |
+| V-5 | **Edit gestures**: move (overwrite / insert), trim, ripple, roll, slip, slide, split, join, lift, ripple delete, range delete, `Q W E`, nudge, snapping, markers | editor worker `src/tools/timeline-*.ts`, capabilities | M3 |
+| V-6 | **Proxies, filmstrips, waveform peaks, media probe** as renditions; provisional clips | `renditions.ts`, `ingest.ts` | M3 |
+| V-7 | **Audio**: clip gain (keyable), fades, equal-power crossfades, track faders, master + limiter, meters, pan, normalise, mute / solo, audio scrubbing, link / unlink / detach | media worker, kit `<sf-meter>` | M3 |
+| V-8 | **Keyframes UI**: `◇` on fields, keys strip, lanes, move / scale / copy / delete / hold, rubber-band, curve picker (bezier + hold), `Alt`-offset | `src/spec/controls.ts`, kit `<sf-curve-picker>` | M3 |
+| V-9 | **Speed, reverse, pitch-preserve, freeze frame** | media worker, `Source` | M3 |
+| V-10 | **Clip-path / mask channel** for wipes, mask reveals and text reveals | scene IR, render crate | M4 |
+| V-11 | **Motion preset assets** (catalogue §4.3 shipped as workspace assets), `PresetUse`, the preset sheet with in-place previews, parameters, `Bake to keyframes`, save / brand presets | `src/library`, kit `<sf-preset-sheet>` | **M4** |
+| V-12 | **Text animation units** (`char · word · line`, stagger, order, seeded random) on the GPU after layout | text pipeline, render | M4 |
+| V-13 | **Transitions**: node, catalogue (§7.2), gap selection on the filmstrip and story track, overlap blocks, `Apply to all gaps`, clip transitions with `Trim for me`, reduced-motion fallback | render WGSL passes, `src/timeline/` | M4 |
+| V-14 | **Smart move** matcher (keys, suggestions, text morph modes, unmatched policy), `Matches` list, canvas arrows | `src/timeline/smart-move.ts` | M4 |
+| V-15 | **Springs catalogue and value graph** (Pro) | motion package, kit | M4 |
+| V-16 | **Motion path on canvas** (position channels) | overlay batch | M4 |
+| V-17 | **Zoom here / punch-in** (page camera channel) | capabilities, evaluator | M4 |
+| V-18 | **Presentation**: fullscreen takeover, builds model (`Advance`, `Builds ▸`, `With previous`), show keys, presenter window + `BroadcastChannel`, notes, viewer HTML release | `src/present/`, NAV route `/s/:asset/presenter`, Share › Publish | M4 |
+| V-19 | **MP4 export**: `video` format family, encoder probes, offline evaluator at export fps, offline audio mix, GOP checkpoints, pause / resume (incl. after reload), estimate, poster scrubber, range / pages scope, chapters | `src/export/`, `@staticflux/media ExportJob` | **M3** (chapters M4) |
+| V-20 | **WebM (VP9/AV1 + Opus, alpha), GIF (gifenc, loop, colours, dither), image sequence (zip), audio only (`.m4a`)** | `src/export/formats.ts` | M4 |
+| V-21 | **Timeline agent view codec** (OTIO-shaped seconds; `clip.place`, `keyframe.set`, `transition`, `motion` ops; timeline diff rendering on the tracks) | `@staticflux/agentview`, proposals | M3 (view), M2 proposals |
+| V-22 | **Captions**: transcript asset, on-device + provider transcription jobs, caption track role, caption style presets (§9.4), `.srt`/`.vtt` import and export, `Max words` chunking, Transcript dock tab, speakers, confidence | `src/captions/` | **M5** |
+| V-23 | **Edit by transcript**, filler and silence detection with `Review` | `src/captions/`, capabilities | M5 |
+| V-24 | **Karaoke highlight** text animation keyed to word times | text animation (V-12) + transcript | M5 |
+| V-25 | **Duck under voice** (auto gain keys tagged `auto`) and **Record voice-over** | media worker | M5 |
+| V-26 | **Cutout matte** jobs (live mask preview, baked matte), `Cutout` section, position presets | ONNX worker, `Matte` component | M5 |
+| V-27 | **Extend / regenerate / generate** media (recipes, lineage badge, takes) | capabilities + providers | M5 |
+| V-28 | **Transcript agent view codec** | `@staticflux/agentview` | M5 |
+| V-29 | **Safe-area overlays** (title / action safe, platform UI shapes) | overlay batch, `View ▾` | M3 (overlay) |
+| V-30 | **Fidelity suite** (§13) and the flashing guard (§12, §15) | tests, a11y facts | M3 / M4 |
+| V-31 | Lottie import as a clip; speed ramps; beat markers; waveform element; audio descriptions | later | M5+ / backlog |
+
+## 18. Owner questions (recommendation first, in plain words)
+
+**Q1. Milestone numbering.** `CAPABILITY-COVERAGE.md` says the Timeline and Motion rows are "M2"; `PLAN.md` §2 says Timeline
+is **M3** and Motion & presentation **M4** (M2 is the agent layer). *Recommend:* keep PLAN's numbering in this spec (it is what
+the engineering plan is sequenced against) and fix the coverage table. *Example:* when the coordinator briefs "the M2 timeline
+work", read it as "the first timeline work package after the agent layer", i.e. V-1…V-9 and V-19. *Question:* agreed, or do you
+want the timeline pulled ahead of the agent layer? (Pulling it forward is possible: V-1…V-9 depend only on M1; only the
+agent timeline view V-21 needs M2.)
+
+**Q2. A tray under Canvas and Pages, as well as the Timeline lens.** *Recommend:* yes, both (§2.2). The tray is one strip
+(the story in time + the selected element's keys) that opens when you first press `Animate`, so animating a headline never
+forces a lens switch; the lens is the full editor with tracks. Alternative: lens only (CapCut's way). Rejected because scenario
+B's person is laying out pages and wants to see the title move *there*. *Example:* select the title, `Animate ▾ Fade up`, the
+tray slides up under the page showing a 5 s clip with a tangerine cap; press `Space` and watch the layout animate under the
+inspector you were using. *Question:* fine to spend the tray (≈ 1 week on top of the lens)?
+
+**Q3. Pages ripple; element clips do not.** *Recommend:* on the story track, trimming or deleting a page always moves the pages
+after it (no empty time between pages); on element tracks, `Delete` leaves a gap and `Shift+Delete` closes it (Premiere's rule,
+muscle memory). *Example:* cut 2 s off page 2 → pages 3–5 slide left; cut 2 s off a logo overlay → the logo ends earlier and
+the page keeps its length. *Question:* agreed that pages never have empty time between them? (Keynote and Canva agree; Final
+Cut's magnetic timeline is the same idea.)
+
+**Q4. No trim tools; modifiers instead.** *Recommend:* trim by dragging an edge; `Alt` on a shared edge = roll; `Alt` inside a
+clip = slip; `Alt+Shift` inside = slide; a two-line label names the edit while you drag (§3.3). Alternative: Premiere's five trim
+tools. Rejected: tool modes are the most-cited reason non-editors give up on Premiere, and Studio already uses exactly these
+three modifiers everywhere. *Example:* you grab the end of the reaction clip and pull left: label `Trim end · −0.4 s`; hold `Alt`
+and grab the join between two clips: `Roll · +0.4 s`. *Question:* agreed? The cost is that `Alt`+drag on a clip body cannot mean
+duplicate (it means slip); duplicate stays `Mod+D` and `Alt`+drag on the **canvas** keeps its meaning.
+
+**Q5. `Space` depends on focus in Canvas with the tray open.** *Recommend:* in the Timeline lens `Space` always plays; in
+Canvas / Pages with the tray open, `Space` plays when the tray or transport has focus and pans (hold) when the canvas has
+focus; the play button's tooltip says so (§3). Alternative: `Space` always plays once a tray is open, and panning moves to
+`H`-hold only. Rejected: hold-Space-to-pan is deep muscle memory from Figma and Photoshop. *Question:* acceptable, or would
+you rather `Shift+Space` play from the canvas (an extra key for the common case, but no ambiguity)?
+
+**Q6. The first keyframe is explicit; later ones are automatic and announced.** *Recommend:* no After Effects stopwatch and no
+record mode; click `◇` beside a field (or apply a preset) to start; after that, changing a value at a new time adds a key and a
+1.5 s hint says `Key added at 2.0 s` (§5.3). Alternative: Premiere's per-property toggle. Rejected: AE's silent auto-keys are
+the top beginner trap, and a stopwatch icon means nothing to a designer. *Example:* move the playhead to 2 s, drag the logo
+right: hint `Key added at 2.0 s`, a diamond appears under the clip, a motion path appears on the canvas. *Question:* agreed?
+
+**Q7. Smart move shows its matches.** *Recommend:* the gap pill reads `Smart move · 12 matched · 2 unmatched` and a `Matches`
+list lets you link or unlink pairs; the canvas draws arrows from A to B while the gap is selected (§6.3). Keynote and Figma
+match silently; ours shows the pairing because that is what fails in both. *Example:* you add a new price badge on page 2
+that was not on page 1: the list says `Price (fades in)`; if you wanted it to fly in from the old sticker, click `Link…` and
+pick the sticker on page 1. *Question:* agreed? Also: should **suggested** matches (same text or image, no key) be linked
+automatically with a hint, or only offered? *Recommend* offered (never silently change the document).
+
+**Q8. Video is a chip in the Export dialog, not a tab.** *Recommend:* `Video` joins `PNG · JPG · PDF · SVG` in the Format
+row, with its own rows underneath (container, size, fps, quality, range, audio, captions) and the same preset row, name line,
+progress and toast (§10). The brief said "tab"; a tab would split "export this design" in two and duplicate the preset and
+memory logic. *Example:* `Mod+Shift+E`, click `Video`, read `≈ 24 MB · ≈ 1 min`, press `Export MP4`, close the dialog, keep
+editing; the toast shows progress and `Pause`. *Question:* agreed? And is **pause / resume across a reload** worth the GOP
+checkpoint work in M3 (≈ 3 days), or can it wait for M4?
+
+**Q9. Reduced motion changes the preview and the show, never the export.** *Recommend:* with reduced motion on, every
+transition and Smart move previews as a 0.3 s fade, emphasis and loops rest, hover previews need a click; the Export dialog
+says `Export includes full motion`; presentation offers `Play motion anyway` per show (§15). Alternative: honour the setting
+in export too. Rejected: an MP4 is for other people's screens; their players apply their own settings. *Question:* agreed?
+
+**Q10. Captions are text elements with presets, not a separate system.** *Recommend:* a caption is a text clip on a caption
+track; `Bold pop`, `Karaoke`, `Lower third` are text presets with a layout; every TEXT-FONTS control applies; sidecar `.srt`
+and burn-in come from the same clips (§9). Transcription runs on the device when the model is installed, else through the
+configured assistant, and the sheet explains both (the one place a not-yet-available thing is rendered, because the sheet *is*
+the explanation). *Question:* agreed that the on-device model (≈ 40–80 MB download) is offered from Settings › Assistant,
+and that "Edit by transcript" (delete words = cut video) is in scope for M5?
+
+**Q11. Timecode.** *Recommend:* seconds with one decimal for people (`0:12.4`) in Focus and Standard, SMPTE timecode
+(`00:00:12:10`) in Pro, frames always on the grid (§1.1 rule 7). Alternative: timecode everywhere (every NLE). Rejected: a
+first-timer reads `12.4 s`, not `00:00:12:10`. *Question:* agreed?
+
+**Q12. Presentation route.** `/s/:asset/presenter` is reserved here for the presenter window and `?present=<page>` as an
+intent key; both need a row in NAVIGATION-DEEPLINKS §2. *Recommend:* add them when V-18 is briefed, not now (the owner asked
+UX docs to stay the source; the NAV file's owner should add the row). *Question:* fine?
+
+## Appendix A. Feature checklist against CapCut · Premiere · Final Cut · DaVinci · Descript · Keynote · Figma · Canva · After Effects · Rive / Lottie
+
+Method (coordinator, 2026-10-25): every motion, timeline, audio, caption, export and presentation control the ten tools offer,
+each marked **include** (where it lives, per density: `S` = Standard at rest, `M` = behind `More ▾` or a row's second line, `P` =
+Pro only, `HUD` = the pill, `sheet` = the preset / transition sheet, `tray`, `lens`, `menu` = More / context / palette, `View`,
+`Export`), **defer** (milestone and the §17.2 item) or **reject** (why). Columns `C P F D De K Fi Ca AE R` = CapCut, Premiere,
+Final Cut, DaVinci, Descript, Keynote, Figma (Smart Animate / prototyping), Canva, After Effects, Rive or Lottie have it.
+Nothing basic is left implicit.
+
+### A.1 Timeline basics
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where / why |
+|---|---|---|---|
+| Tracks (video, overlay, text, audio) | ✓ ✓ ✓ ✓ ✓ – – ✓ (limited) ✓ – | **include** (c M3) | lens rows; Standard folds per kind, Pro per track |
+| Main / story track with sequential clips | ✓ – ✓ (magnetic) – ✓ – – ✓ – – | **include** (c M3) | pages are clips; §2.1 |
+| Pages as clips (slides with durations) | – – – – – ✓ – ✓ – – | **include** (c M3, departure) | one document |
+| Nested sequences / compound clips | – ✓ ✓ ✓ – – – – ✓ (precomp) – | include via `instance` of a composition (c M4+) | DOCUMENT-FORMAT §3.1 `instance` carries its own time; UI = `Make composition` in a page's More (defer M4+) |
+| Ruler with timecode | ✓ ✓ ✓ ✓ – – – – ✓ ✓ | include (c M3) | seconds; Pro timecode (Q11) |
+| Playhead, red line | ✓ ✓ ✓ ✓ ✓ – ✓ – ✓ ✓ | include (c M3) | |
+| Track headers: name, eye, mute, solo, lock | ✓ ✓ ✓ ✓ – – – – ✓ – | include (c M3) | header |
+| Track height / zoom | ✓ ✓ ✓ ✓ – – – – ✓ – | include (c M3) | handle, double-click |
+| Filmstrip thumbnails on clips | ✓ ✓ ✓ ✓ – – – ✓ ✓ – | include (c M3) | renditions |
+| Waveforms on clips | ✓ ✓ ✓ ✓ ✓ – – ✓ ✓ – | include (c M3) | peaks |
+| Markers (with names, colours) | ✓ ✓ ✓ ✓ – – – – ✓ – | include (c M3) | `M`; chapters M4 |
+| Clip markers (inside a clip) | – ✓ ✓ ✓ – – – – ✓ – | reject | story markers suffice; a clip marker moves with the clip in no tool consistently |
+| Snapping toggle | ✓ ✓ ✓ ✓ – – – – ✓ – | include (c M3) | `N` |
+| Linked A/V selection | ✓ ✓ ✓ ✓ – – – – – – | include (c M3) | §3.3 |
+| Multiple sequences / timelines per project | – ✓ ✓ ✓ – – – – ✓ – | reject | one story per design; several designs in a project (HOME-FILES) |
+| Timeline search / find clip | – ✓ ✓ ✓ ✓ – – – – – | include (b, Find bar `Kind ▾ Clip`) | STUDIO §9.1 |
+| Clip colour labels | – ✓ ✓ ✓ – – – – ✓ – | include (c M3, Pro) | clip `⋯ › Label ▾`; Pro only |
+| Disable / enable a clip | – ✓ ✓ ✓ – – – – ✓ – | include (c M3) | = hide (A-2) in time; eye on the clip in Pro |
+| Multicam | – ✓ ✓ ✓ – – – – – – | reject | out of scope for a design tool |
+| Proxy workflow toggle | – ✓ ✓ ✓ – – – – – – | include (c M3) | transport `Quality ▾ Auto · Full · Draft` |
+| Timeline tray on a layout surface | – – – – – – – – – – | **include** (departure) | §2.2 |
+
+### A.2 Trim and edit
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where |
+|---|---|---|---|
+| Move clip, overwrite / insert | ✓ ✓ ✓ ✓ – – – ✓ ✓ – | include (c M3) | drag; `Shift` insert |
+| Trim edges | ✓ ✓ ✓ ✓ ✓ – – ✓ ✓ – | include (c M3) | edge drag |
+| Ripple trim / ripple delete | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | include (c M3) | story default; `Shift` |
+| Roll | – ✓ ✓ ✓ – – – – – – | include (c M3) | `Alt` on a shared edge |
+| Slip | – ✓ ✓ ✓ – – – – – – | include (c M3) | `Alt` inside |
+| Slide | – ✓ ✓ ✓ – – – – – – | include (c M3) | `Alt+Shift` inside |
+| Trim to playhead (`Q`/`W`), extend edit (`E`) | – ✓ ✓ ✓ – – – – – – | include (c M3) | keys |
+| Split at playhead | ✓ ✓ ✓ ✓ ✓ – – ✓ ✓ – | include (c M3) | `S` |
+| Join through-edit | – ✓ ✓ ✓ – – – – – – | include (c M3) | pill `Join` |
+| Lift / extract (range delete) | – ✓ ✓ ✓ ✓ – – – – – | include (c M3) | `Delete` / `Shift+Delete` on a range |
+| Speed (constant), reverse | ✓ ✓ ✓ ✓ – – – ✓ ✓ – | include (c M3) | pill `Speed ▾` |
+| Speed ramps (curve) | ✓ ✓ ✓ ✓ – – – – ✓ (time remap) – | **defer** M5+ (V-31) | needs a keyable speed channel with a time map |
+| Freeze frame | ✓ ✓ ✓ ✓ – – – – ✓ – | include (c M3) | `Alt+F` |
+| Rate stretch tool | – ✓ – – – – – – – – | reject | `Speed ▾` with ripple covers it |
+| Duplicate clip | ✓ ✓ ✓ ✓ ✓ – – ✓ ✓ – | include | `Mod+D` |
+| Copy / paste attributes (motion, audio) | – ✓ ✓ ✓ – – – ✓ ✓ – | include (b/c) | copy style carries motion |
+| Replace clip keeping edits | ✓ ✓ ✓ ✓ – – – ✓ – – | include (c M3) | Clip · S `Replace…` |
+| Nudge by frame | ✓ ✓ ✓ ✓ – – – – ✓ – | include | `,` `.` |
+| Group clips | – ✓ (nest) ✓ (compound) ✓ – – – ✓ – – | defer M4+ (composition instance) | A.1 |
+| Crop / position in frame (video) | ✓ ✓ ✓ ✓ – – – ✓ ✓ – | include | the element's Transform and Image crop (APPEARANCE) |
+| Stabilise, colour grading, LUTs | ✓ ✓ ✓ ✓ – – – – ✓ – | reject (M1–M5) | a colour page is DaVinci's domain; image adjustments (A-10) cover the basics |
+| Keyboard-only edit of every gesture | – ✓ ✓ ✓ – – – – ✓ – | **include** | §3 |
+
+### A.3 Playback and navigation
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where |
+|---|---|---|---|
+| Space play/pause | ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ | include | |
+| J K L shuttle with rates | – ✓ ✓ ✓ – – – – – – | include | |
+| Frame step, 1 s step | ✓ ✓ ✓ ✓ ✓ – – – ✓ ✓ | include (departure: `Shift` = 1 s) | |
+| Edit-point jump (`↑`/`↓`) | – ✓ ✓ ✓ – – – – – – | include | |
+| In / out points | – ✓ ✓ ✓ – – – – – – | include | `I` `O` |
+| Loop range | ✓ ✓ ✓ ✓ – – – – ✓ ✓ | include | `Alt+L` |
+| Audio scrubbing toggle | – ✓ ✓ ✓ – – – – – – | include | `Shift+S` |
+| Hover scrub (skimming) | ✓ (preview) – ✓ (skimmer) – – – – – – – | include (`Alt`+hover) | Final Cut's skimmer is always on and people hate it; ours is held |
+| Go to time field | – ✓ ✓ ✓ – – – – ✓ – | include | `Alt+G` |
+| Full-screen preview | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | include | `Shift+F` |
+| Second-monitor program output | – ✓ ✓ ✓ – – – – – – | reject (M1–M5) | the presenter window is the second-window case |
+| Playback quality switch | ✓ ✓ ✓ ✓ – – – – ✓ – | include | transport `⋯` |
+| Safe-area overlays | – ✓ ✓ ✓ – – – ✓ (margins) – – | include (c M3) | `View › Safe areas ▾` |
+
+### A.4 Keyframes and easing
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where |
+|---|---|---|---|
+| Keyframes on transform / opacity | ✓ ✓ ✓ ✓ – – – – ✓ ✓ | include (c M3) | `◇` |
+| Keyframes on every parameter (effects, colour, audio) | – ✓ ✓ ✓ – – – – ✓ ✓ | include (c M3) | IF-9.1 |
+| Stopwatch / record mode | – ✓ (toggle) – – – – – – ✓ – | **reject** (Q6) | explicit first key + announced auto-keys |
+| Keyframe lanes per property | – ✓ – ✓ – – – – ✓ ✓ | include (Pro) | §5.2 |
+| Value graph / graph editor | – – – ✓ – – – – ✓ ✓ | include (Pro, c M4) | V-15 |
+| Easing presets (named) | ✓ ✓ ✓ ✓ – – ✓ ✓ ✓ ✓ | include | curve picker |
+| Bezier handles | – ✓ (temporal) – ✓ – – ✓ – ✓ ✓ | include (`Custom ▸`) | |
+| Springs | – – – – – – ✓ – – ✓ | **include** (c M4) | pre-sampled (departure vs AE) |
+| Hold keyframes | – ✓ ✓ ✓ – – – – ✓ ✓ | include | `Hold` |
+| Motion path on canvas | – ✓ ✓ – – – – – ✓ – | include (c M4) | |
+| Copy / paste keys | – ✓ ✓ ✓ – – – – ✓ ✓ | include | |
+| Scale / reverse keys | – ✓ ✓ – – – – – ✓ ✓ | include | `Alt`+drag last; `Reverse` |
+| Expressions / scripting | – – – – – – – – ✓ – | reject | flows (M6) and agents are the automation story |
+| Parenting / constraints | – – – – – – – – ✓ ✓ | reject (M1–M5) | groups animate as one; A-8 constraints are layout |
+| Bake preset to keys | – – – – – – – – – – | **include** (departure) | |
+| Animated text properties (size, spacing, colour) | ✓ – – – – – – – ✓ – | include | §5.5 |
+| Animate structure (parent, order) | – – – – – – – – – ✓ | reject | not keyable; split the clip |
+| 3D rotation / camera | ✓ ✓ – ✓ – ✓ – – ✓ – | reject (M1–M5) | 2D stand-ins (`Flip in` via skew); B10b perspective later |
+
+### A.5 Presets and text animation
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where |
+|---|---|---|---|
+| Animate In / Out presets | ✓ ✓ (presets) ✓ (titles) ✓ – ✓ (builds) – ✓ ✓ (presets) ✓ | include (c M4) | sheet |
+| Emphasis (action) presets | ✓ (combo) – – – – ✓ – – – – | include | |
+| Loop presets | – – – – – – – – – ✓ | include | |
+| Text by letter / word / line with stagger | ✓ – ✓ – – ✓ (by letter/word) – ✓ (some) ✓ (animators) ✓ | **include** | sheet text row |
+| Preview on hover | ✓ (thumbnail) – ✓ – – ✓ (delayed) – ✓ (thumbnail) – – | **include** on the real element (departure) | |
+| Duration / delay / direction / distance | ✓ ✓ ✓ ✓ – ✓ – ✓ (speed) ✓ – | include | sheet |
+| Apply to all elements / page (Magic Animate) | – – – – – – – ✓ – – | include | `Animate all`, `Apply to all <kind>` |
+| Save custom preset | ✓ ✓ ✓ ✓ – – – – ✓ – | include | `Save as preset…` |
+| Presets as assets with slugs / brand presets | – – – – – – – – – – | **include** (departure) | IF-9.2 |
+| Ken Burns / zoom / pan on images and pages | ✓ ✓ ✓ ✓ – ✓ – ✓ – – | include | page presets |
+| Typewriter, karaoke highlight | ✓ – – – ✓ (captions) – – ✓ – – | include (M4; karaoke M5) | |
+| Particles, 3D text, path-follow text | ✓ – – – – – – – ✓ – | **defer** / reject | path text is TEXT T-17; particles M5+ (V-31) |
+| Stickers / GIF overlays | ✓ – – – – – – ✓ – – | include via image clips (GIF decode c M3) | |
+| Lottie import | – – – – – – – ✓ (limited) ✓ (Bodymovin export) ✓ | defer M5+ (V-31) | asset kind `lottie` exists |
+| Rive import | – – – – – – – – – ✓ | reject | runtime-bound format; export to video not meaningful |
+| Lottie / Rive export | – – – – – – – – ✓ (plugin) ✓ | reject (M1–M5) | video and viewer HTML are the outputs (D10) |
+
+### A.6 Auto Animate
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where |
+|---|---|---|---|
+| Tween matched elements between pages (Magic Move / Smart Animate) | – – – – – ✓ – ✓ (Magic Animate ≈) – – | **include** (c M4) | Smart move |
+| Matching rule | – – – – – identity ✓ name – – – | **include by key, suggestions shown** (departure) | §6.2 |
+| Matched / unmatched list | – – – – – – – – – – | **include** (departure) | `Matches` |
+| Text morph by word / letter | – – – – – ✓ (by char/word) – – – – | include | `Morph text ▾` |
+| Unmatched policy (fade / scale) | – – – – – ✓ (fade) ✓ (fade) – – – | include | `Unmatched ▾` |
+| Duration / curve | – – – – – ✓ ✓ – – – | include | pill |
+| Between component states / variants | – – – – – – ✓ – – ✓ (state machine) | **defer** (A-12 components first) | §6.4 |
+| Prototype interactions (click → navigate, hover) | – – – – – – ✓ – – ✓ | **reject** (M1–M5) | the output is pages and video; builds on click cover decks |
+| Apply to all gaps | – – – – – ✓ – ✓ – – | include | |
+
+### A.7 Transitions
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where |
+|---|---|---|---|
+| Dissolve / crossfade | ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ – | include | |
+| Dip to black / white / colour | ✓ ✓ ✓ ✓ – ✓ – ✓ – – | include | |
+| Push / slide / wipe (4 directions) | ✓ ✓ ✓ ✓ – ✓ ✓ (move in/out) ✓ – – | include | |
+| Zoom / blur | ✓ ✓ ✓ ✓ – ✓ – ✓ – – | include | |
+| Luma wipe with pattern | – ✓ ✓ ✓ – – – – – – | include | `Pattern ▾` |
+| Smart move | – – – – – ✓ ✓ – – – | include | §6 |
+| Flip / cube / 3D | ✓ ✓ ✓ ✓ – ✓ – ✓ – – | Flip include (2D); cube **defer** (3D) | |
+| Glitch / shake / light leak packs | ✓ – – – – – – ✓ – – | defer M5+ | brand/asset packs once presets are assets |
+| Duration drag on the overlap | ✓ ✓ ✓ ✓ – – – – – – | include | |
+| Alignment (centre / start / end) | – ✓ ✓ ✓ – – – – – – | include (M) | |
+| Apply default transition (`Mod+D` in Premiere) | – ✓ ✓ ✓ – – – ✓ – – | include as `Apply to all gaps` and a default in the sheet | `Mod+D` stays Duplicate |
+| Transition on a clip's start/end alone (fade from black) | ✓ ✓ ✓ ✓ – – – – – – | include | the sheet on a clip edge with no neighbour |
+| Audio crossfade with video transition | ✓ ✓ ✓ ✓ – – – – – – | include | automatic |
+| Insufficient media handling | – warn ✓ warn – – – – – – – | **include** `Trim for me` (departure) | |
+
+### A.8 Audio
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where |
+|---|---|---|---|
+| Clip volume | ✓ ✓ ✓ ✓ ✓ ✓ – ✓ ✓ – | include | |
+| Fade in / out handles | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | include | |
+| Crossfade | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | include | |
+| Gain keyframes (rubber band) | – ✓ ✓ ✓ – – – – ✓ – | include | |
+| Track fader, mute, solo | ✓ ✓ ✓ ✓ ✓ – – – – – | include | |
+| Master meter and limiter | – ✓ ✓ ✓ ✓ – – – – – | include | |
+| Pan | – ✓ ✓ ✓ – – – – – – | include (M) | |
+| Loudness normalise | – ✓ ✓ ✓ ✓ – – – – – | include | |
+| Auto ducking | – ✓ (auto) ✓ (range) ✓ ✓ – – – – – | include (c M5) | |
+| Noise removal / studio sound | ✓ ✓ ✓ ✓ ✓ – – – – – | defer M5+ | an audio ML job; same job pattern as the matte |
+| EQ, compressor, effects rack | – ✓ ✓ ✓ – – – – – – | reject (M1–M5) | the limiter and normalise cover the design-tool case |
+| Beat detection / markers | ✓ – – – – – – ✓ (beat sync) – – | defer (V-31) | |
+| Voice-over recording | ✓ ✓ ✓ ✓ ✓ ✓ – ✓ – – | include (c M5) | |
+| Text to speech | ✓ – – – ✓ (overdub) – – – – – | defer M5 (assistant `✦ Voice`) | provider-gated |
+| Music library | ✓ – – – ✓ – – ✓ – – | include via Assets › Audio (bring your own); licensed library **reject** (licensing) | |
+| Audio-only export | – ✓ ✓ ✓ ✓ – – – – – | include (c M4) | |
+| Waveform visualiser element | – – – – – – – ✓ (some) ✓ (plugin) – | defer (V-31) | |
+| Detach audio | ✓ ✓ ✓ ✓ – – – ✓ – – | include | |
+| Pitch preservation at speed | ✓ ✓ ✓ ✓ – – – – – – | include | |
+| Audio scrub | – ✓ ✓ ✓ – – – – – – | include | |
+
+### A.9 Captions
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where |
+|---|---|---|---|
+| Auto captions (speech to text) | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | include (c M5) | |
+| On-device transcription | – ✓ (local) – ✓ ✓ (some) – – – – – | **include** (departure vs cloud-only) | |
+| Caption style presets | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | include | §9.4 |
+| Word highlight / karaoke | ✓ – – – ✓ – – ✓ – – | include (M5) | |
+| Edit text in place | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | include | |
+| Transcript panel | – ✓ – ✓ ✓ – – – – – | include | dock tab |
+| Edit video by editing the transcript | – ✓ (text-based) – ✓ (some) ✓ – – – – – | **include** | §9.3 |
+| Filler word and silence removal | ✓ – – – ✓ – – – – – | include (M5) | |
+| Speaker labels | – ✓ – ✓ ✓ – – – – – | include | |
+| Import / export SRT / VTT | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | include | |
+| Burn-in vs sidecar | ✓ ✓ ✓ ✓ ✓ – – ✓ (burn) – – | include | Export `Captions ▾` |
+| Translation | ✓ – – – ✓ – – ✓ – – | defer M5 (assistant) | provider-gated |
+| Caption position / safe areas | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | include | |
+| Max words / lines per caption | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | include | |
+
+### A.10 Export
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where |
+|---|---|---|---|
+| MP4 H.264 + AAC | ✓ ✓ ✓ ✓ ✓ ✓ ✓ (video) ✓ ✓ – | include (c M3) | |
+| WebM / AV1 | – ✓ – ✓ – – – – – – | include when encodable (c M4) | |
+| GIF | ✓ ✓ ✓ ✓ ✓ – ✓ ✓ ✓ ✓ | include (c M4) | |
+| Image sequence | – ✓ ✓ ✓ – ✓ – – ✓ – | include (c M4) | |
+| Audio only | – ✓ ✓ ✓ ✓ – – – – – | include (c M4) | |
+| Transparent (alpha) video | – ✓ (ProRes) ✓ ✓ – ✓ – – ✓ – | include WebM alpha / sequence (c M4); ProRes **reject** (no encoder in the browser) | |
+| Resolution / fps / bitrate | ✓ ✓ ✓ ✓ ✓ ✓ – ✓ ✓ – | include | |
+| Range / in–out export | ✓ ✓ ✓ ✓ ✓ – – ✓ ✓ – | include | |
+| Size and time estimate | – ✓ (size) – ✓ (size) – – – – ✓ – | **include** (departure: time too) | |
+| Background render, queue | – ✓ (Media Encoder) ✓ ✓ – – – – ✓ – | include | toast, 1 waiting |
+| Pause / resume, survive reload | – – – – – – – – – – | **include** (departure, c M3) | GOP checkpoints |
+| Chapters from markers | – ✓ ✓ ✓ – – – – – – | include (c M4) | |
+| Hardware encode selection | – ✓ ✓ ✓ – – – – ✓ – | include implicitly (probes); no UI | |
+| Export presets (YouTube, TikTok…) | ✓ ✓ ✓ ✓ ✓ – – ✓ ✓ – | include (preset row) | |
+| Direct upload to platforms | ✓ ✓ ✓ ✓ ✓ – – ✓ – – | **reject** (D3 no accounts; D10 releases are the share path) | |
+| Poster / thumbnail frame choice | ✓ – – – ✓ – – – – – | include | preview card scrubber |
+| Viewer HTML / web embed | – – – – ✓ (share) ✓ (Keynote Live) ✓ (prototype link) ✓ – ✓ | include (D10 release, c M4) | |
+
+### A.11 Presentation
+
+| Control | C P F D De K Fi Ca AE R | Decision | Where |
+|---|---|---|---|
+| Full-screen play with transitions | – – – – – ✓ ✓ (present) ✓ – – | include (c M4) | |
+| Builds on click, build order, with previous | – – – – – ✓ – ✓ (some) – – | include | `Builds ▸` |
+| Auto-advance pages with timing | – – – – – ✓ – ✓ – – | include | `Advance ▾ Auto` |
+| Presenter view (notes, next, timer) | – – – – – ✓ – ✓ – – | include | second window |
+| Speaker notes | – – – – – ✓ – ✓ – – | include | Page · M `Notes` |
+| Black / white screen, go to page | – – – – – ✓ – ✓ – – | include | |
+| Laser pointer / drawing on slides | – – – – – ✓ – ✓ – – | **defer** M5+ | nice for talks, not for the first version |
+| Rehearse mode (timing per slide) | – – – – – ✓ – – – – | defer | the presenter timer covers most |
+| Remote control from a phone | – – – – – ✓ – ✓ – – | **reject** (D1 no mobile) | a Bluetooth clicker works as keys |
+| Keynote Live / audience link | – – – – – ✓ ✓ ✓ – – | include via the viewer HTML release (D10) | |
+| Loop a show (kiosk) | – – – – – ✓ – – – – | include | `▶ ▾ › Loop` |
+| Reduced motion in the show | – – – – – – – – – – | **include** (departure) | §11.2 |
+
+### A.12 Not these controls, listed so they are not missed
+
+Colour grading pages, LUTs, scopes (DaVinci); multicam; proxies as a separate managed media panel; EQ / compressor racks;
+expressions (AE); 3D cameras and lights; particle systems; Rive state machines and runtime export; prototype interactions
+(Figma); direct platform upload; phone remote; ProRes / DNx; 10-bit HDR export (M5+ when WebCodecs allows); cloud rendering.
+Pixel-lens image editing (B-2), pen and vector animation of points (the Pen WP), comments on time ranges (B-8, `comment=` with
+a `time` anchor is designed in DOCUMENT-FORMAT §7).
+
+## Appendix B. Coordinator checklist rows this spec accounts for (`CAPABILITY-COVERAGE.md`)
+
+| Row | How this spec accounts for it |
+|---|---|
+| **Timeline, video, audio (§8)** | §2 anatomy (lens and tray per density), §3 every gesture and key (playhead, J/K/L, range, markers, snapping, move / trim / ripple / roll / slip / slide / split / join / delete, speed, freeze, link, zoom here), §3.6 control tables, §8 audio (levels, fades, crossfades, faders, master, meters, pan, normalise, ducking, voice-over), §12 errors (IF-MEDIA-001, missing media, decode, encoder), §13 fidelity, §14 performance; FLOWS F-76, F-78, F-79, F-80; V-1…V-9, V-19 |
+| **Motion: animation and transitions (§9)** | §4 presets (sheet, catalogue, text units, timing, saving), §5 keyframes and easing (`◇`, lanes, graph, motion path, curve picker, springs), §6 Smart move (match keys, suggestions, Matches list, text morph), §7 transitions (pages and clips, sheet, Trim for me, reduced motion); FLOWS F-73, F-74, F-75, F-77; V-10…V-17 |
+| **Export (§29)** | §10 the `Video` chip: containers, size, fps, quality, range, audio, captions, transparent, chapters, estimate, poster, pause / resume, background, releases; FLOWS F-76, F-80; V-19, V-20 |
+| **Generative features (§10)** | §9.2 transcription (on device or provider), §9.3 filler removal, §8.2 ducking, §17.1 cutout / Extend / regenerate / generate / `✦ Sound effect` as provider-gated proposals; V-22…V-27 |
+| **Agent views and change sets (§6, §12)** | §13 timeline and transcript codecs, timeline diff on the tracks; every control is a capability with `plan()` (§16); V-21, V-28 |
+| **Layers, Pages, Library, lenses (§23)** | Pages = story clips (§2.1), the Pages filmstrip = the tray (§2.2), `Builds ▸` on Pages rows (§11.2), Assets › Motion presets and Transcript tab (§4.6, §9.3), lens appearance rule (§2.1) |
+| **Repeat (§26)** | Match keys `key~k` make Smart move work across repeats and expanded repeats (§6.2) |
+| **Text and fonts (§21)** | Text animation units (§4.4), captions as text elements with presets (§9.4), karaoke (V-24), text stroke for caption outlines (T-18) |
+| **Appearance (§20)** | Every stack item's `id` is a keyframe target (§5.5); transitions reuse paints (dip to colour); clip crop = image crop (A-3) |
+| **Accessibility (§25)** | §15 reduced motion (content vs chrome), flashing guard, keyboard-only timeline, announcements, time fields, captions as output |
+| **Versioning (§22)** | Milestone previews play the story with the same evaluator (§13); exports create nothing (D10) |
+| **Import** | Video / audio / `.srt` / `.vtt` / Lottie drop targets (§3.5); unsupported codec placeholder (§12) |
+| **Home, files, storage** | Large media and storage pressure (§12 `IF-LIB-002`); the `Video` intent tile on Home (UX.md scenario C) opens a design with the Timeline lens |
+| **Brand kit** | Brand motion presets and caption style (§4.6, §9.4) |
+| **Flows (§11)** | `Apply to all gaps`, `Animate all`, `Remove all · Review` are bulk capabilities a flow can record |
+| **Identity and gating, sharing** | Presentation and releases (§10.4, §11); nothing here needs accounts |
+| **Comments (§18)** | Time-anchored comments reserved (DOCUMENT-FORMAT §7); not designed here (B-8) |
+| **Pixel lens (B-2)** | Image adjustments on video clips wait for A-10; cutout (V-26) is a media job, not a Pixel tool |
+| **Backlog B-1, B-7** | This file; GAP-AUDIT updated |
+
