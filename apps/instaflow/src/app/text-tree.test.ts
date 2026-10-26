@@ -90,7 +90,7 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('text in the element tree (B12b
     const canvasSvg = (): string => canvasScene.svg(0, 0, 1080, 1350, 1080, 1350, WHITE, 'page');
     // The exports: the export scene of the same page, through the SVG and PDF writers.
     const exported = async (): Promise<{ readonly svg: string; readonly pdf: Uint8Array }> => {
-      const scope = createScope();
+      const scope = createScope('export-scene');
       const scene = unwrap(await buildPageScene({ document, page: 'p1', fonts: f.fonts, images: () => undefined, blobs: createBlobStore(createMemoryObjectStore()), decoder: checkerDecoder, signal: f.signal, scope }));
       const x = new wasm.Exporter();
       for (const b of scene.batches) x.apply(b);
@@ -103,7 +103,7 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('text in the element tree (B12b
     };
     const ctx = { stage: document.view, geometry: document.geometry, kit: document.kit };
     const index = createElementIndex(ctx, 'p1', f.scope);
-    const hit = (x: number, y: number): NodeId | undefined => unwrap(hitTest(ctx, index, x, y)).target;
+    const hit = (x: number, y: number): NodeId | undefined => unwrap(hitTest(ctx, index, x, y))?.target;
     const dispose = async (): Promise<void> => {
       render.stop();
       pipes.close();
