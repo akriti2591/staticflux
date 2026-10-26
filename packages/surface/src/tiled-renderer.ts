@@ -10,7 +10,9 @@
  *   the prep lane (idle slices), which asks for a new frame when tiles land.
  * - **Scaled previous level while tiles are missing:** cached tiles of other levels are drawn
  *   under the current level (farthest level first), so zooming never shows holes.
- * - **Stale-while-revalidate:** an edit marks tiles stale; they stay on screen until re-rendered.
+ * - **Stale-while-revalidate:** an edit marks tiles stale; they stay on screen until re-rendered. With
+ *   `inFrameStaleTiles`, a frame re-renders up to that many stale visible tiles before it composites, so an edit
+ *   spanning many tiles is never presented half old, half new.
  * - **Lifted layers:** `lift(nodes)` moves nodes into a layer texture rendered once per zoom;
  *   `drag` only moves its quad (no raster, S1: 0.85 ms p95). `drop` gives the nodes back to the
  *   tiles and keeps drawing the layer until the tiles under it are fresh (no flash, E-2).
@@ -92,6 +94,13 @@ export interface TiledRendererOptions<Delta> {
   readonly maxTiles?: number;
   /** Tile raster allowed inside one frame (default 2 ms; a tile starts only while the budget is left). */
   readonly inFrameBudgetMs?: number;
+  /**
+   * Stale visible tiles re-rendered inside a frame, before it composites (default 0: stale tiles wait for the prep
+   * lane). An edit that spans many tiles (a drag of a repeat) otherwise presents a mix of fresh and stale tiles, and
+   * tiles late in the centre-first order show the old scene until the edits stop. Counted in tiles, not ms: a tile's
+   * CPU time says little about its GPU cost.
+   */
+  readonly inFrameStaleTiles?: number;
   /** Interest ring prepared around the viewport (default 1). */
   readonly ring?: number;
   /** Straight RGBA background, 0…1 (default white). */
@@ -148,6 +157,7 @@ export function createTiledRenderer<Delta>(options: TiledRendererOptions<Delta>)
   const now = options.now ?? (() => performance.now());
   const id = options.id ?? backend.id;
   const budgetMs = Math.max(0, options.inFrameBudgetMs ?? 2);
+  const staleInFrame = Math.max(0, Math.floor(options.inFrameStaleTiles ?? 0));
   const ring = Math.max(0, options.ring ?? 1);
   const background = options.background ?? [1, 1, 1, 1];
   const tileSize = backend.tileSize;
@@ -356,6 +366,11 @@ export function createTiledRenderer<Delta>(options: TiledRendererOptions<Delta>)
         for (const key of holes) {
           if (now() - start >= budgetMs) break;
           if (renderOne(key, 'frame')) renderedInFrame += 1;
+        }
+        // Then stale visible tiles, so one frame shows one version of the scene (up to `inFrameStaleTiles`).
+        if (staleInFrame > 0) {
+          const stale = keys.filter((k) => cache.get(k) !== undefined && !cache.has(k)).slice(0, staleInFrame);
+          for (const key of stale) if (renderOne(key, 'frame')) renderedInFrame += 1;
         }
         const rasterMs = now() - start;
         if (renderedInFrame > 0) telemetry.record(RenderMetrics.inFrameRaster, rasterMs, { renderer: id });
