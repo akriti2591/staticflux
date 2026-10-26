@@ -55,6 +55,7 @@ async function mount(summary: SelectionSummary): Promise<{ hud: IfHudElement; ca
     toggleText: log('toggleText'),
     setTextAlign: log('setTextAlign'),
     setRepeat: log('setRepeat'),
+    setImageFit: log('setImageFit'),
     command: log('command'),
   };
   const actions = new Map([['instaflow/flip-horizontal', { id: 'instaflow/flip-horizontal', title: 'Flip horizontal', shortcut: 'Shift+H' }]]);

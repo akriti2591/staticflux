@@ -69,6 +69,13 @@ export function typographyFromMirror(view: MirrorView<TypographyMirrorShape>, on
     setAlign: (align) => send(view.call('setAlign', align)),
     setLineHeight: (multiple) => send(view.call('setLineHeight', multiple)),
     fitToBox: () => send(view.call('fitToBox')),
+    setScript: (script) => send(view.call('setScript', script)),
+    setParagraph: (patch) => send(view.call('setParagraph', patch)),
+    setBox: (box) => send(view.call('setBox', box)),
+    setVerticalAlign: (align) => send(view.call('setVerticalAlign', align)),
+    convertCase: (kind) => send(view.call('convertCase', kind)),
+    clearFormatting: () => send(view.call('clearFormatting')),
+    applyPreset: (name) => send(view.call('applyPreset', name)),
   };
 }
 

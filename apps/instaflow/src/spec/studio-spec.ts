@@ -103,15 +103,17 @@ export const STUDIO_PANELS: readonly PanelPlacement[] = Object.freeze([
   { panel: P.pages, dock: 'dock' },
   { panel: P.assets, dock: 'dock' },
   { panel: P.milestones, dock: 'dock' },
+  // B11b: one inspector with every section of the selection kind (STUDIO-UX-SPEC §5) replaces the per-feature panels.
+  { panel: P.inspector, dock: 'inspector' },
 ]);
 
 /** Extra panels per lens. */
 export const STUDIO_LENS_PANELS: Readonly<Record<LensContributionId, readonly PanelPlacement[]>> = Object.freeze({
-  [L.canvas]: [{ panel: P.typography, dock: 'inspector' }],
+  [L.canvas]: [],
   [L.pixel]: [{ panel: P.adjust, dock: 'inspector' }],
   [L.timeline]: [],
   [L.flow]: [],
-  [L.pages]: [{ panel: P.typography, dock: 'inspector' }],
+  [L.pages]: [],
 });
 
 /** HUD actions a scope adds per lens (B8: the selection's actions, by feature, direct ones first). */
@@ -125,12 +127,8 @@ export const STUDIO_SCOPE_HUD: Readonly<Partial<Record<ScopeKind, Readonly<Recor
 /** Panels a scope adds per lens (B8: the selection's inspectors). */
 export const STUDIO_SCOPE_PANELS: Readonly<Partial<Record<ScopeKind, Readonly<Record<LensContributionId, readonly PanelPlacement[]>>>>> = Object.freeze({
   selection: {
-    [L.canvas]: [
-      // B10a: the numeric transform bar first, as in design tools.
-      { panel: P.transform, dock: 'inspector' },
-      { panel: P.appearance, dock: 'inspector' },
-      { panel: P.repeat, dock: 'inspector' },
-    ],
+    // B11b: the inspector panel shows the selection's sections itself (Transform first, as in design tools).
+    [L.canvas]: [],
   },
 });
 

@@ -267,16 +267,16 @@ async function scenario(page) {
   if (!(Math.abs(skewed.skewX) > 5) || !near(skewed.skewX / 15, Math.round(skewed.skewX / 15), 1e-6) || (await undoDepth()) !== u1 + 1) fail(`skew: ${JSON.stringify({ skewed, undo: [u1, await undoDepth()] })}`);
   log(`skew by Mod-dragging the top handle of a rotated element (${Math.round(skewed.skewX)}°, snapped to 15° with Shift; one undo step)`);
 
-  // Numeric bar (the Transform panel): type a width, Enter applies it as one undo step.
-  const bar = page.locator('if-transform-bar');
-  const width = bar.getByRole('textbox', { name: 'Width', exact: true });
+  // Numeric transform (B11b: the inspector's Transform section): type a width, Enter applies it as one undo step.
+  const bar = page.locator('if-inspector');
+  const width = bar.getByRole('spinbutton', { name: 'W', exact: true });
   await width.waitFor({ timeout: 20_000 });
   const u2 = await undoDepth();
   await width.fill('150');
   await width.press('Enter');
   await waitAsync(page, async (n) => Math.abs(((await window.__studio.inspect([n])).value?.elements[0]?.w ?? 0) - 150) < 0.01, rect, { timeout: 10_000, polling: 100 });
   if ((await undoDepth()) !== u2 + 1) fail(`numeric bar: ${u2} → ${await undoDepth()} undo steps`);
-  log('numeric bar: W = 150 typed and applied (one undo step)');
+  log('inspector Transform: W = 150 typed and applied (one undo step)');
 
   // Transform mode: Mod+T, steps are previews; Escape cancels the whole session, Enter applies it as one undo step.
   await surface.focus();
@@ -389,6 +389,12 @@ async function scenario(page) {
   };
   await clickElement(rect);
   await waitAsync(page, () => window.__studio.scene.selection?.kind === 'shape', null, { timeout: 10_000 });
+  // The inspector (STUDIO §5): exactly the rectangle's sections.
+  const inspector = page.locator('if-inspector');
+  await inspector.locator('section[data-section="fill"]').waitFor({ timeout: 10_000 }).catch(() => fail('the inspector shows no Fill section for a rectangle'));
+  const shown = await inspector.locator('section[data-section]').evaluateAll((els) => els.map((e) => e.getAttribute('data-section')));
+  if (JSON.stringify(shown) !== JSON.stringify(['transform', 'fill', 'stroke', 'corners', 'effects', 'layer'])) fail(`inspector sections for a rectangle: ${JSON.stringify(shown)}`);
+  log(`inspector: a rectangle shows ${shown.join(' · ')}`);
   const u4 = await undoDepth();
   const labels4 = (await inspect()).steps.map((x) => x.label);
   await hud.getByRole('button', { name: 'Fill', exact: true }).click();

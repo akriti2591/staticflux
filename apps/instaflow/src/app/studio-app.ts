@@ -21,7 +21,7 @@
  */
 import { type Announcer, createAnnouncer, createShortcutRegistry, defineShortcut, type ShortcutRegistry, type Timers } from '@staticflux/a11y';
 import { alwaysActivePort, allowAllDecidePort, type AnyCapability, type CapabilityRegistry, createCapabilityRegistry, failClosedConfirmPort, implementCapability, unmeteredPort } from '@staticflux/capabilities';
-import { box, createInjector, err, type Injector, ok, type Result, type Scope, type SfError, unit, watch } from '@staticflux/core';
+import { box, createInjector, createScope, err, type Injector, ok, type Result, type Scope, type SfError, unit, watch } from '@staticflux/core';
 import type { NodeId } from '@staticflux/document/v2';
 import { createGate, definePolicy, definePolicySet } from '@staticflux/gate';
 import type { Actor } from '@staticflux/stage';
@@ -60,6 +60,7 @@ import { gateSpecDecide } from '../spec/gate.js';
 import type { EditorRegistries } from '../spec/registries.js';
 import type { ScopeRef } from '../spec/schema.js';
 import { createStudio, type Studio, StudioShortcutScope } from '../studio/studio.js';
+import { type IfInspectorElement, type InspectorModel, type InspectorPort } from '../studio/inspector.js';
 import { type CameraAction, defineStudio, EMPTY_CHROME, type IfStudioElement, type StudioChromeModel, type StudioChromePort } from '../studio/studio-element.js';
 import type { HudAction } from '../studio/hud.js';
 import type { LayerRow } from './scene-summary.js';
@@ -240,11 +241,14 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     run: (o: ExportOptions) => void app.exportDesign(o),
     cancel: () => exportsService?.cancel(),
   };
+  const inspectorBinding: { bind: (element: Element) => () => void; element?: IfInspectorElement } = { bind: () => () => undefined };
   const BINDERS: Readonly<Record<string, (element: Element) => () => void>> = {
     [EXPORT_PANEL_ID]: (element) => bindExportPanel(element as IfExportPanelElement, exportPort),
     [StudioIds.panel.transform]: (element) => bindTransformBar(element as IfTransformBarElement, transformBar),
     [APPEARANCE_PANEL_ID]: (element) => bindPaintInspector(element as IfPaintInspectorElement, appearance),
     [REPEAT_PANEL_ID]: (element) => bindRepeatInspector(element as IfRepeatInspectorElement, repeat),
+    // B11b: bound once the chrome below exists (the binder runs when the panel renders, after startup).
+    [StudioIds.panel.inspector]: (element) => inspectorBinding.bind(element),
   };
   /** Panels whose element takes its model from the host: rendered inside a wrapper whose first child gets bound. */
   const bindPanel = (panel: PanelContribution): PanelContribution => {
@@ -578,6 +582,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     toggleText: (key) => void typography.toggle(key),
     setTextAlign: (align) => void typography.setAlign(align),
     setRepeat: (patch) => repeat.apply({ op: 'set', patch: patch as never }),
+    setImageFit: (fit) => sceneCall(scene.call('setImageFit', fit)),
     command: (id) => void runHudAction(id as ActionId),
     renameTitle(title) {
       const asset = options.document.asset as never;
@@ -606,7 +611,70 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       );
     },
     navigate: (href) => void leave(href),
+    selectPage(rename) {
+      void editor.request('select', { nodes: [] }).then(async (r) => {
+        if (!r.ok) return problem(r.error);
+        const el = inspectorBinding.element;
+        if (el === undefined) return;
+        if (rename) await el.focusPageName();
+        else await el.reveal('page');
+      });
+    },
   };
+  // B11b: the inspector (STUDIO §5): the chrome port plus the editor's appearance, transform, repeat and typography.
+  const inspectorPort: InspectorPort = {
+    ...chrome,
+    appearance: (edit) => appearance.apply(edit),
+    pageAppearance: (edit) => sceneCall(scene.call('applyPage', edit)),
+    transform: (edit) => transformBar.apply(edit),
+    transformSession: (action) => transformBar.session(action),
+    repeat: (edit) => repeat.apply(edit),
+    text: typography,
+    renamePage: (name) => sceneCall(scene.call('renamePage', name)),
+    resizePage: (width, height) => sceneCall(scene.call('resizePage', width, height)),
+    replaceImage() {
+      void library.panel.pickAndImport().then(async (picked) => {
+        if (!picked.ok) {
+          if (picked.error.kind !== 'aborted') toasts.error(picked.error);
+          return;
+        }
+        const entry = picked.value.imported[0] ?? picked.value.deduplicated[0];
+        if (entry === undefined) return;
+        const done = await editor.request('replaceImage', { entry });
+        if (!done.ok) toasts.error(done.error);
+      });
+    },
+  };
+  const appearanceView = hub.view(AppearanceMirror);
+  const transformView = hub.view(TransformMirror);
+  const repeatView = hub.view(RepeatMirror);
+  const inspectorModel = (): InspectorModel => {
+    const s = scene.read('selection');
+    const asset = s.asset;
+    return {
+      selection: s,
+      page: scene.read('page'),
+      title: titleBox.get(),
+      pages: scene.read('pages'),
+      appearance: appearanceView.read('model'),
+      pageFill: scene.read('pageFill'),
+      transform: transformView.read('model'),
+      typography: typographyView.read('summary'),
+      fonts: typographyView.read('fonts'),
+      repeat: repeatView.read('model'),
+      colors: scene.read('colors'),
+      imageName: asset === undefined ? undefined : library.library.entries().find((e) => e.asset === asset)?.title,
+    };
+  };
+  inspectorBinding.bind = (element) => {
+    const el = element as IfInspectorElement;
+    inspectorBinding.element = el;
+    el.port = inspectorPort;
+    const stop = createScope('instaflow/inspector-binding');
+    watch(inspectorModel, (model) => (el.model = model), { scope: stop, fireImmediately: true });
+    return () => void stop.dispose();
+  };
+
   // The Export dialog (OVERLAYS-FEEDBACK §2.3): C1's panel in a form dialog over Studio, bound once per element (the
   // dialog re-renders its body; binding again on every render ran each export as many times).
   let exportBound: { readonly element: Element; readonly unbind: () => void } | undefined;

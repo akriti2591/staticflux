@@ -460,3 +460,12 @@ Consumer: `apps/instaflow/src/workers` (TextInput port), `src/app` (text layer, 
   edits are replayed with the port's reference model `applyTextIntent`.
 - "Text sits in the layer stack like any shape and exports as drawn" → one more kind in the A7 render projection
   (`defineRenderProjection`) and the render crate's existing group, clip and mask traversal for canvas, PNG, SVG and PDF (D21).
+
+### Studio and Home surfaces (Instaflow M1c · B11b)
+Consumer: `apps/instaflow/src/studio`, `src/app`, `src/workers`, `src/text`, `src/tools`. No new framework API and no new R-ID so
+far: the surfaces compose the kit blocks and the engine's mirrors and capabilities.
+- "Every control in the pill, the inspector and the command bar runs the same action agents run" → `@staticflux/capabilities`
+  registry `invoke` (validated, gated, attributed) and the editor's mirror actions (B9).
+- "The inspector shows the selection's sections and nothing else" → the declared control model (`spec/controls.ts`) and plain
+  data tables per kind; `@staticflux/kit` disclosure, number field, colour popover, font picker, menu.
+- "Twelve more icons without growing a boot path" → the kit's generated per-icon Lucide modules (`icons.json`).

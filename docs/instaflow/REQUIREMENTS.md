@@ -1500,6 +1500,74 @@ DENSITY-DISCLOSURE §2, §6). Framework pieces R13.36–R13.45; IF-35.30–35.32
 - **IF-35.32** Every B11a2 block passes the full audit under Clean Pop in the states people meet (open, submenu, filtered, held
   changes, refused copy) and the colours they add keep AA contrast; `chrome.test.ts` pins the list.
 
+## 36. Studio and Home surfaces (M1c B11b)
+
+The surfaces STUDIO-UX-SPEC, APPEARANCE-TRANSFORM-UX-SPEC and TEXT-FONTS-UX-SPEC specify, composed from the B11a / B11a2 blocks
+over the engine B1–B12 built. Code: `apps/instaflow/src/studio` (`studio-element.ts`, `hud.ts`, `command-bar.ts`,
+`inspector*.ts`, `studio-controls.ts`, `errors.ts`), `apps/instaflow/src/app` (`studio-app.ts`, `studio-commands.ts`,
+`scene-summary.ts`, `canvas-tab.ts`), `apps/instaflow/src/workers` (`mirrors.ts`, `editor-module.ts`, `protocol.ts`),
+`apps/instaflow/src/text/typography.ts`, `apps/instaflow/src/tools` (`transform.ts`, `overlay.ts`). Error codes `IF-POL-050…`.
+Lifecycle: LIFECYCLES §38.
+
+- **IF-36.1** **The canvas room** (STUDIO §1): the canvas clears transparent, so the mist dot grid fills the region and the page is a
+  white card with a shadow and no border behind it; a non-printing label 28 px above the card names the page and its size. A click
+  on the label selects the page (the inspector shows Page), a double-click focuses its name.
+- **IF-36.2** Frames show a 1 px non-printing hairline in the overlay, re-sent only when the zoom or a frame's geometry changes.
+- **IF-36.3** **Top bar** (STUDIO §2): the logo mark → Home (saving first), the design title renamed in place (the library entry),
+  the M1 lenses `Canvas · Pages`, the save state → Milestones, `View ▾` (zoom commands and the density with one line each),
+  `Milestone` (a named milestone from a popover), `⋯` (Save as template…, Rename…, Copy link `Mod+Alt+L`) and `Export` (the Export
+  dialog). Nothing in it is inert: Export renders only where an exporter exists, templates only where they can be saved.
+- **IF-36.4** **Tool picker** (STUDIO §4.1): Select, Frame, one Shapes button with a menu (Rectangle, Ellipse, Polygon, Star, Line),
+  Text, Hand; Lucide icons, names and keys in tooltips; no Pen in M1.
+- **IF-36.5** **Selection pill** (STUDIO §4.2): one control set per selection kind (shape, text, image, frame, group, several,
+  mixed, locked, repeat, boolean, mask) from the declared control model, at most six, then `⋯` More; placed 12 px above the
+  selection (below when the tool picker is in the way), hidden during a gesture and back 120 ms after, frozen while one of its
+  popovers is open. Its Fit sets the image fill's fit.
+- **IF-36.6** **More** lists only what the selection can run (capability applicability), grouped Edit · Arrange · Transform ·
+  Combine · Style · Repeat · Describe, filterable, with shortcuts.
+- **IF-36.7** **Studio commands** as capabilities (delete, duplicate, lock / unlock, undo, redo) and the key map Mod+Z, Mod+Shift+Z /
+  Ctrl+Y, Delete / Backspace, Mod+D, Mod+G, Mod+Shift+G, Mod+Alt+G, Mod+] / [, Mod+Alt+] / [, Mod+Shift+L, Mod+Shift+H, run in
+  the editor through the input ring; undo and redo are serialized and the selection drops what an undo removed.
+- **IF-36.8** **Feedback** (OVERLAYS-FEEDBACK §3): toasts for a milestone, a template, an export, a copied link, and an undoable
+  `Deleted N elements` for five or more; failures toast their message, never a code.
+- **IF-36.9** The **visible rotate handle** sits 24 px below the frame's bottom edge on a stem; the four corner zones still rotate.
+- **IF-36.10** **Command bar** (STUDIO §4.4): a bottom-centre pill `Type a command`, `Mod+K` opens it on its filter; it lists what
+  can run now (the selection's capabilities, undo / redo, tools, camera), recent commands first (this device), Enter runs the top
+  row; capabilities that need no selection run without nodes.
+- **IF-36.11** **Camera**: fit page, fit selection, 100 %, zoom in / out, 50 % and 200 % from View, the zoom pill and the command bar.
+- **IF-36.12** **The inspector** (STUDIO §5) is one panel (`instaflow/inspector`) placed in the inspector column of every lens; it
+  renders exactly the sections of the selection kind in order (§5.1), never a "select something" message: with nothing selected
+  it shows Page and Document.
+- **IF-36.13** Its header names the selection (renamed in place through `instaflow/rename`), tags its kind and carries the Lock
+  control (the pill's Unlock).
+- **IF-36.14** Sections are disclosures: collapsed ones show a one-line summary (`Shadow · 0 4 16 · 16 %`, `50 % · Multiply`),
+  the open state is remembered on the device, Pro pins every section and row open, and `reveal(section)` opens and scrolls to one
+  (the deep link `?inspect=` uses it).
+- **IF-36.15** **Transform**: X, Y, W, H (keep proportions), angle (wraps to −180…180); `More ▾`: skew (±80°), flip horizontal and
+  vertical; locked elements are counted; Apply / Cancel while a transform session runs. Each edit is one undo step.
+- **IF-36.16** **Fill, Stroke and Effects are stacks** (APPEARANCE §2.1): rows top first with swatch, summary, opacity, eye and
+  remove; the row's second line (expanded, or Pro) holds its kind, blend and reorder (also `Alt+↑ / ↓`); `+ Add ▾` adds a colour
+  or a linear / radial / conic gradient (16 rows at most).
+- **IF-36.17** **Gradients** in the swatch's popover: type, stops (colour, position, add, remove; 2…32), angle with `+45°`,
+  reverse, and back to a solid colour.
+- **IF-36.18** **Stroke**: width (0.5…1000 px), position, dash presets that follow the width, cap, join, miter (Pro), per-side
+  widths on rectangles, frames and images, blend.
+- **IF-36.19** **Effects**: `+ Add ▾` presets (shadows, inner shadows, glows, bevels as honest groups of inner shadows, blurs) and
+  the brand's effect tokens; each row's fields per kind; glow's Inner toggle.
+- **IF-36.20** **Corners** (linked radius, per-corner radii, Smooth) and **Layer** (opacity slider, the 16 blend modes grouped).
+- **IF-36.21** **Several elements**: one shared Fill and Stroke row (`Mixed` when they differ) that replaces every top paint;
+  Effects `Replace all ▾`; Layer sets every element.
+- **IF-36.22** **Text** (TEXT-FONTS §4.2–§4.4): Style ▾ (the M1 presets, × 0.75 on pages narrower than 800 px, the matching name or
+  `Custom`), Font ▾ (the font picker), Weight ▾, Size, Colour, `B I U S`, Link, the Align row; `More ▾`: line height, letter
+  spacing, space before / after, first-line indent, Auto-size, vertical align (fixed boxes), sub / superscript, Convert case
+  (rewrites the text, marks kept per run), Clear formatting, Fit to box (fixed boxes). Lists are not rendered until markers draw.
+- **IF-36.23** **Image**: Fit ▾, Replace… (pick, import, the fill shows the new asset, fit kept, crop reset; IF-POL-051 without an
+  image), the source name; `More ▾`: the picture's place (x, y), scale and quarter turn through `instaflow/image-crop`, Reset crop.
+- **IF-36.24** **Frame** (clip content), **Repeat** (kind and its parameters, Expand, Release), **Combine** (operation, Release,
+  Flatten) and **Mask** (mode, Invert, Release, acting on the mask element).
+- **IF-36.25** **Page** (name, size preset from Home's formats, W × H 16…8192 px (IF-POL-050), orientation, the Background as a
+  fill stack) and **Document** (title, page count, units).
+
 ## 37. Engine gaps for B11b (M1c B12)
 
 The engine and model pieces the text and appearance specs marked (c) for M1 (TEXT-FONTS-UX-SPEC §11.2 T-1–T-9,

@@ -73,8 +73,16 @@ export interface SelectionSummary {
   readonly radius?: number | 'mixed';
   /** Polygon sides / star points. */
   readonly points?: number;
+  /** Image elements: the top image fill's fit and asset (B12 A-3 crop state). */
   readonly fit?: string;
+  readonly asset?: string;
+  readonly cropped?: boolean;
+  /** The picture inside the image (B12 A-3): offset 0…1 of the free space, scale × the fit, quarter turns. */
+  readonly crop?: { readonly x: number; readonly y: number; readonly scale: number; readonly rotation: number };
   readonly clip?: boolean;
+  /** Layer opacity (0…1) and blend of every selected element (mixed when they differ). */
+  readonly opacity?: number | 'mixed';
+  readonly blend?: string | 'mixed';
   readonly booleanOp?: string;
   readonly mask?: { readonly node: NodeId; readonly mode: string; readonly invert: boolean };
   readonly repeat?: { readonly kind: string; readonly count: number };
@@ -240,6 +248,39 @@ export function paintSummary(paint: JsonValue | undefined, kit: BrandKitView): P
   return { kind: 'none' };
 }
 
+/** The top visible image paint of an element's fills (an image element's picture). */
+function imagePaintOf(r: SceneReader, node: NodeId): Record<string, JsonValue> | undefined {
+  const raw = r.stage.value(node, P.fills);
+  if (!Array.isArray(raw)) return undefined;
+  for (let i = raw.length - 1; i >= 0; i--) {
+    const item = raw[i];
+    if (typeof item !== 'object' || item === null || Array.isArray(item) || (item as Record<string, JsonValue>)['visible'] === false) continue;
+    const paint = (item as Record<string, JsonValue>)['paint'];
+    if (typeof paint === 'object' && paint !== null && !Array.isArray(paint) && (paint as Record<string, JsonValue>)['kind'] === 'image') return paint as Record<string, JsonValue>;
+  }
+  return undefined;
+}
+
+const cropOf = (paint: Record<string, JsonValue> | undefined): { x: number; y: number; scale: number; rotation: number } => {
+  const offset = paint?.['offset'];
+  const pair = Array.isArray(offset) && typeof offset[0] === 'number' && typeof offset[1] === 'number' ? [offset[0], offset[1]] : [0.5, 0.5];
+  const scale = paint?.['scale'];
+  const rotation = paint?.['rotation'];
+  return { x: pair[0] as number, y: pair[1] as number, scale: typeof scale === 'number' ? scale : 1, rotation: typeof rotation === 'number' ? rotation : 0 };
+};
+
+const assetOf = (paint: Record<string, JsonValue> | undefined): string | undefined => {
+  const a = paint?.['asset'];
+  return typeof a === 'object' && a !== null && !Array.isArray(a) && typeof (a as Record<string, JsonValue>)['asset'] === 'string' ? ((a as Record<string, JsonValue>)['asset'] as string) : undefined;
+};
+
+/** Opacity and blend shared by the nodes (`mixed` when they differ). */
+function layerValues(r: SceneReader, nodes: readonly NodeId[]): { opacity?: number | 'mixed'; blend?: string | 'mixed' } {
+  const opacity = same(nodes.map((n) => r.stage.value(n, P.opacity)).map((v) => (typeof v === 'number' ? v : 1)));
+  const blend = same(nodes.map((n) => r.stage.value(n, P.blend)).map((v) => (typeof v === 'string' ? v : 'normal')));
+  return { ...(opacity === undefined ? {} : { opacity }), ...(blend === undefined ? {} : { blend }) };
+}
+
 /** The top visible item of a stack (`style.fills` / `style.strokes`) as written. */
 function topItem(r: SceneReader, node: NodeId, path: string): Record<string, JsonValue> | undefined {
   const raw = r.stage.value(node, path);
@@ -302,7 +343,7 @@ export function selectionSummary(r: SceneReader, selection: readonly NodeId[]): 
   const strokeWidth = same(strokes.flatMap((s) => (typeof s?.['width'] === 'number' ? [s['width']] : [])));
   const radius = same(nodes.map((n) => r.stage.value(n, P.radius) ?? 0).map((v) => (typeof v === 'number' ? v : 0)));
   const sides = r.stage.value(first, P.sides);
-  const fit = r.stage.value(first, P.fit);
+  const image = imagePaintOf(r, first);
   const clip = r.stage.value(first, P.clip);
   const op = r.stage.value(first, P.boolean);
   const maskNode = firstKind === 'mask' ? r.stage.children(first)[0] : undefined;
@@ -320,7 +361,8 @@ export function selectionSummary(r: SceneReader, selection: readonly NodeId[]): 
     ...(hasFill ? { stroke: { ...(strokeSame === 'mixed' ? { kind: 'mixed' as const } : (strokeSame ?? { kind: 'none' as const })), ...(strokeWidth === undefined ? {} : { width: strokeWidth }) } } : {}),
     ...(radius === undefined ? {} : { radius }),
     ...(firstKind === 'polygon' || firstKind === 'star' ? { points: typeof sides === 'number' ? sides : firstKind === 'star' ? 5 : 3 } : {}),
-    ...(firstKind === 'image' ? { fit: typeof fit === 'string' ? fit : 'cover' } : {}),
+    ...(firstKind === 'image' ? { fit: typeof image?.['fit'] === 'string' ? image['fit'] : 'cover', ...(typeof assetOf(image) === 'string' ? { asset: assetOf(image) as string } : {}), cropped: image?.['offset'] !== undefined || image?.['scale'] !== undefined || image?.['rotation'] !== undefined, crop: cropOf(image) } : {}),
+    ...layerValues(r, nodes),
     ...(firstKind === 'frame' ? { clip: clip !== false } : {}),
     ...(typeof op === 'string' ? { booleanOp: op } : {}),
     ...(maskNode === undefined ? {} : { mask: { node: maskNode, mode: String(r.stage.value(maskNode, P.maskMode) ?? 'clip'), invert: r.stage.value(maskNode, P.maskInvert) === true } }),

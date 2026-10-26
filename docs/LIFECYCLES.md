@@ -701,6 +701,26 @@ toast timers and dismiss guards live in the surface manager (LIFECYCLES §8 is u
 | FND-12 | At most two hints per session; a seen hint never shows again on that device until `Reset hints` | `apps/instaflow/src/studio/hints.test.ts` |
 | FND-13 | Every B11a2 block passes the full audit under Clean Pop | `apps/instaflow/src/a11y/foundations.test.ts`, guarded by `chrome.test.ts` |
 
+## 38. Studio and Home surfaces (Instaflow M1c B11b)
+
+The surfaces keep no document state: every edit is one capability run or one mirror action (one change set). The machines below
+live in their element and end with it; the per-device state lives in `localStorage` (a convenience: it may come back empty).
+
+| Machine | States / transitions | Source |
+|---|---|---|
+| selection pill (per Studio) | hidden (nothing selected, or the selection off-screen) → shown (a selection whose frame is visible); shown → hidden-for-gesture (`gesture` ≠ idle) → shown (120 ms after the gesture ends, at the new place); shown → frozen (a pill popover or menu opened: the place stays) → shown (the last one closed) | `apps/instaflow/src/studio/studio-element.ts`, `hud.ts` |
+| command bar (per Studio) | closed → open (`Mod+K` or a click: the filter focused) → closed (a row runs: recorded first in the recents, then `if-command`; Escape; outside press) | `apps/instaflow/src/studio/command-bar.ts` |
+| inspector section (per section, per device) | open ↔ collapsed (the disclosure; default from §5.1, remembered under `instaflow/ui/inspector-sections`); Pro: pinned open (no toggle); `reveal(section)` → open | `apps/instaflow/src/studio/inspector.ts` |
+| stack row (per row) | collapsed ↔ expanded (a click on its summary; Pro: always expanded) | `apps/instaflow/src/studio/inspector-paint.ts` |
+
+| ID | Invariant | Error / test |
+|---|---|---|
+| SURF-1 | The pill and the inspector render only controls the selection kind declares; the More menu and the command bar list only capabilities the selection can run | IF-POL-001; `hud.test.ts`, `inspector.test.ts`, `command-bar.test.ts` |
+| SURF-2 | Every pill, inspector and command-bar edit is one undo step; a commit that changes nothing writes no step | `studio.smoke.mjs` (undo ×4, W = 150), `editor-module.ts` (no-op filter) |
+| SURF-3 | A page side is 16…8192 px; a refused size changes nothing | IF-POL-050; `studio-app.test.ts` |
+| SURF-4 | Undo and redo run one at a time, in order; the selection never names an element an undo removed | `canvas-tab.ts`; `studio.smoke.mjs` |
+| SURF-5 | Every surface element passes the full audit under Clean Pop | `chrome.test.ts` guards the list |
+
 ## 39. Engine gaps for B11b: typing steps, hidden elements, page fill, crops (Instaflow M1c B12)
 
 What B12 adds to B2's text session (§21) and B1's elements. Nothing here is a new `defineMachine`: the typing run lives in

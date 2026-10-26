@@ -1126,7 +1126,7 @@
     "limit": "3.5 KB"
   },
   {
-    "name": "@instaflow/app/tools (hit testing, selection, transforms, snapping and guides, view state, keyboard, contributions; B10a raised 24 → 27.5 KB for flip, skew, pivot, transform mode and their capabilities; incl. the B1 element modules it uses, shared with /elements in the app chunk; excl. framework and lit; B12 raised 27.5 → 28 KB: hidden elements leave hit tests, and the larger shared B1 modules)",
+    "name": "@instaflow/app/tools (hit testing, selection, transforms, snapping and guides, view state, keyboard, contributions; B10a raised 24 → 27.5 KB for flip, skew, pivot, transform mode and their capabilities; incl. the B1 element modules it uses, shared with /elements in the app chunk; excl. framework and lit; B12 raised 27.5 → 28 KB: hidden elements leave hit tests, and the larger shared B1 modules; B11b raised 28 → 28.5 KB: the visible rotate handle on a stem)",
     "path": "apps/instaflow/dist/tools/index.js",
     "ignore": [
       "mobx",
@@ -1146,7 +1146,7 @@
       "@staticflux/shell/spec",
       "@staticflux/gate"
     ],
-    "limit": "28 KB"
+    "limit": "28.5 KB"
   },
   {
     "name": "@instaflow/app/tools/transform-bar (B10a numeric transform bar; excl. lit, kit and framework)",
@@ -1257,7 +1257,7 @@
     "limit": "3.75 KB"
   },
   {
-    "name": "@instaflow/app/text (rich text, layout service, fonts, session, scene projection, typography panel, contributions; excl. framework and Wasm; B12 raised 17.5 → 18.25 KB for undo coalescing, platform caret keys, soft breaks, list indent, sub/superscript and the lazy web font decoder loader)",
+    "name": "@instaflow/app/text (rich text, layout service, fonts, session, scene projection, typography panel, contributions; excl. framework and Wasm; B12 raised 17.5 → 18.25 KB for undo coalescing, platform caret keys, soft breaks, list indent, sub/superscript and the lazy web font decoder loader; B11b raised 18.25 → 19.5 KB: text presets, Convert case, Clear formatting, sub/superscript, paragraph spacing, box mode and vertical alignment commands)",
     "path": "apps/instaflow/dist/text/index.js",
     "ignore": [
       "mobx",
@@ -1281,7 +1281,7 @@
       "@staticflux/stage",
       "@staticflux/document/render-projection"
     ],
-    "limit": "18.25 KB"
+    "limit": "19.5 KB"
   },
   {
     "name": "@staticflux/kit/card",
@@ -1394,7 +1394,7 @@
     "limit": "1.65 KB"
   },
   {
-    "name": "@staticflux/kit/icons (the whole kit icon set: 89 Lucide + 15 custom; well under STUDIO-UX-SPEC §10.2's 20 KB cap for Studio's set; B11a)",
+    "name": "@staticflux/kit/icons (the whole kit icon set: 89 Lucide + 15 custom; well under STUDIO-UX-SPEC §10.2's 20 KB cap for Studio's set; B11a; B11b raised 5 → 5.5 KB: 12 more Lucide icons for the inspector — strikethrough, sub/superscript, justify, case, remove formatting, vertical text alignment, orientation, reverse)",
     "path": "packages/kit/dist/icons/index.js",
     "ignore": [
       "mobx",
@@ -1408,7 +1408,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "5 KB"
+    "limit": "5.5 KB"
   },
   {
     "name": "@staticflux/kit/icons/trash-2 (one icon module ≈ 0.2 KB, STUDIO-UX-SPEC §10.2; B11a)",
