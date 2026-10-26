@@ -25,7 +25,7 @@ interface Setup {
   sink: ReturnType<typeof createMemorySink>;
 }
 
-async function setup(options: { budgetMs?: number; tileCostMs?: number; warm?: boolean; memory?: Parameters<typeof createTiledRenderer>[0]['memory']; ring?: number } = {}): Promise<Setup> {
+async function setup(options: { budgetMs?: number; tileCostMs?: number; warm?: boolean; memory?: Parameters<typeof createTiledRenderer>[0]['memory']; ring?: number; staleTiles?: number } = {}): Promise<Setup> {
   const backend = createMemoryRasterBackend({ tileSize: TILE, width: 128, height: 128, maxRegionSize: 128 });
   const clock = { t: 0 };
   const cost = options.tileCostMs ?? 7; // S1: ≈ 6.7 ms CPU per 512 px tile
@@ -49,6 +49,7 @@ async function setup(options: { budgetMs?: number; tileCostMs?: number; warm?: b
     now: () => clock.t,
     inFrameBudgetMs: options.budgetMs ?? 2,
     ring: options.ring ?? 0,
+    ...(options.staleTiles === undefined ? {} : { inFrameStaleTiles: options.staleTiles }),
     camera: CAMERA,
     telemetry,
     ...(options.memory === undefined ? {} : { memory: options.memory }),
@@ -203,6 +204,44 @@ describe('tiled renderer: edits are stale-while-revalidate', () => {
     lane.run();
     expect(frame(renderer).sharp).toBe(true);
     expect(px(backend.frame, 20, 20)).toEqual([0, 160, 0, 255]);
+  });
+});
+
+describe('tiled renderer: stale visible tiles re-rendered in the frame (inFrameStaleTiles)', () => {
+  // A move of every box (a repeat's copies) makes all four tiles stale. Without in-frame refresh the next frames
+  // composite a mix: the tiles late in the centre-first order keep the old picture (FIX-DRAG-STUTTER).
+  const moveAll = { set: [
+    { id: 1, rect: { x0: 14, y0: 14, x1: 54, y1: 54 }, color: RED },
+    { id: 2, rect: { x0: 74, y0: 24, x1: 124, y1: 104 }, color: BLUE },
+    { id: 3, rect: { x0: 34, y0: 84, x1: 64, y1: 114 }, color: GREEN },
+  ] };
+
+  it('composites every stale visible tile fresh in the frame that follows the edit', async () => {
+    const { backend, renderer, lane } = await setup({ budgetMs: 0, staleTiles: 16 });
+    frame(renderer);
+    lane.run();
+    frame(renderer);
+    renderer.apply(moveAll);
+    const next = frame(renderer);
+    expect(next).toMatchObject({ visible: 4, unsharp: 0, sharp: true, renderedInFrame: 4 });
+    const want = await expected(backend);
+    expect(backend.frame.data).toEqual(want.data);
+  });
+
+  it('is capped, and off by default (stale tiles wait for the prep lane)', async () => {
+    const capped = await setup({ budgetMs: 0, staleTiles: 1 });
+    frame(capped.renderer);
+    capped.lane.run();
+    frame(capped.renderer);
+    capped.renderer.apply(moveAll);
+    expect(frame(capped.renderer)).toMatchObject({ unsharp: 3, renderedInFrame: 1 });
+
+    const off = await setup({ budgetMs: 0 });
+    frame(off.renderer);
+    off.lane.run();
+    frame(off.renderer);
+    off.renderer.apply(moveAll);
+    expect(frame(off.renderer)).toMatchObject({ unsharp: 4, renderedInFrame: 0, sharp: false });
   });
 });
 
