@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** Owner: in text editing you can't click to place the caret, use Ctrl/Cmd+A, or make a selection. Added to the
+  text-fix agent's scope (same code path as the first-key race); report separately. Suggested-task card for split
+  input lag: dismissed by owner; queued here after the text fix.
 - **2026-10-26** #33 merged; owner confirms on a real machine: "the stutter is gone". Drag layer (lift/drag) moves to the
   C4 performance pass unless the owner wants it sooner.
 - **2026-10-26** Drag stutter root-caused → PR #33: the page-edge overlay re-sent per move dirtied the whole page;
