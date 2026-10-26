@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** B12 full check green (4538 tests). Smoke 16 runs: 1 fail, **colocated** ("ello StudioH": first char's
+  caret update lost), so not split-specific. Root-cause agent on `claude/fix-text-first-key` (B12 or pre-existing,
+  deterministic repro, fix, 20× smoke). B12 PR waits for it.
 - **2026-10-26** B12 merged on the working branch (clean; size entries 115/115). All items in: actions (group, ungroup,
   frame selection, reorder ×4, rename, hide/show, crop), `hidden` prop everywhere, page fill stack, text T-1–T-9, image
   crop; IF-37.1–37.22, §39, IF-FIX-001/002; lazy WOFF decoder Wasm 77.2/80 KB. Agent saw split smoke fail 1/4 with
