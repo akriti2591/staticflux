@@ -10,7 +10,7 @@ import { err, ok, type Result } from '@staticflux/core';
 import { createLoroEngine } from '@staticflux/document/loro-crdt';
 import { fromWorkerScope, type MessageTargetLike } from '@staticflux/worker';
 import { createStudioFonts, type FontFile } from '../app/fonts.js';
-import { createVelloRaster } from '../app/vello-raster.js';
+import { createVelloRaster, STUDIO_BACKGROUND } from '../app/vello-raster.js';
 import { createGeometry, loadAuthoringModule as loadGeometryModule } from '../elements/geometry.js';
 import { browserImageDecoder } from '../library/thumbnails.js';
 import { loadRenderModule } from '../render/render-module.js';
@@ -45,7 +45,7 @@ hostStudioWorker({
       if (assets === undefined) return needAssets();
       const wasm = await loadRenderModule({ manifestUrl: assets.manifest, signal });
       if (!wasm.ok) return wasm;
-      return createVelloRaster({ wasm: wasm.value, canvas: handoff.canvas as { width: number; height: number }, width: handoff.width, height: handoff.height, devicePixelRatio: handoff.dpr, signal });
+      return createVelloRaster({ wasm: wasm.value, canvas: handoff.canvas as { width: number; height: number }, width: handoff.width, height: handoff.height, devicePixelRatio: handoff.dpr, background: STUDIO_BACKGROUND, signal });
     },
   },
 });

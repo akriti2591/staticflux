@@ -166,8 +166,9 @@ describe('lens contributions', () => {
     const registries = unwrap(createEditorRegistries({ lenses: studioLenses, tools: studioTools, panels, hud: studioHudActions, capabilities: [proposeSpecCapability, editDocumentCapability] }));
     expect(registries.lens(StudioIds.lens.pages)).toMatchObject({ label: 'Pages', palette: 'layout', shortcut: '5' });
     const spec = studioSpecFor(StudioIds.lens.pages);
-    expect(spec.tools).toEqual([StudioIds.tool.select, StudioIds.tool.shape, StudioIds.tool.text, StudioIds.tool.pen, StudioIds.tool.hand]);
-    expect(spec.hud).toContain(StudioIds.hud.animate);
+    const T = StudioIds.tool;
+    expect(spec.tools).toEqual([T.select, T.shape, T.ellipse, T.polygon, T.star, T.line, T.text, T.hand]); // B11b: no Pen yet, the shape family
+    expect(spec.hud).toEqual([]); // B11b: no assistant or motion actions before they run
     const body = pagesPanel.render({ density: 'pro', lens: StudioIds.lens.pages, scope: 'asset' }) as { strings: readonly string[] };
     expect(body.strings.join('')).toContain('<if-pages-panel>');
   });

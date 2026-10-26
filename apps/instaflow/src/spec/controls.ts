@@ -19,6 +19,10 @@ import { ControlModelError } from './errors.js';
 export const CONTROL_KINDS = ['swatch', 'number', 'menu', 'toggle', 'font', 'action', 'chip', 'align'] as const;
 export type ControlKind = (typeof CONTROL_KINDS)[number];
 
+/** The More menu's groups, in order (STUDIO-UX-SPEC §4.2.3). */
+export const MORE_GROUPS = ['Edit', 'Arrange', 'Transform', 'Combine', 'Style', 'Repeat', 'Describe'] as const;
+export type MoreGroup = (typeof MORE_GROUPS)[number];
+
 /** Disclosure tier (DENSITY-DISCLOSURE §3.2): `essential` at rest in Standard, `more` behind `More ▾`. */
 export type ControlTier = 'essential' | 'more';
 
@@ -58,9 +62,14 @@ export interface ControlDecl {
   readonly shortcut?: string;
   /** The fact it shows (value controls); actions have none. */
   readonly fact?: FactRef;
-  /** The capability it runs or commits through (one undo step, named once). */
+  /**
+   * The capability an action runs (one undo step, named once). Value controls (swatches, numbers, fonts, menus of a
+   * value) commit through their section's edit port instead and carry none (B11b).
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly capability: Capability<any, any>;
+  readonly capability?: Capability<any, any>;
+  /** More menu group (STUDIO §4.2.3: Arrange · Transform · Combine · Style · Repeat · Describe). */
+  readonly group?: MoreGroup;
   readonly section: InspectorSection;
   /** Position within the section. */
   readonly order: number;

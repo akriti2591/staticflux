@@ -97,13 +97,13 @@ export class SfIconButtonElement extends SfElement<typeof iconButtonSpec> {
   protected override willUpdate(changed: PropertyValues<this>): void {
     if (changed.has('label')) this.setAttribute('aria-label', this.label);
     if (changed.has('shortcut')) {
-      if (this.shortcut === undefined || this.shortcut === '') this.removeAttribute('aria-keyshortcuts');
+      if (this.shortcut == null || this.shortcut === '') this.removeAttribute('aria-keyshortcuts');
       else this.setAttribute('aria-keyshortcuts', ariaKeyShortcuts(this.shortcut, this.ownerDocument));
     }
   }
 
   override render(): TemplateResult {
-    const hint = this.shortcut === undefined || this.shortcut === '' ? nothing : html`<kbd>${shortcutLabel(this.shortcut, this.ownerDocument)}</kbd>`;
+    const hint = this.shortcut == null || this.shortcut === '' ? nothing : html`<kbd>${shortcutLabel(this.shortcut, this.ownerDocument)}</kbd>`;
     // The bubble repeats the accessible name, so it is hidden from assistive technology.
     return html`<span class="control" part="control"><slot></slot></span>${this.tooltip && this.label !== ''
         ? html`<div class="floating tooltip" part="tooltip" aria-hidden="true" ?data-open=${this.tip.open}>${composeTooltip(this.label, this.reason)}${hint}${this.description === undefined || this.description === ''

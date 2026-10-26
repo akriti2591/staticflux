@@ -231,8 +231,8 @@ export const TOOL_KEYMAP: readonly ToolKeyBinding[] = Object.freeze([
   ...resizes(true),
   { id: 'instaflow/rotate-cw', keys: ['Alt+]'], description: `Rotate ${ROTATE_STEP}° clockwise`, run: (c) => c.rotateBy(ROTATE_STEP) },
   { id: 'instaflow/rotate-ccw', keys: ['Alt+['], description: `Rotate ${ROTATE_STEP}° counter-clockwise`, run: (c) => c.rotateBy(-ROTATE_STEP) },
-  { id: 'instaflow/rotate-cw-fine', keys: ['Mod+Alt+]'], description: 'Rotate 1° clockwise', run: (c) => c.rotateBy(1) },
-  { id: 'instaflow/rotate-ccw-fine', keys: ['Mod+Alt+['], description: 'Rotate 1° counter-clockwise', run: (c) => c.rotateBy(-1) },
+  // B11b: Mod+Alt+] / [ are Bring to front / Send to back now (STUDIO §7); the 1° steps are the Transform section's
+  // angle field (the registry cannot tell Alt+Shift+] from Alt+]: Shift is part of the symbol).
   { id: 'instaflow/select-next', keys: ['Tab'], description: 'Select the next element', run: (c) => c.selectSibling(1, false) },
   { id: 'instaflow/select-previous', keys: ['Shift+Tab'], description: 'Select the previous element', run: (c) => c.selectSibling(-1, false) },
   { id: 'instaflow/extend-next', keys: ['Mod+Shift+ArrowRight'], description: 'Add the next element to the selection', run: (c) => c.selectSibling(1, true) },

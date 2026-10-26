@@ -12,7 +12,7 @@ import { createTextOps, readTextBlock } from '../text/rich-text.js';
 import { CanvasToolsShortcutScope, TransformModeShortcutScope } from '../tools/keyboard.js';
 import { toScreen } from '../tools/view-state.js';
 import { attachCanvasRender, type CanvasRender, createCanvasPipes, createElementSceneSide, decodeSceneRecord } from './canvas-pipeline.js';
-import { type CanvasTab, OVERLAY_FIRST_ID, openCanvasTab, PAGE_EDGE_ID } from './canvas-tab.js';
+import { type CanvasTab, FRAME_OUTLINE_FIRST_ID, OVERLAY_FIRST_ID, openCanvasTab } from './canvas-tab.js';
 import { createElementRenderPort, createRecordingRaster, type RecordingRaster } from './element-port.js';
 import type { TextExitReason, TextHostPort } from './text-editing.js';
 import { authoringBuilt, createStudioFixture, manualTimers, person, scriptedTextInput, type StudioFixture, unwrap } from './test-helpers.js';
@@ -58,7 +58,7 @@ async function rig(f: StudioFixture, options: { tool: () => `${string}/${string}
   const apply = side.adapter.apply.bind(side.adapter);
   const spy = { ...side, adapter: { ...side.adapter, apply: (store: never, payload: Uint8Array, kind: 'delta' | 'snapshot') => {
     const r = unwrap(decodeSceneRecord(payload));
-    records.push({ projection: r.projection.length > 0, overlay: r.overlay.length, ir: r.ir.length > 0, edge: r.overlay.some((b) => contains(b, upsertOf(PAGE_EDGE_ID))) });
+    records.push({ projection: r.projection.length > 0, overlay: r.overlay.length, ir: r.ir.length > 0, edge: r.overlay.some((b) => contains(b, upsertOf(FRAME_OUTLINE_FIRST_ID))) });
     return apply(store, payload, kind);
   } } };
   const raster = createRecordingRaster();
@@ -257,15 +257,16 @@ describe.skipIf(!authoringBuilt)('canvas tab in the editor module: B3 tools, cre
     await f.scope.dispose();
   });
 
-  it('a drag re-sends the overlay with every move but not the page edge (its bounds would make every tile stale)', async () => {
+  it('a drag re-sends the overlay with every move but not the frame hairlines (their bounds would make every tile stale)', async () => {
     const f = await createStudioFixture();
     const r = await rig(f, { tool: () => 'instaflow/select' });
     const { tab } = r;
     const at = (x: number, y: number) => toScreen(tab.view.camera, x, y);
     r.draw();
-    expect(r.records[0]?.edge).toBe(true); // the snapshot carries it
-    unwrap(commitEdit(f.document.target('p1'), person, 'Seed', ok([rect('a', 100, 100)])));
+    const seeded = r.records.length;
+    unwrap(commitEdit(f.document.target('p1'), person, 'Seed', ok([rect('a', 100, 100), { op: 'create', node: 'fr', kind: 'frame', parent: 'p1', props: { [P.x]: 400, [P.y]: 400, [P.w]: 300, [P.h]: 200 } }])));
     r.draw();
+    expect(r.records.slice(seeded).some((x) => x.edge)).toBe(true); // the frame's hairline arrives with it
     const before = r.records.length;
     unwrap(tab.pointer({ phase: 'down', x: at(150, 150)[0], y: at(150, 150)[1] }));
     for (let i = 1; i <= 6; i++) {
@@ -277,8 +278,8 @@ describe.skipIf(!authoringBuilt)('canvas tab in the editor module: B3 tools, cre
     expect(f.document.view.value('a', P.x)).toBeCloseTo(220, 0);
     const during = r.records.slice(before);
     expect(during.filter((x) => x.overlay > 0).length).toBeGreaterThan(3); // the frame follows every move …
-    expect(during.filter((x) => x.edge)).toEqual([]); // … the page edge stays put
-    // A zoom changes the edge's stroke width (constant on screen): then it is re-sent, once.
+    expect(during.filter((x) => x.edge)).toEqual([]); // … the frame hairline stays put
+    // A zoom changes the hairline's stroke width (constant on screen): then it is re-sent, once.
     unwrap(tab.view.zoomBy(2));
     r.draw();
     expect(r.records.at(-1)?.edge).toBe(true);

@@ -238,7 +238,10 @@ pub async fn create_gpu(canvas: JsValue, width: u32, height: u32) -> Result<Gpu,
             let caps = s.get_capabilities(&adapter);
             config.format = caps.formats.iter().copied().find(|f| !f.is_srgb()).unwrap_or(config.format);
             config.usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
-            config.alpha_mode = wgpu::CompositeAlphaMode::Opaque;
+            // Premultiplied (B11b): a transparent background then shows the page behind the canvas (Studio's room and
+            // page card); an opaque background looks the same either way. wgpu's WebGPU backend lists only `Opaque` in
+            // the capabilities but configures `premultiplied` on the canvas (every browser supports both).
+            config.alpha_mode = wgpu::CompositeAlphaMode::PreMultiplied;
             s.configure(&device, &config);
             Some((s, config))
         }

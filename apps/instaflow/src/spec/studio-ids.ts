@@ -8,6 +8,11 @@ export const StudioIds = Object.freeze({
     select: 'instaflow/select',
     frame: 'instaflow/frame',
     shape: 'instaflow/shape',
+    // B11b: the rest of the shape family (the picker's Shape menu).
+    ellipse: 'instaflow/ellipse',
+    polygon: 'instaflow/polygon',
+    star: 'instaflow/star',
+    line: 'instaflow/line',
     text: 'instaflow/text',
     pen: 'instaflow/pen',
     hand: 'instaflow/hand',

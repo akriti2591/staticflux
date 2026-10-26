@@ -96,7 +96,7 @@ async function colourBox(page, clip, rgb, tolerance = 40) {
 
 async function scenario(page) {
   const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('pageerror', (e) => errors.push(`${e.message} ${(e.stack ?? '').split('\n').slice(1, 4).join(' ')}`));
   page.on('console', (m) => (m.type() === 'error' ? errors.push(m.text()) : undefined));
   page.on('worker', (w) => w.on('console', (m) => (m.type() === 'error' ? errors.push(`worker: ${m.text()}`) : undefined)));
   // C1: requests for the export Wasm (the page's and its workers'), to show it loads only for an SVG or PDF export.
@@ -135,7 +135,7 @@ async function scenario(page) {
   };
 
   // ---------------------------------------------------------------- B8: draw a rectangle
-  await page.getByRole('button', { name: 'Shape' }).click();
+  await page.getByRole('button', { name: 'Rectangle', exact: true }).click();
   await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.3);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.38, { steps: 4 });
@@ -146,8 +146,9 @@ async function scenario(page) {
   const drawn = (await inspect([rect])).elements[0];
   if (drawn?.kind !== 'shape' || !(drawn.w > 10)) fail(`no rectangle drawn: ${JSON.stringify(drawn)}`);
   log(`rectangle ${rect} (${Math.round(drawn.w)} wide)`);
-  await page.getByRole('button', { name: 'Radial repeat' }).waitFor({ timeout: 20_000 });
-  log('selection HUD mounted (Radial repeat)');
+  const hud = page.getByRole('toolbar', { name: 'Selection actions' });
+  await hud.getByRole('button', { name: 'Fill', exact: true }).waitFor({ timeout: 20_000 });
+  log('selection pill shows the shape controls (Fill, Stroke, Radius, Duplicate, Delete, More)');
   await waitSettled();
 
   // ---------------------------------------------------------------- select, move (overlay vs content), resize, rotate
@@ -371,8 +372,61 @@ async function scenario(page) {
 
   // ---------------------------------------------------------------- B8: milestone
   await page.getByRole('button', { name: 'Milestone', exact: true }).click();
-  await page.waitForFunction(() => window.__studio.spoken.some((m) => m.startsWith('Milestone created')), null, { timeout: 20_000 });
-  log('milestone created');
+  await page.getByRole('textbox', { name: 'Milestone name' }).fill('Smoke v1');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.waitForFunction(() => window.__studio.toasted.some((m) => m === "Milestone 'Smoke v1' created"), null, { timeout: 20_000 });
+  log('milestone created from the popover, toast shown');
+
+  // ---------------------------------------------------------------- B11b: the selection pill (recolour, duplicate, group, delete, undo)
+  const sceneOf = () => page.evaluate(() => {
+    const s = window.__studio.scene;
+    return { kind: s.selection?.kind, fill: s.selection?.fill?.color, nodes: s.selection?.nodes ?? [], layers: s.layers.length };
+  });
+  const clickElement = async (node) => {
+    const b = await screenBox(node);
+    await page.mouse.click(b.x + b.w / 2, b.y + b.h / 2);
+    await page.waitForFunction((n) => window.__studio.tab.view.selection.join() === n, node, { timeout: 10_000 });
+  };
+  await clickElement(rect);
+  await waitAsync(page, () => window.__studio.scene.selection?.kind === 'shape', null, { timeout: 10_000 });
+  const u4 = await undoDepth();
+  const labels4 = (await inspect()).steps.map((x) => x.label);
+  await hud.getByRole('button', { name: 'Fill', exact: true }).click();
+  const hex = page.getByRole('textbox', { name: 'Fill colour Hex' });
+  await hex.waitFor({ timeout: 10_000 });
+  await hex.fill('3D5AFE');
+  await hex.press('Enter');
+  await waitAsync(page, () => window.__studio.scene.selection?.fill?.color?.toUpperCase().startsWith('#3D5AFE') === true, null, { timeout: 10_000 }).catch(async (e) => fail(`pill recolour: ${e.message} ${JSON.stringify(await sceneOf())}`));
+  if ((await undoDepth()) !== u4 + 1) fail(`pill recolour: ${u4} → ${await undoDepth()} undo steps`);
+  await page.keyboard.press('Escape'); // closes the colour popover
+  log('pill recolour: Fill swatch → colour popover → #3D5AFE (one undo step)');
+  await hud.getByRole('button', { name: 'Duplicate', exact: true }).click();
+  await waitAsync(page, (n) => window.__studio.tab.view.selection.length === 1 && window.__studio.tab.view.selection[0] !== n, rect, { timeout: 10_000 });
+  const copy = await page.evaluate(() => window.__studio.tab.view.selection[0]);
+  log(`pill Duplicate: ${copy} selected`);
+  await surface.focus();
+  await page.keyboard.press('Control+A');
+  await waitAsync(page, () => window.__studio.tab.view.selection.length === 3, null, { timeout: 10_000 });
+  await waitAsync(page, () => window.__studio.scene.selection?.kind === 'mixed', null, { timeout: 10_000 });
+  await hud.getByRole('button', { name: 'Group', exact: true }).click();
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.some((e) => e.kind === 'group') === true && window.__studio.scene.selection?.kind === 'group', null, { timeout: 10_000 }).catch(async (e) => fail(`pill Group: ${e.message} ${JSON.stringify(await sceneOf())}`));
+  log('pill Group: the three elements are one group, selected (the pill shows Ungroup)');
+  await hud.getByRole('button', { name: 'Ungroup', exact: true }).waitFor({ timeout: 10_000 });
+  await hud.getByRole('button', { name: 'Delete', exact: true }).click();
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.length === 0, null, { timeout: 10_000 });
+  log('pill Delete: the group is gone');
+  await surface.focus();
+  for (let i = 0; i < 4; i++) await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => {
+    const s = (await window.__studio.inspect()).value;
+    return s !== undefined && s.elements.filter((e) => e.kind === 'shape').length === 1 && s.elements.every((e) => e.kind !== 'group') && s.textNodes.length === 1;
+  }, null, { timeout: 15_000 }).catch(async (e) => fail(`undo ×4: ${e.message} ${JSON.stringify((await inspect()).elements.map((x) => [x.id, x.kind]))}`));
+  const labels = (await inspect()).steps.map((x) => x.label);
+  if (JSON.stringify(labels.slice(0, 3)) !== JSON.stringify(labels4.slice(0, 3))) fail(`undo ×4 left the steps ${JSON.stringify(labels)} (before: ${JSON.stringify(labels4)})`);
+  await clickElement(rect);
+  await waitAsync(page, () => window.__studio.scene.selection?.fill?.color?.toUpperCase().startsWith('#FF5C39') === true, null, { timeout: 10_000 });
+  await page.mouse.click(box.x + 8, box.y + box.height - 8);
+  log('Mod+Z ×4 undid delete, group, duplicate and the recolour');
 
   // ---------------------------------------------------------------- tab hidden, then visible
   const state = async () => {
@@ -430,7 +484,7 @@ async function scenario(page) {
   // ---------------------------------------------------------------- C1: export PNG, PDF and SVG
   const beforeExport = await state();
   const undoBeforeExport = await undoDepth();
-  await page.getByRole('tab', { name: 'Export' }).click();
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
   const exportPanel = page.locator('if-export-panel');
   await exportPanel.waitFor({ timeout: 20_000 });
   const download = async (button) => {
