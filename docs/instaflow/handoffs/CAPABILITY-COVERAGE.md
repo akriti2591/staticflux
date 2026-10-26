@@ -35,8 +35,8 @@ Status was measured against the UX docs on `claude/wip-ux-research` (#28): "head
 | Accessibility (§25, `src/a11y`) | M1 | one | partial |
 | Brand kit (§10?) | M1/M2 | none (colour popover row) | missing (backlog B-4) |
 | Resize design | M2 | none | missing (backlog B-5) |
-| Timeline, video, audio (§8) | M2 | none | missing (backlog B-1); owner asks for timeline-based **video editing flows** |
-| Motion: animation and transitions (§9) | M2 | two | partial; owner asks for **presets**: animate effects (in/out/emphasis), page transitions, and the Auto Animate equivalent (REQUIREMENTS: M4, match keys) |
+| Timeline, video, audio (§8) | M3 per PLAN §2 (the table said M2; see MOTION spec Q1) | yes | **worked**: MOTION-TIMELINE-UX-SPEC (`claude/wip-ux-motion`, 2026-10-26) §2–§3, §8–§10, F-76, F-78…F-80; build = V-1…V-9, V-19 |
+| Motion: animation and transitions (§9) | M4 per PLAN §2 | yes | **worked**: MOTION-TIMELINE-UX-SPEC §4–§7, §11 (presets, keyframes, Smart move, transitions, presentation), F-73…F-75, F-77; build = V-10…V-18, V-20 |
 | Generative features (§10) | M2 | none | **missing** |
 | Flows (§11) | M2 | yes | partial (backlog B-3) |
 | Agent views and change sets (§6, §12) | M2 | two | partial |

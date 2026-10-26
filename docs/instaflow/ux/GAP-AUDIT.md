@@ -43,10 +43,10 @@ STUDIO §13 and Appendix A). "Spec" says where it is or should be specified.
 | DevTools tray | worked | Chrome DevTools | DEVTOOLS |
 | Chat surface, mini editors, proposals, provider setup | worked (M2) | Claude.ai (artifact cards), Cursor (accept/reject) | CHAT |
 | **Configurable mini editors** (which tools a mini editor exposes, who decides, how a person pins) | frame only | — (nobody does this) | backlog B-6 |
-| **Timeline lens** (tracks, clips, trim, keyframes, captions, audio) | missing (M2, D5) | CapCut (clarity), Premiere (precision), Descript (transcript edit) | backlog B-1 |
+| **Motion and timeline** (Timeline lens and the tray per density, every gesture and key, presets with in-place previews, keyframes and the curve picker, Smart move with visible matches, transitions for pages and clips, audio levels / fades / meters, captions and edit by transcript, the Export dialog's `Video` chip with pause / resume, presentation and presenter view, errors, fidelity, performance, a11y; checklist against CapCut · Premiere · Final Cut · DaVinci · Descript · Keynote · Figma · Canva · After Effects · Rive/Lottie; outlet + flow for every deferred feature) | missing (D5) → **worked, motion pass 2026-10-26** (all (c): M3 Timeline, M4 Motion & presentation, M5 captions and media) | CapCut (clarity), Premiere (precision, JKL, Q/W), Final Cut (magnetic story track, fade handles), Keynote (Magic Move, presenter view), Descript (transcript edit) | MOTION-TIMELINE-UX-SPEC (new), F-73…F-81 |
 | **Pixel lens** (brush, heal, crop, adjustments) | missing (M2) | Photoshop, Adobe Express quick actions | backlog B-2 |
 | **Flow lens** (steps, edges, run, batch, lineage) | missing (M2/M3) | FigJam (calm nodes), n8n (run state) | backlog B-3 |
-| Presentation mode (`▶`) | frame only (UX.md §4) | Keynote, Pitch | backlog B-7 |
+| Presentation mode (`▶ Present`, builds, presenter window, reduced motion) | frame only (UX.md §4) → **worked, motion pass 2026-10-26** (M4) | Keynote, Pitch | MOTION-TIMELINE-UX-SPEC §11, F-75 |
 | Unsupported-browser screen, not-found page | worked | — | OVERLAYS §3.1, NAV §4 |
 
 ### 1.2 Flows
@@ -67,6 +67,7 @@ STUDIO §13 and Appendix A). "Spec" says where it is or should be specified.
 | **First run** | partly F-01 → F-59 | Linear | FLOWS |
 | **Resize design** (change page size with content re-layout) | missing | Canva Magic Resize, Figma "Resize to fit" | backlog B-5 |
 | **Trash and recover an asset or a page** (not a design) | frame only | — | backlog B-9 |
+| **Animate a title with a preset; Auto Animate between two pages; transitions and present; cut a 30 s clip with music and captions and export MP4; keyframes by hand; trim family by keyboard; audio; codec and render errors; edit by transcript** | missing → **F-73…F-81** (motion pass) | Canva, Keynote, CapCut, Descript | FLOWS section I |
 | **Offline session end to end** | worked (F-22 step 1, OVERLAYS §3.3) | — | — |
 | **Storage pressure** (full, ~2 GB, persist refused) | worked (F-37, HOME-FILES §4) | — | — |
 | **Big document, slow machine** (perf states) | missing → **worked this pass** | Figma (progressive tiles) | STUDIO §9.2 (new) |
@@ -131,24 +132,26 @@ genuinely serves people (muscle memory, a gesture everyone already knows), and s
 | 7 | **Shortcut cheat sheet** is "a searchable table" with no design | Keyboard users, Figma natives | **yes** | STUDIO §2.3.1, F-57 |
 | 8 | **Performance states**: what the canvas shows while tiles render, while a 200-page document loads, when the GPU is lost | Anyone on a slow machine or a big file | **yes** (short) | STUDIO §9.2 |
 | 9 | **Resize design** (change page size; content follows) | Canva natives, every social-format job | no → backlog B-5 | — |
-| 10 | **Timeline lens UX** (D5 must-have, nothing specified) | Everyone in M2 | no → backlog B-1 | — |
+| 10 | **Timeline lens UX** (D5 must-have, nothing specified) | Everyone in M3 | **yes** (motion pass) | MOTION-TIMELINE-UX-SPEC §2–§3, §8–§10; engine follow-ups V-1…V-9, V-19 |
 | 11 | **Brand panel** (kits, tokens as a surface) | Brand-led users, M2 | no → backlog B-4 | — |
 | 12 | **Localisation rules** (none; British English hard-coded in copy rules) | Non-English users, later | **yes** (rules only) | FOUNDATIONS §5.12 |
-| 13 | **Pixel lens UX**, **Flow lens UX**, **presentation mode**, **comments**, **presence** | M2+ | no → backlog B-2, B-3, B-7, B-8 | — |
+| 13 | **Pixel lens UX**, **Flow lens UX**, **comments**, **presence** (presentation mode moved to #16) | M2+ | no → backlog B-2, B-3, B-8 | — |
 | 14 | **Text had no spec**: no presets, no lists UI, no strikethrough / sub-superscript, no overflow rule, per-keystroke undo, no missing-font flow, no font-adding flow, Mac word/line keys wrong, CJK invisible without a font | Everyone who types a headline; every brand with its own font | **yes** (text pass) | TEXT-FONTS-UX-SPEC §2–§9; engine follow-ups T-1…T-25 (§11.2) |
 | 15 | **Appearance had no spec**: the engine renders gradients, image fills, per-side strokes, dashes, glows and blurs that no UI can edit (the panel prints `Linear gradient`); the colour popover was hex-only; no gradient editor, no eyedropper fallback, no contrast check; the page background was one colour; no bevel; no group/ungroup, z-order, hide, rename, copy/paste style actions; no decision on components; the mask rule in F-12 was inverted | Everyone who styles a shape or a page; every brand with a gradient | **yes** (appearance pass) | APPEARANCE-TRANSFORM-UX-SPEC §2–§4, §10; engine follow-ups A-1…A-19 (§10.2) |
+
+| 16 | **Motion had no spec**: no presets, no keyframe UI, no Auto Animate, no transition UI, no audio or caption design, no video export, presentation a paragraph; the owner asked for animate and transition presets, the Auto Animate equivalent and timeline video editing flows | Everyone in M3–M5; every social video job | **yes** (motion pass) | MOTION-TIMELINE-UX-SPEC §4–§7 (presets, keys, Smart move, transitions), §8–§11 (audio, captions, Video export, presentation); engine follow-ups V-1…V-31 (§17.2) |
 
 ## 4. Backlog (ranked, for a later pass)
 
 | Id | Item | Depth needed | Reference | Notes |
 |---|---|---|---|---|
-| B-1 | **Timeline lens**: tray anatomy per density, tracks, clip HUD (range selection), trim/split/ripple gestures, keyframe lane, transitions between pages, audio meters, captions editor, playhead and J/K/L, export video tab | Layer 2 file `TIMELINE-UX-SPEC.md` + flows | CapCut, Premiere, Descript | D5, IF-8, IF-9. Start from "pages are clips" (UX.md §4). |
+| B-1 | ~~**Timeline lens**~~ → **worked** 2026-10-26 as `MOTION-TIMELINE-UX-SPEC.md` (tray and lens per density, every gesture and key, presets, keyframes, Smart move, transitions, audio, captions, `Video` export chip, presentation); what remains is the build: engine follow-ups **V-1…V-31** (§17.2: M3 timeline core and MP4, M4 presets / transitions / Smart move / presentation / WebM-GIF, M5 captions / ducking / cutout / Extend) | — | CapCut, Premiere, Final Cut, Keynote, Descript | D5, IF-8, IF-9. Owner questions in the spec §18 (milestone numbering Q1, tray Q2, ripple rule Q3, no trim tools Q4, Space Q5, keyframes Q6, Smart move matches Q7, Video chip Q8, reduced motion Q9, captions Q10, timecode Q11, routes Q12). |
 | B-2 | **Pixel lens**: brush, heal, crop UI, adjustments as a stack, "Edit image" entry from the HUD, non-destructive layers, person cutout | Layer 2 section in STUDIO or own file | Photoshop, Adobe Express | IF-8.8 matte UI belongs here. |
 | B-3 | **Flow lens**: record-to-flow, step cards, run state, App view form, batch grid, lineage | Layer 2 file | FigJam, n8n | IF-11. |
 | B-4 | **Brand panel** (dock tab `Brand`): kit picker, tokens (colours, fonts, logos, spacing), apply token, unresolved-token repair, import a kit from a design | STUDIO §3.5 | Canva Brand Kit | Colour popover's Brand row already specified. |
 | B-5 | **Resize design**: Page › Size change with `Keep layout / Scale content / Reflow` and a preview; the Export item-9 question depends on it | OVERLAYS §2.3 sibling | Canva Magic Resize | Needs engine work (constraints). |
 | B-6 | **Configurable mini editors** (Chat): which tools a spec exposes, pinning a slot, the person's overrides vs the assistant's spec | CHAT §4.1 | — | D16 pinning rules exist in data, not UX. |
-| B-7 | **Presentation mode** `▶`: chrome-free pages with transitions, presenter window, reduced motion | STUDIO §2 row + flow | Keynote | UX.md §4. |
+| B-7 | ~~**Presentation mode**~~ → **worked** 2026-10-26 in `MOTION-TIMELINE-UX-SPEC.md` §11 (`▶ Present ▾`, builds and `Builds ▸` order, show keys, presenter window `/s/:asset/presenter`, reduced motion, viewer HTML release); build = V-18 (M4); NAV §2 needs the presenter route and `?present=` row when V-18 is briefed (Q12) | — | Keynote | UX.md §4; F-75. |
 | B-8 | **Collaboration hooks**: presence chip model shared by people and agents, cursors, held-element highlight, comments panel and `comment=` | Layer 1 `PRESENCE-COMMENTS.md` | Figma | D11, IF-12.6. |
 | B-9 | **Asset and page trash**: deleted media and pages recoverable from the dock (not only designs) | HOME-FILES §2.4, STUDIO §3.2–3.3 | — | Pages already toast with Undo. |
 | B-10 | **Shortcut customisation**: rebind in Settings › Shortcuts with conflict warnings, export/import a map | STUDIO §2.3.1 | VS Code | Read-only in M1 by decision. |
@@ -226,6 +229,11 @@ library and licences, overflow, presets vs linked styles, columns, shadowed shor
 page property vs a locked layer, bevel preset vs real effect, components M1/M2, image ratio by default, one popover with
 three tabs, the `⌘⌥C` copy-style vs copy-link collision, eyedropper fallback, lock scopes, where effects stop, opacity
 keys, rulers in Standard).
+
+**Motion pass questions (Q1–Q12, 2026-10-26) are in `MOTION-TIMELINE-UX-SPEC.md` §18** (milestone numbering M2 vs M3/M4, the
+tray under Canvas and Pages, pages ripple while element clips do not, no trim tools, `Space` and focus, explicit first
+keyframe, Smart move's visible matches, Video as an Export chip not a tab and pause / resume across reload, reduced motion
+never touches export, captions as text presets and on-device transcription, seconds vs timecode, presentation routes).
 
 **Q-H. Cheat sheet shows Mac or Windows, not both.** Recommend the sheet shows the person's own platform with a
 small switch `Mac · Windows` at the top (both columns at once double the width and halve the readability).

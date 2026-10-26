@@ -53,6 +53,7 @@ The eight principles of `FOUNDATIONS.md` §1 apply unchanged. Studio adds two re
 | View menu | `View ▾` ghost button (new) | Zoom to fit `Shift+1`, Zoom to selection `Shift+2`, 100 % `Shift+0`, Zoom in/out; ─; Rulers (Pro); Snap to objects; Snap to grid; ─; **Density: Focus / Standard / Pro** as a radio group with one line each (§2.3); ─; Show layers `Mod+Shift+L`... no: Show dock `Mod+\`, Show inspector `Mod+Alt+\`. |
 | Milestone | Secondary 34 px | Opens the inline milestone form popover (name prefilled `Milestone N`, note optional, Enter creates). Feedback §9. |
 | Overflow | `⋯` icon button | Save as template…, Rename…, Duplicate design, Copy link `Mod+Alt+C`, ─, Settings `Mod+,`, Keyboard shortcuts `?`, ─, About. ("Save as template" leaves the top bar: it is rare and had no feedback; it keeps its capability. Copy link: `NAVIGATION-DEEPLINKS.md` §5.) |
+| Present | `▶ Present ▾` secondary 34 px, **rendered only once the document has more than one page or any motion** (M4); folds into `⋯` in Focus. Menu: Present from start, from this page, with presenter view, in this window, Loop, Play motion anyway. `Mod+Alt+P`. | `MOTION-TIMELINE-UX-SPEC.md` §11 (B-7). |
 | Export | **Primary** 34 px, labelled `Export` (replaces `Share` in M1) | Opens the Export dialog (`/d/export`, C1). Sharing returns as a tab of this dialog when it exists (D3: no accounts, so no links in M1). Until C1 lands on `main`, the button is **not rendered**; the first C1 PR adds it. |
 
 ### 2.1 Lens model (which lenses show, when)
@@ -74,6 +75,10 @@ Decision, consistent with D4 (lenses are modes of one core) and D19 (Studio is c
   colours (brand), which is the only trace of the future lenses. No "coming soon" pill.
 - The switcher's accessible name stays "Lens" (`role=group`, `aria-pressed`), and a lens change is announced ("Pages
   lens").
+- **Timeline** (`3`, M3): its anatomy per density, the **tray** that rides under Canvas and Pages (`Shift+T`, opens itself on
+  the first `Animate`, duration or transition), every gesture and key, presets, keyframes, Smart move, transitions, audio,
+  captions, the Export dialog's `Video` chip and presentation mode are **`MOTION-TIMELINE-UX-SPEC.md`** (B-1, B-7). The lens
+  also appears the first time `Animate` is pressed (the preset sheet opens and the lens slides in behind it).
 
 ### 2.2 Assistant entry point (provider-agnostic)
 
@@ -298,6 +303,8 @@ Standard density; Pro adds the second tooltip line; Focus is identical. `⋯` is
 | **Masked group** | Mask mode ▾ (Clip / Alpha / Luminance) · Invert · Release · Duplicate · Delete | Align, Rotate, Describe |
 | **Page** (label clicked) | Background swatch (the page's **fill stack**, `APPEARANCE-TRANSFORM-UX-SPEC.md` §2.8) · Size ▾ · Rename · Duplicate page · Delete page | Fit, Export this page…, Crop background (after A-1), Apply background to all pages, Copy link to page |
 | **Milestone preview** (read-only) | Copy | Copy link to selection, Describe |
+| **Clip · Range · Gap · Transition · Key · Caption · Track** (M3–M5, the timeline selections) | **`MOTION-TIMELINE-UX-SPEC.md` §3.2 and §3.6** (page clip: Duration · Transition ▾ · Advance ▾ · Duplicate · Delete; video clip: Speed ▾ · Volume · Split · Animate ▾ · Duplicate · Delete; range: Split at edges · Speed ▾ · Zoom here · Export range… · Delete; gap: Transition ▾ · Duration · Smart move · Apply to all gaps · Remove; key: value · Curve ▾ · Hold · Duplicate · Delete) | per that file |
+| **Any element with `Animate ▾`** (M4) | The element's own pill above with `Animate ▾` in **slot 4** (UX.md §2; `MOTION-TIMELINE-UX-SPEC.md` §4.2); until M4 the slot is not rendered | Bake to keyframes, Remove animation, Save as preset… |
 
 - `Delete` is visible on every editable non-text pill (the owner could not find it); tooltip `Delete · ⌫`.
 - A repeat **instance** is Instaflow's component instance: clicking it selects the source, highlights the instance,
@@ -391,7 +398,8 @@ rectangle is selected; no Repeat panel unless the selection is or can become a r
 | Multi-selection | Transform (mixed values) · Fill · Stroke · ▸ Effects · ▸ Layer — fields show `Mixed` (§5.3) |
 | Repeat | Transform · **Repeat** (Kind switcher Radial / Grid / Mirror, then the kind's parameters; Expand, Release buttons) · the source's sections after it |
 | Boolean / masked group | Transform · **Combine** or **Mask** (operation / mode, Invert) · Fill · Stroke · ▸ Effects · ▸ Layer |
-| Page | Page · ▸ Layout grid |
+| Page | Page · ▸ Layout grid · (M4) Page gains `Duration`, `Advance ▾`, `More ▾ Notes`; Motion (page presets) |
+| Clip · Range · Gap · Key (M3–M5) | **Clip** (name, source, in/out, speed, reverse, loop, freeze) · **Timing** (start, duration) · ▸ **Audio** (gain, fades, pan, pitch, normalise, ducking) · **Motion** (in · emphasis · out · loop presets, text units) · ▸ **Keys** (Pro: channels and curves) · then the element's own sections; gap: **Transition** (preset, duration, align, params, Smart move `Matches`); caption: **Captions** (style, position, max words) · Text — **`MOTION-TIMELINE-UX-SPEC.md` §3.6, §7.4, §8.5, §9.6** |
 
 In Focus density the inspector is a rail; in Standard, Transform shows X Y W H and angle only (flip, skew and pivot are
 under a `More ▾` row); in Pro everything is expanded, including the pivot picker.
@@ -550,7 +558,10 @@ Help (`?`), tooltips and the palette show the same keys. Browser-reserved combos
 | Zoom 100 % / fit / selection | ⇧0 / ⇧1 / ⇧2 | same | |
 | Toggle dock / inspector | ⌘\ / ⌘⌥\ | Ctrl+\ / Ctrl+Alt+\ | new |
 | Rulers / Layout grids overlay | ⇧R / ⌃G | Shift+R / Ctrl+Alt+G | `APPEARANCE-TRANSFORM-UX-SPEC.md` §4.7 |
-| Canvas / Pages lens | 1 / 5 | same | 2–4 reserved for their lenses |
+| Canvas / Pages lens | 1 / 5 | same | 2–4 reserved for their lenses; `3` = Timeline (M3) |
+| Timeline tray | ⇧T | Shift+T | M3; `MOTION-TIMELINE-UX-SPEC.md` §2.2 |
+| **Timeline** (scope `timeline`, M3–M5; the full table is `MOTION-TIMELINE-UX-SPEC.md` §3.4) | Space · J K L · ← → (⇧ = 1 s) · ↑ ↓ · Home End · I O · X ⌥X · M ⇧M · N · S · Q W E · , . · [ ] · ⇧⌫ · ⇧K · ⌥← ⌥→ · = − ⇧Z · ⇧F · ⌥G · ⌥L · ⌥F · Z · ⌘→ ⌘← | same with Ctrl / Alt | Transport, range, markers, snapping, split, trim, nudge, keys, zoom, go to time, loop, freeze, zoom here, gap selection |
+| **Presentation** (scope `presentation`, M4) | ⌘⌥P present · → Space ⏎ · ← · Home End · number ⏎ · B · W · K · M · Esc | Ctrl+Alt+P… | `MOTION-TIMELINE-UX-SPEC.md` §11.3 |
 | Previous / next page | PageUp / PageDown | same | existing |
 | **Studio** | | | |
 | Command palette | ⌘K | Ctrl+K | |
