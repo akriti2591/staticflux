@@ -72,6 +72,11 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** Drag stutter root-caused → PR #33: the page-edge overlay re-sent per move dirtied the whole page;
+  stale tiles redrawn only after present, 4/frame, centre-first (bottom row last). Fix: page edge only on change;
+  `inFrameStaleTiles` (Studio 64). Stale frames during drag 95%+ → 0. Trade-off: heavier frames on SwiftShader; not
+  measured on a real GPU. Proposal (owner decision): drag layer via renderer `lift`/`drag` (zero tile redraws per
+  move). Unexplained: split-topology input latency 2–8 s under Playwright; separate investigation suggested.
 - **2026-10-26** B12 full check green (4538 tests). Smoke 16 runs: 1 fail, **colocated** ("ello StudioH": first char's
   caret update lost), so not split-specific. Root-cause agent on `claude/fix-text-first-key` (B12 or pre-existing,
   deterministic repro, fix, 20× smoke). B12 PR waits for it.
