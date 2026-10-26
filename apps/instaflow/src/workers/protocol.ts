@@ -126,7 +126,8 @@ export interface StudioInspection {
   /** Text elements of the page (B2 layer). */
   readonly textNodes: readonly NodeId[];
   /** The text being edited and its model text. */
-  readonly editing?: { readonly node: NodeId; readonly text: string };
+  /** The text being edited, and its selection (ordered block offsets; collapsed = the caret). */
+  readonly editing?: { readonly node: NodeId; readonly text: string; readonly selection: readonly [number, number] };
   /** B3's selection frame corners (page space), when there is one. */
   readonly frame?: readonly (readonly [number, number])[];
   /** B10a: the transform session's state and the pivot (frame fractions; undefined = the centre). */

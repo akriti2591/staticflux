@@ -594,7 +594,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
         view: JSON.parse(lastView) as ViewProjection,
         elements: inspectElements(nodes),
         textNodes: t?.text.nodes ?? [],
-        ...(editing === undefined ? {} : { editing: { node: editing.node, text: editing.session.state.model.text } }),
+        ...(editing === undefined ? {} : { editing: { node: editing.node, text: editing.session.state.model.text, selection: editing.session.selection } }),
         ...(frameCorners === undefined ? {} : { frame: frameCorners.map((c) => [c[0], c[1]] as const) }),
         ...(t === undefined ? {} : { transform: { mode: t.tools.mode?.state ?? 'idle', ...(t.view.pivot === undefined ? {} : { pivot: t.view.pivot }) } }),
         docVersion: options.publisher.docVersion,

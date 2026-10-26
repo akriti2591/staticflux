@@ -38,7 +38,7 @@ import { cleanPopTheme } from '../theme/clean-pop.js';
 import { createToolController, refreshOverlay, type ToolController, type ToolOutcome, type ToolPointer, type ToolSession } from '../tools/gesture.js';
 import { createElementIndex, hitTest } from '../tools/hit-test.js';
 import { bindToolShortcuts, createToolCommands, type ToolCommands, TransformModeShortcutScope } from '../tools/keyboard.js';
-import { toolOverlayBatch } from '../tools/overlay.js';
+import { textEditBatch, toolOverlayBatch } from '../tools/overlay.js';
 import { createTransformMode } from '../tools/transform-mode.js';
 import type { GuideLabel } from '../tools/snapping.js';
 import { type Camera, createViewState, fitCamera, type TabId, type ViewState } from '../tools/view-state.js';
@@ -179,7 +179,12 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
           stroke: { width: 1 / view.camera.zoom, paint: { kind: 'solid', color: PAGE_EDGE } },
         });
       }
-      return { overlay: [prelude.finish(), toolOverlayBatch(view.overlay, view.camera.zoom, { clear: false, firstId: OVERLAY_FIRST_ID, ids: overlayIds })] };
+      const tools = toolOverlayBatch(view.overlay, view.camera.zoom, { clear: false, firstId: OVERLAY_FIRST_ID, ids: overlayIds });
+      // The caret and selection of the text being edited (TEXT-FONTS §3.2), after the tool overlay's ids.
+      const edit = editing?.overlay(view.camera.zoom);
+      const batches = [prelude.finish(), tools];
+      if (edit !== undefined) batches.push(textEditBatch(edit, { clear: false, firstId: OVERLAY_FIRST_ID + 2 * (overlayIds.length + 1), ids: overlayIds }));
+      return { overlay: batches };
     },
   };
 
@@ -290,13 +295,16 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
       onExit: (reason) => {
         editing = undefined;
         options.onEditing?.(undefined, reason);
-        publish();
+        dirtyOverlay(); // the caret goes
       },
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
       scope,
     });
     if (!started.ok) return started;
     editing = started.value;
+    // The caret and selection are drawn in the overlay: redraw it whenever the session's state changes.
+    scope.defer(started.value.session.onChange(dirtyOverlay));
+    dirtyOverlay();
     view.select([node]);
     options.onEditing?.(node);
     return ok();
@@ -385,12 +393,19 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
       return editing;
     },
     pointer(event) {
+      // FIX-TEXT-FIRST-KEY item 2: while editing, presses in the text box place the caret and drags select (TEXT-FONTS
+      // §3.2); a press anywhere else ends editing and goes on to the tools as before.
+      const [px, py] = pagePoint(view, event);
+      const textPointer = { phase: event.phase, x: px, y: py, ...(event.shift === undefined ? {} : { shift: event.shift }), ...(event.clicks === undefined ? {} : { clicks: event.clicks }) };
+      if (editing !== undefined && editing.pointer(textPointer)) return ok({ kind: 'none' });
       if (event.phase === 'down' && editing !== undefined) editing.stop();
       if (event.phase === 'down' && (event.clicks ?? 1) >= 2) {
-        const hit = hitTest(ctx, index, ...pagePoint(view, event), { tolerance: 3 / view.camera.zoom, context: view.context });
+        const hit = hitTest(ctx, index, px, py, { tolerance: 3 / view.camera.zoom, context: view.context });
         const node = hit.ok ? hit.value?.target : undefined;
         if (node !== undefined && isText(node) && !creation.handles(view.tool as ToolId)) {
           const started = editText(node);
+          // Edit mode with the caret at the click (TEXT-FONTS §3.1); a drag from here selects.
+          if (started.ok) editing?.pointer({ ...textPointer, clicks: 1 });
           return started.ok ? ok({ kind: 'selection', selection: view.selection }) : started;
         }
       }

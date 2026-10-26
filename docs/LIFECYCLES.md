@@ -627,7 +627,7 @@ input flows in through A5's ring; the store side answers on the store port.
 | ID | Invariant | Error / test |
 |---|---|---|
 | WRK-1 | Module code never asks which topology it runs in: the plan is data, endpoints are routed by the host or by main | `host.test.ts`, `studio-app.test.ts` (both topologies) |
-| WRK-2 | Input reaches the editor only through the input ring; text-host events are never forwarded | `studio-canvas.ts`; smoke |
+| WRK-2 | Input reaches the editor only through the input ring; text-host key events are never forwarded (the host's TextInput turns them into intents); its pointer events go through the ring (caret and selection by pointer, FIX-TEXT-FIRST-KEY) | `studio-canvas.ts`; smoke |
 | WRK-3 | The overlay travels in the same record as the content change it frames, applied after the content (one frame, E-2) | `canvas-tab.test.ts`; smoke (pixels during a paused drag) |
 | WRK-4 | A platform text state is applied only when no intent is in flight; `composing` follows the intents | `text-port.test.ts` (TextInput contract over the port) |
 | WRK-5 | The editor writes storage only through the store port | `store-port.test.ts` (DocumentStore and repository contracts over the port) |

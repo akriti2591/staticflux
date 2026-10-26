@@ -305,6 +305,27 @@ async function scenario(page) {
   await page.getByRole('textbox', { name: 'Text', exact: true }).waitFor({ timeout: 20_000 });
   await page.keyboard.type('Hello Studio');
   await waitAsync(page, async () => (await window.__studio.inspect()).value?.editing?.text === 'Hello Studio', null, { timeout: 20_000, polling: 100 }).catch(async (e) => fail(`${e.message} (the text reads ${JSON.stringify((await inspect()).editing?.text)})`));
+  // FIX-TEXT-FIRST-KEY item 2: Mod+A selects all the text (not the elements); a click in the text places the caret; a
+  // drag across it selects (TEXT-FONTS §3.2, §3.3). Presses on the text host reach the editor through the input ring.
+  const selectionIs = (want, what) =>
+    waitAsync(page, async (w) => JSON.stringify((await window.__studio.inspect()).value?.editing?.selection) === w, JSON.stringify(want), { timeout: 10_000 }).catch(async (e) =>
+      fail(`${what}: ${e.message} (editing ${JSON.stringify((await inspect()).editing)})`),
+    );
+  await page.keyboard.press('Control+A');
+  await selectionIs([0, 12], 'Mod+A while editing');
+  const hostBox = await page.locator('[data-if-text-host]').boundingBox();
+  if (hostBox === null) fail('no text host');
+  await page.mouse.click(hostBox.x + 1, hostBox.y + hostBox.height / 2);
+  await selectionIs([0, 0], 'click at the start of the text');
+  await page.waitForTimeout(700); // not a double click
+  await page.mouse.move(hostBox.x + 1, hostBox.y + hostBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(hostBox.x + hostBox.width / 2, hostBox.y + hostBox.height / 2, { steps: 3 });
+  await page.mouse.move(hostBox.x + hostBox.width + 20, hostBox.y + hostBox.height / 2, { steps: 3 });
+  await page.mouse.up();
+  await selectionIs([0, 12], 'drag across the text');
+  if ((await inspect()).editing === undefined) fail('a press in the text ended editing');
+  log('editing: Mod+A selects the text, a click places the caret, a drag selects');
   await page.keyboard.press('Escape');
   await waitAsync(page, async () => (await window.__studio.inspect()).value?.textNodes.length === 1 && window.__studio.tab.editing === undefined, null, { timeout: 20_000, polling: 100 });
   const textNode = (await inspect()).textNodes[0];
@@ -322,6 +343,13 @@ async function scenario(page) {
   await page.mouse.dblclick(t.x + t.w / 2, t.y + t.h / 2);
   await page.locator('[data-if-text-host][role="textbox"]').waitFor({ timeout: 20_000 }); // named after the element
   await page.keyboard.press('End');
+  // The double click put the caret at the click; End moves it in the editor, and main's EditContext learns the caret
+  // from the editor's state. A composition started before that lands at the old caret (a known race across the port,
+  // FIX-TEXT-FIRST-KEY handoff "Proposal"): wait until the caret reached main.
+  await page.waitForFunction(() => {
+    const ec = window.__studio.canvas.text?.host?.editContext;
+    return ec === undefined || ec === null || (ec.selectionStart === ec.text.length && ec.text.length > 0);
+  }, null, { timeout: 10_000 });
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Input.imeSetComposition', { text: 'にほんご', selectionStart: 4, selectionEnd: 4 });
   await page.waitForTimeout(400);
