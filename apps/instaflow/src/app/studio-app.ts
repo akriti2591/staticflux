@@ -548,6 +548,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   const titleBox = box(options.document.title);
   const keyOfCapability = new Map<string, string>(STUDIO_KEY_COMMANDS.map((k) => [k.capability as string, k.def.keys[0] as string] as const));
   const elementKeys = new Map(ELEMENT_ACTIONS.flatMap((a) => (a.shortcut === undefined ? [] : [[elementActionId(a.name), a.shortcut] as const])));
+  const globalActions: readonly string[] = STUDIO_KEY_COMMANDS.filter((k) => k.empty === true).map((k) => k.capability as string);
   const actionTable: ReadonlyMap<string, HudAction> = new Map(
     declarations.map((cap) => {
       const shortcut = keyOfCapability.get(cap.id) ?? elementKeys.get(cap.id as `instaflow/${string}`) ?? registries.value.hud(cap.id)?.shortcut;
@@ -639,6 +640,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       fonts: typographyView.read('fonts'),
       colors: scene.read('colors'),
       actions: actionTable,
+      globalActions,
       exportAvailable: exportsService !== undefined,
       templatesAvailable: templates !== undefined,
     };

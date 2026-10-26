@@ -46,6 +46,7 @@ import { starIcon } from '@staticflux/kit/icons/star';
 import type { IconDef } from '@staticflux/kit/icon';
 import type { DocumentColor } from '@staticflux/kit/color-popover';
 import type { CanvasPort, CanvasSession } from './canvas.js';
+import { type CommandEntry, defineCommandBar, type IfCommandBarElement } from './command-bar.js';
 import { defineHud, type HudAction, type HudPort, type IfHudElement } from './hud.js';
 import type { Studio } from './studio.js';
 
@@ -105,6 +106,8 @@ export interface StudioChromeModel {
   readonly fonts: readonly FontChoice[];
   readonly colors: readonly DocumentColor[];
   readonly actions: ReadonlyMap<string, HudAction>;
+  /** Capabilities that run with nothing selected (undo, redo): the command bar always lists them. */
+  readonly globalActions: readonly string[];
   /** C1's exporter exists here (the Export button renders only then). */
   readonly exportAvailable: boolean;
   /** Templates can be saved here. */
@@ -135,6 +138,7 @@ export const EMPTY_CHROME: StudioChromeModel = Object.freeze({
   fonts: [],
   colors: [],
   actions: new Map(),
+  globalActions: [],
   exportAvailable: false,
   templatesAvailable: false,
 });
@@ -341,6 +345,13 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         font-family: ${t.font.familyMono.css};
         font-size: 12px;
       }
+      .command-bar {
+        position: absolute;
+        z-index: 2;
+        inset-block-end: 24px;
+        inset-inline-start: 50%;
+        transform: translateX(-50%);
+      }
       if-hud[data-hidden] {
         visibility: hidden;
       }
@@ -493,9 +504,9 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     edit?.edit?.();
   }
 
-  /** The command palette arrives with the keyboard slice; until then `Mod+K` does nothing visible. */
+  /** Open the command bar with its filter focused (`Mod+K`, §4.4). */
   focusCommandBar(): void {
-    this.focusCanvas();
+    this.query<IfCommandBarElement>('if-command-bar')?.open();
   }
 
   /** Focus the canvas surface (`Escape`). */
@@ -589,7 +600,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         <main aria-label=${studioMessages.canvas}>
           ${this.renderPage()}
           <div class="surface" tabindex="0" role="application" aria-roledescription="canvas" aria-label=${studioMessages.canvasSurface}></div>
-          ${this.renderTools(studio)} ${this.renderHud(context.density)} ${this.renderZoom()}
+          ${this.renderTools(studio)} ${this.renderHud(context.density)} ${this.renderZoom()} ${this.renderCommandBar(studio)}
           ${this.canvasError === undefined ? nothing : html`<p role="alert">${this.canvasError}</p>`} ${this.renderProposal(studio.proposals.pending)}
         </main>
         ${this.renderPanels('inspector', context)}
@@ -772,6 +783,39 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     </div>`;
   }
 
+  /** The command bar (§4.4) over what can run now; its rows run here. */
+  private renderCommandBar(studio: Studio): TemplateResult {
+    const tools: CommandEntry[] = studio.port
+      .entries('tool@default')
+      .filter((e) => !isExiting(e))
+      .map((e) => {
+        const shortcut = studio.registries.tool(e.slot.id)?.shortcut;
+        return { value: `tool:${e.slot.id}`, title: e.slot.contribution.label, ...(shortcut === undefined ? {} : { shortcut }) };
+      });
+    const hasSelection = this.model.selection !== undefined && this.model.selection.nodes.length > 0;
+    const camera: CommandEntry[] = [
+      { value: 'camera:fit-page', title: studioMessages.zoomFit, shortcut: 'Shift+1' },
+      ...(hasSelection ? [{ value: 'camera:fit-selection', title: studioMessages.zoomSelection, shortcut: 'Shift+2' }] : []),
+      { value: 'camera:zoom-100', title: studioMessages.zoom100, shortcut: 'Shift+0' },
+      { value: 'camera:zoom-in', title: studioMessages.zoomIn, shortcut: 'Mod+=' },
+      { value: 'camera:zoom-out', title: studioMessages.zoomOut, shortcut: 'Mod+-' },
+    ];
+    const sources = { selection: this.model.selection, actions: this.model.actions, globalActions: this.model.globalActions, tools, camera, recent: [] };
+    return html`<if-command-bar class="command-bar" .sources=${sources} @if-command=${(e: CustomEvent<{ value: string }>) => this.runCommand(studio, e.detail.value)}></if-command-bar>`;
+  }
+
+  private runCommand(studio: Studio, value: string): void {
+    const [kind, ...rest] = value.split(':');
+    const id = rest.join(':');
+    const run: Readonly<Record<string, () => void>> = {
+      // Commands that need no selection run without one (their inputs take no nodes).
+      cap: () => (this.model.globalActions.includes(id) ? this.port?.invoke(id, {}, []) : this.port?.invoke(id)),
+      tool: () => void studio.selectTool(id as ToolId),
+      camera: () => this.port?.camera(id as CameraAction),
+    };
+    run[kind ?? '']?.();
+  }
+
   private renderPanels(region: PanelPlacementId, context: PanelContext): TemplateResult | typeof nothing {
     const studio = this.studio as Studio;
     const entries = studio.port.entries(`panel@${region}`);
@@ -860,6 +904,7 @@ export function defineStudio(registry: CustomElementRegistry = customElements): 
   defineTextField(registry);
   defineDock(registry);
   defineHud(registry);
+  defineCommandBar(registry);
   if (registry.get(studioComponent.tag) === undefined) defineComponent(IfStudioElement, registry);
 }
 
