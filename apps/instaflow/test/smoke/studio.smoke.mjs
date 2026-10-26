@@ -43,6 +43,19 @@ const fail = (m) => {
   throw new Error(m);
 };
 const near = (a, b, tolerance) => Math.abs(a - b) <= tolerance;
+/**
+ * `page.waitForFunction` for **async** predicates (they read `window.__studio.inspect()`): Playwright does not await a
+ * Promise the predicate returns, it is truthy, so such a wait ended at once (FIX-TEXT-FIRST-KEY: the typing check passed
+ * on "ello StudioH" and the failure surfaced only in the PDF). Polls `fn(arg)` in the page until it resolves truthy.
+ */
+async function waitAsync(page, fn, arg, { timeout = 10_000, polling = 100 } = {}) {
+  const until = Date.now() + timeout;
+  for (;;) {
+    if (await page.evaluate(fn, arg)) return;
+    if (Date.now() > until) fail(`timed out after ${timeout} ms waiting for: ${String(fn).replace(/\s+/g, ' ').slice(0, 200)}`);
+    await page.waitForTimeout(polling);
+  }
+}
 
 const server = await createServer({ configFile: fileURLToPath(new URL('../../dev/studio/vite.config.ts', import.meta.url)), server: { port: 0 }, logLevel: 'warn' });
 await server.listen();
@@ -223,11 +236,11 @@ async function scenario(page) {
   await surface.focus();
   const u0 = await undoDepth();
   await page.keyboard.press('Shift+H');
-  await page.waitForFunction(async (n) => (await window.__studio.inspect([n])).value?.elements[0]?.flipX === true, rect, { timeout: 10_000, polling: 100 });
+  await waitAsync(page, async (n) => (await window.__studio.inspect([n])).value?.elements[0]?.flipX === true, rect, { timeout: 10_000, polling: 100 });
   const flipped = await el();
   if (!near(flipped.rotation, rotated.rotation, 0.01) || !near(flipped.x, rotated.e.x, 0.01) || (await undoDepth()) !== u0 + 1) fail(`flip: ${JSON.stringify({ before: rotated.e, after: flipped, undo: [u0, await undoDepth()] })}`);
   await page.keyboard.press('Shift+H');
-  await page.waitForFunction(async (n) => (await window.__studio.inspect([n])).value?.elements[0]?.flipX === false, rect, { timeout: 10_000, polling: 100 });
+  await waitAsync(page, async (n) => (await window.__studio.inspect([n])).value?.elements[0]?.flipX === false, rect, { timeout: 10_000, polling: 100 });
   const unflipped = await el();
   if (!near(unflipped.x, rotated.e.x, 0.01) || !near(unflipped.y, rotated.e.y, 0.01) || !near(unflipped.w, rotated.e.w, 0.01)) fail(`flip twice is not the identity: ${JSON.stringify({ before: rotated.e, after: unflipped })}`);
   log(`flip horizontal and back (Shift+H twice: flipX on, then off; rotation ${Math.round(flipped.rotation)}° kept; one undo step each)`);
@@ -260,7 +273,7 @@ async function scenario(page) {
   const u2 = await undoDepth();
   await width.fill('150');
   await width.press('Enter');
-  await page.waitForFunction(async (n) => Math.abs(((await window.__studio.inspect([n])).value?.elements[0]?.w ?? 0) - 150) < 0.01, rect, { timeout: 10_000, polling: 100 });
+  await waitAsync(page, async (n) => Math.abs(((await window.__studio.inspect([n])).value?.elements[0]?.w ?? 0) - 150) < 0.01, rect, { timeout: 10_000, polling: 100 });
   if ((await undoDepth()) !== u2 + 1) fail(`numeric bar: ${u2} → ${await undoDepth()} undo steps`);
   log('numeric bar: W = 150 typed and applied (one undo step)');
 
@@ -269,19 +282,19 @@ async function scenario(page) {
   const session0 = await el();
   const u3 = await undoDepth();
   await page.keyboard.press('Control+T');
-  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.transform?.mode === 'active', null, { timeout: 10_000, polling: 100 });
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.transform?.mode === 'active', null, { timeout: 10_000, polling: 100 });
   for (const key of ['ArrowRight', 'ArrowRight', 'ArrowDown']) await page.keyboard.press(key);
-  await page.waitForFunction(async ([n, y]) => Math.abs(((await window.__studio.inspect([n])).value?.elements[0]?.y ?? 0) - y - 1) < 0.01, [rect, session0.y], { timeout: 10_000, polling: 100 });
+  await waitAsync(page, async ([n, y]) => Math.abs(((await window.__studio.inspect([n])).value?.elements[0]?.y ?? 0) - y - 1) < 0.01, [rect, session0.y], { timeout: 10_000, polling: 100 });
   await page.keyboard.press('Escape');
-  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.transform?.mode === 'idle', null, { timeout: 10_000, polling: 100 });
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.transform?.mode === 'idle', null, { timeout: 10_000, polling: 100 });
   const cancelled = await el();
   if (!near(cancelled.x, session0.x, 0.01) || !near(cancelled.y, session0.y, 0.01) || (await undoDepth()) !== u3 || (await page.evaluate(() => window.__studio.tab.view.selection.length)) !== 1) fail(`transform mode Escape: ${JSON.stringify({ session0, cancelled, undo: [u3, await undoDepth()] })}`);
   await page.keyboard.press('Control+T');
-  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.transform?.mode === 'active', null, { timeout: 10_000, polling: 100 });
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.transform?.mode === 'active', null, { timeout: 10_000, polling: 100 });
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Shift+H');
   await page.keyboard.press('Enter');
-  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.transform?.mode === 'idle', null, { timeout: 10_000, polling: 100 });
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.transform?.mode === 'idle', null, { timeout: 10_000, polling: 100 });
   const applied = await el();
   if (!(applied.flipX === !session0.flipX) || (await undoDepth()) !== u3 + 1) fail(`transform mode Enter: ${JSON.stringify({ session0, applied, undo: [u3, await undoDepth()] })}`);
   log('transform mode (Mod+T): Escape cancelled the session, Enter applied a nudge and a flip as one undo step');
@@ -291,9 +304,9 @@ async function scenario(page) {
   await page.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.7);
   await page.getByRole('textbox', { name: 'Text', exact: true }).waitFor({ timeout: 20_000 });
   await page.keyboard.type('Hello Studio');
-  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.editing?.text === 'Hello Studio', null, { timeout: 20_000, polling: 100 });
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.editing?.text === 'Hello Studio', null, { timeout: 20_000, polling: 100 }).catch(async (e) => fail(`${e.message} (the text reads ${JSON.stringify((await inspect()).editing?.text)})`));
   await page.keyboard.press('Escape');
-  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.textNodes.length === 1 && window.__studio.tab.editing === undefined, null, { timeout: 20_000, polling: 100 });
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.textNodes.length === 1 && window.__studio.tab.editing === undefined, null, { timeout: 20_000, polling: 100 });
   const textNode = (await inspect()).textNodes[0];
   const text = (await inspect([textNode])).elements[0];
   if (!(text?.w > 20)) fail(`no text element: ${JSON.stringify(text)}`);
@@ -319,7 +332,7 @@ async function scenario(page) {
     return { kind: ec === undefined || ec === null ? 'hidden-textarea' : 'edit-context', bounds: [...bounds].map((r) => ({ x: r.x, y: r.y, w: r.width, h: r.height })), editing: window.__studio.tab?.editing?.node };
   });
   await cdp.send('Input.insertText', { text: '日本語' });
-  await page.waitForFunction(async () => (await window.__studio.inspect()).value?.editing?.text?.includes('日本語') === true, null, { timeout: 20_000, polling: 100 });
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.editing?.text?.includes('日本語') === true, null, { timeout: 20_000, polling: 100 });
   const tb = await screenBox(textNode);
   const inside = (r) => r.x >= tb.x - 4 && r.y >= tb.y - 4 && r.x + r.w <= tb.x + tb.w + 40 && r.y + r.h <= tb.y + tb.h + 8;
   if (during.kind === 'edit-context') {
@@ -361,7 +374,7 @@ async function scenario(page) {
   await surface.focus();
   await page.keyboard.press('Escape'); // a canvas shortcut (through the ring): clears the selection, the overlay redraws
   await page.waitForFunction(() => window.__studio.tab.view.selection.length === 0, null, { timeout: 10_000 });
-  await page.waitForFunction(async (n) => ((await window.__studio.metrics()).value?.render?.draws ?? 0) > n, drawsBefore, { timeout: 10_000, polling: 100 });
+  await waitAsync(page, async (n) => ((await window.__studio.metrics()).value?.render?.draws ?? 0) > n, drawsBefore, { timeout: 10_000, polling: 100 });
   log('hidden then visible: state kept, drawing again');
 
   // ---------------------------------------------------------------- lens switch and page switch
