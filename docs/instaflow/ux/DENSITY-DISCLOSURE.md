@@ -61,6 +61,8 @@ chevron, summary slot, `open`, persisted key) is **missing** (StaticFlux kit); t
 | Selection pill (HUD) | Visible; ≤ 6 items. | same | same, with a second tooltip line (description); values show units |
 | Command bar / zoom pill | Visible, bottom. | same | same; the command bar also shows the last run command's name as a ghost prefix (`Tidy up ·`) for repeat by Enter |
 | Canvas HUD (handles, size pills, guides) | same everywhere; distance tags only while dragging | same | distance tags **also on hover** of an aligned neighbour; the size pill shows decimals when zoomed in past 400 % |
+| **Timeline tray** (Canvas / Pages, M3) | Hidden; `Shift+T` shows a floating strip for the session | 112 px docked under the canvas: story clips with filmstrips, the selected element's keys strip, transport | 136 px; the selected element's property lanes folded (chevron); timecode |
+| **Timeline lens** track area (M3) | Preview edge to edge; the transport floats as a pill bottom-centre; tracks hidden until `Shift+T` (floating sheet) | Transport docked; track area 240 px (160–480), **one row per kind** (Story · Overlays · Text · Audio · Captions), a kind's several tracks fold | 320 px; **every track its own row**, heights remembered; key lanes; value graph toggle; frames on the ruler; timecode; `fps` tag — **`MOTION-TIMELINE-UX-SPEC.md` §2.3** |
 | Toasts, banners, dialogs | identical in every mode (OVERLAYS); only their **spacing token set** follows the mode (§6) | | |
 
 ### 3.2 Inspector, per mode, per selection kind
@@ -81,6 +83,10 @@ Focus renders the rail. Tier assignments (the clutter audit, §8.1) are the norm
 | Boolean / Mask | Transform, Combine (Operation ▾, Release, Flatten) or Mask (Mask mode ▾, Invert, Release, Matte ▾), Fill | Stroke ▸, Effects ▸, Layer ▸ | `Swap mask` |
 | Instance (M2, A-12) | Transform, the component's sections with override dots | `Reset overrides ▾` | Override list open |
 | Multi | Transform (union frame), Fill (`Mixed fills` + `Replace all ▾` when stacks differ), Stroke | Effects ▸, Layer ▸ | Per-element list (names) at the top with a click-to-isolate and per-element X Y W H |
+| Clip (video / audio / element in time, M3) | Clip (Speed, In, Out, Source + Replace…), Timing (Start, Duration), Motion (In ▾ Emphasis ▾ Out ▾ Loop ▾ with summaries, M4), the element's sections | Clip `More ▾` (Loop, Freeze at, Crop), Audio ▸ (gain, fades; `More ▾` pan, pitch, normalise, ducking M5), Keys ▸ with summary `4 channels · 11 keys` | Keys open: a row per channel with its mini strip and curve glyph; inline curve picker; `Bake`; clip label gains in–out, speed, `◆ n` — **`MOTION-TIMELINE-UX-SPEC.md` §3.6** |
+| Gap / Transition (M4) | Transition (Preset ▾, Duration, Smart move `Matches` list) | `Align ▾`, Curve ▾, preset params, `Unmatched ▾`, `Morph text ▾` on the second line | All open; match keys as mono tags in the list |
+| Key (M3) | Keys row: time, value, Curve ▾ | — | Value graph on the lane |
+| Caption (M5) | Captions (Style ▾, position grid, Max words), Text essentials | Text `More ▾` (TEXT §4.2), `Apply to track` | Everything open |
 
 Collapsed sections show a summary line; `More ▾` rows show nothing until opened except a mist count tag when a
 hidden field is non-default (`More ▾ · 2`), so a skewed shape does not look un-skewed in Standard.
@@ -195,7 +201,11 @@ exactly one of the blocks in §2. Presets stay visible. "Folds to" names the blo
 | Text | Style ▾ · Font ▾ · Weight ▾ · Size · Colour · `B I U S 🔗` · Align row (`⟵ ≡ ⟶ ☰` · List ▾) | `More ▾`: Line height, Letter spacing, Paragraph spacing, Vertical align, Auto-size, Case ▾, Sub/superscript, Fit to box (`TEXT-FONTS-UX-SPEC.md` §4.2) | Vertical align only for fixed boxes; Fit to box only when overflowing; OpenType, axes, baseline, direction, hyphenation, truncate (Pro only) |
 | Image | Fit ▾ · Replace… | `More ▾`: source, pixel size, Crop reset, Adjustments sliders | — |
 | Repeat | Kind switcher · two main numbers · Expand · Release | `More ▾`: the rest of the parameters | — |
-| Page | Name · Size pair with `Presets ▾` · Background fill stack | `More ▾`: Orientation lock, Apply background to all pages, Use for new pages; Layout grid ▸ | Margins/bleed (Pro only); Background `Gradient`/`Image…` entries only after A-1 |
+| Page | Name · Size pair with `Presets ▾` · Background fill stack · (M4) Duration · Advance ▾ | `More ▾`: Orientation lock, Apply background to all pages, Use for new pages, (M4) Notes; Layout grid ▸; (M4) Motion ▸ (page presets) | Margins/bleed (Pro only); Background `Gradient`/`Image…` entries only after A-1; Duration / Advance only from M3 / M4 |
+| Clip (M3) | Speed · In · Out · Source · Start · Duration · Motion rows (M4) | `More ▾`: Loop, Freeze at, Crop; Audio ▸: gain, fades (`More ▾`: pan, pitch, normalise, ducking); Keys ▸ | Ducking only from M5; Keys open in Pro only; Speed not rendered for page clips (`MOTION-TIMELINE-UX-SPEC.md` §3.6) |
+| Transition (M4) | Preset ▾ · Duration · Smart move matches | Second line: Align ▾, Curve ▾, params, Unmatched ▾, Morph text ▾ | `Matches` only for Smart move; `Pattern ▾` only for Luma wipe |
+| Track header (M3) | kind · name · eye or mute · lock · fader (audio) | `⋯`: Remove, Rename, Solo (Standard), Label | Pro: solo and per-track meter always visible |
+| Transport bar (M3) | ⏮ ◀◀ ▶ ▶▶ ⏭ · time · in/out chip · Snap · meter · zoom · Fit | `⋯`: Loop, Audio scrub, Quality ▾, Master fader, Record voice-over (M5) | Pro: timecode, frame counter, dropped-frame dot, Master inline |
 | View menu | Zoom, Snapping ▸ (elements, grids, smart guides), Rulers, Density, Panels | `Snapping ▸` holds Snap to pixels and Snap to guides (M2); Pixel grid, Lock guides (Pro) | — |
 | HUD `⋯` More menu | the searchable menu, grouped | n/a (it *is* the fold) | rows the selection cannot run are absent |
 | Context menu | ≤ 18 rows with dividers (STUDIO §8.2) | `Select same ▾`, `Make repeat ▾`, `Align ▾`, `Combine ▾`, `Fit ▾` are submenus | — |
@@ -228,6 +238,11 @@ exactly one of the blocks in §2. Presets stay visible. "Folds to" names the blo
 | Colour popover | Tabs `Solid · Gradient · Image` · Value row (model menu, alpha, eyedropper, save) · Contrast tag · Document colours (Gradient tab: Document gradients + Presets) · Brand · Saved · Palette · Recent | `Custom ▸` inline (Pro: open); the model menu remembers; `Image` tab only for fills and strokes (`APPEARANCE-TRANSFORM-UX-SPEC.md` §2.2–2.3) |
 | Font picker | Search · category chips · Recent · In this design · Brand · Your fonts · Library · On this computer | Weight is a separate menu (never in the list); `+ Add fonts ▾` footer holds Upload, Use fonts on this computer, Browse Google Fonts (M2) (`TEXT-FONTS-UX-SPEC.md` §5.1) |
 | Missing fonts dialog | One row per family: Add from this computer · Replace with ▾ · Upload… | `Replace all with the fallback` ghost in the footer (`TEXT-FONTS-UX-SPEC.md` §5.6) |
+| Preset sheet (`Animate ▾`, M4) | Tabs `In · Emphasis · Out · Loop` · filter chips · tiles · Duration · Direction · Curve ▾ · text units row | `More ▾`: preset-specific params; `Tune ▸` in Focus hides every parameter; Pro: all open, `Bake to keyframes` visible (`MOTION-TIMELINE-UX-SPEC.md` §4.2) |
+| Transition sheet (M4) | Tiles · Duration · Apply to all gaps | Align ▾, Curve ▾, params behind `More ▾` (§7.2) |
+| Curve picker (M3) | Twelve named curves | `Custom ▸`: bezier handles and numbers, or spring sliders; `Apply to ▾`; Pro opens on the editor (§5.4) |
+| Export › `Video` (M3) | Preset row · Container · Size pair · Frame rate · Quality · Range · Audio · Captions ▾ (M5) · estimate card · name line | `Advanced ▸`: Transparent (WebM / sequence), Loop and colours (GIF), Chapters, Bitrate and Codec ▾ (Pro), proxy note (§10.2) |
+| Presenter window (M4) | Current · Next · Notes · timer · counter · transport | Text size `+ −`; `End show` |
 
 ### 8.4 Home
 
