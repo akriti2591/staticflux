@@ -855,6 +855,8 @@ named after the control unless it says otherwise.
 
 ## 11. Owner questions (recommendation first)
 
+**Answered 2026-10-26: the owner accepted every recommendation below. Build them as written.**
+
 **Q1. Page background: a property of the page, or a locked layer?** *Recommend:* make the page's background the **same
 fill stack a shape has** (colour, gradient, image, several rows with opacity) as a property of the page — engine work,
 A-1, scheduled as an M1 follow-up. The alternative, which Canva uses, is a special locked rectangle at the bottom of the

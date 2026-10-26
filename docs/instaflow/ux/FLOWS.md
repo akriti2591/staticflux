@@ -8,7 +8,8 @@
 >
 > Conventions: `Mod` = ⌘ / Ctrl. "Pill" = the selection pill. "Toast", "banner", "takeover" = `OVERLAYS-FEEDBACK.md`;
 > URLs and fallbacks = `NAVIGATION-DEEPLINKS.md`; text and fonts = `TEXT-FONTS-UX-SPEC.md` (F-60…F-64); appearance,
-> transforms and structure = `APPEARANCE-TRANSFORM-UX-SPEC.md` (F-65…F-72). Fixture: a fresh workspace
+> transforms and structure = `APPEARANCE-TRANSFORM-UX-SPEC.md` (F-65…F-72); motion and timeline = `MOTION-TIMELINE-UX-SPEC.md`
+> (F-73…F-81, all M3–M5). Fixture: a fresh workspace
 > unless a precondition says otherwise. Every step's result must be checkable by a test (DOM text, accessibility tree,
 > the editor's `inspect`, a screenshot region, or the polite live region).
 
@@ -841,6 +842,93 @@ Blocks: smart guides, equal spacing labels, `View › Snapping ▸`, rulers, ali
    grid, `Ctrl+Alt+T` → tidy rows and columns; (M2, A-17) drag a gap handle → all gaps change. 9. Frame › `Layout grid ▸ +
    Add ▾ Columns 12` → the overlay (`Ctrl+G` toggles), dragging a child snaps to the column lines; export shows no grid.
 
+## I. Motion and timeline (2026-10-26 motion pass; spec `MOTION-TIMELINE-UX-SPEC.md`; milestones per PLAN §2)
+
+### F-73 Animate a title with a preset — **M4**
+Blocks: pill `Animate ▾`, preset sheet (tabs, tiles, in-place preview, parameters, text units), tray, keys strip, Motion section, Bake.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Select the headline in the Canvas lens, click `Animate ▾` (pill slot 4) | `Alt+Enter`, arrows to `Animate`, Enter | The preset sheet opens on `In` anchored to the pill; the **tray** slides up under the canvas showing `Page 1 · 5.0 s` as a clip and a playhead at 0; the lens switcher gains `Timeline`. |
+| 2 | Hover `Fade up` | arrows to the tile, wait 400 ms | The headline itself fades up in place once (a tangerine ring marks it); the tile's drawing loops. |
+| 3 | Click `Fade up` | Enter | Applied; the sheet stays; the clip in the tray shows a tangerine **In cap** of 0.6 s; the Motion section reads `In · Fade up · 0.6 s`; one undo step `Animate · Fade up`; announced `Animate: Fade up, in, 0.6 seconds`. |
+| 4 | Set `Duration` to 1.0, `Direction ↑`, `Curve ▾ Overshoot` | Tab, type, Enter; arrows | The preview loops the In span live; the cap lengthens to 1.0 s; the curve tile previews a ball drop. |
+| 5 | Text row: `Word`, `Stagger 0.06` | arrows, type | The words rise one after another in the preview; the pill chip reads `In · Fade up · word`. |
+| 6 | `Emphasis` tab → `Pulse` | | A `◆` emphasis diamond at the page midpoint on the clip; drag it to 3 s → it moves (label `3.0 s`). |
+| 7 | `Space` with focus in the tray | `Space` | Plays from the playhead: the headline fades up by word, pulses at 3 s; `Paused at 5.0 seconds` on the end. Reduced motion on: hover previews need a click, the In still plays on `Space`. |
+| 8 | `Bake to keyframes` (Pro, or `More ▾`) | | The preset is replaced by keys on `Opacity` and `Y`; the keys strip shows diamonds; `Keys ▸ 2 channels · 4 keys`; one step `Bake Fade up`. `Mod+Z` → the preset returns. |
+| 9 | Sheet `⋯ › Save as preset…`, name `House rise` | | Appears under the `Saved` chip and in Assets › Motion; in another design on this device it is a tile. |
+| 10 | `Mod+Shift+E` → `Video` → `Export MP4` | | The export renders the same motion (F-76 covers the dialog); the poster frame is the playhead's frame. |
+
+### F-74 Auto Animate between two pages (Smart move) — **M4**
+Blocks: Pages lens gap selection, gap pill, transition sheet, Smart move, `Matches` list, canvas arrows, match keys through duplicate.
+
+1. Pages lens: page 1 holds a product photo, a headline, a price sticker. Pages row `⋯ › Duplicate page` → page 2 with the same elements (keys carried). 2. On page 2 move the photo left, make the headline bigger, change the price text to `€19`, delete the sticker, add a `New` badge. 3. Click the `⟋` gap between pages 1 and 2 (the `+` dot on hover) → the gap pill: `Gap · Page 1 → 2 · Transition ▾ · Duration · Smart move · Apply to all gaps · Remove`; the inspector shows **Transition**. 4. Click `Smart move` → applied at 0.6 s; the gap shows an overlap block `Smart move · 0.6 s`; the canvas draws page 1 ghosted under page 2 with tangerine arrows from the photo and headline to their new places; the pill chip reads `Smart move · 2 matched · 2 unmatched`; one step `Transition · Smart move`. 5. `Matches` → the list: `Photo ⇄ Photo`, `Headline ⇄ Headline`, `Price ⇄ Price · text changes`, `Sticker → (fades out)`, `New badge (fades in)`; hover a row → both elements highlight. 6. On the price row `Morph text ▾ By letter` → the preview morphs `€24` to `€19` digit by digit. 7. Click `Link…` on `New badge`, pick the sticker on page 1 → the badge now tweens from the sticker's place; the chip reads `3 matched · 0 unmatched`; `Unlink` undoes it. 8. Hover the Smart move tile in the sheet, or scrub the overlap band on the tray's ruler → the tween plays in the preview; `Curve ▾ Gentle`. 9. `Apply to all gaps` on a 5-page deck → toast `Smart move applied to 4 gaps · Undo`; every gap in the filmstrip shows the glyph. 10. Rename the headline layer `Hero title` → the match holds (keys, not names). 11. Reduced motion on → the gap previews as a dissolve with a `⊘ motion` tag; `Mod+Shift+E › Video` says `Export includes full motion`.
+
+### F-75 Page transitions and present — **M4**
+Blocks: transition sheet, `Apply to all gaps`, Page `Duration` / `Advance ▾` / `Builds ▸`, `▶ Present ▾`, show keys, presenter window, reduced motion.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Gap 2→3, `Transition ▾` → `Push ←`, Duration 0.5 | arrows, type | The overlap block `Push ← · 0.5 s`; hover previews both pages pushing. |
+| 2 | `Apply to all gaps` | Enter | Toast `Push applied to 4 gaps · Undo`. |
+| 3 | Page 2: `Advance ▾ On click`; Pages row `Builds ▸` | | The list `1 Headline · In`, `2 Price · Emphasis`; drag Price above Headline; `With previous` on Price → one group. |
+| 4 | `▶ Present ▾ › Present from start` | `Mod+Alt+P` | Full screen, page 1 plays its In builds; the cursor hides after 2 s. |
+| 5 | `→` | `→` / `Space` | Push to page 2; its builds wait; `→` plays the Headline + Price group together. |
+| 6 | `B`, then `B` | | Black screen and back. Type `4`, Enter → page 4. `Esc` → Studio on page 4, selection unchanged. |
+| 7 | `▶ ▾ › Present with presenter view` | | A second window: current, `Next`, notes, timer, `2 / 5`, `build 1 of 2`; advancing in either window advances both. Fullscreen refused → `Present in this window` with a toast. |
+| 8 | Reduced motion on, present | | Every transition is a 0.3 s fade; `Play motion anyway` in the `▶ ▾` menu restores it for this show. |
+
+### F-76 Cut a 30-second clip with music and captions and export MP4 — **M3** (captions steps M5; WebM/GIF M4)
+Blocks: drop media on the story track, lens appearance, filmstrip / waveform renditions, trim with ripple, `S` split, range delete, story audio with fades, ducking, captions generation and style, Export `Video` chip, estimate, progress, pause / resume, toast.
+
+1. Home › `Video` tile (or any design): drop `talk.mp4` (1 min 20) on the empty tray → a new page of the video's size and duration with the clip; the **Timeline lens** slides in; the filmstrip and waveform fill in from the left (shimmer meanwhile). 2. `3` → the lens: Story row `Page 1 · 1:20.0`, the clip's linked audio under its filmstrip. 3. `Space` plays audio-master; `J` `J` → 2× backwards; `K` stops; `←`/`→` step frames; `Shift+→` steps 1 s; the time reads `0:12.4` (`00:00:12:10` in Pro). 4. Playhead at 0:04.0, `I`; at 0:34.0, `O` → the range band; `X` would mark the clip instead. 5. `Shift+Delete` with the range selected → everything outside stays and the range is cut? No: `Delete` on a range **cuts the range**; so instead: ruler right-click `Keep only this range` → the clip trims to 0:04–0:34 and the page ripples to 30.0 s; one step `Trim to range`. 6. Playhead at 0:12.0, `S` → two clips; drag the second one's start edge right 0.8 s with the label `Ripple trim · −0.8 s` → the page is 29.2 s. 7. Drop `music.mp3` on the `Story audio` row → it spans the story with a 2 s fade-out by default; drag its start fade handle to 1 s; set its Volume to −8 dB from the pill. 8. (M5) Music pill `⋯ › Audio › Duck under voice` → gain keys appear under speech (`auto` tag); the meter stays under −1 dBFS with the `LIM` tag flickering at most. 9. (M5) Talk clip `⋯ › Captions ▾ › Generate…` → `On this device`, style `Bold pop`, 4 words → a progress chip `Transcribing · 40 %`; captions stream onto the Captions row; the Transcript tab appears. 10. (M5) In the Transcript, fix `their → there` (the caption updates); select `um, so` and `Delete` → a ripple cut across the talk and music rows; `‖` mark; undo restores. 11. (M5) Caption pill `Style ▾ Karaoke` → words fill as spoken; drag the caption block on the preview to the lower-third guide (`View › Safe areas ▾ Reels` on). 12. `Mod+Shift+E` → click `Video`: `MP4` selected, size `1080 × 1920` (the page), `30 fps`, `High`, `Whole story · 0:29.2`, Audio on, (M5) `Captions ▾ Burned in`; the preview card shows the poster at the playhead, `≈ 22 MB · ≈ 45 s on this device`; a muted line `Preview used proxies · export renders the originals`. 13. `Export MP4` → the footer becomes the progress row `Rendering frame 240 of 876 · 0:08.0 · ≈ 30 s left · Pause · Cancel`; close the dialog → the sticky toast with `27 %`; the top-bar Export button shows a ring; editing continues. 14. `Pause`, reload the tab → Studio opens with `Export paused by reload · Resume · Discard`; `Resume` → `Exported talk.mp4 · Show in folder`; `Play` opens it. 15. Open the file: the cut, the ducked music, the burned captions match the preview frame for frame (the fidelity suite's check); the document is unchanged (D10). 16. (M4) Switch the container to `GIF` → `Audio` and `Captions` rows disappear, `Loop` and `Colours` appear in Advanced; `WebM` is not rendered on a device that cannot encode VP9 and the Advanced step says why.
+
+### F-77 Keyframes and easing by hand — **M3** (graph and motion path M4)
+Blocks: `◇` on fields, auto-key hint, keys strip, Pro lanes, curve picker (named, bezier, spring), motion path, `Alt`-offset, copy / paste keys, Hold.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Select a logo in the Timeline lens; playhead at 0; click `◇` beside `X` | Tab to `X`, `Shift+K` | A filled `◆` beside `X`; hint `Animated · key at 0.0 s`; the clip gains a keys strip with one diamond; the Transform header gets a tangerine dot. |
+| 2 | Playhead to 2 s (`Shift+→` twice), drag the logo right on the preview | arrows (nudge) | A second key; hint `Key added at 2.0 s` for 1.5 s; a **motion path** appears on the canvas between the two positions (M4); `X` reads the new value. |
+| 3 | `Space` | | The logo slides over 2 s with the default `Ease`. |
+| 4 | Click the second `◆`, pill `Curve ▾` → `Overshoot` | `Alt+→` to the key, `Alt+Enter`, arrows | The segment's glyph changes; `Space` → it overshoots and settles. |
+| 5 | `Custom ▸`, drag a bezier handle; then pick `Spring`, `Stiffness 180` | Tab, arrows | Numbers follow the handle; the spring preview shows `settles in 0.9 s`; the segment stretches to the settle time. |
+| 6 | Pro: clip header chevron → lanes `X`, `Y`; `Graph` | | Value curves; drag a handle on the lane → the picker's numbers follow. |
+| 7 | Playhead at 1 s, `Alt`+type `+10` in `X`, `Alt+Enter` | | Every key shifts by 10 (`Offset channel`); no new key. |
+| 8 | Select both keys, `Mod+C`, select another element, `Mod+V` | | Keys pasted at the playhead on its `X`; toast when a channel is missing. |
+| 9 | Pill `Hold` on the first key | | The value jumps at 2 s (`◆|`); the curve tile is dimmed with the reason. |
+| 10 | Reduce the composition fps to 24 in Export | | Keys are re-sampled on export; the document keeps 30 fps; a hint says so. |
+
+### F-78 Trim, split, ripple, slip, slide and roll with the keyboard — **M3**
+Blocks: edge selection, modifiers, two-line labels, `Q W E`, `,` `.`, `Shift+Delete`, snapping, undo labels.
+
+1. Two touching clips A (0–6 s) and B (6–12 s) on an overlay track. Hover A's end edge → trim cursor; drag left 1 s → label `Trim end · 5.0 s (−1.0)`; B stays (a 1 s gap). `Mod+Z`. 2. `Shift`+drag the same edge → `Ripple trim · 3 clips move`; B and later clips follow. 3. `Alt`+drag the A|B join → `Roll · +0.5 s`: A lengthens, B shortens, total unchanged. 4. `Alt`+drag inside B → `Slip · in 2.0 s → 2.4 s`; the preview shows B's first and last frames side by side. 5. `Alt+Shift`+drag inside B → `Slide · +0.5 s`: B moves, A lengthens, the clip after B shortens. 6. Keyboard only: select A, `]` selects its end edge, `.` ×10 → `+10 frames`; `Shift+.` → `+1 s`; `Alt+.` on a shared edge → roll by a frame. 7. Playhead at 3 s inside A, `Q` → A's start trims to 3 s and everything ripples; `Mod+Z`; `W` → A's end trims to 3 s; `E` on a selected clip → its nearest edge extends to the playhead. 8. Playhead at 4 s, `S` → A splits; select the second piece, `Shift+Delete` → gone, the gap closes; `Delete` instead would leave the gap. 9. `N` off → no snapping; `N` on → the edge snaps to the playhead with a tangerine line across all tracks; hold `Mod` → suspended. 10. On the **story track**, trim page 2's end: everything ripples (no `Shift` needed); `Delete` on a page ripples with a toast `Deleted Page 2 · Undo`. 11. The Pro undo line reads `Undo: Ripple trim` after each step; `?` lists every key under `Timeline`.
+
+### F-79 Audio levels, fades, meters — **M3** (ducking and voice-over M5)
+Blocks: clip gain, gain line keys, fade handles, crossfade, track fader, master meter and limiter, mute / solo, normalise, pan, audio scrub.
+
+1. Two music clips overlapping by 1 s on the story audio row → an X crossfade drawn automatically (equal power). 2. Drag the first clip's top-left fade handle to 2 s → a fade curve on the waveform; Audio · S `Fade in 2.0 s`; `Curve ▾ S-curve`. 3. Pill `Volume` scrub to −6 dB → the waveform peaks shrink; drag the gain line up at 10 s → keys appear (`Key added at 10.0 s`), a rubber band. 4. Header fader of the Audio track to −3 dB (double-click → 0); the master meter shows the sum; push a clip to +12 dB → the meter goes red and `LIM` lights; nothing clips in the export. 5. Header `◉` mutes; `S` solos the voice track (others hatched); view state only. 6. Audio · M `Normalise ▾ −14 LUFS` → gain set, hint `Measured −19.2 LUFS`; `Pan` −30. 7. `Shift+S` → audio scrubbing on; dragging the playhead plays grains. 8. (M5) `Duck under voice` on the music → `auto` keys; move the voice clip → the keys regenerate; `Freeze keys` detaches. 9. (M5) Transport `⋯ › Record voice-over…` → count-in, a new clip grows on a new Audio track while the story plays muted; `Esc` keeps it; microphone refused → toast `Microphone isn't allowed · Allow in site settings`. 10. Export `Audio only` (M4) → `talk.m4a`; the export's loudness equals the live mix within −60 dBFS.
+
+### F-80 Unsupported codec, missing media and a long render — **M3**
+Blocks: `IF-MEDIA-001` placeholder clip, Replace / Locate, encoder chips, progress, pause / resume, reload resume, encoder failure section error, GPU-lost banner during playback.
+
+| # | Pointer | Keyboard | Visible result |
+|---|---|---|---|
+| 1 | Import `clip.mov` (ProRes) | | Assets lists it with a warning tag; dropping it on a track makes a **placeholder clip** `Can't play this format here` keeping its duration; its audio plays; the pill offers `Replace…`; the fix text names H.264 MP4. |
+| 2 | Paste a clip from another workspace | | A hatched clip `reaction.mp4 isn't on this device · Locate… · Replace…`; the cut is intact; Export shows a section error listing it until fixed. |
+| 3 | On a device without H.264 encode, open Export › Video | | `MP4` is not rendered; `WebM` first; the Advanced step explains `This device cannot encode H.264`. |
+| 4 | Export a 10-minute story | | Estimate `≈ 4 min`; progress row; after 2 min the toast adds `Keep this tab open`; the tab title shows `▶ 27 %`; switching tabs keeps rendering. |
+| 5 | Reload mid-render | | `Export paused by reload · Resume · Discard`; `Resume` continues from the last checkpoint. |
+| 6 | Encoder dies at 0:12.4 | | Section error `Couldn't finish rendering at 0:12.4 · the encoder stopped` with `Resume`, `Try a lower quality`, `Export the first 0:12 instead`. |
+| 7 | GPU lost during playback | | Playback pauses, last frame holds, mist banner `Graphics restarting…`; no auto-resume; twice in a minute → `Use Draft` toast. |
+| 8 | Cancel | | Within a frame; no partial file; no toast. |
+
+### F-81 Edit by transcript — **M5**
+Blocks: Transcript dock tab, word selection = range, `Delete` = ripple cut, filler filter, Review, speakers, Zoom here from words, SRT export.
+
+1. With a transcript, the dock gains `Transcript`; click a word → the playhead jumps; the current word highlights during playback. 2. Drag across `wait, what?!` → the range pill `Zoom here · Delete · Split · Emphasis caption`; `Zoom here` → eased scale keys over the range; the preview punches in to 130 %; no keyframe UI needed. 3. `Filler words` chip → `um`, `uh`, repeats and silences > 0.7 s highlighted with `Remove all · Review`; `Review` steps through each with `Keep · Cut` in the pill; `Remove all` → toast `Removed 14 fillers · 9.2 s · Undo`. 4. Type over a mis-heard word → the caption updates, timing kept; a faint underline marks words under 60 % confidence with alternatives on hover. 5. `Speaker 1 ▾` rename to `Maya` → the `lower-third` caption style shows it. 6. Caption pill `⋯ › Export captions… › .srt` → `talk.srt`; Export › Video `Captions ▾ Both` → `talk.mp4 + talk.srt (zip)`. 7. `Mod+F` with `Kind ▾ Transcript` finds `budget` across the transcript. 8. No model installed and no provider: the Generate sheet explains with `Open Settings › Assistant` and `Install on-device model`; nothing else assistant-shaped renders.
+
 ## D. Coverage matrix (block → flows)
 
 | Block | Flows |
@@ -891,3 +979,14 @@ Blocks: smart guides, equal spacing labels, `View › Snapping ▸`, rulers, ali
 | Components and instances (M2) | F-71 |
 | Snapping, rulers, guides, layout grids, align popover, key object, tidy up | F-72, F-04, F-08 |
 | Copy / paste style, Select same | F-66, F-56 |
+| Timeline lens appearance, tray, transport, ruler, playhead, J/K/L, range, markers, snapping | F-73, F-76, F-78 |
+| Preset sheet, in-place preview, text units, Bake, saved presets | F-73 |
+| Gap selection, transition sheet, Smart move, Matches list, Apply to all gaps | F-74, F-75 |
+| Page Duration / Advance / Builds, `▶ Present`, show keys, presenter window | F-75 |
+| Clip rendering (filmstrip, waveform), trim family, split, ripple, slip, slide, roll, `Q W E` | F-76, F-78 |
+| `◇` keys, auto-key hint, keys strip, lanes, graph, curve picker, motion path, Hold | F-77 |
+| Audio gain, fades, crossfade, faders, master meter, limiter, normalise, ducking, voice-over | F-79, F-76 |
+| Captions generation, styles, safe areas, Transcript tab, edit by transcript, SRT | F-76, F-81 |
+| Export `Video` chip, estimate, progress, pause / resume, reload resume, container gating | F-76, F-80 |
+| Media errors (codec placeholder, missing media, encoder, GPU lost) | F-80 |
+| Reduced motion (content), flashing guard | F-73, F-74, F-75 |

@@ -676,6 +676,8 @@ where it is.
 
 ## 12. Owner questions (recommendation first)
 
+**Answered 2026-10-26: the owner accepted every recommendation below. Build them as written.**
+
 **Q1. Tab while editing.** *Recommend:* inside a list item Tab indents (Shift+Tab outdents); anywhere else Tab does
 nothing — it neither inserts a tab character (we have no tab stops) nor leaves editing (today it does, and a typist who
 hits Tab by habit loses the caret and lands on the element). Exit stays Escape / ⌘Enter / click away. *Example:* you are

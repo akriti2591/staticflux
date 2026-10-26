@@ -72,6 +72,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** #30 (B11a2) and #31 (appearance + text specs) merged; #29 closed (verified fully included in #31:
+  ancestry + byte-identical docs). Owner: "all recommended" (text Q1–Q10, appearance Q1–Q11, recorded in both specs)
+  and "sequencing is yours". Order: B12 engine gaps → B11b surfaces → Fable motion/video pass. B12 launched on
+  `claude/wip-b12-engine` (IF-37, §39, IF-FIX).
 - **2026-10-26** Appearance pass done → PR #31 (stacked on #29; APPEARANCE-TRANSFORM-UX-SPEC, F-65–F-72, Q1–Q11 asked).
   Engine follow-ups for M1 (with or before B11b): text T-1–T-9, appearance A-1 page fill stack, A-2 hidden prop,
   A-3 image crop; plus missing actions group/ungroup/reorder/rename/frameSelection. Proposal: a B12 engine work
