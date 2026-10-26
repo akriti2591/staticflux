@@ -22,6 +22,7 @@ import { defineFontPicker } from '@staticflux/kit/font-picker';
 import { defineHint } from '@staticflux/kit/hint';
 import { defineMenu, type SfMenuElement } from '@staticflux/kit/menu';
 import { definePopover, type SfPopoverElement } from '@staticflux/kit/popover';
+import { defineShortcutSheet } from '@staticflux/kit/shortcut-sheet';
 import { defineSurfaces, type SfDialogElement } from '@staticflux/kit/surfaces';
 import { defineTooltip } from '@staticflux/kit/tooltip';
 import { CLEAN_POP_COLOR_PALETTE } from '../theme/palette.js';
@@ -53,6 +54,7 @@ beforeAll(() => {
   defineDisclosure();
   defineHint();
   defineSurfaces();
+  defineShortcutSheet();
 });
 afterEach(async () => {
   await dispose?.();
@@ -192,6 +194,15 @@ describe('B11a foundation blocks under Clean Pop', () => {
     dialog.allowDismiss('escape');
     await settle(2);
     expect(dialog.discarding).toBe(true);
+    expectNoA11yIssues(root);
+  });
+
+  it('B11b keyboard cheat sheet: cards, kbd pills, the search and the platform switch', async () => {
+    const groups = [
+      { heading: 'Edit', rows: [{ id: 'a', label: 'Undo', keys: ['Mod+Z'] }, { id: 'b', label: 'Paste in place', keys: ['Mod+Shift+V'] }] },
+      { heading: 'View', rows: [{ id: 'c', label: 'Zoom in', keys: ['Mod+='] }] },
+    ];
+    const root = await mount(html`<sf-shortcut-sheet .groups=${groups}></sf-shortcut-sheet>`);
     expectNoA11yIssues(root);
   });
 

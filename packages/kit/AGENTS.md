@@ -88,6 +88,10 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
   `trailingPinned` / `muted` rows, inline rename with `sf-rename` `{ id, value }` and `sf-rename-cancel`), `flattenTree`, `visibleRange`,
   `dropPositionAt`, `isInSubtree`, `findNode`, `treeDragMachine` (`kit/tree-drag`), types `TreeNode`, `TreeRow`, `ReorderDetail`,
   `RenameDetail`, `CanDrop`.
+- `shortcut-sheet` — `<sf-shortcut-sheet .groups platform=mac|windows search-label empty-label platform-label>` (the keyboard cheat
+  sheet: search filters and marks rows, platform switch, one card per group, `sf-row-hover` `{ id }`; `focusSearch()`),
+  `shortcutSheetGroups(list, groupOf, order)` (a registry snapshot → cards; drops shadowed, repeated and ungrouped entries),
+  `filterShortcutSheet`, types `ShortcutSheetGroup`, `ShortcutSheetRow`, `ShortcutPlatform`, `defineShortcutSheet`. *(R13.47, B11b)*
 - `command-palette` — `<sf-capability-palette>` (render dep `CapabilityRegistryToken`), `fuzzyScore`, `isPaletteRunnable`, `paletteEntries`,
   `CapabilityShortcutsToken` + `capabilityShortcut(cap, keys)`, `capabilityPaletteSurface`, `CapabilityPaletteShortcut` (`Mod+K`),
   `openCapabilityPalette`, `bindCapabilityPalette`, `bindCapabilityShortcuts`.
@@ -146,10 +150,11 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 | @staticflux/kit/dock (raised 7 → 7.6 KB by B11a: chevrons are <sf-icon> + Lucide modules, no text glyphs; 8.2 KB by B11a2: icon buttons carry the warm-period tooltip) | 8.2 KB | packages/kit/dist/dock.js |
 | @staticflux/kit/inspector (raised 1.85 → 2.65 KB by B11a: the group chevron is <sf-icon>) | 2.65 KB | packages/kit/dist/inspector.js |
 | @staticflux/kit/tree (raised 4.4 → 5.1 KB by B11a: the twisty is <sf-icon>; B11b raised 5.1 → 5.75 KB: inline rename rows, trailing row content, muted and highlighted rows for Layers) | 5.75 KB | packages/kit/dist/tree.js |
+| @staticflux/kit/shortcut-sheet (<sf-shortcut-sheet>: the keyboard cheat sheet over a registry snapshot; B11b) | 2.5 KB | packages/kit/dist/shortcut-sheet.js |
 | @staticflux/kit/command-palette | 3.6 KB | packages/kit/dist/command-palette.js |
 | @staticflux/kit/roving | 1.25 KB | packages/kit/dist/roving.js |
 | @staticflux/kit/position (raised 1.5 → 1.7 KB by B11a2: shrink step and the context-menu corner rule) | 1.7 KB | packages/kit/dist/position.js |
-| @staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows) | 43.25 KB | packages/kit/dist/index.js |
+| @staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>) | 43.75 KB | packages/kit/dist/index.js |
 | @staticflux/kit/tag | 1.1 KB | packages/kit/dist/tag.js |
 | @staticflux/kit/status | 1.1 KB | packages/kit/dist/status.js |
 | @staticflux/kit/card | 1.1 KB | packages/kit/dist/card.js |

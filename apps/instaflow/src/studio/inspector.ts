@@ -445,6 +445,14 @@ export class IfInspectorElement extends SfElement<typeof spec> {
     this.renderRoot.querySelector<HTMLElement>(`section[data-section="page"] sf-text-field`)?.focus();
   }
 
+  /** Rename the selection in place: the header's name field edits (`Mod+Shift+R`, F2, the context menu). */
+  async focusName(): Promise<boolean> {
+    await this.updateComplete;
+    const field = this.renderRoot.querySelector<HTMLElement & { edit(): void }>('header sf-inline-edit.name');
+    field?.edit();
+    return field !== null;
+  }
+
   private get pro(): boolean {
     return this.density === 'pro';
   }

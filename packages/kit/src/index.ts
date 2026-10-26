@@ -26,6 +26,7 @@ import { defineTextField } from './text-field.js';
 import { defineToolbar } from './toolbar.js';
 import { defineTooltip } from './tooltip.js';
 import { defineTree } from './tree.js';
+import { defineShortcutSheet } from './shortcut-sheet.js';
 import { defineConfirmRow } from './confirm-row.js';
 import { defineFeedback } from './feedback.js';
 import { defineCopyField } from './copy-field.js';
@@ -63,6 +64,7 @@ export * from './toolbar.js';
 export * from './dock.js';
 export * from './inspector.js';
 export * from './tree.js';
+export * from './shortcut-sheet.js';
 export * from './command-palette.js';
 export * from './overlay.js';
 export * from './confirm-row.js';
@@ -100,6 +102,7 @@ export function defineKit(registry: CustomElementRegistry = customElements): voi
     defineDock,
     defineInspector,
     defineTree,
+    defineShortcutSheet,
     defineCapabilityPalette,
     defineConfirmRow,
     defineFeedback,

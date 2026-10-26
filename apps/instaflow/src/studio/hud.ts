@@ -419,7 +419,7 @@ export class IfHudElement extends SfElement<typeof spec> {
           ([group, actions]) =>
             html`<sf-menu-group label=${group}>
               ${actions.map((a) => html`<sf-menu-item value=${a.id} shortcut=${a.shortcut ?? nothing}>${a.title}</sf-menu-item>`)}
-              ${group === 'Transform' && canTransform ? html`<sf-menu-item value="instaflow/free-transform-hud" shortcut="Mod+T">${hudMessages.freeTransform}</sf-menu-item>` : nothing}
+              ${group === 'Transform' && canTransform ? html`<sf-menu-item value="instaflow/free-transform-hud" shortcut="Mod+Alt+T">${hudMessages.freeTransform}</sf-menu-item>` : nothing}
             </sf-menu-group>`,
         )}
       </sf-menu>`;

@@ -248,8 +248,9 @@ export const TOOL_KEYMAP: readonly ToolKeyBinding[] = Object.freeze([
   { id: 'instaflow/zoom-selection', keys: ['Shift+2'], description: 'Zoom to the selection', run: (c) => c.fitSelection() },
   { id: 'instaflow/flip-h', keys: ['Shift+H'], description: 'Flip horizontal', run: (c) => c.flip('horizontal') },
   { id: 'instaflow/flip-v', keys: ['Shift+V'], description: 'Flip vertical', run: (c) => c.flip('vertical') },
-  // Browsers reserve Mod+T for a new tab outside full screen and installed apps; the HUD's Free transform does the same.
-  { id: 'instaflow/free-transform', keys: ['Mod+T'], description: 'Free transform (Enter applies, Escape cancels)', run: (c) => c.transform() },
+  // Browsers reserve Mod+T for a new tab outside full screen and installed apps: Mod+Alt+T is the key people can use (B11b,
+  // STUDIO §7); the HUD's Free transform does the same.
+  { id: 'instaflow/free-transform', keys: ['Mod+Alt+T', 'Mod+T'], description: 'Free transform (Enter applies, Escape cancels)', run: (c) => c.transform() },
 ]);
 
 /** B10a: the keys of an active transform session (`TransformModeShortcutScope`). */

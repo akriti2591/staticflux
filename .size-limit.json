@@ -778,6 +778,23 @@
     "limit": "5.75 KB"
   },
   {
+    "name": "@staticflux/kit/shortcut-sheet (<sf-shortcut-sheet>: the keyboard cheat sheet over a registry snapshot; B11b)",
+    "path": "packages/kit/dist/shortcut-sheet.js",
+    "ignore": [
+      "mobx",
+      "lit",
+      "@lit/context",
+      "@staticflux/core",
+      "@staticflux/ui",
+      "@staticflux/ui/theme",
+      "@staticflux/messaging",
+      "@staticflux/a11y",
+      "@staticflux/i18n",
+      "@staticflux/capabilities"
+    ],
+    "limit": "2.5 KB"
+  },
+  {
     "name": "@staticflux/kit/command-palette",
     "path": "packages/kit/dist/command-palette.js",
     "ignore": [
@@ -829,7 +846,7 @@
     "limit": "1.7 KB"
   },
   {
-    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows)",
+    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>)",
     "path": "packages/kit/dist/index.js",
     "ignore": [
       "mobx",
@@ -843,7 +860,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "43.25 KB"
+    "limit": "43.75 KB"
   },
   {
     "name": "@staticflux/stage (stage, attribution, undo service; excl. framework)",

@@ -330,6 +330,26 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
       const e = needEditor();
       return e.ok ? e.value.camera(action) : e;
     },
+    async copy({ nodes, cut }) {
+      const e = needEditor();
+      return e.ok ? e.value.copy(nodes, cut) : e;
+    },
+    async paste({ payload, inPlace }) {
+      const e = needEditor();
+      return e.ok ? e.value.paste(payload, inPlace) : e;
+    },
+    async pasteText({ text }) {
+      const e = needEditor();
+      return e.ok ? e.value.pasteText(text) : e;
+    },
+    async contextAt(point) {
+      const e = needEditor();
+      return e.ok ? e.value.contextAt(point) : e;
+    },
+    async editText() {
+      const e = needEditor();
+      return e.ok ? e.value.editText() : e;
+    },
     async inspect({ nodes }) {
       const e = needEditor();
       return e.ok ? ok(e.value.inspect(nodes)) : e;

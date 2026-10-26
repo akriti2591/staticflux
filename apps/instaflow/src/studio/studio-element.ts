@@ -10,7 +10,7 @@
  * pill (`<if-hud>`) and the page card read `model` (the editor's mirrors, set by the app); every edit goes out through
  * `port`. Nothing here decides: it shows and forwards.
  */
-import type { ShortcutRegistry } from '@staticflux/a11y';
+import { defineShortcut, type ShortcutDef, type ShortcutRegistry } from '@staticflux/a11y';
 import { createScope, type Scope } from '@staticflux/core';
 import { defineButton } from '@staticflux/kit/button';
 import { defineDock } from '@staticflux/kit/dock';
@@ -22,7 +22,7 @@ import { downloadIcon } from '@staticflux/kit/icons/download';
 import { ellipsisIcon } from '@staticflux/kit/icons/ellipsis';
 import { minusIcon } from '@staticflux/kit/icons/minus';
 import { plusIcon } from '@staticflux/kit/icons/plus';
-import { defineMenu } from '@staticflux/kit/menu';
+import { defineMenu, type SfMenuElement } from '@staticflux/kit/menu';
 import { definePopover, type SfPopoverElement } from '@staticflux/kit/popover';
 import { defineSegmented, type SegmentOption } from '@staticflux/kit/segmented';
 import { defineTabs } from '@staticflux/kit/tabs';
@@ -47,10 +47,11 @@ import type { IconDef } from '@staticflux/kit/icon';
 import type { DocumentColor } from '@staticflux/kit/color-popover';
 import type { CanvasPort, CanvasSession } from './canvas.js';
 import { defineInspectorElement } from './inspector.js';
-import { defineLayersPanel } from './layers-panel.js';
+import { defineLayersPanel, type LayerContextDetail } from './layers-panel.js';
 import { type CommandEntry, defineCommandBar, type IfCommandBarElement } from './command-bar.js';
 import { defineHud, type HudAction, type HudPort, type IfHudElement } from './hud.js';
-import type { Studio } from './studio.js';
+import { type Studio, StudioShortcutScope } from './studio.js';
+import { type ContextEntry, type ContextGroup, type ContextTarget, contextMenuGroups, parseContextValue } from './context-menu.js';
 
 /** User-facing strings (props override them; i18n lands with the app shell). */
 export const studioMessages = Object.freeze({
@@ -89,6 +90,19 @@ export const studioMessages = Object.freeze({
   open: 'Open',
   dismiss: 'Dismiss',
   canvasFailed: 'The canvas could not start. The rest of Studio still works.',
+  contextMenu: 'Context menu',
+});
+
+/** The chrome's own keys (STUDIO-UX-SPEC §7, B11b slice 4); the cheat sheet lists them with every other shortcut. */
+export const ChromeShortcuts = Object.freeze({
+  toggleDock: defineShortcut({ id: 'instaflow/toggle-dock', keys: ['Mod+\\'], scope: StudioShortcutScope, description: 'Show or hide the dock' }),
+  toggleInspector: defineShortcut({ id: 'instaflow/toggle-inspector', keys: ['Mod+Alt+\\'], scope: StudioShortcutScope, description: 'Show or hide the inspector' }),
+  rename: defineShortcut({ id: 'instaflow/rename-key', keys: ['Mod+Shift+R', 'F2'], scope: StudioShortcutScope, description: 'Rename the selection' }),
+  copyLink: defineShortcut({ id: 'instaflow/copy-link', keys: ['Mod+Alt+L'], scope: StudioShortcutScope, description: 'Copy a link to this design' }),
+  milestone: defineShortcut({ id: 'instaflow/milestone-key', keys: ['Mod+Alt+S'], scope: StudioShortcutScope, description: 'Create a milestone' }),
+  save: defineShortcut({ id: 'instaflow/save-key', keys: ['Mod+S'], scope: StudioShortcutScope, description: 'Instaflow saves as you work' }),
+  help: defineShortcut({ id: 'instaflow/shortcuts-help', keys: ['Shift+?'], scope: StudioShortcutScope, description: 'Keyboard shortcuts' }),
+  contextMenu: defineShortcut({ id: 'instaflow/context-menu-key', keys: ['Shift+F10'], scope: StudioShortcutScope, description: 'Open the context menu' }),
 });
 
 /** The camera commands of the View menu and the zoom pill (the editor runs them). */
@@ -115,6 +129,10 @@ export interface StudioChromeModel {
   readonly exportAvailable: boolean;
   /** Templates can be saved here. */
   readonly templatesAvailable: boolean;
+  /** B11b slice 4: what Paste and Paste style can do now (context menu). */
+  readonly clipboard: { readonly canPaste: boolean; readonly styleCopied: boolean };
+  /** Pages in the design (Delete page needs two). */
+  readonly pages: number;
 }
 
 /** What the chrome runs (the app implements it over capabilities and mirrors). */
@@ -129,6 +147,22 @@ export interface StudioChromePort extends HudPort {
   navigate(href: string): void;
   /** The page label (STUDIO §1): select the page (nothing selected: the inspector shows Page); `rename` focuses its name. */
   selectPage(rename: boolean): void;
+  /** B11b slice 4: the context menu's target at a canvas point (selects what is there), or the selection. */
+  contextAt(point?: { readonly x: number; readonly y: number }): Promise<SelectionSummary | undefined>;
+  /** Clipboard commands from menus (keys use the browser's copy / cut / paste events). */
+  clipboard(action: 'cut' | 'copy' | 'paste' | 'paste-in-place' | 'copy-as-text'): void;
+  selectAll(): void;
+  editText(): void;
+  textPreset(name: string): void;
+  fitToBox(): void;
+  /** Replace the selected image (the library picker). */
+  replaceImage(): void;
+  /** Page edits on the open page (`size` takes `WxH`). */
+  pageAction(action: 'add' | 'duplicate' | 'delete' | 'size', arg?: string): void;
+  /** `Mod+S`: Instaflow saves as you work (a toast offers a milestone). */
+  saveHint(): void;
+  /** `?`: the keyboard cheat sheet. */
+  openShortcuts(): void;
 }
 
 export const EMPTY_CHROME: StudioChromeModel = Object.freeze({
@@ -146,6 +180,8 @@ export const EMPTY_CHROME: StudioChromeModel = Object.freeze({
   globalActions: [],
   exportAvailable: false,
   templatesAvailable: false,
+  clipboard: { canPaste: false, styleCopied: false },
+  pages: 1,
 });
 
 /** The tool picker's shape family (one button, a menu, STUDIO-UX-SPEC §4.1). */
@@ -222,6 +258,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     model: { attribute: false },
     port: { attribute: false },
     hudHidden: { state: true },
+    closed: { state: true },
+    contextGroups: { state: true },
   };
   static override styles = [
     css`
@@ -439,6 +477,10 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
   declare model: StudioChromeModel;
   declare port: StudioChromePort | undefined;
   declare hudHidden: boolean;
+  /** Regions the person closed (`Mod+\\`, `Mod+Alt+\\`, the dock's collapse button) although the density opens them. */
+  declare closed: ReadonlySet<PanelPlacementId>;
+  /** The open context menu's items (STUDIO §8.2). */
+  declare contextGroups: readonly ContextGroup[];
   private wired: Scope | undefined;
   private canvasSession: CanvasSession | undefined;
   private hudFrozen = false;
@@ -462,6 +504,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     this.model = EMPTY_CHROME;
     this.port = undefined;
     this.hudHidden = false;
+    this.closed = new Set();
+    this.contextGroups = [];
   }
 
   override disconnectedCallback(): void {
@@ -545,6 +589,22 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     if (this.shortcuts !== undefined) {
       const bound = studio.bindShortcuts(this.shortcuts, { focusHud: () => this.focusHud(), focusCommandBar: () => this.focusCommandBar(), focusCanvas: () => this.focusCanvas() }, scope);
       if (bound.ok) this.shortcuts.attach(this, scope);
+      // B11b slice 4: the chrome's own keys (STUDIO §7).
+      const selected = (): number => this.model.selection?.nodes.length ?? 0;
+      const keys: readonly (readonly [ShortcutDef, () => void, (() => boolean)?])[] = [
+        [ChromeShortcuts.toggleDock, () => this.toggleRegion('dock')],
+        [ChromeShortcuts.toggleInspector, () => this.toggleRegion('inspector')],
+        [ChromeShortcuts.rename, () => this.rename(), () => selected() === 1],
+        [ChromeShortcuts.copyLink, () => this.port?.copyLink()],
+        [ChromeShortcuts.milestone, () => this.port?.createMilestone('')],
+        [ChromeShortcuts.save, () => this.port?.saveHint()],
+        [ChromeShortcuts.help, () => this.port?.openShortcuts()],
+        [ChromeShortcuts.contextMenu, () => void this.openContextMenuFromKeyboard()],
+      ];
+      for (const [def, run, when] of keys) {
+        const registered = this.shortcuts.register(def, run, { scope, ...(when === undefined ? {} : { when }) });
+        if (!registered.ok) console.warn(registered.error.message);
+      }
     }
     const surface = this.query<HTMLElement>('.surface');
     if (this.canvas !== undefined && surface !== null) {
@@ -583,6 +643,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
   }
 
   private collapsed(region: PanelPlacementId, entries: readonly SpecLayoutEntry[], density: Density): boolean {
+    if (this.closed.has(region)) return true;
     if (this.expanded.has(region)) return false;
     const studio = this.studio;
     return !entries.some((e) => DENSITY_RANK[density] >= DENSITY_RANK[studio?.registries.panel(e.slot.id)?.minDensity ?? 'focus']);
@@ -590,9 +651,133 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
 
   private setExpanded(region: PanelPlacementId, collapsed: boolean): void {
     const next = new Set(this.expanded);
-    if (collapsed) next.delete(region);
-    else next.add(region);
+    const closed = new Set(this.closed);
+    if (collapsed) {
+      next.delete(region);
+      closed.add(region);
+    } else {
+      next.add(region);
+      closed.delete(region);
+    }
     this.expanded = next;
+    this.closed = closed;
+  }
+
+  /** `Mod+\\` / `Mod+Alt+\\`: collapse or open the dock / the inspector (STUDIO §7). */
+  toggleRegion(region: PanelPlacementId): void {
+    const studio = this.studio;
+    const entries = studio?.port.entries(`panel@${region}`) ?? [];
+    this.setExpanded(region, !this.collapsed(region, entries, this.context().density));
+  }
+
+  /** Rename the selection in place (the inspector header; `Mod+Shift+R`, F2, the context menu). */
+  rename(): void {
+    const inspector = this.query<HTMLElement & { focusName?: () => void }>('if-inspector');
+    if (this.closed.has('inspector')) this.setExpanded('inspector', false);
+    void this.updateComplete.then(() => (this.query<HTMLElement & { focusName?: () => void }>('if-inspector') ?? inspector)?.focusName?.());
+  }
+
+  /** Open the context menu for a target at a client point (STUDIO §8.2). `keyboard` focuses the first row. */
+  async openContextMenu(target: ContextTarget, at: { readonly x: number; readonly y: number }, options: { readonly keyboard?: boolean; readonly returnTo?: Element } = {}): Promise<void> {
+    this.contextGroups = contextMenuGroups(target, { ...this.model.clipboard, pages: this.model.pages });
+    await this.updateComplete;
+    const menu = this.query<SfMenuElement>('sf-menu.context-menu');
+    menu?.showAt(at, { ...(options.keyboard === true ? { keyboard: true } : {}), ...(options.returnTo === undefined ? {} : { returnTo: options.returnTo }) });
+  }
+
+  private async onCanvasContext(e: MouseEvent): Promise<void> {
+    const port = this.port;
+    if (port === undefined) return;
+    e.preventDefault();
+    const label = e.composedPath().some((t) => t instanceof HTMLElement && t.hasAttribute('data-if-page-label'));
+    if (label) {
+      await this.openContextMenu({ kind: 'page' }, { x: e.clientX, y: e.clientY });
+      return;
+    }
+    const surface = this.query<HTMLElement>('.surface');
+    const rect = surface?.getBoundingClientRect();
+    const keyboard = e.clientX === 0 && e.clientY === 0;
+    const summary = await port.contextAt(keyboard || rect === undefined ? undefined : { x: e.clientX - rect.left, y: e.clientY - rect.top });
+    const target: ContextTarget = summary === undefined || summary.kind === 'none' ? { kind: 'canvas' } : { kind: 'selection', summary };
+    await this.openContextMenu(target, keyboard ? this.menuAnchor() : { x: e.clientX, y: e.clientY }, { keyboard, ...(surface === null ? {} : { returnTo: surface }) });
+  }
+
+  /** A Layers row's context menu: the page row gets the page's items, an element row the selection's. */
+  private async onLayerContext(detail: LayerContextDetail): Promise<void> {
+    const port = this.port;
+    if (port === undefined) return;
+    const summary = detail.page ? undefined : await port.contextAt();
+    const target: ContextTarget = summary === undefined || summary.kind === 'none' ? { kind: 'page' } : { kind: 'selection', summary };
+    await this.openContextMenu(target, { x: detail.x, y: detail.y }, { returnTo: detail.returnTo });
+  }
+
+  /** Where a keyboard-opened menu goes: the selection's top-left, or the canvas centre. */
+  private menuAnchor(): { readonly x: number; readonly y: number } {
+    const region = this.query<HTMLElement>('main')?.getBoundingClientRect();
+    const frame = this.model.frame;
+    const { tx, ty, zoom } = this.model.camera;
+    if (region === undefined) return { x: 0, y: 0 };
+    if (frame === undefined) return { x: region.left + region.width / 2, y: region.top + region.height / 2 };
+    return { x: region.left + frame.x * zoom + tx, y: region.top + (frame.y + frame.h) * zoom + ty };
+  }
+
+  /** `Shift+F10` / the Menu key with the canvas focused. */
+  async openContextMenuFromKeyboard(): Promise<void> {
+    const port = this.port;
+    if (port === undefined) return;
+    const summary = await port.contextAt();
+    const target: ContextTarget = summary === undefined || summary.kind === 'none' ? { kind: 'canvas' } : { kind: 'selection', summary };
+    const surface = this.query<HTMLElement>('.surface');
+    await this.openContextMenu(target, this.menuAnchor(), { keyboard: true, ...(surface === null ? {} : { returnTo: surface }) });
+  }
+
+  private runContext(value: string): void {
+    const port = this.port;
+    const parsed = parseContextValue(value);
+    if (port === undefined || parsed === undefined) return;
+    if (parsed.kind === 'cap') {
+      const { node, ...input } = parsed.input as { node?: string } & Record<string, unknown>;
+      port.invoke(parsed.id, input, node === undefined ? undefined : [node]);
+      return;
+    }
+    const arg = parsed.arg ?? '';
+    const commands: Readonly<Record<string, () => void>> = {
+      cut: () => port.clipboard('cut'),
+      copy: () => port.clipboard('copy'),
+      paste: () => port.clipboard('paste'),
+      'paste-in-place': () => port.clipboard('paste-in-place'),
+      'copy-as-text': () => port.clipboard('copy-as-text'),
+      rename: () => this.rename(),
+      'copy-link': () => port.copyLink(),
+      'select-all': () => port.selectAll(),
+      'zoom-fit': () => port.camera('fit-page'),
+      'zoom-100': () => port.camera('zoom-100'),
+      'add-page': () => port.pageAction('add'),
+      'edit-text': () => port.editText(),
+      'text-style': () => port.textPreset(arg),
+      'fit-to-box': () => port.fitToBox(),
+      'replace-image': () => port.replaceImage(),
+      fit: () => port.setImageFit(arg),
+      'page-rename': () => port.selectPage(true),
+      'page-duplicate': () => port.pageAction('duplicate'),
+      'page-delete': () => port.pageAction('delete'),
+      'page-size': () => port.pageAction('size', arg),
+      'page-background': () => port.selectPage(false),
+    };
+    commands[parsed.name]?.();
+  }
+
+  private renderContextMenu(): TemplateResult {
+    const items = (list: readonly ContextEntry[]): TemplateResult[] =>
+      list.map((e) =>
+        e.children === undefined
+          ? html`<sf-menu-item value=${e.value} shortcut=${e.shortcut ?? nothing}>${e.label}</sf-menu-item>`
+          : html`<sf-menu-item value=${e.value}>${e.label}</sf-menu-item>
+              <sf-menu slot="submenu" label=${e.label}>${items(e.children)}</sf-menu>`,
+      );
+    return html`<sf-menu class="context-menu" label=${studioMessages.contextMenu} @sf-select=${(e: CustomEvent<{ value: string }>) => this.runContext(e.detail.value)}>
+      ${this.contextGroups.map((group, i) => html`${i > 0 ? html`<div role="separator"></div>` : nothing}${items(group)}`)}
+    </sf-menu>`;
   }
 
   override render(): TemplateResult | typeof nothing {
@@ -602,11 +787,12 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     return html`${this.renderTopBar(studio, context.density)}
       <div class="body">
         ${this.renderDock(context)}
-        <main aria-label=${studioMessages.canvas}>
+        <main aria-label=${studioMessages.canvas} @contextmenu=${(e: MouseEvent) => void this.onCanvasContext(e)}>
           ${this.renderPage()}
           <div class="surface" tabindex="0" role="application" aria-roledescription="canvas" aria-label=${studioMessages.canvasSurface}></div>
           ${this.renderTools(studio)} ${this.renderHud(context.density)} ${this.renderZoom()} ${this.renderCommandBar(studio)}
           ${this.canvasError === undefined ? nothing : html`<p role="alert">${this.canvasError}</p>`} ${this.renderProposal(studio.proposals.pending)}
+          ${this.renderContextMenu()}
         </main>
         ${this.renderPanels('inspector', context)}
       </div>`;
@@ -867,7 +1053,12 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const selected = present.find((e) => e.slot.key === this.dockTab)?.slot.key ?? present[0]?.slot.key;
     return html`<aside aria-label=${studioMessages.dock} data-region="dock">
       <sf-dock side="start" label=${studioMessages.dock} ?collapsed=${this.collapsed('dock', entries, context.density)} @sf-collapse=${(e: CustomEvent<{ collapsed: boolean }>) => this.setExpanded('dock', e.detail.collapsed)}>
-        <sf-tabs label=${studioMessages.dock} .value=${selected ?? ''} @sf-change=${(e: CustomEvent<{ value: SpecSlotKey }>) => this.pickDockTab(e)}>
+        <sf-tabs
+          label=${studioMessages.dock}
+          .value=${selected ?? ''}
+          @sf-change=${(e: CustomEvent<{ value: SpecSlotKey }>) => this.pickDockTab(e)}
+          @if-layer-context=${(e: CustomEvent<LayerContextDetail>) => void this.onLayerContext(e.detail)}
+        >
           ${present.map((entry) => html`<sf-tab value=${entry.slot.key} data-slot=${entry.slot.key} data-group="panel@dock" data-phase=${entry.phase} style=${motionStyle(entry)}>${entry.slot.contribution.label}</sf-tab>`)}
           ${present.map((entry) => {
             const panel = studio.registries.panel(entry.slot.id);

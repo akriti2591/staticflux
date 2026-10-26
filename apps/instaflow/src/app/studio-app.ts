@@ -28,6 +28,7 @@ import type { Actor } from '@staticflux/stage';
 import type { TextInputFactory } from '@staticflux/surface/text-input';
 import { allowAllDecideUnit, defineUiElements, gateResource, provideScope, visibilityObserverUnit } from '@staticflux/ui';
 import { defineDialogSurface } from '@staticflux/kit/surface-defs';
+import { defineShortcutSheet } from '@staticflux/kit/shortcut-sheet';
 import { defineSurfaces } from '@staticflux/kit/surfaces';
 import { ownerOf, SurfaceManagerToken, type SurfaceManager } from '@staticflux/messaging';
 import { fromWireError, type Spawner } from '@staticflux/worker';
@@ -66,7 +67,9 @@ import { type CameraAction, defineStudio, EMPTY_CHROME, type IfStudioElement, ty
 import type { HudAction } from '../studio/hud.js';
 import type { LayerRow } from './scene-summary.js';
 import { createToasts, INSTAFLOW_SURFACE_UNITS, type Toasts } from './feedback.js';
-import { DeleteCapability, LockCapability, STUDIO_KEY_COMMANDS, UndoCapability } from './studio-commands.js';
+import { CopyStyleCapability, DeleteCapability, LockCapability, STUDIO_KEY_COMMANDS, UndoCapability } from './studio-commands.js';
+import { ClipboardShortcuts, createClipboardController } from './clipboard-controller.js';
+import { shortcutSheet, type ShortcutGroupName, shortcutsSheetSurface } from '../studio/shortcuts-sheet.js';
 import { ELEMENT_ACTIONS, elementActionId } from '../elements/capabilities.js';
 import { TEXT_HUD_COMMANDS } from '../text/commands.js';
 import { TOOL_HUD_COMMANDS } from '../tools/contributions.js';
@@ -565,7 +568,9 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     }),
   );
   /** Feedback a capability run gives beyond the canvas (FOUNDATIONS §5.3: a delete of ≥ 5 elements toasts with Undo). */
+  const styleCopied = box(false);
   const feedback = (capability: string, nodes: readonly NodeId[]): void => {
+    if (capability === CopyStyleCapability.id) styleCopied.set(true);
     if (capability === DeleteCapability.id && nodes.length >= 5) toasts.undoable({ message: `Deleted ${nodes.length} elements`, undo: () => run(UndoCapability.id, {}, []) });
   };
   const run = (capability: string, extra: Readonly<Record<string, unknown>> = {}, nodes: readonly NodeId[] = selection()): void => {
@@ -577,6 +582,66 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   };
   scope.defer(editor.on('ran', (ran) => (ran.ok ? feedback(ran.capability, ran.nodes) : undefined)));
   const sceneCall = (r: Promise<Result<unknown>>): void => void r.then((x) => (x.ok ? undefined : toasts.error(x.error)));
+  // B11b slice 4: the clipboard (STUDIO §8.1): keys use the browser's events, menus the async API and memory.
+  const blocked = (message: string): void => {
+    toasts.show({ message, tone: 'warning', dedupe: 'clipboard' });
+  };
+  const clip = createClipboardController({
+    editor: {
+      copy: (nodes, cut) => editor.request('copy', { nodes: [...nodes], cut }),
+      paste: (payload, inPlace) => editor.request('paste', { payload, inPlace }),
+      pasteText: (text) => editor.request('pasteText', { text }),
+    },
+    selection,
+    editing: () => view()?.editing !== undefined,
+    async placeFiles(files) {
+      const imported = await library.panel.importFiles(files);
+      if (!imported.ok) return void toasts.error(imported.error);
+      for (const failed of imported.value.failed) toasts.error(failed.error);
+      for (const entry of [...imported.value.imported, ...imported.value.deduplicated]) {
+        const placed = await editor.request('place', { entry });
+        if (!placed.ok) toasts.error(placed.error);
+      }
+    },
+    async selectedText() {
+      const copied = await editor.request('copy', { nodes: [...selection()], cut: false });
+      return copied.ok ? copied.value.text : '';
+    },
+    problem: (e) => toasts.error(e),
+    warn: blocked,
+    ...(globalThis.navigator?.clipboard === undefined ? {} : { system: globalThis.navigator.clipboard }),
+  });
+  // The cheat sheet (STUDIO §2.3.1): a snapshot of the registry when it opens.
+  const commandGroups = new Map<string, ShortcutGroupName>(STUDIO_KEY_COMMANDS.map((k) => [k.def.id as string, k.group === 'Style' ? 'Edit' : k.group] as const));
+  const lensIds = new Set<string>(registries.value.lenses.map((l) => l.id as string));
+  const sheetDialog = shortcutsSheetSurface(() => shortcutSheet(shortcuts.list(), { lenses: lensIds, commands: commandGroups }));
+  let sheet: { dismiss(): void; readonly state: string } | undefined;
+  const pageAction = async (action: 'add' | 'duplicate' | 'delete' | 'size', arg?: string): Promise<void> => {
+    const current = lens.current();
+    const pagesEditor = story.pages;
+    if (action === 'size') {
+      const [w, h] = (arg ?? '').split('x').map(Number);
+      if (w !== undefined && h !== undefined && Number.isFinite(w) && Number.isFinite(h)) sceneCall(scene.call('resizePage', w, h));
+      return;
+    }
+    if (pagesEditor === undefined) return;
+    if (action === 'add') {
+      const added = await pagesEditor.addPage(current);
+      if (added.ok) void lens.goTo(added.value);
+      else toasts.error(added.error);
+    } else if (current !== undefined && action === 'duplicate') {
+      const copy = await pagesEditor.duplicatePage(current);
+      if (copy.ok) void lens.goTo(copy.value);
+      else toasts.error(copy.error);
+    } else if (current !== undefined && action === 'delete') {
+      const frames = lens.arrangement()?.frames ?? [];
+      const at = frames.findIndex((f) => f.page === current);
+      const next = frames[at + 1] ?? frames[at - 1];
+      if (next !== undefined && frames.length > 1) await lens.goTo(next.page);
+      const gone = await pagesEditor.deletePage(current);
+      if (!gone.ok) toasts.error(gone.error);
+    }
+  };
   const chrome: StudioChromePort = {
     invoke: (capability, extra, nodes) => run(capability, extra ?? {}, nodes ?? selection()),
     setPaint: (stack, paint, label) => sceneCall(scene.call('setPaint', stack, paint, label)),
@@ -625,18 +690,24 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
         else await el.reveal('page');
       });
     },
-  };
-  // B11b: the inspector (STUDIO §5): the chrome port plus the editor's appearance, transform, repeat and typography.
-  const inspectorPort: InspectorPort = {
-    ...chrome,
-    appearance: (edit) => appearance.apply(edit),
-    pageAppearance: (edit) => sceneCall(scene.call('applyPage', edit)),
-    transform: (edit) => transformBar.apply(edit),
-    transformSession: (action) => transformBar.session(action),
-    repeat: (edit) => repeat.apply(edit),
-    text: typography,
-    renamePage: (name) => sceneCall(scene.call('renamePage', name)),
-    resizePage: (width, height) => sceneCall(scene.call('resizePage', width, height)),
+    async contextAt(point) {
+      const r = await editor.request('contextAt', point === undefined ? {} : { x: point.x, y: point.y });
+      if (r.ok) return r.value;
+      problem(r.error);
+      return undefined;
+    },
+    clipboard(action) {
+      if (action === 'cut' || action === 'copy') void clip.copy(action === 'cut');
+      else if (action === 'copy-as-text') void clip.copyAsText();
+      else void clip.paste(action === 'paste-in-place');
+    },
+    selectAll() {
+      const nodes = scene.read('layers').filter((l) => !l.locked && !l.hidden).map((l) => l.id);
+      void editor.request('select', { nodes }).then((r) => (r.ok ? undefined : problem(r.error)));
+    },
+    editText: () => void editor.request('editText', {}).then((r) => (r.ok ? undefined : toasts.error(r.error))),
+    textPreset: (name) => void typography.applyPreset(name as never),
+    fitToBox: () => void typography.fitToBox(),
     replaceImage() {
       void library.panel.pickAndImport().then(async (picked) => {
         if (!picked.ok) {
@@ -649,6 +720,28 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
         if (!done.ok) toasts.error(done.error);
       });
     },
+    pageAction: (action, arg) => void pageAction(action, arg),
+    saveHint: () => toasts.show({ message: 'Instaflow saves as you work', dedupe: 'save-hint', action: { label: 'Create milestone', run: () => void createMilestone() } }),
+    openShortcuts() {
+      if (sheet !== undefined && sheet.state !== 'dismissed') {
+        sheet.dismiss();
+        sheet = undefined;
+        return;
+      }
+      sheet = manager.request(sheetDialog, { owner: ownerOf(injector) });
+    },
+  };
+  // B11b: the inspector (STUDIO §5): the chrome port plus the editor's appearance, transform, repeat and typography.
+  const inspectorPort: InspectorPort = {
+    ...chrome,
+    appearance: (edit) => appearance.apply(edit),
+    pageAppearance: (edit) => sceneCall(scene.call('applyPage', edit)),
+    transform: (edit) => transformBar.apply(edit),
+    transformSession: (action) => transformBar.session(action),
+    repeat: (edit) => repeat.apply(edit),
+    text: typography,
+    renamePage: (name) => sceneCall(scene.call('renamePage', name)),
+    resizePage: (width, height) => sceneCall(scene.call('resizePage', width, height)),
   };
   const appearanceView = hub.view(AppearanceMirror);
   const transformView = hub.view(TransformMirror);
@@ -737,6 +830,8 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       globalActions,
       exportAvailable: exportsService !== undefined,
       templatesAvailable: templates !== undefined,
+      clipboard: { canPaste: clip.held.get() !== undefined, styleCopied: styleCopied.get() },
+      pages: scene.read('pages'),
     };
   };
 
@@ -806,6 +901,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       defineSaveStatus();
       defineSurfaces();
       defineExportPanel();
+      defineShortcutSheet();
       const provided = provideScope(container, { injector, name: 'instaflow/studio' });
       scope.defer(() => provided.dispose());
       const doc = container.ownerDocument;
@@ -838,9 +934,15 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       // text field); on the canvas its own scope wins and the editor runs them.
       for (const command of STUDIO_KEY_COMMANDS) {
         const def = defineShortcut({ id: `${command.def.id}-chrome`, keys: command.def.keys, scope: StudioShortcutScope, description: command.def.description, allowInInputs: false });
-        const registered = shortcuts.register(def, () => run(command.capability, {}, command.empty === true ? [] : selection()), { scope, when: () => command.empty === true || selection().length > 0 });
+        const registered = shortcuts.register(def, () => run(command.capability, command.extra?.(selection().length) ?? {}, command.empty === true ? [] : selection()), { scope, when: () => command.empty === true || selection().length > 0 });
         if (!registered.ok) problem(registered.error);
       }
+      // The clipboard keys (cheat sheet rows; the browser's events do the work) and the clipboard events in Studio.
+      for (const def of Object.values(ClipboardShortcuts)) {
+        const registered = shortcuts.register(def, () => false, { scope });
+        if (!registered.ok) problem(registered.error);
+      }
+      clip.attach(doc, (e) => e.composedPath().includes(mounted), scope);
       if (exportsService !== undefined) {
         const registered = shortcuts.register(
           ExportShortcut,

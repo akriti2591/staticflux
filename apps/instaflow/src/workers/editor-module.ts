@@ -35,6 +35,7 @@ import { textBoxOps, type StudioFonts } from '../app/text-layer.js';
 import { commitEdit, duplicate } from '../elements/actions.js';
 import { elementCapabilityImplementations } from '../elements/capabilities.js';
 import { P } from '../elements/components.js';
+import { ActionNotApplicableError } from '../elements/errors.js';
 import type { GeometryService } from '../elements/geometry.js';
 import { appearanceEditOps, appearanceModel, pageAppearanceModel } from '../elements/inspector.js';
 import { createStoryWriter } from '../lenses/story.js';
@@ -46,7 +47,9 @@ import { commitRepeatEdit } from '../repeat/actions.js';
 import { repeatCapabilityImplementations } from '../repeat/capabilities.js';
 import { repeatEditOps, repeatModel } from '../repeat/inspector.js';
 import type { ToolId } from '../spec/contributions.js';
-import { TEXT_HUD_COMMANDS } from '../text/commands.js';
+import { placeTextOps, TEXT_HUD_COMMANDS } from '../text/commands.js';
+import { type ClipboardPayload, copyPayload, pasteOps } from '../app/clipboard.js';
+import { hitTest } from '../tools/hit-test.js';
 import { readTextBlock } from '../text/rich-text.js';
 import { createTypographyService, TEXT_ELEMENT_PATHS, type TypographyService } from '../text/typography.js';
 import type { TextBox, VerticalAlign } from '../text/model.js';
@@ -68,7 +71,7 @@ import type { CameraCommand, InspectedElement, RanCommand, StudioDocumentRef, St
 import { implementStudioCommands, STUDIO_SELECTION_COMMANDS } from '../app/studio-commands.js';
 import { ELEMENT_ACTIONS, elementActionId, selectionFacts } from '../elements/capabilities.js';
 import { REPEAT_ACTIONS, repeatActionId, repeatSelectionFacts } from '../repeat/capabilities.js';
-import { documentColors, layerTree, type SceneReader, selectionSummary } from '../app/scene-summary.js';
+import { documentColors, layerTree, type SceneReader, type SelectionSummary, selectionSummary } from '../app/scene-summary.js';
 import { pagePart, ROOT_PART } from '../app/document.js';
 import { PAGE_SIZE_RANGE } from '../studio/inspector-model.js';
 import { NoImageSelectedError, PageSizeError } from '../studio/errors.js';
@@ -154,6 +157,12 @@ export interface StudioEditor {
   zoom(step: 1 | -1): Result<void>;
   /** B11b: a camera command (fit the page or the selection, a zoom level). */
   camera(action: CameraCommand): Result<void>;
+  /** B11b: clipboard (STUDIO §8.1) and the context menu's target. */
+  copy(nodes: readonly NodeId[], cut: boolean): Result<ClipboardPayload>;
+  paste(payload: ClipboardPayload, inPlace: boolean): Result<void>;
+  pasteText(text: string): Result<void>;
+  contextAt(point: { readonly x?: number; readonly y?: number }): Result<SelectionSummary>;
+  editText(): Result<void>;
   inspect(nodes?: readonly NodeId[]): StudioInspection;
   /**
    * C1: freeze Latest for an export (B5's snapshot: content blobs only, no record, no head change, D10) and report the
@@ -298,8 +307,8 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
   };
   let keyRuns = 0;
   /** A key command (canvas focus): its capability on the selection, attributed to the person. */
-  const runKeyCommand = (capability: string, nodes: readonly NodeId[]): void => {
-    const input = nodes.length === 0 ? {} : { nodes: [...nodes] };
+  const runKeyCommand = (capability: string, nodes: readonly NodeId[], extra: Readonly<Record<string, unknown>> = {}): void => {
+    const input = { ...(nodes.length === 0 ? {} : { nodes: [...nodes] }), ...extra };
     void runCapability({ capability, input, subject: 'user', origin: { channel: 'ui/keyboard' }, invocationId: `key:${(keyRuns += 1)}` }, signal).then((r) => {
       events.ran?.({ capability, nodes: [...nodes], ok: r.ok });
       if (!r.ok) problem(r.error);
@@ -682,6 +691,9 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
     return ok();
   };
 
+  /** Paste stacking per payload (STUDIO §8.1: +24, +48 …); a new copy starts over. */
+  const pastes = new Map<string, number>();
+
   // ---------------------------------------------------------------- view projection
   /** The story's pages (B11b: pages join and leave at runtime); the opened ones before the structure reads. */
   const livePages = (): NodeId[] => {
@@ -861,6 +873,65 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       });
       if (ops.length === 0) return err(NoImageSelectedError());
       return commitEdit(document.target(current.page), actor(), 'Replace image', ok(ops));
+    },
+    copy(nodes, cut) {
+      const t = tab();
+      if (t === undefined) return err(NoOpenPageError());
+      const list = editable().filter((n) => nodes.includes(n));
+      const payload = copyPayload({ ...document.context(), stage: document.base }, list.length > 0 ? list : nodes.filter((n) => document.base.read(n) !== undefined), { asset: ref.asset, page: t.page }, (node) => reader.text(node));
+      if (!payload.ok) return payload;
+      pastes.clear();
+      if (cut) {
+        const done = document.commitOps(t.page, actor(), 'Cut', payload.value.sources.map((node): PartOp => ({ op: 'delete', node })));
+        if (!done.ok) return done;
+        t.view.select([]);
+      }
+      return ok(payload.value);
+    },
+    paste(payload, inPlace) {
+      const t = tab();
+      if (t === undefined) return err(NoOpenPageError());
+      const key = `${payload.asset}:${payload.page}:${payload.sources.join(',')}`;
+      const count = pastes.get(key) ?? 0;
+      const made = pasteOps(payload, { asset: ref.asset, page: t.page, parent: t.view.context ?? t.page, exists: (n) => document.base.read(n) !== undefined, newId: () => document.newId(), count, inPlace });
+      if (!made.ok) return made;
+      const done = document.commitOps(t.page, actor(), 'Paste', made.value.ops);
+      if (!done.ok) return done;
+      if (!inPlace) pastes.set(key, count + 1);
+      t.view.select([...made.value.select]);
+      return ok();
+    },
+    pasteText(text) {
+      const t = tab();
+      if (t === undefined) return err(NoOpenPageError());
+      const view = t.view;
+      const [x, y] = toPage(view.camera, view.viewport.width / 2, view.viewport.height / 2);
+      const node = document.newId();
+      const ops = placeTextOps({ node, parent: view.context ?? t.page, x: Math.round(x), y: Math.round(y), text: text.slice(0, 20_000) });
+      if (!ops.ok) return ops;
+      const done = document.commitOps(t.page, actor(), 'Paste', ops.value);
+      if (!done.ok) return done;
+      view.select([node]);
+      return ok();
+    },
+    contextAt(point) {
+      const t = tab();
+      if (t === undefined) return err(NoOpenPageError());
+      if (point.x !== undefined && point.y !== undefined) {
+        const [px, py] = toPage(t.view.camera, point.x, point.y);
+        const hit = hitTest(t.tools.ctx, t.tools.index, px, py, { tolerance: 3 / t.view.camera.zoom, context: t.view.context });
+        const target = hit.ok ? hit.value?.target : undefined;
+        if (target === undefined) t.view.select([]);
+        else if (!t.view.selection.includes(target)) t.view.select([target]);
+      }
+      return ok(selectionSummary(reader, selection()));
+    },
+    editText() {
+      const t = tab();
+      if (t === undefined) return err(NoOpenPageError());
+      const node = selection()[0];
+      if (node === undefined || selection().length !== 1) return err(ActionNotApplicableError({ message: 'Select one text element to edit it.', details: { needs: 'one text element' } }));
+      return t.editText(node);
     },
     zoom(step) {
       const t = tab();
