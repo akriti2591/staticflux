@@ -72,6 +72,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** Appearance pass done → PR #31 (stacked on #29; APPEARANCE-TRANSFORM-UX-SPEC, F-65–F-72, Q1–Q11 asked).
+  Engine follow-ups for M1 (with or before B11b): text T-1–T-9, appearance A-1 page fill stack, A-2 hidden prop,
+  A-3 image crop; plus missing actions group/ungroup/reorder/rename/frameSelection. Proposal: a B12 engine work
+  package for these before B11b. Waiting on owner: text Q1–Q10, appearance Q1–Q11.
 - **2026-10-25** B11a2 merged on the working branch (2b9c860; 21 squash-trap conflicts resolved by side-unchanged rule;
   size entries all renames). Full check (4506 tests), smokes and agents:check green. Kit full budget 27.5 → 42.5 KB
   (overlays, dialogs, pickers): C4 checks first-paint loading. PR opened. Next: appearance pass → B11b.
