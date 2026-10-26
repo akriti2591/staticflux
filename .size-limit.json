@@ -895,7 +895,7 @@
     "limit": "2 KB"
   },
   {
-    "name": "@instaflow/app/render (Vello RasterBackend + scene IR v4 + Wasm loader; worker only; +0.3 KB for B1 stacks, effects, masks; +0.1 KB for B2 font ops and glyph synthesis; +0.25 KB for C1: glyph runs carry their text for real PDF text)",
+    "name": "@instaflow/app/render (Vello RasterBackend + scene IR v4 + Wasm loader; worker only; +0.3 KB for B1 stacks, effects, masks; +0.1 KB for B2 font ops and glyph synthesis; +0.25 KB for C1: glyph runs carry their text for real PDF text; B12 raised 4.15 → 4.25 KB for the IMAGE_CROP paint (image fill crop, A-3))",
     "path": "apps/instaflow/dist/render/index.js",
     "ignore": [
       "mobx",
@@ -903,7 +903,7 @@
       "@staticflux/platform",
       "@staticflux/surface/raster"
     ],
-    "limit": "4.15 KB"
+    "limit": "4.25 KB"
   },
   {
     "name": "@staticflux/kit/tag",
@@ -988,7 +988,7 @@
     "limit": "6 KB"
   },
   {
-    "name": "@instaflow/app/elements (components, brand kits, geometry service, actions, projection, scene encoder, contributions; excl. framework)",
+    "name": "@instaflow/app/elements (components, brand kits, geometry service, actions, projection, scene encoder, contributions; excl. framework; B12 raised 24.5 → 27 KB for the structure actions (group, ungroup, frame selection, reorder, rename, hide), image crop, the page fill projection and their twelve capabilities)",
     "path": "apps/instaflow/dist/elements/index.js",
     "ignore": [
       "mobx",
@@ -1007,10 +1007,10 @@
       "@staticflux/shell/spec",
       "@staticflux/gate"
     ],
-    "limit": "24.5 KB"
+    "limit": "27 KB"
   },
   {
-    "name": "@instaflow/app/elements/panel (Fill, stroke and effects inspector; excl. lit, kit and framework)",
+    "name": "@instaflow/app/elements/panel (Fill, stroke and effects inspector; excl. lit, kit and framework; B12 raised 6.25 → 6.35 KB for the page background model and image crop value checks)",
     "path": "apps/instaflow/dist/elements/panel.js",
     "ignore": [
       "mobx",
@@ -1037,7 +1037,7 @@
       "@staticflux/kit/slider",
       "@staticflux/kit/text-field"
     ],
-    "limit": "6.25 KB"
+    "limit": "6.35 KB"
   },
   {
     "name": "@staticflux/surface/image (area scaling + deterministic PNG encoder; renditions and export workers)",
@@ -1126,7 +1126,7 @@
     "limit": "3.5 KB"
   },
   {
-    "name": "@instaflow/app/tools (hit testing, selection, transforms, snapping and guides, view state, keyboard, contributions; B10a raised 24 → 27.5 KB for flip, skew, pivot, transform mode and their capabilities; incl. the B1 element modules it uses, shared with /elements in the app chunk; excl. framework and lit)",
+    "name": "@instaflow/app/tools (hit testing, selection, transforms, snapping and guides, view state, keyboard, contributions; B10a raised 24 → 27.5 KB for flip, skew, pivot, transform mode and their capabilities; incl. the B1 element modules it uses, shared with /elements in the app chunk; excl. framework and lit; B12 raised 27.5 → 28 KB: hidden elements leave hit tests, and the larger shared B1 modules)",
     "path": "apps/instaflow/dist/tools/index.js",
     "ignore": [
       "mobx",
@@ -1146,7 +1146,7 @@
       "@staticflux/shell/spec",
       "@staticflux/gate"
     ],
-    "limit": "27.5 KB"
+    "limit": "28 KB"
   },
   {
     "name": "@instaflow/app/tools/transform-bar (B10a numeric transform bar; excl. lit, kit and framework)",
@@ -1257,7 +1257,7 @@
     "limit": "3.75 KB"
   },
   {
-    "name": "@instaflow/app/text (rich text, layout service, fonts, session, scene projection, typography panel, contributions; excl. framework and Wasm)",
+    "name": "@instaflow/app/text (rich text, layout service, fonts, session, scene projection, typography panel, contributions; excl. framework and Wasm; B12 raised 17.5 → 18.25 KB for undo coalescing, platform caret keys, soft breaks, list indent, sub/superscript and the lazy web font decoder loader)",
     "path": "apps/instaflow/dist/text/index.js",
     "ignore": [
       "mobx",
@@ -1281,7 +1281,7 @@
       "@staticflux/stage",
       "@staticflux/document/render-projection"
     ],
-    "limit": "17.5 KB"
+    "limit": "18.25 KB"
   },
   {
     "name": "@staticflux/kit/card",
