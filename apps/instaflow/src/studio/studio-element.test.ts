@@ -152,7 +152,7 @@ describe('<if-studio> frame (B11b)', () => {
     expect(header.querySelector(':scope > sf-segmented:not(.modes)')).toBeNull();
     const landmarks = [...root.querySelectorAll('aside, main')].map((el) => `${el.localName}:${el.getAttribute('aria-label')}`);
     expect(landmarks).toEqual(['aside:Dock', 'main:Canvas', 'aside:Inspector']);
-    expect([...root.querySelectorAll('aside[data-region="dock"] sf-tab')].map((t) => t.textContent?.trim())).toEqual(['Pages', 'Assets', 'Milestones']);
+    expect([...root.querySelectorAll('aside[data-region="dock"] sf-tab')].map((t) => t.textContent?.trim())).toEqual(['Layers', 'Pages', 'Assets', 'Milestones']);
     const main = root.querySelector('main') as HTMLElement;
     expect(main.querySelector('.tools')?.getAttribute('aria-label')).toBe('Tools');
     expect(main.querySelector('[role="group"].zoom')?.getAttribute('aria-label')).toBe('Zoom');
@@ -292,7 +292,7 @@ describe('<if-studio> frame (B11b)', () => {
     (root.querySelector('.saved') as HTMLButtonElement).click();
     await settle(4);
     const tabs = [...root.querySelectorAll('aside[data-region="dock"] sf-tab')] as HTMLElement[];
-    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'false', 'true']);
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['false', 'false', 'false', 'true']);
     expect(await element.showPanel('instaflow/nope')).toBe(false);
   });
 

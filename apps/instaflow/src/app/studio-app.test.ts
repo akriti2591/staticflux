@@ -173,6 +173,34 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     await until(() => app.tab?.page === 'p2', 'page 2 shown');
     expect((await inspect())?.elements.length).toBe(0);
 
+    // B11b: Pages › Add / Duplicate / Rename / Delete page, each one undo step across the root and page parts.
+    const storyView = app.mirrors.view(StoryMirror);
+    const storyPages = (): string[] => {
+      const s = storyView.read('structure');
+      return s?.ok === true ? s.value.pages.map((p) => p.id) : [];
+    };
+    const copied = unwrap(await storyView.call('duplicatePage', 'p1'));
+    await until(() => storyPages()[1] === copied, 'the copy follows page 1');
+    unwrap(app.lens.goTo(copied));
+    await until(() => app.tab?.page === copied, 'the copy shown');
+    expect((await inspect())?.elements.length).toBeGreaterThan(0); // page 1's elements, copied
+    const added = unwrap(await storyView.call('addPage', null));
+    await until(() => storyPages().at(-1) === added, 'a page at the end');
+    unwrap(await storyView.call('renameStoryPage', added, 'Back cover'));
+    await until(() => {
+      const s = storyView.read('structure');
+      return s?.ok === true && s.value.pages.at(-1)?.name === 'Back cover';
+    }, 'renamed');
+    const emptyName = await storyView.call('renameStoryPage', added, '  ');
+    expect(!emptyName.ok && emptyName.error.code).toBe('IF-POL-053');
+    unwrap(await storyView.call('deletePage', added));
+    await until(() => !storyPages().includes(added), 'deleted');
+    app.chrome.invoke('instaflow/undo', {}, []);
+    await until(() => storyPages().includes(added), 'undo restores the page');
+    for (const page of storyPages().slice(1)) unwrap(await storyView.call('deletePage', page));
+    const last = await storyView.call('deletePage', storyPages()[0] as string);
+    expect(!last.ok && last.error.code).toBe('IF-POL-052');
+
     const metrics = unwrap(await app.metrics());
     expect(metrics.render?.drawFailures).toBe(0);
     expect(metrics.editor?.inputs).toBeGreaterThan(4);

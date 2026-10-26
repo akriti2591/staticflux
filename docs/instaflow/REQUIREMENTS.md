@@ -1567,6 +1567,21 @@ Lifecycle: LIFECYCLES §38.
   Flatten) and **Mask** (mode, Invert, Release, acting on the mask element).
 - **IF-36.25** **Page** (name, size preset from Home's formats, W × H 16…8192 px (IF-POL-050), orientation, the Background as a
   fill stack) and **Document** (title, page count, units).
+- **IF-36.26** **Layers** (STUDIO §3.1) is the dock's first tab: the open page as a group, its elements top-most first, frames
+  and groups nested and expanded to show the canvas selection; each row has the kind icon (naming the kind and the hidden /
+  locked state for assistive tech), the name, a mono tag (a repeat's count) and the hover-revealed eye and lock, kept visible
+  while on; hidden rows are dimmed.
+- **IF-36.27** Layers selects both ways (Shift / Mod for ranges and toggles; the page row selects the page), outlines the
+  hovered element on the canvas and the canvas-hovered row, renames inline (double-click, Enter, F2; one step `Rename`),
+  reorders by drag (before, after, into a frame or group) or Alt+↑ / ↓ in paint order (one step `Reorder`), and on a focused
+  row Mod+Shift+H hides, Mod+Shift+L locks, Delete deletes; the filter matches names and `text:`-style kind prefixes; an
+  empty page shows one line whose tool names pick the Shape and Text tools.
+- **IF-36.28** **Pages** (STUDIO §3.2): `+ Add page` (the current page's size, right after it, shown), and for the current page
+  Duplicate (its elements copied into the new page's own part, named `<name> copy`), Rename (inline, F2), Delete (never the
+  last page, IF-POL-052; a toast offers Undo), Move up and Move down; an empty name is refused (IF-POL-053). Each is one undo
+  step across the root part and the page parts; pages join and leave the canvas, exports and the story at runtime.
+- **IF-36.29** Duplicating copies document nodes only: a repeat's derived instances are never copied (its copy derives its
+  own), so Mod+D on a repeat and Duplicate page keep working.
 
 ## 37. Engine gaps for B11b (M1c B12)
 

@@ -32,13 +32,14 @@ import { createStudioDocument, freshPeer, openStudioDocument, type StudioDocumen
 import { NoOpenPageError } from '../app/errors.js';
 import { createImageUploads, placeImageOps } from '../app/images.js';
 import { textBoxOps, type StudioFonts } from '../app/text-layer.js';
-import { commitEdit } from '../elements/actions.js';
+import { commitEdit, duplicate } from '../elements/actions.js';
 import { elementCapabilityImplementations } from '../elements/capabilities.js';
 import { P } from '../elements/components.js';
 import type { GeometryService } from '../elements/geometry.js';
 import { appearanceEditOps, appearanceModel, pageAppearanceModel } from '../elements/inspector.js';
 import { createStoryWriter } from '../lenses/story.js';
 import { STRUCTURE_PATHS, structureFeed } from '../lenses/structure.js';
+import { addPageOps, deletePageOps, duplicatePageOps, renamePageOps } from '../lenses/page-ops.js';
 import type { LibraryEntry } from '../library/library-doc.js';
 import type { ImageDecoder } from '../library/renditions.js';
 import { commitRepeatEdit } from '../repeat/actions.js';
@@ -52,6 +53,7 @@ import type { TextBox, VerticalAlign } from '../text/model.js';
 import { TOOL_HUD_COMMANDS, toolCapabilityImplementations } from '../tools/contributions.js';
 import { transformModel } from '../tools/free-transform.js';
 import { captureTransform } from '../tools/transform.js';
+import { refreshOverlay } from '../tools/gesture.js';
 import { CanvasToolsShortcutScope } from '../tools/keyboard.js';
 import type { GuideLabel } from '../tools/snapping.js';
 import { type Camera, toPage } from '../tools/view-state.js';
@@ -139,6 +141,8 @@ export interface StudioEditor {
   setViewport(width: number, height: number): void;
   /** Accessibility focus (or a panel) selected nodes. */
   select(nodes: readonly NodeId[]): void;
+  /** B11b: Layers hovers a row (the canvas outlines the element). */
+  hover(node: NodeId | undefined): void;
   invoke(call: { readonly capability: string; readonly input: unknown; readonly subject: CapabilitySubject; readonly origin?: InvocationOrigin; readonly invocationId: string }, signal: AbortSignal): Promise<Result<unknown>>;
   call(call: MirrorCall): Promise<Result<unknown>>;
   text(event: TextHostEvent): void;
@@ -419,7 +423,59 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
     scope,
   );
   mirrors.serve(LatestMirror, { reads: { state: () => versioning.latest.state() }, actions: { flush: () => versioning.latest.flush(signal) }, changes: (l) => versioning.latest.onChange(() => l()) }, scope);
-  mirrors.serve(StoryMirror, { reads: { structure: () => structure.read() }, actions: { movePage: (p, to) => story.movePage(p, to) }, changes: (l) => structure.observe(l) }, scope);
+  // B11b: Add / Duplicate / Delete / Rename page — one undo step each across the root part and the page parts (D14).
+  const pageCommit = (label: string, changes: Readonly<Record<string, readonly PartOp[]>>): Result<void> => {
+    const done = document.undo.commit(actor(), label, changes);
+    return done.ok ? ok() : done;
+  };
+  const newPageId = (): NodeId => `pg_${document.newId()}`;
+  mirrors.serve(
+    StoryMirror,
+    {
+      reads: { structure: () => structure.read() },
+      actions: {
+        movePage: (p, to) => story.movePage(p, to),
+        addPage(after) {
+          const s = structure.read();
+          if (!s.ok) return s;
+          const id = newPageId();
+          const attached = document.attachPage(id);
+          if (!attached.ok) return attached;
+          const made = addPageOps(s.value, id, after === null ? {} : { after });
+          const done = pageCommit('Add page', { [ROOT_PART]: made.root, [pagePart(id)]: made.page });
+          return done.ok ? ok(id) : done;
+        },
+        duplicatePage(page) {
+          const s = structure.read();
+          if (!s.ok) return s;
+          const id = newPageId();
+          const kids = document.base.children(page);
+          const copied = kids.length === 0 ? ok({ ops: [] as PartOp[] }) : duplicate({ ...document.context(), stage: document.base }, kids);
+          if (!copied.ok) return copied;
+          const made = duplicatePageOps(s.value, page, id, copied.value.ops);
+          if (!made.ok) return made;
+          const attached = document.attachPage(id);
+          if (!attached.ok) return attached;
+          const done = pageCommit('Duplicate page', { [ROOT_PART]: made.value.root, [pagePart(id)]: made.value.page, ...(made.value.source.length === 0 ? {} : { [pagePart(page)]: made.value.source }) });
+          return done.ok ? ok(id) : done;
+        },
+        deletePage(page) {
+          const s = structure.read();
+          if (!s.ok) return s;
+          const ops = deletePageOps(s.value, page);
+          return ops.ok ? pageCommit('Delete page', { [ROOT_PART]: ops.value }) : ops;
+        },
+        renameStoryPage(page, name) {
+          const s = structure.read();
+          if (!s.ok) return s;
+          const ops = renamePageOps(s.value, page, name);
+          return ops.ok ? pageCommit('Rename page', { [ROOT_PART]: ops.value }) : ops;
+        },
+      },
+      changes: (l) => structure.observe(l),
+    },
+    scope,
+  );
 
   // B11b: the open page as the chrome reads it (layers, selection summary, selection frame) and the pill's edits.
   const reader: SceneReader = {
@@ -627,12 +683,20 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
   };
 
   // ---------------------------------------------------------------- view projection
+  /** The story's pages (B11b: pages join and leave at runtime); the opened ones before the structure reads. */
+  const livePages = (): NodeId[] => {
+    const s = structure.read();
+    return s.ok ? s.value.pages.map((p) => p.id) : document.pages.map((p) => p.id);
+  };
+  /** Reactive copy for the projection (the root part is not observable by `watch`). */
+  const storyPages = box<readonly NodeId[]>(livePages());
+  scope.defer(structure.observe(() => storyPages.set(livePages())));
   let lastView = '';
   const projectView = (): ViewProjection => {
     const t = tabBox.get();
     return {
       page: t?.page,
-      pages: document.pages.map((p) => p.id),
+      pages: storyPages.get(),
       tool: t?.view.tool ?? toolBox.get() ?? 'instaflow/select',
       selection: t?.view.selection ?? [],
       context: t?.view.context,
@@ -640,6 +704,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       viewport: t?.view.viewport ?? { width: 0, height: 0 },
       editing: editingBox.get(),
       gesture: t?.controller.state ?? 'idle',
+      ...(t?.view.hover === undefined ? {} : { hover: t.view.hover }),
     };
   };
   const postView = (projection: ViewProjection, force = false): void => {
@@ -753,6 +818,12 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       if (view === undefined) return;
       if (view.selection.length !== nodes.length || view.selection.some((n, i) => n !== nodes[i])) view.select(nodes);
     },
+    hover(node) {
+      const t = tab();
+      if (t === undefined || t.view.hover === node) return;
+      t.view.setHover(node);
+      if (t.controller.state === 'idle') refreshOverlay(t.tools);
+    },
     invoke: (call, callSignal) => runCapability(call, callSignal),
     call: (call) => mirrors.call(call),
     text: (event) => textHost?.receive(event),
@@ -825,7 +896,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       const frozen = await versioning.snapshots.freeze(exportSignal);
       if (!frozen.ok) return err(ExportSnapshotError({ cause: frozen.error, details: { step: 'freeze' } }));
       const { id, ref: blob, manifest } = frozen.value;
-      return ok({ snapshot: { id, ref: blob, manifest }, page: tab()?.page, pages: document.pages.map((p) => p.id), selection: [...selection()] });
+      return ok({ snapshot: { id, ref: blob, manifest }, page: tab()?.page, pages: livePages(), selection: [...selection()] });
     },
     inspect(nodes) {
       const t = tab();

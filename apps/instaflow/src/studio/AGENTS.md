@@ -33,6 +33,8 @@ fully by hand (D17).
   presets, `PAGE_SIZE_RANGE`); `inspector-paint.ts` (fill / stroke / effect stacks, gradient editor, corners, layer);
   `inspector-text.ts` (the Text section, `TextCommands`, `WEIGHTS`); `inspector-panel.ts` (`inspectorPanel`, the spec panel
   `instaflow/inspector`); `errors.ts` (IF-POL-050 page size, IF-POL-051 no image to replace).
+- `layers-panel.ts` (B11b) — `<if-layers-panel .model .port>` (Layers, STUDIO §3.1, on the kit tree), `layersPanel` (the spec
+  panel `instaflow/layers`), `LayersModel`, `LayersPort`, `EMPTY_LAYERS`, `filterLayers`, `dropTarget` (display ↔ paint order).
 - `canvas.ts` — **`CanvasPort`** (`start(surface, signal) → CanvasSession { forwarded, stop }`), `sequencingCanvas({ boot, env,
   schedule })` (boots A7, forwards surface input into the editor's input ring; IF-SPEC-005 on failure).
 - `hints.ts` (B11a2) — `STUDIO_HINTS` (the M1 first-use hints: frame, shape, text, hand, layers, multi-selection), `HintTargets` (typed

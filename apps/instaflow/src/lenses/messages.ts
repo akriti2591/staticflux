@@ -14,6 +14,16 @@ export const lensMessages = /* @__PURE__ */ defineMessages('instaflow-lenses', {
   overview: 'Fit all',
   showing: 'Page {number} of {count}: {name}',
   moved: 'Moved “{name}” to position {number}',
+  // B11b: page edits (STUDIO-UX-SPEC §3.2).
+  addPage: 'Add page',
+  pageMenu: 'Page actions',
+  duplicatePage: 'Duplicate page',
+  renamePage: 'Rename page',
+  deletePage: 'Delete page',
+  moveUp: 'Move up',
+  moveDown: 'Move down',
+  added: 'Added “{name}”',
+  deleted: 'Deleted “{name}”',
 });
 
 /** Format a message through the (lazy) I18n dependency, falling back to the source text. */

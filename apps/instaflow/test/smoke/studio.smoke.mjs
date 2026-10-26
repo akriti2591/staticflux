@@ -445,6 +445,51 @@ async function scenario(page) {
   await page.keyboard.press('Control+Z');
   await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.filter((e) => e.kind === 'shape').length === 1, null, { timeout: 10_000 });
   log('command bar: Mod+K → "Duplicate" → Enter duplicated the selection (undone)');
+
+  // Layers (STUDIO §3.1): rename a row inline, move it up with Alt+↑ (one step each), then undo both.
+  const layersOf = () => page.evaluate(() => window.__studio.scene.layers.map((l) => [l.id, l.name]));
+  const layersBefore = await layersOf();
+  const layers = page.locator('if-layers-panel');
+  await page.getByRole('tab', { name: 'Layers', exact: true }).click();
+  const rectRow = layers.locator(`[role="treeitem"][data-id="${rect}"]`);
+  await rectRow.waitFor({ timeout: 10_000 }).catch(async () => fail(`Layers has no row for ${rect}: ${JSON.stringify(layersBefore)}`));
+  await rectRow.dblclick();
+  const renameField = layers.locator('input.rename');
+  await renameField.waitFor({ timeout: 10_000 });
+  await renameField.fill('Hero card');
+  await renameField.press('Enter');
+  await waitAsync(page, (n) => window.__studio.scene.layers.some((l) => l.id === n && l.name === 'Hero card'), rect, { timeout: 10_000 }).catch(async (e) => fail(`Layers rename: ${e.message} ${JSON.stringify(await layersOf())}`));
+  const at = (await layersOf()).findIndex(([id]) => id === rect);
+  await rectRow.click();
+  await page.keyboard.press('Alt+ArrowUp');
+  await waitAsync(page, ([n, i]) => window.__studio.scene.layers.findIndex((l) => l.id === n) === i - 1, [rect, at], { timeout: 10_000 }).catch(async (e) => fail(`Layers reorder: ${e.message} ${JSON.stringify(await layersOf())}`));
+  await surface.focus();
+  await page.keyboard.press('Control+Z');
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, (before) => JSON.stringify(window.__studio.scene.layers.map((l) => [l.id, l.name])) === before, JSON.stringify(layersBefore), { timeout: 10_000 }).catch(async (e) => fail(`Layers undo: ${e.message} ${JSON.stringify(await layersOf())}`));
+  log(`Layers: renamed "${rect}" to "Hero card" and moved it up (Alt+↑); Mod+Z ×2 restored both`);
+
+  // Pages (STUDIO §3.2): Add page shows a new page sized like the current one; Mod+Z takes it back.
+  const storyPages = () => page.evaluate(() => {
+    const s = window.__studio.mirrors.view({ id: 'instaflow/mirror/story' }).read('structure');
+    return s?.ok === true ? s.value.pages.map((p) => p.id) : [];
+  });
+  await page.getByRole('tab', { name: 'Pages', exact: true }).click();
+  const pagesPanel = page.locator('if-pages-panel');
+  await pagesPanel.getByRole('button', { name: 'Add page' }).click();
+  await page.waitForFunction(() => window.__studio.tab?.page?.startsWith('pg_') === true, null, { timeout: 20_000 }).catch(async () => fail(`Add page: ${JSON.stringify(await storyPages())}`));
+  const pagesNow = await storyPages();
+  if (pagesNow.length !== 3) fail(`Add page: ${JSON.stringify(pagesNow)}`);
+  await surface.focus();
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => {
+    const s = window.__studio.mirrors.view({ id: 'instaflow/mirror/story' }).read('structure');
+    return s?.ok === true && s.value.pages.length === 2;
+  }, null, { timeout: 10_000 }).catch(async (e) => fail(`Add page undo: ${e.message} ${JSON.stringify(await storyPages())}`));
+  await pagesPanel.locator('[role="treeitem"][data-id="p1"]').click();
+  await page.waitForFunction(() => window.__studio.tab?.page === 'p1', null, { timeout: 20_000 });
+  await page.getByRole('tab', { name: 'Layers', exact: true }).click();
+  log(`Pages: Add page showed ${pagesNow.find((id) => id.startsWith("pg_"))} after p1; Mod+Z removed it; back on p1`);
   await page.mouse.click(box.x + 8, box.y + box.height - 8);
 
   // ---------------------------------------------------------------- tab hidden, then visible

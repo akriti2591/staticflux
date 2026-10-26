@@ -100,6 +100,8 @@ export interface ViewProjection {
   readonly editing: NodeId | undefined;
   /** B3's gesture state (`idle` when nothing is being dragged). */
   readonly gesture: string;
+  /** B11b: the element under the pointer (Layers outlines its row). */
+  readonly hover?: NodeId;
 }
 
 /** One element as tests and the smoke check read it (`inspect`). */
@@ -178,6 +180,8 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     visible: request<{ readonly visible: boolean }, void>(),
     tool: request<{ readonly tool: string }, void>(),
     select: request<{ readonly nodes: readonly NodeId[] }, void>(),
+    /** B11b: Layers hovers a row: the element is outlined on the canvas (null: none). */
+    hover: request<{ readonly node: NodeId | null }, void>(),
     invoke: request<{ readonly capability: string; readonly input: unknown; readonly subject: CapabilitySubject; readonly origin?: InvocationOrigin; readonly invocationId: string }, unknown>({ timeoutMs: 60_000 }),
     call: request<MirrorCall, unknown>({ timeoutMs: 60_000 }),
     text: request<TextHostEvent, void>(),

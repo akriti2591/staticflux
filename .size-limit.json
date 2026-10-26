@@ -761,7 +761,7 @@
     "limit": "2.65 KB"
   },
   {
-    "name": "@staticflux/kit/tree (raised 4.4 → 5.1 KB by B11a: the twisty is <sf-icon>)",
+    "name": "@staticflux/kit/tree (raised 4.4 → 5.1 KB by B11a: the twisty is <sf-icon>; B11b raised 5.1 → 5.75 KB: inline rename rows, trailing row content, muted and highlighted rows for Layers)",
     "path": "packages/kit/dist/tree.js",
     "ignore": [
       "mobx",
@@ -775,7 +775,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "5.1 KB"
+    "limit": "5.75 KB"
   },
   {
     "name": "@staticflux/kit/command-palette",
@@ -829,7 +829,7 @@
     "limit": "1.7 KB"
   },
   {
-    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers)",
+    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows)",
     "path": "packages/kit/dist/index.js",
     "ignore": [
       "mobx",
@@ -843,7 +843,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "42.5 KB"
+    "limit": "43.25 KB"
   },
   {
     "name": "@staticflux/stage (stage, attribution, undo service; excl. framework)",
@@ -1121,7 +1121,12 @@
       "@staticflux/a11y",
       "@staticflux/capabilities",
       "@staticflux/document/v2",
-      "@staticflux/stage"
+      "@staticflux/stage",
+      "@staticflux/kit/icon",
+      "@staticflux/kit/icon-button",
+      "@staticflux/kit/menu",
+      "@staticflux/kit/icons/ellipsis",
+      "@staticflux/kit/icons/plus"
     ],
     "limit": "3.5 KB"
   },

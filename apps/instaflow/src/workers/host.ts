@@ -308,6 +308,12 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
       const e = needEditor();
       return e.ok ? e.value.place(entry, context.signal) : e;
     },
+    async hover({ node }) {
+      const e = needEditor();
+      if (!e.ok) return e;
+      e.value.hover(node ?? undefined);
+      return ok();
+    },
     async replaceImage({ entry }, context) {
       const e = needEditor();
       return e.ok ? e.value.replaceImage(entry, context.signal) : e;

@@ -27,7 +27,10 @@ contribution** itself sits with Studio's lenses (`studioLenses`, `StudioIds.lens
 - `controller.ts` — `createLensController({ features, lens, structure, viewport, camera })` → `arrangement()`, `error()`,
   `current()`, `camera()`, `goTo`, `step`, `first`, `last`, `overview`, `dispose`; `CameraPort`, `LensShortcuts` (data),
   `bindLensShortcuts(registry, controller, { scope, shortcutScope })`.
-- `story.ts` — `createStoryWriter({ doc, structure, actor })` → `movePage(page, to)`; `storyMoveOp` (pure; IF-LIB-013).
+- `story.ts` — `createStoryWriter({ doc, structure, actor })` → `movePage(page, to)`; `storyMoveOp` (pure; IF-LIB-013). B11b:
+  `StoryWriter.pages?: PageEditor` (`addPage`, `duplicatePage`, `deletePage`, `renamePage`; Studio's comes from the editor).
+- `page-ops.ts` (B11b) — pure page edits: `addPageOps`, `duplicatePageOps`, `deletePageOps` (IF-POL-052), `renamePageOps`
+  (IF-POL-053), `neighbourPage`, `PAGE_GAP`.
 - `tokens.ts` — `LensContext(Token)`, `LensFeatureRegistryToken`, `LensServices(Token)`, `LensControllerToken`,
   `StoryWriterToken`. `units.ts` — `createLensServices`, `lensFeatureRegistryUnit` (app), `lensServicesUnit` (feature),
   `lensControllerUnit`, `storyWriterUnit`, `lensFeatureUnits` (Pages + Canvas), `lensUnits`.

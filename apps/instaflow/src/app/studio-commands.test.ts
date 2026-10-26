@@ -11,6 +11,7 @@ import { commitEdit } from '../elements/actions.js';
 import { runElementAction } from '../elements/capabilities.js';
 import { P } from '../elements/components.js';
 import { placeTextOps } from '../text/commands.js';
+import { runRepeatAction } from '../repeat/capabilities.js';
 import type { CanvasTab } from './canvas-tab.js';
 import { authoringBuilt, createStudioFixture, person, unwrap } from './test-helpers.js';
 import { DeleteCapability, DuplicateCapability, implementStudioCommands, LockCapability, lockOps, RedoCapability, STUDIO_KEY_COMMANDS, UndoCapability } from './studio-commands.js';
@@ -74,6 +75,21 @@ describe.skipIf(!authoringBuilt)('Studio commands (B11b)', () => {
     expect([...doc.view.children(group)].sort()).toEqual(['a', 't']);
     await invoke(UndoCapability.id, {});
     expect(children(doc).sort()).toEqual(['a', 't']);
+    await f.scope.dispose();
+  });
+
+  it('duplicating a repeat copies its source and parameters, never its derived instances (B11b fix)', async () => {
+    const { f, doc, invoke } = await rig();
+    unwrap(commitEdit(doc.target('p1'), person, 'Seed', ok([rect('a', 0)])));
+    unwrap(runRepeatAction({ context: () => doc.context(), target: () => doc.target('p1'), actorFor: () => ok(person) }, 'repeat-radial', { nodes: ['a'] }, person));
+    const repeat = doc.base.read('a')?.parent as NodeId;
+    expect(doc.view.children(repeat).some((n) => doc.view.isDerived(n))).toBe(true);
+    const copy = await invoke(DuplicateCapability.id, { nodes: [repeat] });
+    const twin = copy.select?.[0] as NodeId;
+    expect(doc.base.read(twin)?.kind).toBe(doc.base.read(repeat)?.kind);
+    // The copy holds a copy of the source (its own instances are derived again from its parameters).
+    expect(doc.base.children(twin)).toHaveLength(1);
+    expect(doc.view.children(twin).some((n) => doc.view.isDerived(n))).toBe(true);
     await f.scope.dispose();
   });
 

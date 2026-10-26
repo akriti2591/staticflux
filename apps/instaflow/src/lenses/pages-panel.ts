@@ -7,15 +7,24 @@
  * Keyboard: ↑/↓/Home/End/type-ahead move through pages and show each; Enter shows the focused page;
  * **Alt+↑/↓ moves the page** in the story (the tree's keyboard reorder); the toolbar (←/→) has Previous,
  * Next and Fit all. Studio-wide PageUp / PageDown do the same from the canvas (`bindLensShortcuts`).
+ *
+ * B11b (STUDIO-UX-SPEC §3.2), when the host can edit pages (`story.pages`): `+ Add page` (the current page's size,
+ * right after it, then shown), a `⋯` menu for the current page (Duplicate, Rename, Delete, Move up, Move down), F2
+ * renames inline, Delete deletes (never the last page). Without a page editor none of these render.
  */
 import { I18nToken, type MessageArgs, type MessageRef } from '@staticflux/i18n';
 import { defineButton } from '@staticflux/kit/button';
+import { defineIconElement } from '@staticflux/kit/icon';
+import { defineIconButton } from '@staticflux/kit/icon-button';
+import { ellipsisIcon } from '@staticflux/kit/icons/ellipsis';
+import { plusIcon } from '@staticflux/kit/icons/plus';
+import { defineMenu } from '@staticflux/kit/menu';
 import { defineToolbar } from '@staticflux/kit/toolbar';
-import { defineTree, type DropPosition, type ReorderDetail, type TreeNode } from '@staticflux/kit/tree';
+import { defineTree, type DropPosition, type RenameDetail, type ReorderDetail, type SfTreeElement, type TreeNode } from '@staticflux/kit/tree';
 import { component, defineComponent, SfElement } from '@staticflux/ui';
 import { themeTokens as t } from '@staticflux/ui/theme';
 import type { NodeId } from '@staticflux/document/v2';
-import { css, html, type TemplateResult } from 'lit';
+import { css, html, nothing, type TemplateResult } from 'lit';
 import { lensMarkStyle, lensOf } from '../theme/lenses.js';
 import type { PageFrame } from './lens-feature.js';
 import { lensMessages as m, lensText } from './messages.js';
@@ -83,6 +92,11 @@ export class IfPagesPanelElement extends SfElement<typeof panelSpec> {
       margin: 0;
       color: ${t.color.textMuted.css};
     }
+    .edits {
+      display: flex;
+      align-items: center;
+      gap: ${t.space.xs.css};
+    }
     .sr-only {
       position: absolute;
       inline-size: 1px;
@@ -125,6 +139,63 @@ export class IfPagesPanelElement extends SfElement<typeof panelSpec> {
     else this.announcement = shown.error.message;
   }
 
+  private tree(): SfTreeElement | null {
+    return this.renderRoot.querySelector<SfTreeElement>('sf-tree');
+  }
+
+  /** `+ Add page`: after the current page, then shown. */
+  private async addPage(): Promise<void> {
+    const pages = this.deps.story.pages;
+    if (pages === undefined) return;
+    const added = await pages.addPage(this.deps.controller.current());
+    if (!added.ok) {
+      this.announcement = added.error.message;
+      return;
+    }
+    this.show(added.value);
+  }
+
+  private async pageAction(action: string): Promise<void> {
+    const pages = this.deps.story.pages;
+    const { controller } = this.deps;
+    const current = controller.current();
+    if (pages === undefined || current === undefined) return;
+    const frames = storyFrames(controller.arrangement()?.frames ?? []);
+    const at = frames.findIndex((f) => f.page === current);
+    const frame = frames[at];
+    const name = frame === undefined ? current : this.nameOf(frame);
+    if (action === 'duplicate') {
+      const copy = await pages.duplicatePage(current);
+      if (copy.ok) this.show(copy.value);
+      else this.announcement = copy.error.message;
+    } else if (action === 'rename') {
+      const tree = this.tree();
+      if (tree !== null) tree.renaming = current;
+    } else if (action === 'delete') {
+      const next = frames[at + 1] ?? frames[at - 1];
+      if (next !== undefined && frames.length > 1) this.show(next.page);
+      const gone = await pages.deletePage(current);
+      this.announcement = gone.ok ? this.text(m.deleted, { name }) : gone.error.message;
+    } else if (action === 'up' || action === 'down') {
+      const to = at + (action === 'up' ? -1 : 1);
+      if (to < 0 || to >= frames.length) return;
+      const moved = this.deps.story.movePage(current, to);
+      this.announcement = moved.ok ? this.text(m.moved, { name, number: to + 1 }) : moved.error.message;
+    }
+  }
+
+  private onKey(e: KeyboardEvent): void {
+    const pages = this.deps.story.pages;
+    if (pages === undefined || e.composedPath()[0] instanceof HTMLInputElement) return;
+    if (e.key === 'F2') {
+      e.preventDefault();
+      void this.pageAction('rename');
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      void this.pageAction('delete');
+    }
+  }
+
   private reorder(e: CustomEvent<ReorderDetail>): void {
     const frames = storyFrames(this.deps.controller.arrangement()?.frames ?? []);
     const to = reorderTarget(
@@ -159,10 +230,30 @@ export class IfPagesPanelElement extends SfElement<typeof panelSpec> {
               }}
               @sf-activate=${(e: CustomEvent<{ id: string }>) => this.show(e.detail.id)}
               @sf-reorder=${(e: CustomEvent<ReorderDetail>) => this.reorder(e)}
+              @sf-rename=${(e: CustomEvent<RenameDetail>) => void this.deps.story.pages?.renamePage(e.detail.id, e.detail.value)}
+              @keydown=${(e: KeyboardEvent) => this.onKey(e)}
             ></sf-tree>`;
+    const pages = this.deps.story.pages;
+    const at = storyFrames(frames).findIndex((f) => f.page === current);
+    const edits =
+      pages === undefined || arrangement === undefined
+        ? nothing
+        : html`<div class="edits">
+            <sf-button size="sm" variant="secondary" class="add" @click=${() => void this.addPage()}><sf-icon .icon=${plusIcon} size="16"></sf-icon> ${this.text(m.addPage)}</sf-button>
+            ${current === undefined
+              ? nothing
+              : html`<sf-menu label=${this.text(m.pageMenu)} @sf-select=${(e: CustomEvent<{ value: string }>) => void this.pageAction(e.detail.value)}>
+                  <sf-icon-button slot="trigger" size="sm" variant="ghost" label=${this.text(m.pageMenu)}><sf-icon .icon=${ellipsisIcon} size="16"></sf-icon></sf-icon-button>
+                  <sf-menu-item value="duplicate">${this.text(m.duplicatePage)}</sf-menu-item>
+                  <sf-menu-item value="rename" shortcut="F2">${this.text(m.renamePage)}</sf-menu-item>
+                  <sf-menu-item value="delete" ?disabled=${frames.length <= 1}>${this.text(m.deletePage)}</sf-menu-item>
+                  <sf-menu-item value="up" ?disabled=${at <= 0}>${this.text(m.moveUp)}</sf-menu-item>
+                  <sf-menu-item value="down" ?disabled=${at < 0 || at >= frames.length - 1}>${this.text(m.moveDown)}</sf-menu-item>
+                </sf-menu>`}
+          </div>`;
     return html`<section class="panel" aria-labelledby="pages-title">
       <h2 class="title" id="pages-title">${this.text(m.panelTitle)}</h2>
-      ${body}
+      ${body} ${edits}
       <sf-toolbar label=${this.text(m.actions)}>
         <sf-button class="previous" variant="secondary" size="sm" ?disabled=${frames.length === 0} @click=${() => this.step(-1)}>${this.text(m.previous)}</sf-button>
         <sf-button class="next" variant="secondary" size="sm" ?disabled=${frames.length === 0} @click=${() => this.step(1)}>${this.text(m.next)}</sf-button>
@@ -175,6 +266,9 @@ export class IfPagesPanelElement extends SfElement<typeof panelSpec> {
 
 export function definePagesPanel(registry: CustomElementRegistry = customElements): void {
   defineButton(registry);
+  defineIconElement(registry);
+  defineIconButton(registry);
+  defineMenu(registry);
   defineToolbar(registry);
   defineTree(registry);
   if (registry.get(PAGES_PANEL_TAG) === undefined) defineComponent(IfPagesPanelElement, registry);
