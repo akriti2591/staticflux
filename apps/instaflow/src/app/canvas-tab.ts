@@ -66,6 +66,8 @@ export interface CanvasTabOptions {
   readonly selectTool?: (tool: ToolId) => void;
   /** The editor's shortcut registry (the canvas scope is active there whenever keys arrive). */
   readonly shortcuts?: ShortcutRegistry;
+  /** Apple key conventions while editing text (B12 T-3: Option word, Command line). Default false. */
+  readonly isMac?: boolean;
   /** Where the text host lives (text editing is off without it). */
   readonly textHost?: TextHostPort;
   readonly announcer: Pick<Announcer, 'announce'>;
@@ -173,7 +175,7 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
   };
 
   // Canvas pipeline: B1's source over the repeat view, B2's text on the IR section, uploads and the overlay.
-  const source = createElementRenderSource({ stage: document.view, geometry: document.geometry, kit: document.kit, root: page, orderOf: (id) => part.node(id)?.order });
+  const source = createElementRenderSource({ stage: document.view, geometry: document.geometry, kit: document.kit, root: page, orderOf: (id) => part.node(id)?.order, pageFill: true }); // B12: the page's fill stack
   scope.defer(() => source.dispose());
   const projector = createRenderProjector(ElementProjection, source);
   const text = createTextLayer({ document, page, fonts: options.fonts, scope });
@@ -275,6 +277,7 @@ export async function openCanvasTab(options: CanvasTabOptions): Promise<Result<C
       host,
       camera: () => view.camera,
       actor: options.actor,
+      isMac: options.isMac === true,
       onExit: (reason) => {
         editing = undefined;
         options.onEditing?.(undefined, reason);

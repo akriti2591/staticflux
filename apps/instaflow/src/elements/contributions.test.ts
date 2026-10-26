@@ -55,7 +55,7 @@ describe.skipIf(!authoringBuilt)('element actions through the capability seam', 
       shape('b', { [P.x]: 40, [P.y]: 30, [P.w]: 10, [P.h]: 10, [P.strokes]: [{ paint: '#000', width: 1 }] }),
     ]);
     const env: ElementEditEnv = { context: () => f.ctx(g), target: () => ({ undo: f.undo, stage: f.stage, part: PAGE }), actorFor: () => ok(human) };
-    expect(selectionFacts(f.ctx(g), ['a', 'b'])).toEqual({ count: 2, elements: 2, sameParent: true, booleans: 0, masks: 0, withStroke: 1, flattenable: 2 });
+    expect(selectionFacts(f.ctx(g), ['a', 'b'])).toEqual({ count: 2, elements: 2, sameParent: true, booleans: 0, masks: 0, withStroke: 1, flattenable: 2, containers: 0 });
     expect(unwrap(runElementAction(env, 'align-top', { nodes: ['a', 'b'] }, human))).toEqual({ ops: 1 });
     expect(f.stage.value('b', P.y)).toBe(0);
     expect(f.undo.history(human.id).undo).toHaveLength(1);

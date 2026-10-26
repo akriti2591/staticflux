@@ -391,6 +391,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
         events.tool(tool);
       },
       shortcuts,
+      isMac: options.isMac,
       ...(textHost === undefined ? {} : { textHost }),
       announcer: { announce },
       timers,

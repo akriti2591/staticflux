@@ -20,7 +20,7 @@ import { type Box, createSpatialIndex, type SpatialIndex } from '@staticflux/doc
 import type { NodeId } from '@staticflux/document/v2';
 import type { Stage } from '@staticflux/stage';
 import type { HitKind } from '../elements/geometry.js';
-import { type ElementContext, elementBounds, hitBox, hitElement, isElement, localOutline, pageTransform } from '../elements/layout.js';
+import { type ElementContext, elementBounds, hitBox, hitElement, isElement, isHidden, localOutline, pageTransform } from '../elements/layout.js';
 import { resolveElement } from '../elements/resolve.js';
 
 /** What tools read: B1's element context plus locks and invalidations. */
@@ -139,10 +139,10 @@ function chainFrom(stage: Pick<Stage, 'read'>, root: NodeId, node: NodeId): Node
   return [];
 }
 
-/** A leaf the narrow phase tests: a drawn element (not a group, not a mask, not a boolean operand). */
+/** A leaf the narrow phase tests: a drawn element (not a group, not a mask, not a boolean operand, not hidden). */
 export function isHittableLeaf(ctx: ElementContext, node: NodeId): boolean {
   const el = resolveElement(ctx.stage, node, ctx.kit);
-  if (el === undefined || !isElement(el.kind) || el.geometry.kind === 'group' || el.mask !== undefined) return false;
+  if (el === undefined || !isElement(el.kind) || el.geometry.kind === 'group' || el.mask !== undefined || isHidden(ctx, node)) return false;
   for (let at = el.parent; at !== null; ) {
     const p = resolveElement(ctx.stage, at, ctx.kit);
     if (p === undefined || !isElement(p.kind)) break;

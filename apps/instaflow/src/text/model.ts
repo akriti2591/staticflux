@@ -5,9 +5,12 @@
  *   `verticalAlign`.
  * - **Character marks** on `text.content` (A4 v2 marks, anchored, so concurrent edits keep them): `bold`, `italic`,
  *   `size`, `color` (CSS colour or `{ token }`), `font` (font asset `{ font: sha256 }` or `{ token }`), `link`
- *   (`{ href }`), `underline`, `strike`, `letterSpacing`, `weight`.
+ *   (`{ href }`), `underline`, `strike`, `letterSpacing`, `weight`, `script` (B12 T-5: `sub` | `super`, drawn smaller and
+ *   off the baseline).
+ * - **Soft line breaks** (B12 T-6): U+2028 inside a paragraph is a new line in the same paragraph (Shift+Enter).
  * - **Paragraphs** (Quill-style): the content always ends with `\n`; each paragraph's style lives as `p.*` marks on
- *   its terminating `\n` (`p.align`, `p.list`, `p.lineHeight`, `p.spaceBefore`, `p.spaceAfter`, `p.indent`). Splitting
+ *   its terminating `\n` (`p.align`, `p.list`, `p.level` (B12 T-8: list nesting 0…8), `p.lineHeight`, `p.spaceBefore`,
+ *   `p.spaceAfter`, `p.indent`). Splitting
  *   a paragraph copies the style to the new break (`splitParagraphOps`), so concurrent edits converge without a
  *   separate paragraph list.
  * - Every peer must create its Loro engine with `TEXT_MARK_EXPAND` (A4 rule: one mark-expand table).
@@ -30,6 +33,10 @@ export const VERTICAL_ALIGNS = ['top', 'middle', 'bottom'] as const;
 export type VerticalAlign = (typeof VERTICAL_ALIGNS)[number];
 export const LIST_KINDS = ['none', 'bullet', 'number'] as const;
 export type ListKind = (typeof LIST_KINDS)[number];
+/** Deepest list nesting level (`p.level`, 0 = top). */
+export const LIST_MAX_LEVEL = 8;
+export const SCRIPTS = ['sub', 'super'] as const;
+export type Script = (typeof SCRIPTS)[number];
 
 export const TextComponent = /* @__PURE__ */ defineComponent(
   'text',
@@ -62,6 +69,7 @@ export const CharMark = Object.freeze({
   color: 'color',
   font: 'font',
   letterSpacing: 'letterSpacing',
+  script: 'script',
 } as const);
 export type CharMarkKey = (typeof CharMark)[keyof typeof CharMark];
 
@@ -69,6 +77,7 @@ export type CharMarkKey = (typeof CharMark)[keyof typeof CharMark];
 export const ParaMark = Object.freeze({
   align: 'p.align',
   list: 'p.list',
+  level: 'p.level',
   lineHeight: 'p.lineHeight',
   spaceBefore: 'p.spaceBefore',
   spaceAfter: 'p.spaceAfter',
@@ -93,8 +102,10 @@ export const TEXT_MARK_EXPAND: Readonly<Record<CharMarkKey | ParaMarkKey, MarkEx
   color: 'after',
   font: 'after',
   letterSpacing: 'after',
+  script: 'after',
   'p.align': 'none',
   'p.list': 'none',
+  'p.level': 'none',
   'p.lineHeight': 'none',
   'p.spaceBefore': 'none',
   'p.spaceAfter': 'none',
@@ -128,11 +139,15 @@ export interface CharStyle {
   readonly color?: ColorRef;
   readonly font?: FontRef;
   readonly letterSpacing?: number;
+  /** Subscript or superscript (B12 T-5). */
+  readonly script?: Script;
 }
 
 export interface ParagraphStyle {
   readonly align?: TextAlign;
   readonly list?: ListKind;
+  /** List nesting level, 0…`LIST_MAX_LEVEL` (B12 T-8; drawn with list markers, T-10). */
+  readonly level?: number;
   /** Multiple of the font size (0 / unset = font metrics). */
   readonly lineHeight?: number;
   readonly spaceBefore?: number;
@@ -162,6 +177,8 @@ export function checkCharMark(key: CharMarkKey, value: JsonValue): string | unde
       return typeof value === 'number' && value >= 1 && value <= 1000 ? undefined : 'weight must be 1…1000';
     case 'letterSpacing':
       return typeof value === 'number' && Math.abs(value) <= 1000 ? undefined : 'letterSpacing must be a number of px';
+    case 'script':
+      return (SCRIPTS as readonly unknown[]).includes(value) ? undefined : 'script must be "sub" or "super"';
     case 'color':
       return typeof value === 'string' || isTokenRef(value) ? undefined : 'color must be a CSS colour or { token }';
     case 'font':
@@ -176,6 +193,7 @@ export function checkCharMark(key: CharMarkKey, value: JsonValue): string | unde
 const PARA_CHECKS: Readonly<Record<keyof ParagraphStyle, (v: JsonValue) => boolean>> = {
   align: (v) => (TEXT_ALIGNS as readonly unknown[]).includes(v),
   list: (v) => (LIST_KINDS as readonly unknown[]).includes(v),
+  level: (v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= LIST_MAX_LEVEL,
   lineHeight: (v) => typeof v === 'number' && v >= 0 && v <= 10,
   spaceBefore: (v) => typeof v === 'number' && v >= 0 && v <= 4096,
   spaceAfter: (v) => typeof v === 'number' && v >= 0 && v <= 4096,
@@ -186,6 +204,7 @@ const PARA_CHECKS: Readonly<Record<keyof ParagraphStyle, (v: JsonValue) => boole
 export const PARA_FIELDS: readonly (readonly [keyof ParagraphStyle, ParaMarkKey])[] = [
   ['align', ParaMark.align],
   ['list', ParaMark.list],
+  ['level', ParaMark.level],
   ['lineHeight', ParaMark.lineHeight],
   ['spaceBefore', ParaMark.spaceBefore],
   ['spaceAfter', ParaMark.spaceAfter],

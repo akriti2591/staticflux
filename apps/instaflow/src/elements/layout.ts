@@ -58,6 +58,20 @@ export function isElement(kind: string | undefined): boolean {
   return kind !== undefined && (ELEMENTS.has(kind) || kind === 'text');
 }
 
+/**
+ * True when `node` or an element ancestor has `spatial.hidden` (B12, A-2): not drawn, exported, hit, snapped to or
+ * announced, and left out of its group's bounds.
+ */
+export function isHidden(ctx: Pick<ElementContext, 'stage'>, node: NodeId): boolean {
+  for (let at: NodeId | null = node; at !== null; ) {
+    const composed = ctx.stage.read(at);
+    if (composed === undefined || !isElement(composed.kind)) return false;
+    if (composed.values[P.hidden] === true) return true;
+    at = composed.parent;
+  }
+  return false;
+}
+
 /** Local → page transform: the product of the element ancestors' transforms (pages are the origin). */
 export function pageTransform(ctx: ElementContext, node: NodeId): Affine {
   let t: Affine = IDENTITY;
@@ -133,7 +147,7 @@ export function maskOf(ctx: ElementContext, node: NodeId): ResolvedElement | und
     const index = siblings.indexOf(at);
     for (let i = index - 1; i >= 0; i--) {
       const s = resolveElement(ctx.stage, siblings[i] as NodeId, ctx.kit);
-      if (s?.mask !== undefined) return s;
+      if (s?.mask !== undefined && s.hidden !== true) return s;
     }
     at = isElement(el.kind) ? el.parent : null;
   }
@@ -149,6 +163,7 @@ export function elementBounds(ctx: ElementContext, node: NodeId): Result<Element
   let ink: Box | undefined;
   if (el.geometry.kind === 'group') {
     for (const child of ctx.stage.children(node)) {
+      if (ctx.stage.read(child)?.values[P.hidden] === true) continue;
       const b = elementBounds(ctx, child);
       if (!b.ok) continue;
       geometry = unionBox(geometry, b.value.geometry);
@@ -214,7 +229,7 @@ export function siblingBounds(ctx: ElementContext, node: NodeId): ElementBounds[
   const parent = ctx.stage.read(node)?.parent ?? null;
   const out: ElementBounds[] = [];
   for (const id of ctx.stage.children(parent)) {
-    if (id === node) continue;
+    if (id === node || ctx.stage.read(id)?.values[P.hidden] === true) continue;
     const b = elementBounds(ctx, id);
     if (b.ok) out.push(b.value);
   }
@@ -247,11 +262,12 @@ export function hitBox(ctx: ElementContext, bounds: ElementBounds): Box {
 /** Precise hit (fill or stroke) at a page point, honouring the element's mask. Groups hit through their children. */
 export function hitElement(ctx: ElementContext, node: NodeId, x: number, y: number, tolerance = 0): Result<HitKind> {
   const el = resolveElement(ctx.stage, node, ctx.kit);
-  if (el === undefined || !isElement(el.kind)) return ok('none');
+  if (el === undefined || !isElement(el.kind) || el.hidden === true) return ok('none');
   const transform = pageTransform(ctx, node);
   let hit: HitKind = 'none';
   if (el.geometry.kind === 'group') {
     for (const child of [...ctx.stage.children(node)].reverse()) {
+      if (ctx.stage.read(child)?.values[P.hidden] === true) continue;
       const r = hitElement(ctx, child, x, y, tolerance);
       if (r.ok && r.value !== 'none') {
         hit = r.value;

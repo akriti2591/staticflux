@@ -108,6 +108,8 @@ export interface ResolvedElement {
   readonly effects: readonly ResolvedEffect[];
   readonly mask?: ResolvedMask;
   readonly matchKey?: string;
+  /** `spatial.hidden` (B12, A-2): present only when the element itself is hidden (ancestors: `isHidden` in layout). */
+  readonly hidden?: true;
   /** Tokens that did not resolve, and values that could not be read (drawn as nothing). */
   readonly issues: readonly { readonly path: string; readonly problem: string }[];
 }
@@ -434,6 +436,7 @@ export function resolveComposed(composed: ComposedNode, kit?: BrandKitView): Res
         }
       : {}),
     ...(typeof matchKey === 'string' ? { matchKey } : {}),
+    ...(values[P.hidden] === true ? { hidden: true as const } : {}),
     issues: r.issues,
   };
 }

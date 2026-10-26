@@ -177,7 +177,9 @@ export async function runExportJob(request: ExportJobRequest, env: ExportJobEnv,
   const files: ExportFile[] = [];
   const missing = new Set<string>();
   let patches = 0;
-  const background = request.options.transparent ? undefined : PAGE_BACKGROUND;
+  // B12 (A-1): a page export draws the page's own fill stack (a scene node, D21 parity) over nothing; `transparent`
+  // leaves that node out. A selection export keeps the plain page colour behind it unless transparent.
+  const background = request.options.transparent || request.options.scope !== 'selection' ? undefined : PAGE_BACKGROUND;
   const rgbaBackground: readonly [number, number, number, number] = background === undefined ? [0, 0, 0, 0] : [background[0] / 255, background[1] / 255, background[2] / 255, background[3] / 255];
   const bgBytes = background === undefined ? new Uint8Array() : Uint8Array.from(background);
 
@@ -186,7 +188,7 @@ export async function runExportJob(request: ExportJobRequest, env: ExportJobEnv,
     if (signal.aborted) return finish(aborted());
     move('compose');
     progress(index, 0);
-    const built = await buildPageScene({ document, page, fonts: env.fonts, images: (a) => images.get(a), blobs: io.blobs, decoder: env.decoder, signal, scope });
+    const built = await buildPageScene({ document, page, fonts: env.fonts, images: (a) => images.get(a), blobs: io.blobs, decoder: env.decoder, signal, scope, pageFill: request.options.transparent !== true });
     if (!built.ok) return finish(built);
     const scene: PageScene = built.value;
     for (const m of scene.missingImages) missing.add(m);

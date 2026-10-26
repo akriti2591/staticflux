@@ -23,9 +23,9 @@ import type { JsonValue, NodeId, PartId, PartOp, PropertyPath, RichTextValue } f
 import type { Actor, Stage, UndoService } from '@staticflux/stage';
 import { type BooleanOpName, CORNER_PATHS, type MaskModeName, P } from './components.js';
 import { checkToken, type TokenType } from './brand-kit.js';
-import { ActionNotApplicableError, UnknownTokenError } from './errors.js';
+import { ActionNotApplicableError, EmptyNameError, UnknownTokenError } from './errors.js';
 import { type ElementBounds, type ElementContext, elementBounds, isElement, localOutline, pageTransform, strokeRing, unionBox } from './layout.js';
-import { type Affine, applyAffine, invert, resolveElement } from './resolve.js';
+import { type Affine, applyAffine, invert, multiply as multiplyAffine, type ResolvedElement, resolveElement } from './resolve.js';
 import { rgbaToHex, validateElementOps } from './values.js';
 
 export interface ActionContext extends ElementContext {
@@ -288,10 +288,10 @@ export function setBooleanOp(ctx: ActionContext, group: NodeId, op: BooleanOpNam
   return ok([{ op: 'set', node: group, path: P.boolean, value: op }]);
 }
 
-/** Children of a group back into its parent, keeping their page positions; the group is deleted. */
+/** Children of a group (or a frame) back into its parent, keeping their page positions; the container is deleted. */
 function ungroupOps(ctx: ActionContext, group: NodeId): Result<PartOp[]> {
   const el = resolveElement(ctx.stage, group, ctx.kit);
-  if (el === undefined || el.kind !== 'group') return notApplicable(`"${group}" is not a group.`, 'a group');
+  if (el === undefined || (el.kind !== 'group' && el.kind !== 'frame')) return notApplicable(`"${group}" is not a group.`, 'a group');
   const g = el.transform;
   const turn = Math.atan2(g[1], g[0]);
   const ops: PartOp[] = [];
@@ -313,6 +313,7 @@ function ungroupOps(ctx: ActionContext, group: NodeId): Result<PartOp[]> {
 
 /** Release a boolean: operands go back to the parent unchanged on the page. */
 export function releaseBoolean(ctx: ActionContext, group: NodeId): Result<PartOp[]> {
+  if (ctx.stage.read(group)?.kind !== 'group') return notApplicable(`"${group}" is not a group.`, 'a group');
   return ungroupOps(ctx, group);
 }
 
@@ -463,6 +464,192 @@ export function applyToken(ctx: ActionContext, nodes: readonly NodeId[], target:
   return ok(ops);
 }
 
+
+// ---------------------------------------------------------------- structure (B12: group, frame, order, rename, hide)
+
+/** `Group` / `Frame` names the actions give new containers (APPEARANCE §4.1). */
+export const STRUCTURE_NAMES = { group: 'Group', frame: 'Frame' } as const;
+/** Longest element name `rename` accepts (characters, after trimming). */
+export const NAME_MAX_LENGTH = 200;
+
+/** Group sibling `nodes` (APPEARANCE §4.1): a plain `group` at the top-most one's place in paint order; nothing moves. */
+export function group(ctx: ActionContext, nodes: readonly NodeId[]): Result<PartOp[]> {
+  if (nodes.length === 0) return notApplicable('Select something to group.', 'an element');
+  const order = inPaintOrder(ctx, nodes);
+  if (!order.ok) return order;
+  const { parent, ordered } = order.value;
+  if (ordered.length !== new Set(nodes).size || ordered.some((n) => !isElement(ctx.stage.read(n)?.kind))) return notApplicable('Only elements can be grouped.', 'elements');
+  const top = ordered[ordered.length - 1] as NodeId;
+  const id = ctx.newId();
+  const ops: PartOp[] = [{ op: 'create', node: id, kind: 'group', parent, position: { after: top }, props: { name: STRUCTURE_NAMES.group, [P.matchKey]: `lk_${id}` } }];
+  ordered.forEach((node, index) => ops.push({ op: 'move', node, parent: id, position: { index } }));
+  return ok(ops);
+}
+
+/** The bounds of `node` in its parent's space (exact: outlines through the element's own transform). */
+function parentSpaceBounds(ctx: ElementContext, node: NodeId, outer: Affine = [1, 0, 0, 1, 0, 0]): Result<Box | undefined> {
+  const el = resolveElement(ctx.stage, node, ctx.kit);
+  if (el === undefined || !isElement(el.kind) || el.hidden === true) return ok(undefined);
+  const t = multiplyAffine(outer, el.transform);
+  if (el.geometry.kind === 'group') {
+    let out: Box | undefined;
+    for (const child of ctx.stage.children(node)) {
+      const b = parentSpaceBounds(ctx, child, t);
+      if (!b.ok) return b;
+      if (b.value !== undefined) out = unionBox(out, b.value);
+    }
+    return ok(out);
+  }
+  const outline = localOutline(ctx, el);
+  if (!outline.ok) return outline;
+  return ctx.geometry.bounds(outline.value, t);
+}
+
+/**
+ * Frame selection (APPEARANCE §4.1): wrap sibling `nodes` in a `frame` sized to their union (in the parent's space,
+ * `padding` on every side), clip on, no fill, at the top-most one's place; the children keep their place on the page.
+ */
+export function frameSelection(ctx: ActionContext, nodes: readonly NodeId[], padding = 0): Result<PartOp[]> {
+  if (nodes.length === 0) return notApplicable('Select something to frame.', 'an element');
+  const order = inPaintOrder(ctx, nodes);
+  if (!order.ok) return order;
+  const { parent, ordered } = order.value;
+  if (ordered.length !== new Set(nodes).size || ordered.some((n) => !isElement(ctx.stage.read(n)?.kind))) return notApplicable('Only elements can be framed.', 'elements');
+  let box: Box | undefined;
+  for (const node of ordered) {
+    const b = parentSpaceBounds(ctx, node);
+    if (!b.ok) return b;
+    if (b.value !== undefined) box = unionBox(box, b.value);
+  }
+  if (box === undefined) return notApplicable('The selection has no size to frame.', 'visible elements');
+  const pad = Number.isFinite(padding) ? Math.max(0, padding) : 0;
+  const x = box.minX - pad;
+  const y = box.minY - pad;
+  const id = ctx.newId();
+  const top = ordered[ordered.length - 1] as NodeId;
+  const ops: PartOp[] = [
+    {
+      op: 'create',
+      node: id,
+      kind: 'frame',
+      parent,
+      position: { after: top },
+      props: { name: STRUCTURE_NAMES.frame, [P.x]: x, [P.y]: y, [P.w]: box.maxX - box.minX + 2 * pad, [P.h]: box.maxY - box.minY + 2 * pad, [P.clip]: true, [P.fills]: [], [P.matchKey]: `lk_${id}` },
+    },
+  ];
+  ordered.forEach((node, index) => {
+    ops.push({ op: 'move', node, parent: id, position: { index } });
+    const el = resolveElement(ctx.stage, node, ctx.kit) as ResolvedElement;
+    ops.push({ op: 'set', node, path: P.x, value: el.box.x - x });
+    ops.push({ op: 'set', node, path: P.y, value: el.box.y - y });
+  });
+  return ok(ops);
+}
+
+/**
+ * Ungroup (APPEARANCE §4.1): each group or frame in `nodes` puts its children back in its place (page position and
+ * paint order kept) and goes; a boolean is released the same way and a mask group's mask is released with it (the
+ * mask would otherwise start masking the parent's later siblings). Unframe is ungroup on a frame.
+ */
+export function ungroup(ctx: ActionContext, nodes: readonly NodeId[]): Result<PartOp[]> {
+  const ops: PartOp[] = [];
+  for (const node of nodes) {
+    const kind = ctx.stage.read(node)?.kind;
+    if (kind !== 'group' && kind !== 'frame') return notApplicable(`"${node}" is not a group or a frame.`, 'a group or a frame', { node });
+    for (const child of ctx.stage.children(node)) {
+      if (resolveElement(ctx.stage, child, ctx.kit)?.mask !== undefined) ops.push({ op: 'set', node: child, path: P.maskMode, value: null }, { op: 'set', node: child, path: P.maskInvert, value: null });
+    }
+    const out = ungroupOps(ctx, node);
+    if (!out.ok) return out;
+    ops.push(...out.value);
+  }
+  if (ops.length === 0) return notApplicable('Select a group or a frame.', 'a group or a frame');
+  return ok(ops);
+}
+
+/** Bring forward / send backward one step, bring to front / send to back (APPEARANCE §4.9). */
+export const REORDER_DIRECTIONS = ['forward', 'backward', 'front', 'back'] as const;
+export type ReorderDirection = (typeof REORDER_DIRECTIONS)[number];
+
+/** The new child order of one parent (bottom first) when `selected` move in `direction`. */
+export function reorderedChildren(children: readonly NodeId[], selected: ReadonlySet<NodeId>, direction: ReorderDirection): NodeId[] {
+  const list = [...children];
+  const s = (i: number): boolean => selected.has(list[i] as NodeId);
+  const swap = (i: number, j: number): void => {
+    [list[i], list[j]] = [list[j] as NodeId, list[i] as NodeId];
+  };
+  switch (direction) {
+    case 'front':
+      return [...list.filter((n) => !selected.has(n)), ...list.filter((n) => selected.has(n))];
+    case 'back':
+      return [...list.filter((n) => selected.has(n)), ...list.filter((n) => !selected.has(n))];
+    case 'forward':
+      for (let i = list.length - 2; i >= 0; i--) if (s(i) && !s(i + 1)) swap(i, i + 1);
+      return list;
+    case 'backward':
+      for (let i = 1; i < list.length; i++) if (s(i) && !s(i - 1)) swap(i, i - 1);
+      return list;
+  }
+}
+
+/**
+ * Reorder `nodes` within their parents (APPEARANCE §4.9): a selection across several parents moves in each one. The
+ * selected keep their relative order; a step moves past the next unselected sibling. Nothing to move: not applicable.
+ */
+export function reorder(ctx: ActionContext, nodes: readonly NodeId[], direction: ReorderDirection): Result<PartOp[]> {
+  const byParent = new Map<NodeId | null, Set<NodeId>>();
+  for (const node of nodes) {
+    const composed = ctx.stage.read(node);
+    if (composed === undefined || !isElement(composed.kind)) return notApplicable(`"${node}" is not an element.`, 'elements', { node });
+    let set = byParent.get(composed.parent);
+    if (set === undefined) byParent.set(composed.parent, (set = new Set()));
+    set.add(node);
+  }
+  const ops: PartOp[] = [];
+  for (const [parent, selected] of byParent) {
+    const before = ctx.stage.children(parent);
+    const after = reorderedChildren(before, selected, direction);
+    if (after.every((n, i) => n === before[i])) continue;
+    // Move the selected in their final order, each after its final predecessor (already in place).
+    after.forEach((node, i) => {
+      if (!selected.has(node)) return;
+      ops.push({ op: 'move', node, parent, position: i === 0 ? { index: 0 } : { after: after[i - 1] as NodeId } });
+    });
+  }
+  return ok(ops);
+}
+
+/** Rename one element (APPEARANCE §4.9): the trimmed name; empty or longer than `NAME_MAX_LENGTH` is refused. */
+export function rename(ctx: ActionContext, node: NodeId, name: string): Result<PartOp[]> {
+  if (!isElement(ctx.stage.read(node)?.kind)) return notApplicable(`"${node}" is not an element.`, 'an element', { node });
+  const trimmed = name.trim();
+  if (trimmed === '') return err(EmptyNameError({ details: { node } }));
+  if (trimmed.length > NAME_MAX_LENGTH) return err(EmptyNameError({ message: `A name has at most ${NAME_MAX_LENGTH} characters.`, details: { node, length: trimmed.length } }));
+  return ok(ctx.stage.value(node, 'name') === trimmed ? [] : [{ op: 'set', node, path: 'name', value: trimmed }]);
+}
+
+/**
+ * Hide or show `nodes` (APPEARANCE §4.9, A-2): `spatial.hidden`. Hidden elements (and everything inside them) are not
+ * drawn, exported, hit or announced; `hidden: undefined` toggles (any visible → hide all, else show all).
+ */
+export function setHidden(ctx: ActionContext, nodes: readonly NodeId[], hidden?: boolean): Result<PartOp[]> {
+  if (nodes.length === 0 || nodes.some((n) => !isElement(ctx.stage.read(n)?.kind))) return notApplicable('Select an element to hide or show.', 'an element');
+  const want = hidden ?? nodes.some((n) => ctx.stage.value(n, P.hidden) !== true);
+  return ok(nodes.filter((n) => (ctx.stage.value(n, P.hidden) === true) !== want).map((node): PartOp => ({ op: 'set', node, path: P.hidden, value: want ? true : null })));
+}
+
+/** Show every hidden element under `root` (Layers `Show all`). */
+export function showAll(ctx: ActionContext, root: NodeId): Result<PartOp[]> {
+  const ops: PartOp[] = [];
+  const walk = (parent: NodeId): void => {
+    for (const child of ctx.stage.children(parent)) {
+      if (ctx.stage.value(child, P.hidden) === true) ops.push({ op: 'set', node: child, path: P.hidden, value: null });
+      walk(child);
+    }
+  };
+  walk(root);
+  return ok(ops);
+}
 
 // ---------------------------------------------------------------- duplicate (match keys)
 

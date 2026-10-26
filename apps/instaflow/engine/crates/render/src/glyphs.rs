@@ -6,6 +6,11 @@
 //! Wasm at 346.6 KB brotli with it, over the 300 KB IF-15.1 budget; 185.7 KB before text). Outlines here are
 //! cached in font units per (face, coordinates, glyph) and scaled per run, so zooming never re-extracts.
 //! Limitation: colour glyphs (COLR, CBDT emoji) draw only their outline fallback, if any.
+//!
+//! Missing glyphs (B12, T-4): the layout shapes a character no font covers as glyph 0 (`.notdef`); every face draws
+//! it as the same **tofu box** (`tofu_outline`: a hollow rectangle of the cap height inside the glyph's advance), so
+//! a missing character is visible on the canvas and in every export (they share `extract`), whatever the font's own
+//! `.notdef` looks like (many subset fonts have an empty one).
 
 use crate::ir::GlyphRun;
 use skrifa::instance::{LocationRef, NormalizedCoord, Size};
@@ -125,11 +130,39 @@ pub fn font_glyph(font: &FontData, glyph: u32, coords: &[i16]) -> Option<FontGly
     Some(FontGlyph { outline: extract(&face, &face.outline_glyphs(), glyph, &normalized, upem), advance })
 }
 
+/// The glyph id of `.notdef` (what shaping gives a character without a glyph in any font of its run).
+pub const NOTDEF: u32 = 0;
+
+/// The tofu box in font units (y up): a hollow rectangle 0.7 em tall on the baseline, inset 0.06 em into an advance
+/// of at least 0.5 em, with a 0.06 em wall (outer contour clockwise, inner counter-clockwise: nonzero leaves it hollow).
+pub fn tofu_outline(advance: f32, upem: f32) -> BezPath {
+    let em = upem.max(1.0) as f64;
+    let width = (advance as f64).max(0.5 * em);
+    let (inset, wall, height) = (0.06 * em, 0.06 * em, 0.7 * em);
+    let (x0, x1, y0, y1) = (inset, width - inset, 0.0, height);
+    let mut p = BezPath::new();
+    p.move_to((x0, y0));
+    p.line_to((x0, y1));
+    p.line_to((x1, y1));
+    p.line_to((x1, y0));
+    p.close_path();
+    p.move_to((x0 + wall, y0 + wall));
+    p.line_to((x1 - wall, y0 + wall));
+    p.line_to((x1 - wall, y1 - wall));
+    p.line_to((x0 + wall, y1 - wall));
+    p.close_path();
+    p
+}
+
 /// One glyph in font units (y up). TrueType through skrifa's unhinted glyf scaler, CFF/CFF2 through read-fonts'
 /// charstring evaluator: neither path references a hinter, so the hinting code stays out of the Wasm (skrifa's
 /// `OutlineGlyph::draw` dispatches to the TrueType interpreter and the autohinter at run time).
 fn extract(face: &FontRef<'_>, outlines: &OutlineGlyphCollection<'_>, glyph: u32, coords: &[NormalizedCoord], upem: f32) -> Option<BezPath> {
     let gid = GlyphId::new(glyph);
+    if glyph == NOTDEF {
+        let advance = face.glyph_metrics(Size::unscaled(), LocationRef::new(coords)).advance_width(gid).unwrap_or(0.0);
+        return Some(tofu_outline(advance, upem));
+    }
     let mut pen = Pen(BezPath::new());
     let cff = face.table_data(Tag::new(b"CFF2")).map(|d| (d, true)).or_else(|| face.table_data(Tag::new(b"CFF ")).map(|d| (d, false)));
     match cff {
@@ -159,6 +192,24 @@ mod tests {
 
     fn gid(font: &FontData, c: char) -> u32 {
         FontRef::from_index(font.data.data(), 0).unwrap().charmap().map(c).unwrap().to_u32()
+    }
+
+    #[test]
+    fn missing_glyphs_draw_a_tofu_box_in_every_face() {
+        let font = noto();
+        let mut cache = GlyphCache::default();
+        let path = cache.run_path(&font, &GlyphRun::new(1, 100.0, vec![(NOTDEF, 10.0, 100.0)])).unwrap();
+        let b = path.bounding_box();
+        // 0.7 em tall on the baseline (y down), inside the advance
+        assert!((b.y1 - 100.0).abs() < 0.01 && (b.height() - 70.0).abs() < 0.01, "{b:?}");
+        assert!(b.x0 > 10.0 && b.width() > 30.0, "{b:?}");
+        // hollow: the centre is not inside the outline
+        assert!(path.winding((b.center().x, b.center().y).into()) == 0);
+        assert!(path.winding((b.x0 + 1.0, b.center().y).into()) != 0);
+        // the exporter's glyph (PDF Type 3, SVG outlines) is the same box
+        let g = font_glyph(&font, NOTDEF, &[]).unwrap();
+        assert!(g.outline.is_some());
+        assert_eq!(tofu_outline(0.0, 1000.0).bounding_box().width(), 380.0);
     }
 
     #[test]
