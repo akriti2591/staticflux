@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** #32 merged; #29 closed. Owner report: drag stutter in Studio, worst in a grid repeat (lower half lags
+  ~1 s on quick moves). Root-cause agent on `claude/fix-drag-stutter` (measure both topologies; fix if contained, else
+  propose). B12 still running.
 - **2026-10-26** Motion/timeline/video UX done → PR #32 (MOTION-TIMELINE-UX-SPEC, F-73–F-81, V-1…V-31 schedule M3–M5+,
   Q1–Q12 asked). B12 still running.
 - **2026-10-26** #30 (B11a2) and #31 (appearance + text specs) merged; #29 closed (verified fully included in #31:
