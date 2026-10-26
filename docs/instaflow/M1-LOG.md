@@ -72,6 +72,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** B12b PR #35 open. **B11b launched** on `claude/wip-b11b-surfaces` (stacked on B12b), in slices: Studio chrome/
+  canvas/tools/HUD → inspector (every control) → dock → context menu/keyboard/clipboard → Home/New design/files →
+  Settings/density/hints/deep links/logo; may end with a B11c for the remainder. Split input-lag look deferred until
+  after B11b (one code agent at a time).
 - **2026-10-26** B12b on the working branch (cherry-picked its 6 commits onto main; tree equals its tip plus coordinator
   docs): P1 versioned keystrokes with rebasing in `workers/text-port.ts`; P2 text as a projection kind in the element
   tree (+ a scene IR fix for edit-then-delete in one frame). Full check 4569 tests, smoke 0/10 both topologies, Home
