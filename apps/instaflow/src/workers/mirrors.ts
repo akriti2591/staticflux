@@ -136,6 +136,16 @@ export const SceneMirror = /* @__PURE__ */ defineMirror<SceneMirrorShape>('insta
 /** B4's composition structure (the Pages panel's lens controller reads it on main) and story edits. */
 export interface StoryMirrorShape {
   readonly reads: { readonly structure: Result<CompositionStructure> | undefined };
-  readonly actions: { movePage(page: NodeId, to: number): Result<void> };
+  readonly actions: {
+    movePage(page: NodeId, to: number): Result<void>;
+    /** B11b: a new page after `after` (the end when null), sized like it; resolves to its id. One undo step. */
+    addPage(after: NodeId | null): Result<NodeId>;
+    /** B11b: a copy of `page` with its elements, right after it; resolves to its id. One undo step. */
+    duplicatePage(page: NodeId): Result<NodeId>;
+    /** B11b: `page` leaves the story (never the last one, IF-POL-052); undo brings it back. */
+    deletePage(page: NodeId): Result<void>;
+    /** B11b: rename any page (IF-POL-053 when empty). */
+    renameStoryPage(page: NodeId, name: string): Result<void>;
+  };
 }
 export const StoryMirror = /* @__PURE__ */ defineMirror<StoryMirrorShape>('instaflow/mirror/story', { structure: undefined });

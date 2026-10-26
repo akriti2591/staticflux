@@ -29,7 +29,7 @@ describe('createStudio', () => {
     expect(studio.activeTool).toBe(StudioIds.tool.select);
     expect(studio.port.groups()).toMatchObject({
       'lens@default': ['lens:instaflow/lens-canvas'],
-      'panel@dock': ['panel:instaflow/pages', 'panel:instaflow/assets', 'panel:instaflow/milestones'],
+      'panel@dock': ['panel:instaflow/layers', 'panel:instaflow/pages', 'panel:instaflow/assets', 'panel:instaflow/milestones'],
       'panel@inspector': ['panel:instaflow/inspector'],
     });
     expect(studio.port.groups()['panel@side'] ?? []).toEqual([]);

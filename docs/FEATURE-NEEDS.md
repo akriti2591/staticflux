@@ -463,9 +463,12 @@ Consumer: `apps/instaflow/src/workers` (TextInput port), `src/app` (text layer, 
 
 ### Studio and Home surfaces (Instaflow M1c · B11b)
 Consumer: `apps/instaflow/src/studio`, `src/app`, `src/workers`, `src/text`, `src/tools`. No new framework API and no new R-ID so
-far: the surfaces compose the kit blocks and the engine's mirrors and capabilities.
+far except R13.46 (kit tree): the surfaces compose the kit blocks and the engine's mirrors and capabilities.
 - "Every control in the pill, the inspector and the command bar runs the same action agents run" → `@staticflux/capabilities`
   registry `invoke` (validated, gated, attributed) and the editor's mirror actions (B9).
 - "The inspector shows the selection's sections and nothing else" → the declared control model (`spec/controls.ts`) and plain
   data tables per kind; `@staticflux/kit` disclosure, number field, colour popover, font picker, menu.
 - "Twelve more icons without growing a boot path" → the kit's generated per-icon Lucide modules (`icons.json`).
+- "Layers renames a row in place and shows its eye and lock" → the kit tree's decorated rows and inline rename (R13.46).
+- "Pages can be added and deleted while the design is open" → `@staticflux/document` `OpenDocument.createPart` and the parts
+  document's `attach` (a page is its own part, D14), committed with the undo service across parts.

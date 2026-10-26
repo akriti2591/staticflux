@@ -1,7 +1,7 @@
 import { expectNoA11yIssues, press } from '@staticflux/testkit/a11y';
 import { html } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { defineTree, dropPositionAt, findNode, flattenTree, isInSubtree, type ReorderDetail, type SfTreeElement, type TreeNode, treeDragMachine, visibleRange } from './tree.js';
+import { defineTree, dropPositionAt, findNode, flattenTree, isInSubtree, type RenameDetail, type ReorderDetail, type SfTreeElement, type TreeNode, treeDragMachine, visibleRange } from './tree.js';
 import { cleanup, events, fixture, settle, shadowAll } from './test-helpers.js';
 
 beforeAll(() => defineTree());
@@ -159,6 +159,48 @@ describe('<sf-tree>', () => {
     element.addEventListener('sf-reorder', (e) => e.preventDefault(), { signal: new AbortController().signal });
     element.canDrop = undefined;
     expect(element.requestReorder('title', 'page-2', 'inside')).toBe(false);
+  });
+
+  it('B11b: trailing row content never selects; muted and highlighted rows; inline rename commits, refuses empty, cancels', async () => {
+    let toggled = 0;
+    const decorated: readonly TreeNode[] = [
+      { id: 'a', label: 'Sun', muted: true, trailing: html`<span class="eye" aria-hidden="true" @click=${() => (toggled += 1)}>o</span>`, trailingPinned: true },
+      { id: 'b', label: 'Moon', trailing: html`<span aria-hidden="true">o</span>` },
+    ];
+    const { element } = await fixture<SfTreeElement>(html`<sf-tree label="Layers" .nodes=${decorated} .highlighted=${'b'}></sf-tree>`);
+    await settle();
+    const [a, b] = rows(element);
+    expect(a?.classList.contains('muted')).toBe(true);
+    expect(b?.classList.contains('hovered')).toBe(true);
+    expect(a?.querySelector('.trailing')?.classList.contains('pinned')).toBe(true);
+    (a?.querySelector('.eye') as HTMLElement).click();
+    expect(toggled).toBe(1);
+    expect(element.selected.size).toBe(0);
+    expectNoA11yIssues(element);
+    const renames = events<RenameDetail>(element, 'sf-rename');
+    const cancels = events<{ id: string }>(element, 'sf-rename-cancel');
+    element.renaming = 'a';
+    await settle();
+    const input = element.shadowRoot?.querySelector('input.rename') as HTMLInputElement;
+    expect(element.shadowRoot?.activeElement).toBe(input);
+    expect(rows(element)[0]?.getAttribute('draggable')).toBe('false');
+    input.value = '  Big sun ';
+    press(input, 'ArrowDown'); // stays in the field (the tree does not move)
+    press(input, 'Enter');
+    await settle();
+    expect(renames.map((e) => e.detail)).toEqual([{ id: 'a', value: 'Big sun' }]);
+    expect(element.renaming).toBeUndefined();
+    element.renaming = 'b';
+    await settle();
+    const second = element.shadowRoot?.querySelector('input.rename') as HTMLInputElement;
+    second.value = '   ';
+    press(second, 'Enter');
+    await settle();
+    element.renaming = 'b';
+    await settle();
+    press(element.shadowRoot?.querySelector('input.rename') as HTMLInputElement, 'Escape');
+    expect(renames).toHaveLength(1);
+    expect(cancels.map((e) => e.detail.id)).toEqual(['b', 'b']);
   });
 
   it('exposes drag-and-drop hooks with drop indicators', async () => {

@@ -49,11 +49,11 @@ export function editorGate(plan = 'free', options: { readonly delegateAsk?: bool
 }
 
 /**
- * Studio's spec plus the B0 placeholders B11b took out of the real one (Layers until its panel lands, Brand, Ask): the
+ * Studio's spec plus the B0 placeholders B11b took out of the real one (Brand, Ask): the
  * gating, delegation and pinning suites exercise slots that can be gated and pinned.
  */
 export const gatedStudioSpec: EditorSpec = defineEditorSpec({
   ...studioSpec,
-  panels: [...studioSpec.panels, { panel: StudioIds.panel.layers, dock: 'dock' }, { panel: StudioIds.panel.brand, dock: 'dock' }],
+  panels: [...studioSpec.panels, { panel: StudioIds.panel.brand, dock: 'dock' }],
   hud: [...studioSpec.hud, StudioIds.hud.ask],
 });

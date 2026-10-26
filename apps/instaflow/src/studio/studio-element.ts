@@ -47,6 +47,7 @@ import type { IconDef } from '@staticflux/kit/icon';
 import type { DocumentColor } from '@staticflux/kit/color-popover';
 import type { CanvasPort, CanvasSession } from './canvas.js';
 import { defineInspectorElement } from './inspector.js';
+import { defineLayersPanel } from './layers-panel.js';
 import { type CommandEntry, defineCommandBar, type IfCommandBarElement } from './command-bar.js';
 import { defineHud, type HudAction, type HudPort, type IfHudElement } from './hud.js';
 import type { Studio } from './studio.js';
@@ -920,6 +921,7 @@ export function defineStudio(registry: CustomElementRegistry = customElements): 
   defineHud(registry);
   defineCommandBar(registry);
   defineInspectorElement(registry);
+  defineLayersPanel(registry);
   if (registry.get(studioComponent.tag) === undefined) defineComponent(IfStudioElement, registry);
 }
 

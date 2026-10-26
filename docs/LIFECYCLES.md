@@ -712,6 +712,8 @@ live in their element and end with it; the per-device state lives in `localStora
 | command bar (per Studio) | closed → open (`Mod+K` or a click: the filter focused) → closed (a row runs: recorded first in the recents, then `if-command`; Escape; outside press) | `apps/instaflow/src/studio/command-bar.ts` |
 | inspector section (per section, per device) | open ↔ collapsed (the disclosure; default from §5.1, remembered under `instaflow/ui/inspector-sections`); Pro: pinned open (no toggle); `reveal(section)` → open | `apps/instaflow/src/studio/inspector.ts` |
 | stack row (per row) | collapsed ↔ expanded (a click on its summary; Pro: always expanded) | `apps/instaflow/src/studio/inspector-paint.ts` |
+| `kit/tree` row rename (per tree) | viewing → renaming (`renaming = id`: the field focused, text selected; the row not draggable) → viewing (Enter or blur: `sf-rename` when the trimmed name changed and is not empty, else `sf-rename-cancel`; Escape: `sf-rename-cancel`); focus returns to the tree | `packages/kit/src/tree.ts` |
+| a page (per page id) | absent → in the story (Add / Duplicate: part created and attached, stub created after a page — one step) → out of the story (Delete: the stub goes, the part keeps its content — one step) → in the story (undo) | `apps/instaflow/src/lenses/page-ops.ts`, `workers/editor-module.ts` (`StoryMirror`) |
 
 | ID | Invariant | Error / test |
 |---|---|---|
@@ -720,6 +722,8 @@ live in their element and end with it; the per-device state lives in `localStora
 | SURF-3 | A page side is 16…8192 px; a refused size changes nothing | IF-POL-050; `studio-app.test.ts` |
 | SURF-4 | Undo and redo run one at a time, in order; the selection never names an element an undo removed | `canvas-tab.ts`; `studio.smoke.mjs` |
 | SURF-5 | Every surface element passes the full audit under Clean Pop | `chrome.test.ts` guards the list |
+| SURF-6 | A design never has zero pages; a deleted page's content survives in its part until undo brings the stub back | IF-POL-052; `page-ops.test.ts`, `studio-app.test.ts` |
+| SURF-7 | A Layers drop or Alt+↑/↓ writes the paint order the list shows (above a row = after it in the document) | `layers-panel.test.ts`, `studio.smoke.mjs` |
 
 ## 39. Engine gaps for B11b: typing steps, hidden elements, page fill, crops (Instaflow M1c B12)
 

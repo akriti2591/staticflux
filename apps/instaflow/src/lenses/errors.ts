@@ -28,3 +28,19 @@ export const StoryMoveError = defineError(
   'A page cannot move to that place in the story (index out of range).',
   'Move pages to an index between 0 and the page count − 1; the Pages panel moves one step at a time with Alt+↑/↓.',
 );
+
+/** B11b: a design keeps at least one page (Pages › Delete page). */
+export const LastPageError = defineError(
+  'IF-POL-052',
+  'validation',
+  'A design keeps at least one page, so its only page cannot be deleted.',
+  'Add a page first (Pages › Add page), or clear this page’s elements instead.',
+);
+
+/** B11b: a page name is required (Pages › Rename). */
+export const PageNameError = defineError(
+  'IF-POL-053',
+  'validation',
+  'A page needs a name.',
+  'Type at least one character; the name is trimmed.',
+);

@@ -103,7 +103,8 @@ export function implementStudioCommands(env: StudioCommandEnv): readonly AnyCapa
       withTab(run, (tab, actor) => {
         const list = editable(env.document, input.nodes);
         if (list.length === 0) return notApplicable('an element');
-        const copied = duplicate(env.document.context(), list, DUPLICATE_STEP);
+        // The base stage: copies are of document nodes (a repeat's instances are derived again from the copy).
+        const copied = duplicate({ ...env.document.context(), stage: env.document.base }, list, DUPLICATE_STEP);
         if (!copied.ok) return copied;
         return commit(tab, actor, 'Duplicate', copied.value.ops, list.flatMap((n) => copied.value.copies.get(n) ?? []));
       }),

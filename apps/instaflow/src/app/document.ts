@@ -128,6 +128,8 @@ export interface StudioDocument {
   readonly geometry: GeometryService;
   /** The loaded part of a page. */
   part(page: NodeId): DocumentCRDTv2 | undefined;
+  /** B11b: create and attach a new page's part (Add / Duplicate page); `pages` grows. Idempotent. */
+  attachPage(page: NodeId): Result<void>;
   /** B1's commit target for a page (over the repeat view). */
   target(page: NodeId): EditTarget;
   /** B1/B7 action context (fresh ids from `newId`). */
@@ -193,6 +195,15 @@ export async function openStudioDocument(options: StudioDocumentOptions): Promis
     kit,
     geometry,
     part: (page) => loaded.get(page),
+    attachPage(page) {
+      if (loaded.has(page)) return ok();
+      const created = doc.createPart(pagePart(page));
+      if (!created.ok) return created;
+      loaded.set(page, created.value);
+      scope.defer(parts.attach(created.value, { id: pagePart(page) }));
+      pages.push({ id: page, part: pagePart(page) });
+      return ok();
+    },
     target: (page) => ({ undo, stage: view, part: pagePart(page) }),
     context: () => ({ stage: view, geometry, kit, newId, texts }),
     newId,

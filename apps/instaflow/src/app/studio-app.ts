@@ -60,12 +60,13 @@ import { gateSpecDecide } from '../spec/gate.js';
 import type { EditorRegistries } from '../spec/registries.js';
 import type { ScopeRef } from '../spec/schema.js';
 import { createStudio, type Studio, StudioShortcutScope } from '../studio/studio.js';
+import type { IfLayersPanelElement, LayersModel, LayersPort } from '../studio/layers-panel.js';
 import { type IfInspectorElement, type InspectorModel, type InspectorPort } from '../studio/inspector.js';
 import { type CameraAction, defineStudio, EMPTY_CHROME, type IfStudioElement, type StudioChromeModel, type StudioChromePort } from '../studio/studio-element.js';
 import type { HudAction } from '../studio/hud.js';
 import type { LayerRow } from './scene-summary.js';
 import { createToasts, INSTAFLOW_SURFACE_UNITS, type Toasts } from './feedback.js';
-import { DeleteCapability, STUDIO_KEY_COMMANDS, UndoCapability } from './studio-commands.js';
+import { DeleteCapability, LockCapability, STUDIO_KEY_COMMANDS, UndoCapability } from './studio-commands.js';
 import { ELEMENT_ACTIONS, elementActionId } from '../elements/capabilities.js';
 import { TEXT_HUD_COMMANDS } from '../text/commands.js';
 import { TOOL_HUD_COMMANDS } from '../tools/contributions.js';
@@ -242,6 +243,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     cancel: () => exportsService?.cancel(),
   };
   const inspectorBinding: { bind: (element: Element) => () => void; element?: IfInspectorElement } = { bind: () => () => undefined };
+  const layersBinding: { bind: (element: Element) => () => void } = { bind: () => () => undefined };
   const BINDERS: Readonly<Record<string, (element: Element) => () => void>> = {
     [EXPORT_PANEL_ID]: (element) => bindExportPanel(element as IfExportPanelElement, exportPort),
     [StudioIds.panel.transform]: (element) => bindTransformBar(element as IfTransformBarElement, transformBar),
@@ -249,6 +251,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     [REPEAT_PANEL_ID]: (element) => bindRepeatInspector(element as IfRepeatInspectorElement, repeat),
     // B11b: bound once the chrome below exists (the binder runs when the panel renders, after startup).
     [StudioIds.panel.inspector]: (element) => inspectorBinding.bind(element),
+    [StudioIds.panel.layers]: (element) => layersBinding.bind(element),
   };
   /** Panels whose element takes its model from the host: rendered inside a wrapper whose first child gets bound. */
   const bindPanel = (panel: PanelContribution): PanelContribution => {
@@ -284,7 +287,8 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     camera: { show: () => undefined },
   });
   scope.defer(() => lens.dispose());
-  const story = storyFromMirror(storyView, problem);
+  // B11b: a deleted page toasts with Undo (the editor's undo service restores its stub; the part kept its content).
+  const story = storyFromMirror(storyView, problem, { deleted: () => toasts.undoable({ message: 'Page deleted', undo: () => run(UndoCapability.id, {}, []) }) });
   let assetCount = 0;
   const library = createLibraryServices(
     {
@@ -471,7 +475,8 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   watch(
     () => lens.current(),
     (current) => {
-      if (current !== undefined && current !== canvas.page && pages.includes(current)) void canvas.showPage(current).then((r) => (r.ok ? undefined : problem(r.error)));
+      // B11b: pages join and leave at runtime: the arrangement (the mirrored story) lists the pages there are now.
+      if (current !== undefined && current !== canvas.page && (lens.arrangement()?.frames.some((f) => f.page === current) ?? pages.includes(current))) void canvas.showPage(current).then((r) => (r.ok ? undefined : problem(r.error)));
     },
     { scope },
   );
@@ -672,6 +677,27 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     el.port = inspectorPort;
     const stop = createScope('instaflow/inspector-binding');
     watch(inspectorModel, (model) => (el.model = model), { scope: stop, fireImmediately: true });
+    return () => void stop.dispose();
+  };
+
+  // B11b: Layers (STUDIO §3.1) over the scene mirror; its edits are capabilities and mirror actions.
+  const layersPort: LayersPort = {
+    select: (nodes) => void editor.request('select', { nodes: [...nodes] }).then((r) => (r.ok ? undefined : problem(r.error))),
+    selectPage: () => chrome.selectPage(false),
+    rename: (node, name) => run('instaflow/rename', { name }, [node]),
+    move: (nodes, parent, before) => sceneCall(scene.call('move', nodes, parent, before)),
+    hide: (nodes, hidden) => run('instaflow/hide', { hidden }, nodes),
+    lock: (nodes, locked) => run(LockCapability.id, { locked }, nodes),
+    remove: (nodes) => run(DeleteCapability.id, {}, nodes),
+    hover: (node) => void editor.request('hover', { node: node ?? null }),
+    pickTool: (tool) => void studio.selectTool(tool === 'shape' ? StudioIds.tool.shape : StudioIds.tool.text),
+  };
+  const layersModel = (): LayersModel => ({ page: scene.read('page'), layers: scene.read('layers'), selection: selection(), hover: view()?.hover });
+  layersBinding.bind = (element) => {
+    const el = element as IfLayersPanelElement;
+    el.port = layersPort;
+    const stop = createScope('instaflow/layers-binding');
+    watch(layersModel, (model) => (el.model = model), { scope: stop, fireImmediately: true });
     return () => void stop.dispose();
   };
 

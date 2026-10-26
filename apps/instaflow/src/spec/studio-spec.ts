@@ -100,6 +100,8 @@ export const STUDIO_LENS_HUD: Readonly<Record<LensContributionId, readonly Actio
 export const STUDIO_PANELS: readonly PanelPlacement[] = Object.freeze([
   // B11b: only built panels are placed (nothing visible is inert): no Chat (M2) or Brand (B-4) placeholder; Export is
   // the top bar's Export dialog, not a dock tab.
+  // B11b: Layers is a real list now (STUDIO-UX-SPEC §3.1), the dock's first tab.
+  { panel: P.layers, dock: 'dock' },
   { panel: P.pages, dock: 'dock' },
   { panel: P.assets, dock: 'dock' },
   { panel: P.milestones, dock: 'dock' },

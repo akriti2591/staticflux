@@ -22,6 +22,18 @@ export interface StoryWriterOptions {
 export interface StoryWriter {
   /** Move `page` to story index `to` (0-based, clamped to nothing: out of range is IF-LIB-013). */
   movePage(page: NodeId, to: number): Result<void>;
+  /** B11b: page edits a host that can create page parts offers (Studio's editor); absent elsewhere. */
+  readonly pages?: PageEditor;
+}
+
+/** B11b (STUDIO-UX-SPEC §3.2): add, duplicate, delete and rename pages; each one undo step. */
+export interface PageEditor {
+  /** A new page after `after` (the end when undefined); resolves once the story shows it. */
+  addPage(after?: NodeId): Promise<Result<NodeId>>;
+  duplicatePage(page: NodeId): Promise<Result<NodeId>>;
+  /** Never the last page (IF-POL-052). */
+  deletePage(page: NodeId): Promise<Result<void>>;
+  renamePage(page: NodeId, name: string): Promise<Result<void>>;
 }
 
 /** The `move` op that puts `page` at story index `to` (pure). */

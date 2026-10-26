@@ -2,7 +2,7 @@
  * The Pages panel: the story in order, keyboard paths (show, reorder with Alt+↑/↓, previous / next /
  * fit all), an accessibility audit under Clean Pop, and the B0 panel contribution.
  */
-import { box, unit } from '@staticflux/core';
+import { box, ok, unit } from '@staticflux/core';
 import type { SfButtonElement } from '@staticflux/kit/button';
 import type { SfTreeElement } from '@staticflux/kit/tree';
 import { auditA11y, press } from '@staticflux/testkit/a11y';
@@ -24,7 +24,7 @@ import { createLensFeatureRegistry } from './lens-features.js';
 import { lensMessages, lensText } from './messages.js';
 import { pagesLensFeature } from './pages-lens.js';
 import { definePagesPanel, type IfPagesPanelElement, pageNodes, reorderTarget, storyFrames } from './pages-panel.js';
-import { createStoryWriter } from './story.js';
+import { createStoryWriter, type PageEditor } from './story.js';
 import { readCompositionStructure, structureFeed } from './structure.js';
 import { LensControllerToken, StoryWriterToken } from './tokens.js';
 import { compositionDoc, priya, unwrap } from './test-helpers.js';
@@ -67,13 +67,42 @@ describe('pure helpers', () => {
   });
 });
 
-async function mount() {
+async function mount(options: { readonly pages?: boolean } = {}) {
   const { doc, root } = await compositionDoc([{ id: 'p1', name: 'Cover' }, { id: 'p2' }, { id: 'p3', name: 'Offer' }]);
   const lens = box<LensContributionId | undefined>(StudioIds.lens.pages);
   const shown: [Camera, CameraReason][] = [];
   const features = unwrap(createLensFeatureRegistry([pagesLensFeature, canvasLensFeature]));
   const controller = createLensController({ features, lens: () => lens.get(), structure: structureFeed(root), viewport: () => ({ width: 1000, height: 800 }), camera: { show: (c, r) => shown.push([c, r]) } });
-  const story = createStoryWriter({ doc, structure: () => readCompositionStructure(root), actor: () => priya });
+  const writer = createStoryWriter({ doc, structure: () => readCompositionStructure(root), actor: () => priya });
+  // B11b: a page editor over the same composition (the real one runs in the editor worker).
+  const pageCalls: string[] = [];
+  const meta = { actor: { kind: 'human' as const, id: priya.id }, label: 'x' };
+  let made = 0;
+  const create = (after: string | undefined, name: string): string => {
+    const id = `new${(made += 1)}`;
+    unwrap(doc.commit(meta, { root: [{ op: 'create', node: id, kind: 'page', parent: 'comp', position: after === undefined ? { index: 0 } : { after }, props: { name } }] }));
+    return id;
+  };
+  const pagesEditor: PageEditor = {
+    addPage: async (after) => {
+      pageCalls.push(`add ${after}`);
+      return ok(create(after, 'Added'));
+    },
+    duplicatePage: async (page) => {
+      pageCalls.push(`duplicate ${page}`);
+      return ok(create(page, 'Copy'));
+    },
+    deletePage: async (page) => {
+      pageCalls.push(`delete ${page}`);
+      unwrap(doc.commit(meta, { root: [{ op: 'delete', node: page }] }));
+      return ok();
+    },
+    renamePage: async (page, name) => {
+      pageCalls.push(`rename ${page} ${name}`);
+      return ok();
+    },
+  };
+  const story = options.pages === true ? { ...writer, pages: pagesEditor } : writer;
   const style = document.createElement('style');
   style.textContent = compileTheme(cleanPopTheme);
   document.head.append(style);
@@ -103,7 +132,7 @@ async function mount() {
     return host.shadowRoot?.querySelector('[role="tree"]') as HTMLElement;
   };
   const announced = (): string => q<HTMLElement>('[role="status"]').textContent ?? '';
-  return { doc, root, controller, shown, panel, q, flush, tree, announced, lens };
+  return { doc, root, controller, shown, panel, q, flush, tree, announced, lens, pageCalls };
 }
 
 describe('<if-pages-panel>', () => {
@@ -155,6 +184,47 @@ describe('<if-pages-panel>', () => {
     unwrap(doc.commit({ actor: { kind: 'human', id: priya.id }, label: 'x' }, { root: [{ op: 'delete', node: 'comp' }] }));
     await flush();
     expect(q<HTMLElement>('.empty').textContent).toBe('Pages appear here for compositions.');
+  });
+});
+
+describe('<if-pages-panel> page edits (B11b)', () => {
+  it('without a page editor nothing renders; with one: Add page shows the new page, the ⋯ menu duplicates, renames, moves and deletes', async () => {
+    const plain = await mount();
+    expect(plain.q('sf-button.add')).toBeNull();
+    await dispose?.();
+    dispose = undefined;
+    const { q, flush, controller, pageCalls, root, tree, panel } = await mount({ pages: true });
+    unwrap(controller.goTo('p1'));
+    await flush();
+    q<SfButtonElement>('sf-button.add').click();
+    await flush();
+    expect(pageCalls).toEqual(['add p1']);
+    expect(controller.current()).toBe('new1');
+    const menu = q<HTMLElement>('sf-menu');
+    const pick = async (value: string): Promise<void> => {
+      menu.dispatchEvent(new CustomEvent('sf-select', { detail: { value } }));
+      await flush();
+    };
+    await pick('duplicate');
+    expect(controller.current()).toBe('new2');
+    await pick('up');
+    expect(unwrap(readCompositionStructure(root)).pages.map((p) => p.id)).toEqual(['p1', 'new2', 'new1', 'p2', 'p3']);
+    await pick('rename');
+    const host = q<SfTreeElement>('sf-tree');
+    await host.updateComplete;
+    const input = host.shadowRoot?.querySelector('input.rename') as HTMLInputElement;
+    input.value = 'Back cover';
+    press(input, 'Enter');
+    await flush();
+    await pick('delete');
+    expect(pageCalls).toEqual(['add p1', 'duplicate new1', 'rename new2 Back cover', 'delete new2']);
+    expect(controller.current()).toBe('new1');
+    const node = await tree();
+    node.focus();
+    press(node, 'Delete');
+    await flush();
+    expect(pageCalls.at(-1)).toBe('delete new1');
+    expect(auditA11y(panel.parentElement as HTMLElement)).toEqual([]);
   });
 });
 
