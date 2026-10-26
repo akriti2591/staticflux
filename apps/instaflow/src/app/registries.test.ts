@@ -27,8 +27,11 @@ describe('Studio registries with the M1b contributions', () => {
     // Every HUD action of the features is named by a Studio table (asset rows or the selection rows).
     const placed = new Set(Object.values(STUDIO_SCOPE_HUD.selection ?? {}).flat());
     for (const action of c.hud.filter((h) => h.capability !== undefined)) expect(placed.has(action.id), action.id).toBe(true);
+    // B11b: one inspector panel shows every section of the selection kind; no per-feature inspector is placed by scope.
     const inspectors = new Set(Object.values(STUDIO_SCOPE_PANELS.selection ?? {}).flatMap((rows) => rows.map((r) => r.panel)));
-    expect([...inspectors]).toEqual([StudioIds.panel.transform, StudioIds.panel.appearance, StudioIds.panel.repeat]);
+    expect([...inspectors]).toEqual([]);
+    expect(c.panels.filter((p) => p.id === StudioIds.panel.inspector)).toHaveLength(1);
+    expect(registries.panel(StudioIds.panel.inspector)?.render).not.toBe(studioPanels.find((p) => p.id === StudioIds.panel.inspector)?.render);
     // Free transform is an editor command (no capability) and is placed too.
     expect(placed.has('instaflow/free-transform-hud')).toBe(true);
   });
@@ -44,6 +47,6 @@ describe('Studio registries with the M1b contributions', () => {
     }
     const canvas = studioSpecFor(StudioIds.lens.canvas, { ...studioSpec, scope: { kind: 'selection', nodes: ['n1'] } });
     expect(canvas.hud).toContain('instaflow/repeat-radial');
-    expect(canvas.panels.map((p) => p.panel)).toEqual(expect.arrayContaining([StudioIds.panel.appearance, StudioIds.panel.repeat, StudioIds.panel.typography, StudioIds.panel.milestones]));
+    expect(canvas.panels.map((p) => p.panel)).toEqual(expect.arrayContaining([StudioIds.panel.inspector, StudioIds.panel.milestones]));
   });
 });

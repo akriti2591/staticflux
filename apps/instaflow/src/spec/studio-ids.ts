@@ -39,6 +39,8 @@ export const StudioIds = Object.freeze({
     transform: 'instaflow/transform',
     // C1: PNG, PDF and SVG export.
     export: 'instaflow/export',
+    // B11b: the inspector (every section of the selection kind; the page with nothing selected).
+    inspector: 'instaflow/inspector',
   },
   hud: {
     rewrite: 'instaflow/rewrite',

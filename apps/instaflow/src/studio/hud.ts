@@ -71,6 +71,8 @@ export interface HudPort {
   setTextColor(color: string): void;
   toggleText(key: 'bold' | 'italic' | 'underline' | 'strike'): void;
   setTextAlign(align: 'start' | 'center' | 'end' | 'justify'): void;
+  /** The top image fill's fit on every selected image. */
+  setImageFit(fit: string): void;
   /** A repeat parameter (`count`, …). */
   setRepeat(patch: Readonly<Record<string, number>>): void;
   /** A HUD command the editor runs (Free transform). */
@@ -334,7 +336,7 @@ export class IfHudElement extends SfElement<typeof spec> {
       ).filter(([id]) => s.actions.includes(id));
       return items.length === 0 ? nothing : this.menu(c.label, c.label, items, (id) => port.invoke(id));
     },
-    [CONTROL.fit]: (c, s, port) => this.menu(c.label, hudMessages.fitLabels[s.fit ?? 'cover'] ?? 'Fill', Object.entries(hudMessages.fitLabels), (fit) => port.setProp(P.fit, fit, 'Fit')),
+    [CONTROL.fit]: (c, s, port) => this.menu(c.label, hudMessages.fitLabels[s.fit ?? 'cover'] ?? 'Fill', Object.entries(hudMessages.fitLabels), (fit) => port.setImageFit(fit)),
     [CONTROL.clip]: (c, s, port) =>
       html`<sf-icon-button data-hud-item size="sm" variant="ghost" label=${c.label} tooltip-side="block-start" .pressed=${s.clip === true} @click=${() => port.setProp(P.clip, !(s.clip === true), 'Clip content')}
         ><sf-icon .icon=${c.icon} size="16"></sf-icon

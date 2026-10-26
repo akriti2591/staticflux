@@ -36,7 +36,7 @@ import { commitEdit } from '../elements/actions.js';
 import { elementCapabilityImplementations } from '../elements/capabilities.js';
 import { P } from '../elements/components.js';
 import type { GeometryService } from '../elements/geometry.js';
-import { appearanceEditOps, appearanceModel } from '../elements/inspector.js';
+import { appearanceEditOps, appearanceModel, pageAppearanceModel } from '../elements/inspector.js';
 import { createStoryWriter } from '../lenses/story.js';
 import { STRUCTURE_PATHS, structureFeed } from '../lenses/structure.js';
 import type { LibraryEntry } from '../library/library-doc.js';
@@ -47,7 +47,8 @@ import { repeatEditOps, repeatModel } from '../repeat/inspector.js';
 import type { ToolId } from '../spec/contributions.js';
 import { TEXT_HUD_COMMANDS } from '../text/commands.js';
 import { readTextBlock } from '../text/rich-text.js';
-import { createTypographyService, type TypographyService } from '../text/typography.js';
+import { createTypographyService, TEXT_ELEMENT_PATHS, type TypographyService } from '../text/typography.js';
+import type { TextBox, VerticalAlign } from '../text/model.js';
 import { TOOL_HUD_COMMANDS, toolCapabilityImplementations } from '../tools/contributions.js';
 import { transformModel } from '../tools/free-transform.js';
 import { captureTransform } from '../tools/transform.js';
@@ -66,7 +67,9 @@ import { implementStudioCommands, STUDIO_SELECTION_COMMANDS } from '../app/studi
 import { ELEMENT_ACTIONS, elementActionId, selectionFacts } from '../elements/capabilities.js';
 import { REPEAT_ACTIONS, repeatActionId, repeatSelectionFacts } from '../repeat/capabilities.js';
 import { documentColors, layerTree, type SceneReader, selectionSummary } from '../app/scene-summary.js';
-import { ROOT_PART } from '../app/document.js';
+import { pagePart, ROOT_PART } from '../app/document.js';
+import { PAGE_SIZE_RANGE } from '../studio/inspector-model.js';
+import { NoImageSelectedError, PageSizeError } from '../studio/errors.js';
 import { createRemoteTextHost, type TextHostCommand, type TextHostEvent } from './text-port.js';
 
 /** What the editor posts to main (the host turns each into a protocol event). */
@@ -140,6 +143,8 @@ export interface StudioEditor {
   call(call: MirrorCall): Promise<Result<unknown>>;
   text(event: TextHostEvent): void;
   place(entry: LibraryEntry, signal: AbortSignal): Promise<Result<void>>;
+  /** B11b: the selected images' top image fill shows `entry` (fit kept, crop reset); one step `Replace image`. */
+  replaceImage(entry: LibraryEntry, signal: AbortSignal): Promise<Result<void>>;
   hud(action: string): Result<void>;
   /** Zoom one step in or out about the viewport centre. */
   zoom(step: 1 | -1): Result<void>;
@@ -218,7 +223,9 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       if (!block.ok) return undefined;
       const editing = tab()?.editing;
       const [from, to] = editing?.node === node && editing.session.selection[0] !== editing.session.selection[1] ? editing.session.selection : [0, block.value.text.length];
-      return { block: block.value, from, to };
+      const box = document.view.value(node, TEXT_ELEMENT_PATHS.box);
+      const verticalAlign = document.view.value(node, TEXT_ELEMENT_PATHS.verticalAlign);
+      return { block: block.value, from, to, element: { box: (typeof box === 'string' ? box : 'auto-height') as TextBox, verticalAlign: (typeof verticalAlign === 'string' ? verticalAlign : 'top') as VerticalAlign } };
     },
     commit: (ops, label) => {
       const node = single();
@@ -228,6 +235,10 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       return laid === undefined || !laid.ok ? committed : document.commitOps(page(), actor(), label, textBoxOps(document, node, laid.value));
     },
     defaults: { size: env.fonts.defaults.size },
+    pageWidth: () => {
+      const size = document.part(page())?.prop(page(), STRUCTURE_PATHS.pageSize) as { width?: number } | undefined;
+      return size?.width;
+    },
     fonts: () => env.fonts.engine.fonts.map((f) => ({ label: f.families[0] ?? f.hash.slice(7, 15), value: { font: f.hash as `sha256:${string}`, ...(f.families[0] === undefined ? {} : { family: f.families[0] }) } })),
     watch: docChanges,
   });
@@ -308,6 +319,13 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
         setAlign: (align) => typography.setAlign(align),
         setLineHeight: (multiple) => typography.setLineHeight(multiple),
         fitToBox: () => typography.fitToBox(),
+        setScript: (script) => typography.setScript(script),
+        setParagraph: (patch) => typography.setParagraph(patch),
+        setBox: (box) => typography.setBox(box),
+        setVerticalAlign: (align) => typography.setVerticalAlign(align),
+        convertCase: (kind) => typography.convertCase(kind),
+        clearFormatting: () => typography.clearFormatting(),
+        applyPreset: (name) => typography.applyPreset(name),
       },
       changes: docChanges,
     },
@@ -450,6 +468,14 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
           const id = tab()?.page;
           return id === undefined ? [] : documentColors(reader, id);
         },
+        pageFill: () => {
+          const id = tab()?.page;
+          return id === undefined ? undefined : pageAppearanceModel(document.view, id, document.kit);
+        },
+        pages: () => {
+          const read = structure.read();
+          return read.ok ? read.value.pages.length : 1;
+        },
         frame: () => {
           const corners = tab()?.view.overlay.frame?.corners;
           if (corners === undefined) return undefined;
@@ -493,6 +519,42 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
             .filter((n) => n !== parent && document.view.read(n) !== undefined && !document.view.isDerived(n))
             .map((node): PartOp => ({ op: 'move', node, parent, position: before === null ? { index: document.view.children(parent).length } : { before } }));
           return commitSelection('Reorder', ops);
+        },
+        applyPage(edit) {
+          const id = tab()?.page;
+          const model = id === undefined ? undefined : pageAppearanceModel(document.view, id, document.kit);
+          if (id === undefined || model === undefined) return err(NoOpenPageError());
+          const ops = appearanceEditOps(model, edit);
+          return ops.ok ? document.commitOps(id, actor(), 'Page background', ops.value) : ops;
+        },
+        resizePage(width, height) {
+          const id = tab()?.page;
+          if (id === undefined) return err(NoOpenPageError());
+          const w = Math.round(width);
+          const h = Math.round(height);
+          if (!(w >= PAGE_SIZE_RANGE.min && w <= PAGE_SIZE_RANGE.max && h >= PAGE_SIZE_RANGE.min && h <= PAGE_SIZE_RANGE.max)) {
+            return err(PageSizeError({ details: { width, height } }));
+          }
+          const size = { width: w, height: h };
+          const done = document.undo.commit(actor(), 'Page size', { [ROOT_PART]: [{ op: 'set', node: id, path: STRUCTURE_PATHS.pageSize, value: size }], [pagePart(id)]: [{ op: 'set', node: id, path: STRUCTURE_PATHS.pageSize, value: size }] });
+          return done.ok ? ok() : done;
+        },
+        setImageFit(fit) {
+          const ops: PartOp[] = editable().flatMap((node): PartOp[] => {
+            const raw = document.view.value(node, P.fills);
+            if (!Array.isArray(raw)) return [];
+            const list = [...raw];
+            for (let i = list.length - 1; i >= 0; i--) {
+              const item = list[i] as Record<string, JsonValue> | null;
+              const paint = typeof item === 'object' && item !== null && !Array.isArray(item) ? (item['paint'] as Record<string, JsonValue> | undefined) : undefined;
+              if (paint === undefined || typeof paint !== 'object' || paint === null || paint['kind'] !== 'image') continue;
+              if (paint['fit'] === fit) return [];
+              list[i] = { ...item, paint: { ...paint, fit } } as JsonValue;
+              return [{ op: 'set', node, path: P.fills, value: list }];
+            }
+            return [];
+          });
+          return commitSelection('Fit', ops);
         },
         renamePage(name) {
           const id = tab()?.page;
@@ -706,6 +768,28 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       if (!done.ok) return done;
       view.select([node]);
       return ok();
+    },
+    async replaceImage(entry, replaceSignal) {
+      const current = tab();
+      if (current === undefined) return err(NoOpenPageError());
+      const size = await uploads.upload(entry, replaceSignal);
+      if (!size.ok) return size;
+      const ops: PartOp[] = editable().flatMap((node): PartOp[] => {
+        const raw = document.view.value(node, P.fills);
+        if (!Array.isArray(raw)) return [];
+        const list = [...raw];
+        for (let i = list.length - 1; i >= 0; i--) {
+          const item = list[i];
+          if (typeof item !== 'object' || item === null || Array.isArray(item)) continue;
+          const paint = item['paint'];
+          if (typeof paint !== 'object' || paint === null || Array.isArray(paint) || paint['kind'] !== 'image') continue;
+          list[i] = { ...item, paint: { kind: 'image', asset: { asset: entry.asset }, fit: paint['fit'] ?? 'cover' } };
+          return [{ op: 'set', node, path: P.fills, value: list }];
+        }
+        return [];
+      });
+      if (ops.length === 0) return err(NoImageSelectedError());
+      return commitEdit(document.target(current.page), actor(), 'Replace image', ok(ops));
     },
     zoom(step) {
       const t = tab();

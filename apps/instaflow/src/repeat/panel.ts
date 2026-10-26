@@ -25,13 +25,13 @@ const spec = component({ tag: 'if-repeat-inspector', placeholder: () => nothing,
 const KIND_LABELS: Readonly<Record<RepeatKind, string>> = { radial: 'Radial', grid: 'Grid', mirror: 'Mirror' };
 
 /** How each parameter is edited: a number field (with unit), a segmented switch, or the sweep slider. */
-type Field =
+export type RepeatField =
   | { readonly control: 'number'; readonly label: string; readonly integer?: boolean; readonly unit?: string; readonly percent?: boolean }
   | { readonly control: 'choice'; readonly label: string; readonly options: readonly (readonly [value: string, label: string])[] }
   | { readonly control: 'toggle'; readonly label: string; readonly on: string; readonly off: string }
   | { readonly control: 'slider'; readonly label: string; readonly min: number; readonly max: number; readonly unit: string };
 
-const FIELDS: Readonly<Record<RepeatParamName, Field>> = {
+export const REPEAT_FIELDS: Readonly<Record<RepeatParamName, RepeatField>> = {
   count: { control: 'number', label: 'Count', integer: true },
   radius: { control: 'number', label: 'Radius', unit: 'px' },
   startAngle: { control: 'number', label: 'Start angle', unit: '°' },
@@ -94,7 +94,7 @@ export class IfRepeatInspectorElement extends SfElement<typeof spec> {
   }
 
   private field(model: RepeatModel, name: RepeatParamName): TemplateResult {
-    const f = FIELDS[name];
+    const f = REPEAT_FIELDS[name];
     const value = (model.params as unknown as Readonly<Record<string, number | string | boolean>>)[name];
     switch (f.control) {
       case 'number': {

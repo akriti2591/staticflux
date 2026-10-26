@@ -46,6 +46,7 @@ import { starIcon } from '@staticflux/kit/icons/star';
 import type { IconDef } from '@staticflux/kit/icon';
 import type { DocumentColor } from '@staticflux/kit/color-popover';
 import type { CanvasPort, CanvasSession } from './canvas.js';
+import { defineInspectorElement } from './inspector.js';
 import { type CommandEntry, defineCommandBar, type IfCommandBarElement } from './command-bar.js';
 import { defineHud, type HudAction, type HudPort, type IfHudElement } from './hud.js';
 import type { Studio } from './studio.js';
@@ -82,6 +83,7 @@ export const studioMessages = Object.freeze({
   canvas: 'Canvas',
   canvasSurface: 'Canvas surface',
   pageLabel: (p: PageSummary) => `${p.name} · ${p.width} × ${p.height}`,
+  pageLabelHint: 'Click to select the page · double-click to rename it',
   proposal: 'Proposed editor',
   open: 'Open',
   dismiss: 'Dismiss',
@@ -124,6 +126,8 @@ export interface StudioChromePort extends HudPort {
   copyLink(): void;
   /** Leave Studio for `href` after saving (the Home link). */
   navigate(href: string): void;
+  /** The page label (STUDIO §1): select the page (nothing selected: the inspector shows Page); `rename` focuses its name. */
+  selectPage(rename: boolean): void;
 }
 
 export const EMPTY_CHROME: StudioChromeModel = Object.freeze({
@@ -305,7 +309,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         font: inherit;
         font-size: 12px;
         color: ${t.color.textMuted.css};
-        cursor: default;
+        cursor: pointer;
         white-space: nowrap;
         border-radius: ${t.radius.sm.css};
       }
@@ -704,7 +708,17 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const { tx, ty, zoom } = this.model.camera;
     const card = `left:${tx}px;top:${ty}px;width:${page.width * zoom}px;height:${page.height * zoom}px`;
     return html`<div class="page-card" style=${card} aria-hidden="true"></div>
-      <span class="page-label" style=${`left:${tx}px;top:${ty - 28}px`} data-if-page-label>${studioMessages.pageLabel(page)}</span>`;
+      <button
+        type="button"
+        class="page-label"
+        style=${`left:${tx}px;top:${ty - 28}px`}
+        data-if-page-label
+        title=${studioMessages.pageLabelHint}
+        @click=${() => this.port?.selectPage(false)}
+        @dblclick=${() => this.port?.selectPage(true)}
+      >
+        ${studioMessages.pageLabel(page)}
+      </button>`;
   }
 
   private renderTools(studio: Studio): TemplateResult {
@@ -905,6 +919,7 @@ export function defineStudio(registry: CustomElementRegistry = customElements): 
   defineDock(registry);
   defineHud(registry);
   defineCommandBar(registry);
+  defineInspectorElement(registry);
   if (registry.get(studioComponent.tag) === undefined) defineComponent(IfStudioElement, registry);
 }
 

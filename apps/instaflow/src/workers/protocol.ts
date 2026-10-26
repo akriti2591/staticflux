@@ -182,6 +182,8 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     call: request<MirrorCall, unknown>({ timeoutMs: 60_000 }),
     text: request<TextHostEvent, void>(),
     place: request<{ readonly entry: LibraryEntry }, void>({ timeoutMs: 60_000 }),
+    /** B11b: the selected images show `entry` instead (Image › Replace…; fit kept, crop reset). */
+    replaceImage: request<{ readonly entry: LibraryEntry }, void>({ timeoutMs: 60_000 }),
     hud: request<{ readonly action: string }, void>(),
     /** The zoom buttons (B3 `zoomStep`). */
     zoom: request<{ readonly step: 1 | -1 }, void>(),

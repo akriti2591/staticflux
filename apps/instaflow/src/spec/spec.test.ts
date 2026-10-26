@@ -63,7 +63,7 @@ describe('contributions', () => {
     expect(registries.lenses.map((l) => l.label)).toEqual(['Canvas', 'Pixel', 'Timeline', 'Flow', 'Pages']);
     expect((await test.get(LensContributionsToken)).length).toBe(5);
     expect((await test.get(ToolContributionsToken)).length).toBe(16); // B11b: the shape family
-    expect((await test.get(PanelContributionsToken)).length).toBe(10);
+    expect((await test.get(PanelContributionsToken)).length).toBe(11); // B11b: the inspector
     expect((await test.get(HudActionContributionsToken)).length).toBe(5);
     expect([lensContribution, panelContribution, hudActionContribution].every((f) => typeof f === 'function')).toBe(true);
     await test.dispose();
@@ -133,7 +133,7 @@ describe('registries', () => {
     const shell = toShellSpec({ ...studioSpec, pinned: ['panel:instaflow/layers'] });
     expect(shell.context).toEqual({ lens: StudioIds.lens.canvas, scope: 'asset', density: 'standard' });
     expect(shell.slots[0]).toEqual({ section: 'lens', id: StudioIds.lens.canvas });
-    expect(shell.slots.find((s) => s.id === StudioIds.panel.typography)?.placement).toBe('inspector');
+    expect(shell.slots.find((s) => s.id === StudioIds.panel.inspector)?.placement).toBe('inspector');
     expect(shell.slots.find((s) => s.id === StudioIds.panel.milestones)?.placement).toBe('dock');
     expect(shell.slots.at(-1)).toEqual({ section: 'capability', id: proposeSpecCapability.id });
     expect(shell.pinned).toEqual(['panel:instaflow/layers']);
@@ -159,10 +159,10 @@ describe('Studio and example specs', () => {
     if (!canvas.ok || !pixel.ok) throw new Error('invalid');
     const diff = diffSpecs(diffSpecs(EMPTY_LAYOUT, canvas.value).target, pixel.value);
     const T = StudioIds.tool;
-    expect(diff.unmount.map((s) => s.id)).toEqual([StudioIds.panel.typography, T.text, T.line, T.star, T.polygon, T.ellipse, T.shape, T.frame, StudioIds.lens.canvas]);
+    expect(diff.unmount.map((s) => s.id)).toEqual([T.text, T.line, T.star, T.polygon, T.ellipse, T.shape, T.frame, StudioIds.lens.canvas]);
     expect(diff.mount.map((s) => s.id)).toEqual([StudioIds.lens.pixel, T.brush, T.heal, T.crop, StudioIds.panel.adjust, StudioIds.hud.removeBackground, StudioIds.hud.ask]);
     expect(diff.move).toEqual([]);
-    expect(diff.kept).toEqual(expect.arrayContaining(['panel:instaflow/pages', 'panel:instaflow/milestones', 'tool:instaflow/select', 'tool:instaflow/hand']));
+    expect(diff.kept).toEqual(expect.arrayContaining(['panel:instaflow/pages', 'panel:instaflow/milestones', 'panel:instaflow/inspector', 'tool:instaflow/select', 'tool:instaflow/hand']));
   });
 
   it('the pixel touch-up mini editor validates; out-of-scope and unknown slots are rejected', async () => {

@@ -27,6 +27,7 @@ import { ExportCapability } from '../export/capability.js';
 import { exportPanel } from '../export/panel.js';
 import { milestonesPanelContribution } from '../versioning/contributions.js';
 import { STUDIO_COMMAND_CAPABILITIES } from './studio-commands.js';
+import { inspectorPanel } from '../studio/inspector-panel.js';
 
 /** Replace items of `base` by id with `real`, keeping `base`'s order; `real` items with new ids are appended. */
 export function replaceById<T extends { readonly id: string }>(base: readonly T[], real: readonly T[]): T[] {
@@ -52,7 +53,7 @@ export function studioContributions(bindPanel: PanelBinder = (p) => p): StudioCo
   return {
     lenses: studioLenses,
     tools: replaceById(studioTools, [...toolContributions, textTool]),
-    panels: replaceById(studioPanels, [pagesPanel, libraryPanel, typographyPanel, milestonesPanelContribution, bindPanel(transformBarPanel), bindPanel(appearancePanel), bindPanel(repeatPanel), bindPanel(exportPanel)]),
+    panels: replaceById(studioPanels, [pagesPanel, libraryPanel, typographyPanel, milestonesPanelContribution, bindPanel(transformBarPanel), bindPanel(appearancePanel), bindPanel(repeatPanel), bindPanel(exportPanel), bindPanel(inspectorPanel)]),
     hud: replaceById(studioHudActions, [...elementHudActions, ...repeatHudActions, ...textHudActions, ...toolHudActions, describeHudAction]),
     capabilities: [proposeSpecCapability, editDocumentCapability, ...elementCapabilities, ...repeatCapabilities, ...toolCapabilities, describeCanvasCapability, CreateMilestoneCapability, ExportCapability, ...STUDIO_COMMAND_CAPABILITIES],
   };

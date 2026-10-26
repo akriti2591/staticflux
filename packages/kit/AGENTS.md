@@ -152,7 +152,7 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 | @staticflux/kit/status | 1.1 KB | packages/kit/dist/status.js |
 | @staticflux/kit/card | 1.1 KB | packages/kit/dist/card.js |
 | @staticflux/kit/icon (<sf-icon> + icon data helpers; B11a) | 1.65 KB | packages/kit/dist/icon.js |
-| @staticflux/kit/icons (the whole kit icon set: 89 Lucide + 15 custom; well under STUDIO-UX-SPEC §10.2's 20 KB cap for Studio's set; B11a) | 5 KB | packages/kit/dist/icons/index.js |
+| @staticflux/kit/icons (the whole kit icon set: 89 Lucide + 15 custom; well under STUDIO-UX-SPEC §10.2's 20 KB cap for Studio's set; B11a; B11b raised 5 → 5.5 KB: 12 more Lucide icons for the inspector — strikethrough, sub/superscript, justify, case, remove formatting, vertical text alignment, orientation, reverse) | 5.5 KB | packages/kit/dist/icons/index.js |
 | @staticflux/kit/icons/trash-2 (one icon module ≈ 0.2 KB, STUDIO-UX-SPEC §10.2; B11a) | 0.3 KB | packages/kit/dist/icons/trash-2.js |
 | @staticflux/kit/number-field (<sf-number-field>: expressions, units, scrub, mixed; B11a; 5 KB by B11a2: its icon buttons carry the warm-period tooltip) | 5 KB | packages/kit/dist/number-field.js |
 | @staticflux/kit/inline-edit (<sf-inline-edit>; B11a; 3 KB by B11a2: the shared tooltip core grew) | 3 KB | packages/kit/dist/inline-edit.js |

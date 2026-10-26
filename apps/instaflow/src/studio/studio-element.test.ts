@@ -58,6 +58,7 @@ function recordingPort(calls: string[]): StudioChromePort {
     toggleText: log('toggleText'),
     setTextAlign: log('setTextAlign'),
     setRepeat: log('setRepeat'),
+    setImageFit: log('setImageFit'),
     command: log('command'),
     renameTitle: log('renameTitle'),
     camera: log('camera'),
@@ -66,6 +67,7 @@ function recordingPort(calls: string[]): StudioChromePort {
     saveAsTemplate: log('saveAsTemplate'),
     copyLink: log('copyLink'),
     navigate: log('navigate'),
+    selectPage: log('selectPage'),
   };
 }
 
@@ -149,7 +151,7 @@ describe('<if-studio> frame (B11b)', () => {
     expect(header.textContent).not.toMatch(/Share|Claude|✦|Arrives/);
     expect(header.querySelector(':scope > sf-segmented:not(.modes)')).toBeNull();
     const landmarks = [...root.querySelectorAll('aside, main')].map((el) => `${el.localName}:${el.getAttribute('aria-label')}`);
-    expect(landmarks).toEqual(['aside:Dock', 'main:Canvas', 'aside:Typography']);
+    expect(landmarks).toEqual(['aside:Dock', 'main:Canvas', 'aside:Inspector']);
     expect([...root.querySelectorAll('aside[data-region="dock"] sf-tab')].map((t) => t.textContent?.trim())).toEqual(['Pages', 'Assets', 'Milestones']);
     const main = root.querySelector('main') as HTMLElement;
     expect(main.querySelector('.tools')?.getAttribute('aria-label')).toBe('Tools');
@@ -163,12 +165,16 @@ describe('<if-studio> frame (B11b)', () => {
   });
 
   it('the canvas room: the page card and its label follow the camera; the label names the page and its size', async () => {
-    const { root, element } = await mount();
+    const { root, element, calls } = await mount();
     const card = root.querySelector('.page-card') as HTMLElement;
     expect(card.getAttribute('style')).toBe('left:40px;top:60px;width:540px;height:675px');
     const label = root.querySelector('[data-if-page-label]') as HTMLElement;
-    expect(label.textContent).toBe('Page 1 · 1080 × 1350');
+    expect(label.textContent?.trim()).toBe('Page 1 · 1080 × 1350');
     expect(label.getAttribute('style')).toBe('left:40px;top:32px');
+    // Click selects the page (the inspector shows Page); double-click renames it (STUDIO §1).
+    label.click();
+    label.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    expect(calls).toEqual(['selectPage [false]', 'selectPage [true]']);
     element.model = { ...MODEL, camera: { tx: 0, ty: 100, zoom: 1 } };
     await settle(2);
     expect(card.getAttribute('style')).toBe('left:0px;top:100px;width:1080px;height:1350px');
