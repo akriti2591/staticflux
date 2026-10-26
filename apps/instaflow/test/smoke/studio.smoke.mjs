@@ -342,15 +342,11 @@ async function scenario(page) {
   const t = await screenBox(textNode);
   await page.mouse.dblclick(t.x + t.w / 2, t.y + t.h / 2);
   await page.locator('[data-if-text-host][role="textbox"]').waitFor({ timeout: 20_000 }); // named after the element
-  await page.keyboard.press('End');
   // The double click put the caret at the click; End moves it in the editor, and main's EditContext learns the caret
-  // from the editor's state. A composition started before that lands at the old caret (a known race across the port,
-  // FIX-TEXT-FIRST-KEY handoff "Proposal"): wait until the caret reached main.
-  await page.waitForFunction(() => {
-    const ec = window.__studio.canvas.text?.host?.editContext;
-    return ec === undefined || ec === null || (ec.selectionStart === ec.text.length && ec.text.length > 0);
-  }, null, { timeout: 10_000 });
+  // only from the editor's next state. The composition starts at once, without waiting for that: the editor rebases it
+  // onto its own caret (B12b P1), so it must land at the end.
   const cdp = await page.context().newCDPSession(page);
+  await page.keyboard.press('End');
   await cdp.send('Input.imeSetComposition', { text: 'にほんご', selectionStart: 4, selectionEnd: 4 });
   await page.waitForTimeout(400);
   const during = await page.evaluate(() => {
@@ -361,6 +357,8 @@ async function scenario(page) {
   });
   await cdp.send('Input.insertText', { text: '日本語' });
   await waitAsync(page, async () => (await window.__studio.inspect()).value?.editing?.text?.includes('日本語') === true, null, { timeout: 20_000, polling: 100 });
+  const composed = (await inspect()).editing?.text;
+  if (composed !== 'Hello Studio日本語') fail(`IME after End: the text reads ${JSON.stringify(composed)} (the composition did not land at the caret End moved to)`);
   const tb = await screenBox(textNode);
   const inside = (r) => r.x >= tb.x - 4 && r.y >= tb.y - 4 && r.x + r.w <= tb.x + tb.w + 40 && r.y + r.h <= tb.y + tb.h + 8;
   if (during.kind === 'edit-context') {
