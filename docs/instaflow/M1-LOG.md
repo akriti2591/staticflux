@@ -72,6 +72,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-26** B12 merged on the working branch (clean; size entries 115/115). All items in: actions (group, ungroup,
+  frame selection, reorder ×4, rename, hide/show, crop), `hidden` prop everywhere, page fill stack, text T-1–T-9, image
+  crop; IF-37.1–37.22, §39, IF-FIX-001/002; lazy WOFF decoder Wasm 77.2/80 KB. Agent saw split smoke fail 1/4 with
+  reordered PDF text ("ello StudioH"), believes B9 race. Not accepted as a flake: running 8× here, then on main.
 - **2026-10-26** #32 merged; #29 closed. Owner report: drag stutter in Studio, worst in a grid repeat (lower half lags
   ~1 s on quick moves). Root-cause agent on `claude/fix-drag-stutter` (measure both topologies; fix if contained, else
   propose). B12 still running.
