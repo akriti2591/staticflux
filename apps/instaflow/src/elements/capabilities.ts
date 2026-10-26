@@ -16,6 +16,8 @@ import {
   booleanGroup,
   centerInContainer,
   commitEdit,
+  cropImage,
+  imageFillIndex,
   distribute,
   type EditTarget,
   flatten,
@@ -35,7 +37,9 @@ import {
   tidyUp,
   ungroup,
   useAsMask,
+  type ImageCropEdit,
 } from './actions.js';
+import type { ImageRotation } from './values.js';
 import { ActionNotApplicableError } from './errors.js';
 import { isElement } from './layout.js';
 import { resolveElement } from './resolve.js';
@@ -51,9 +55,12 @@ export interface SelectionFacts {
   readonly flattenable: number;
   /** Groups and frames (B12: ungroup / unframe). */
   readonly containers: number;
+  /** Elements with an image fill (B12: crop). */
+  readonly images: number;
 }
 
 export function selectionFacts(ctx: Pick<ActionContext, 'stage' | 'kit'>, nodes: readonly NodeId[]): SelectionFacts {
+  const images = nodes.filter((n) => imageFillIndex(ctx, n) !== undefined).length;
   const resolved = nodes.map((n) => resolveElement(ctx.stage, n, ctx.kit));
   const elements = resolved.filter((r) => r !== undefined && isElement(r.kind));
   return {
@@ -65,6 +72,7 @@ export function selectionFacts(ctx: Pick<ActionContext, 'stage' | 'kit'>, nodes:
     withStroke: elements.filter((e) => (e?.strokes.length ?? 0) > 0).length,
     flattenable: elements.filter((e) => e !== undefined && e.geometry.kind !== 'group').length,
     containers: elements.filter((e) => e?.kind === 'group' || e?.kind === 'frame').length,
+    images,
   };
 }
 
@@ -80,6 +88,8 @@ export interface ElementActionInput {
   readonly hidden?: boolean;
   /** `frame-selection`: space around the content (design px, default 0). */
   readonly padding?: number;
+  /** `image-crop` (B12 A-3): offset 0…1 of the free space, scale × the fit, rotation in degrees; omitted fields stay. */
+  readonly crop?: { readonly x?: number; readonly y?: number; readonly scale?: number; readonly rotation?: number };
 }
 
 interface ActionSpec {
@@ -228,8 +238,26 @@ export const ELEMENT_ACTIONS: readonly ActionSpec[] = [
   ),
   { name: 'rename', title: 'Rename', description: 'Give one element a name (trimmed; empty is refused).', shortcut: 'Mod+Shift+R', tone: 'more', applies: (f) => f.elements === 1, run: (ctx, i) => (i.name === undefined || i.nodes[0] === undefined ? need('name') : rename(ctx, i.nodes[0], i.name)) },
   { name: 'hide', title: 'Hide / show', description: 'Hide the elements (not drawn, exported, hit or announced) or show them again; `hidden` omitted toggles.', shortcut: 'Mod+Shift+H', tone: 'more', applies: (f) => f.elements >= 1, run: (ctx, i) => setHidden(ctx, i.nodes, i.hidden) },
+  {
+    name: 'image-crop',
+    title: 'Crop image',
+    description: 'Move, scale or turn the picture inside an image fill (offset x, y 0…1 of the overflow; scale × the fit; rotation 0/90/180/270); the element stays.',
+    tone: 'more',
+    applies: (f) => f.images >= 1,
+    run: (ctx, i) => (i.crop === undefined ? need('crop') : cropImage(ctx, i.nodes, cropEdit(i.crop))),
+  },
+  { name: 'image-crop-reset', title: 'Reset crop', description: 'Show the whole picture at its plain fit again.', tone: 'more', applies: (f) => f.images >= 1, run: (ctx, i) => cropImage(ctx, i.nodes, null) },
   { name: 'show-all', title: 'Show all', description: 'Show every hidden element on the page (nodes: the page or a container).', tone: 'more', applies: (f) => f.count >= 1, run: (ctx, i) => (i.nodes[0] === undefined ? need('a page') : showAll(ctx, i.nodes[0])) },
 ];
+
+/** The capability's crop input as an edit (the paint check validates the ranges). */
+function cropEdit(c: NonNullable<ElementActionInput['crop']>): ImageCropEdit {
+  return {
+    ...(c.x === undefined && c.y === undefined ? {} : { offset: [c.x ?? 0.5, c.y ?? 0.5] as const }),
+    ...(c.scale === undefined ? {} : { scale: c.scale }),
+    ...(c.rotation === undefined ? {} : { rotation: c.rotation as ImageRotation }),
+  };
+}
 
 const actionInput = s.object({
   nodes: s.array(s.string({ minLength: 1 }), { minItems: 1, maxItems: 10_000 }),
@@ -240,6 +268,14 @@ const actionInput = s.object({
   name: s.optional(s.string({ maxLength: 1000, description: 'rename: the new name (trimmed, 1–200 characters)' })),
   hidden: s.optional(s.boolean({ description: 'hide: true hides, false shows, omitted toggles' })),
   padding: s.optional(s.number({ min: 0, max: 10_000, description: 'frame-selection: space around the content in design px' })),
+  crop: s.optional(
+    s.object({
+      x: s.optional(s.number({ min: 0, max: 1, description: 'Horizontal place in the free space (0 left, 0.5 centred, 1 right)' })),
+      y: s.optional(s.number({ min: 0, max: 1, description: 'Vertical place in the free space (0 top, 0.5 centred, 1 bottom)' })),
+      scale: s.optional(s.number({ min: 0.01, max: 100, description: 'Scale of the picture × its fit' })),
+      rotation: s.optional(s.number({ integer: true, min: 0, max: 270, description: 'Clockwise turn of the picture: 0, 90, 180 or 270' })),
+    }),
+  ),
 });
 const actionOutput = s.object({
   ops: s.number({ integer: true, min: 0, description: 'Ops written in the one change set' }),

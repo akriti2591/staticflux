@@ -63,6 +63,8 @@ export const STUDIO_SELECTION_HUD = Object.freeze({
     'instaflow/rename',
     'instaflow/hide',
     'instaflow/show-all',
+    'instaflow/image-crop',
+    'instaflow/image-crop-reset',
   ],
   repeat: ['instaflow/repeat-radial', 'instaflow/repeat-grid', 'instaflow/repeat-mirror', 'instaflow/repeat-edit', 'instaflow/repeat-expand', 'instaflow/repeat-release'],
   text: ['instaflow/text-font', 'instaflow/text-size', 'instaflow/text-fit'],

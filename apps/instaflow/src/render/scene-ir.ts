@@ -104,13 +104,24 @@ export type SceneGeometry =
 
 export type GradientStop = readonly [offset: number, color: Rgba8];
 
+/** How an image paint's picture sits in its box (B12, A-3; ir.rs `Crop`). `{ x: 0.5, y: 0.5, scale: 1, quarter: 0 }` = no crop. */
+export interface ImageCrop {
+  readonly x: number;
+  readonly y: number;
+  readonly scale: number;
+  readonly quarter: 0 | 1 | 2 | 3;
+}
+
 export type ScenePaint =
   | { readonly kind: 'none' }
   | { readonly kind: 'solid'; readonly color: Rgba8 }
   | { readonly kind: 'linear'; readonly start: readonly [number, number]; readonly end: readonly [number, number]; readonly stops: readonly GradientStop[] }
   | { readonly kind: 'radial'; readonly center: readonly [number, number]; readonly radius: number; readonly stops: readonly GradientStop[] }
-  /** The image mapped onto the shape's `w × h` box (default `stretch`). */
-  | { readonly kind: 'image'; readonly image: number; readonly fit?: ImageFit }
+  /**
+   * The image mapped onto the shape's `w × h` box (default `stretch`). `crop` (B12, A-3; `IMAGE_CROP` in ir.rs): the
+   * picture turned by `quarter` quarter turns, at `scale` × its fit, placed at `x, y` ∈ 0…1 of the free space.
+   */
+  | { readonly kind: 'image'; readonly image: number; readonly fit?: ImageFit; readonly crop?: ImageCrop }
   /** Conic gradient from `start` to `end` (radians, clockwise from +x). */
   | { readonly kind: 'sweep'; readonly center: readonly [number, number]; readonly start: number; readonly end: number; readonly stops: readonly GradientStop[] };
 
@@ -341,9 +352,20 @@ export function createSceneWriter(): SceneWriter {
         stops(p.stops);
         break;
       case 'image':
-        out.u8(4);
+        if (p.crop === undefined) {
+          out.u8(4);
+          out.u32(p.image);
+          out.u8(IMAGE_FITS.indexOf(p.fit ?? 'stretch'));
+          break;
+        }
+        if (!(p.crop.scale > 0) || ![0, 1, 2, 3].includes(p.crop.quarter)) throw new RangeError(`scene IR: invalid image crop ${JSON.stringify(p.crop)}`);
+        out.u8(6);
         out.u32(p.image);
         out.u8(IMAGE_FITS.indexOf(p.fit ?? 'stretch'));
+        out.f64(finite(p.crop.x, 'image crop'));
+        out.f64(finite(p.crop.y, 'image crop'));
+        out.f64(finite(p.crop.scale, 'image crop'));
+        out.u8(p.crop.quarter);
         break;
     }
   };

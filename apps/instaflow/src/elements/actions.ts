@@ -26,7 +26,7 @@ import { checkToken, type TokenType } from './brand-kit.js';
 import { ActionNotApplicableError, EmptyNameError, UnknownTokenError } from './errors.js';
 import { type ElementBounds, type ElementContext, elementBounds, isElement, localOutline, pageTransform, strokeRing, unionBox } from './layout.js';
 import { type Affine, applyAffine, invert, multiply as multiplyAffine, type ResolvedElement, resolveElement } from './resolve.js';
-import { rgbaToHex, validateElementOps } from './values.js';
+import { type ImageRotation, rgbaToHex, validateElementOps } from './values.js';
 
 export interface ActionContext extends ElementContext {
   readonly stage: Pick<Stage, 'read' | 'children' | 'value' | 'explain' | 'lockOf' | 'checkWrite'>;
@@ -648,6 +648,60 @@ export function showAll(ctx: ActionContext, root: NodeId): Result<PartOp[]> {
     }
   };
   walk(root);
+  return ok(ops);
+}
+
+// ---------------------------------------------------------------- image crop (B12, A-3)
+
+/** A crop to write on an image paint (APPEARANCE §2.4): any field omitted keeps the current one. */
+export interface ImageCropEdit {
+  /** `[x, y]` ∈ 0…1 of the free space (0.5, 0.5 centred). */
+  readonly offset?: readonly [number, number];
+  /** × the fit's size. */
+  readonly scale?: number;
+  /** Clockwise, 0 · 90 · 180 · 270. */
+  readonly rotation?: ImageRotation;
+}
+
+/** Storage index of the top-most visible image fill of `node` (an image element's own picture), or undefined. */
+export function imageFillIndex(ctx: Pick<ActionContext, 'stage'>, node: NodeId): number | undefined {
+  const raw = ctx.stage.explain(node, P.fills).winner?.value;
+  if (!Array.isArray(raw)) return undefined;
+  for (let i = raw.length - 1; i >= 0; i--) {
+    const item = raw[i];
+    if (typeof item !== 'object' || item === null || Array.isArray(item) || item['visible'] === false) continue;
+    const paint = item['paint'];
+    if (typeof paint === 'object' && paint !== null && !Array.isArray(paint) && paint['kind'] === 'image') return i;
+  }
+  return undefined;
+}
+
+/**
+ * Crop an image paint (A-3): write `offset`, `scale`, `rotation` on fill `index` (default the top-most image fill) of
+ * each node; `crop: null` resets it to the plain fit. One change set; values are validated like every paint.
+ */
+export function cropImage(ctx: ActionContext, nodes: readonly NodeId[], crop: ImageCropEdit | null, index?: number): Result<PartOp[]> {
+  const ops: PartOp[] = [];
+  for (const node of nodes) {
+    const raw = ctx.stage.explain(node, P.fills).winner?.value;
+    const at = index ?? imageFillIndex(ctx, node);
+    const items = Array.isArray(raw) ? [...raw] : [];
+    const item = at === undefined ? undefined : items[at];
+    const paint = typeof item === 'object' && item !== null && !Array.isArray(item) ? item['paint'] : undefined;
+    if (at === undefined || typeof paint !== 'object' || paint === null || Array.isArray(paint) || paint['kind'] !== 'image') return notApplicable(`"${node}" has no image fill to crop.`, 'an image', { node });
+    const { offset: _o, scale: _s, rotation: _r, ...plain } = paint as Record<string, JsonValue>;
+    const next: Record<string, JsonValue> =
+      crop === null
+        ? plain
+        : {
+            ...(paint as Record<string, JsonValue>),
+            ...(crop.offset === undefined ? {} : { offset: [...crop.offset] }),
+            ...(crop.scale === undefined ? {} : { scale: crop.scale }),
+            ...(crop.rotation === undefined ? {} : { rotation: crop.rotation }),
+          };
+    items[at] = { ...(item as Record<string, JsonValue>), paint: next };
+    ops.push({ op: 'set', node, path: P.fills, value: items as JsonValue });
+  }
   return ok(ops);
 }
 

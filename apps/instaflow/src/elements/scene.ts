@@ -124,7 +124,7 @@ function paintOf(p: ResolvedPaint, w: number, h: number, images: ElementSceneEnc
       return { kind: 'sweep', center: [p.center[0] * w, p.center[1] * h], start: p.start, end: p.start + Math.PI * 2, stops: p.stops };
     case 'image': {
       const image = images?.(p.asset, variant);
-      return image === undefined ? { kind: 'none' } : { kind: 'image', image, fit: FIT[p.fit] ?? 'cover' };
+      return image === undefined ? { kind: 'none' } : { kind: 'image', image, fit: FIT[p.fit] ?? 'cover', ...(p.crop === undefined ? {} : { crop: p.crop }) };
     }
   }
 }

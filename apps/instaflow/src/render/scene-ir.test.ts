@@ -121,7 +121,25 @@ function appearanceBatch(): Uint8Array {
   return w.finish();
 }
 
+/** The B12 `crops` fixture (fixtures.rs): image paints with offset, scale and quarter turns (`IMAGE_CROP`). */
+function cropsBatch(): Uint8Array {
+  const w = createSceneWriter().image(1, 16, 16, checker());
+  w.upsert({ id: 1, transform: at(6, 6), geometry: { kind: 'rect', w: 52, h: 26 }, fill: { kind: 'image', image: 1, fit: 'cover' } });
+  w.upsert({ id: 2, transform: at(70, 6), geometry: { kind: 'rect', w: 52, h: 26, radius: 6 }, fill: { kind: 'image', image: 1, fit: 'cover', crop: { x: 0, y: 1, scale: 2, quarter: 0 } } });
+  w.upsert({ id: 3, transform: at(6, 44), geometry: { kind: 'ellipse', w: 52, h: 40 }, fill: { kind: 'image', image: 1, fit: 'cover', crop: { x: 0.5, y: 0.5, scale: 1, quarter: 1 } } });
+  w.upsert({ id: 4, transform: at(70, 44), geometry: { kind: 'rect', w: 52, h: 20 }, fill: { kind: 'image', image: 1, fit: 'contain', crop: { x: 0, y: 0.5, scale: 0.75, quarter: 2 } } });
+  return w.finish();
+}
+
 describe('createSceneWriter', () => {
+  it('writes cropped image paints byte-identically with the Rust IrWriter (B12 `crops` fixture); refuses bad crops', () => {
+    expect(cropsBatch()).toEqual(fixture('crops'));
+    const bad = (crop: { x: number; y: number; scale: number; quarter: 0 | 1 | 2 | 3 }) => () => createSceneWriter().upsert({ id: 1, geometry: { kind: 'rect', w: 1, h: 1 }, fill: { kind: 'image', image: 1, crop } });
+    expect(bad({ x: 0.5, y: 0.5, scale: 0, quarter: 0 })).toThrow(RangeError);
+    expect(bad({ x: 0.5, y: 0.5, scale: 1, quarter: 5 as 0 })).toThrow(RangeError);
+    expect(bad({ x: Number.NaN, y: 0.5, scale: 1, quarter: 0 })).toThrow(RangeError);
+  });
+
   it('writes fill and stroke stacks, conic gradients, dashes, rings and backdrop blur like Rust (`appearance` fixture)', () => {
     expect(appearanceBatch()).toEqual(fixture('appearance'));
   });
