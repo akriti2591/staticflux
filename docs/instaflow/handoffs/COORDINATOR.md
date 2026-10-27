@@ -55,7 +55,9 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
   inspector + HUD, label Sides) → #56 Settings shortcuts sheet (two scroll bars, raw key names, lists unbuilt tools) → #55 inspector layout + #40 dock padding
   (spec merged in #59: COMPONENT-ANATOMY.md + INSPECTOR-LAYOUT-SPEC.md; owner said yes to all five §9 questions
   on 2026-10-27; one implementation pass, owner reviews).
-- Open PRs: #61 (#58 submenus close on pointer leave; owner to verify). Merged: #57, #59, #60.
+- Merged and owner verified: #57 (#41), #61 (#58), #63 (#42; #44 narrowed to Background `+ Add ▾` items opening their editors).
+  Running: #53 (`claude/fix-53-shift-select`). Proposed next: #43 (bg image shows now, lost on reload: persistence;
+  check placed images too), then the canvas selection bugs. New: #64 Home/Files previews blank (after the canvas bugs).
 - **#62 Studio blank until Wasm loads** (owner): mount the shell first with placeholders, preload the Wasm. Proposed
   right after #42; with it in C4: split `studio-element.ts` (1,290 lines: shortcuts/menus/commands into modules),
   lazy-load rare panels (find, shortcuts sheet, settings) with real placeholders.
