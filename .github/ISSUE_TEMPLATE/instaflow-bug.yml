@@ -1,0 +1,51 @@
+name: Instaflow bug
+description: Something in Instaflow didn't work the way you expected.
+title: "[Bug] "
+labels: ["instaflow", "bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - Studio canvas
+        - Studio panels (HUD, inspector, Layers, Pages)
+        - Text
+        - Images
+        - Export
+        - Home / files
+        - Settings
+        - Other
+    validations:
+      required: false
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: One or two lines is enough. Paste or drag screenshots here.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: The steps, if you remember them.
+      placeholder: "1. Select a star\n2. Drag it quickly"
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: false
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How bad
+      options:
+        - Blocks me (crash, white screen, lost work)
+        - Annoying (works, but wrong or clunky)
+        - Polish (looks off)
+    validations:
+      required: false
