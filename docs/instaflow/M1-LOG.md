@@ -72,6 +72,8 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-27** Owner bug (follow-up fix batch, after B11c): placing an image on the canvas gives a white screen. Owner is
+  collecting a Studio bug list to send after B11c; image fill + page background image UI added to B11c (first leftover).
 - **2026-10-27** Weekly limit reset. #36 (B11b slices 1–4) merged; smokes 0/5 both topologies, Home green. **B11c launched** on
   `claude/wip-b11c` (main + slice-5 WIP diff, 016bc96): finish Home → Settings/density/hints/deep links/logo → find and
   replace → B11b leftovers → final audit (nothing inert; every (a)/B12 capability reachable).
