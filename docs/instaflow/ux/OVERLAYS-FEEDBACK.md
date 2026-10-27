@@ -41,7 +41,7 @@ modal is open** (`inert` on everything but the dialog, toasts and live regions).
 
 | Parent → child | Allowed? | Rule |
 |---|---|---|
-| Menu → submenu | **yes, one level** | Opens on hover after 150 ms or on `→` / Enter; closes on `←` or when the pointer leaves both for 300 ms; the parent row stays highlighted. No sub-submenus: a third level becomes a searchable menu or a dialog step. |
+| Menu → submenu | **yes, one level** | Opens on hover after 150 ms or on `→` / Enter; closes on `←` / Escape or when the pointer rests on a sibling row of the parent menu for 300 ms (hover intent, macOS, Figma); moving into empty space closes nothing, and a submenu never closes its parent; the parent row stays highlighted. No sub-submenus: a third level becomes a searchable menu or a dialog step. |
 | Menu → popover | **no** | A row that needs a popover (e.g. `Set size…`) closes the menu and opens the popover **anchored to the menu's original trigger**, never to the vanished row. |
 | Menu → dialog | yes | The menu closes, the dialog opens; focus returns to the menu's trigger on close. |
 | Popover → menu | **yes, one level** | A `▾` inside a popover (e.g. `Align to ▾`, a provider's `Model ▾`) opens a menu over the popover; Escape closes the menu only. |
