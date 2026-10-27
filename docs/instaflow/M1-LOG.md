@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-27** Owner: no way to pick an image file in Studio (only Finder copy-paste, which white-screens). Added to B11c's
+  image item: Place image… file picker (tool/Insert, Mod+K, context menu), OS drag-and-drop onto the canvas, errors as
+  toasts, smoke step via the file chooser. The paste white-screen stays in the follow-up batch.
 - **2026-10-27** Owner bug (follow-up fix batch, after B11c): placing an image on the canvas gives a white screen
   (repro: copy an image file in macOS Finder, paste on the canvas; Finder puts a file reference plus an icon image on
   the clipboard, so suspect the paste path). Owner is
