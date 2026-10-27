@@ -12,10 +12,9 @@
  * <sf-size-field label="Size" .width=${1080} .height=${1350} unit="px"><sf-menu slot="presets">…</sf-menu></sf-size-field>
  * ```
  */
-import { err, ok, type Result } from '@staticflux/core';
+import { defineError, err, ok, type Result } from '@staticflux/core';
 import { component, defineComponent, SfElement } from '@staticflux/ui';
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { SizeOutOfRangeError } from './errors.js';
 import { emit } from './internal/events.js';
 import { baseStyles, focusRing, t } from './internal/styles.js';
 import { defineIconElement } from './icon.js';
@@ -24,6 +23,17 @@ import { lockIcon } from './icons/lock.js';
 import { lockOpenIcon } from './icons/lock-open.js';
 import { defineNumberField, type NumberChangeDetail } from './number-field.js';
 import { defineSegmented } from './segmented.js';
+
+/**
+ * A side of a size field is outside its limits (R13.48). Defined here, not in `errors.ts`: every kit entry that imports
+ * the shared errors module would carry it otherwise.
+ */
+export const SizeOutOfRangeError = /* @__PURE__ */ defineError(
+  'SF-KIT-005',
+  'validation',
+  'A width or height typed into a size field is outside the field’s limits (`min`…`max` pixels).',
+  'Type a size between `details.min` and `details.max` pixels (the field converts mm, in and pt at 96 px per inch); larger pages do not fit this device’s canvas.',
+);
 
 /** Pixels per unit (CSS: 96 px per inch). */
 export const SIZE_UNITS = Object.freeze({ px: 1, mm: 96 / 25.4, in: 96, pt: 96 / 72 });

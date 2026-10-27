@@ -478,3 +478,11 @@ far except R13.46 (kit tree) and R13.47 (kit cheat sheet): the surfaces compose 
   facts) and the kit menu's `showAt` (R13.45).
 - "A cheat sheet that can never be stale" → `@staticflux/a11y` `ShortcutRegistry.list()` and the kit's `<sf-shortcut-sheet>`
   (R13.47).
+- B11c "Pick a page size in px, mm or in, keep the ratio, flip the orientation" → the kit's `<sf-size-field>` (R13.48) over
+  `<sf-number-field>`.
+- B11c "A card with a `⋯` menu, a star and a selection checkbox that never nest inside its link" → `<sf-card>` slots and states
+  (R13.49); the favourite star fills with `--sf-icon-fill` (R13.50).
+- B11c "Change files on Home without the document engine (D17)" → `@staticflux/document` `DocumentStore.readHead` / `writeHead`
+  (compare-and-swap on a head of Home's own: the journal); no framework API.
+- B11c "Import on Home with no engine" → `@staticflux/blob` `createBlobStore` over OPFS (`put`, content-addressed), loaded on first
+  use; the record is the library's `instaflow.asset/1`.

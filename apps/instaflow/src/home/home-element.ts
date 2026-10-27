@@ -180,6 +180,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     facts: { state: true },
     full: { state: true },
     shown: { state: true },
+    importing: { state: true },
   };
   static override styles = homeStyles;
 
@@ -208,6 +209,8 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
   declare full: boolean;
   /** Preview URLs by asset. */
   declare shown: ReadonlyMap<string, string>;
+  /** An import in progress (the inline progress row; Cancel aborts the rest). */
+  declare importing: { readonly done: number; readonly total: number; readonly controller: AbortController } | undefined;
 
   private anchor: string | undefined;
   private titleTimer: ReturnType<typeof setTimeout> | undefined;
@@ -236,6 +239,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     this.facts = undefined;
     this.full = false;
     this.shown = new Map();
+    this.importing = undefined;
   }
 
   override connectedCallback(): void {
@@ -339,7 +343,19 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
         @drop=${(e: DragEvent) => void this.onDrop(e)}
       >
         ${this.full ? html`<sf-banner tone="danger" message=${this.text(m.storageFull)} action-label=${this.text(m.openTrash)} @sf-action=${() => this.go({ kind: 'trash' })}></sf-banner>` : nothing}
-        ${model.state === 'failed' ? this.renderProblem() : nothing} ${this.renderView(view)}
+        ${model.state === 'failed' ? this.renderProblem() : nothing}
+        ${this.importing === undefined
+          ? nothing
+          : html`<sf-progress-row
+              class="import-progress"
+              label=${this.text(m.importing, { done: this.importing.done, total: this.importing.total })}
+              .value=${this.importing.done}
+              max=${this.importing.total}
+              cancellable
+              cancel-label=${this.text(m.cancel)}
+              @sf-cancel=${() => this.importing?.controller.abort()}
+            ></sf-progress-row>`}
+        ${this.renderView(view)}
         ${model.state === 'loading' ? html`<p class="empty" role="status">${this.text(m.loading)}</p>` : nothing}
         ${this.dropping ? html`<p class="sr-only" role="status">${this.text(m.dropFiles)}</p>` : nothing}
       </main>
@@ -1476,10 +1492,13 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     if (files.length === 0) return undefined;
     const view = this.deps.model.view;
     const into = project ?? (view.kind === 'project' ? view.name : undefined);
-    const total = files.length;
-    const progress = total > 1 ? this.toasts?.show({ message: this.text(m.importing, { done: 0, total }) }) : undefined;
-    const done = await this.attempt(this.deps.model.importFiles(files, into === undefined ? {} : { project: into }));
-    progress?.dismiss('replaced');
+    const controller = new AbortController();
+    // The inline progress row shows for several files (HOME-FILES §3.1); Cancel stops the rest, what is stored stays.
+    const onProgress = (n: number, total: number): void => {
+      this.importing = total > 1 && n < total ? { done: n, total, controller } : undefined;
+    };
+    const done = await this.attempt(this.deps.model.importFiles(files, { ...(into === undefined ? {} : { project: into }), signal: controller.signal, onProgress }));
+    this.importing = undefined;
     if (done === undefined) return undefined;
     this.reportImport(done.value);
     return done.value;

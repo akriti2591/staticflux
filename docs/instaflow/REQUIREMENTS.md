@@ -1616,6 +1616,52 @@ Lifecycle: LIFECYCLES §38.
   registered here are absent: cards Tools · Selection · Edit · Arrange · Transform · Text · View · Studio (empty cards are
   absent), a focused search that filters and marks rows, and a Mac · Windows switch defaulting to the viewer's platform.
   Escape closes it. Not yet: the Print button, row hover pointing at controls, Settings › Shortcuts.
+- **IF-36.35** **New design** (HOME-FILES §1.3, F-54; B11b slice 5, finished in B11c): `＋ New design`, a format chip, `Custom…`
+  or the header's `▾ › Custom size…` open a 520 px modal: Format chips (a radio group; the last used pre-selected, per device),
+  the kit's size field pair `<sf-size-field>` (W × H in px · mm · in · pt at 96 px/in, keep proportions, orientation, 1…16 384
+  px a side with the inline `Too large for this device (max 16 384 px)`), `Presets ▾` (social, print, screen), `Start from`
+  (Blank, Last design, a workspace template: its size, locked), Name, `More ▾` (pages 1–50, background). Create (Enter in a
+  field, Mod+Enter anywhere) runs `instaflow/new-design` with `format=custom&w=&h=` (or uses the template); Studio makes the
+  page that size and background, and the `/new` keys never survive into `/s/:asset`.
+- **IF-36.36** **Home's header and pages** (HOME-FILES §1.1–§2.4): the logo lockup (the brand mark, a link to Home), the nav
+  switcher `Home · Files · Templates · Trash` (links; `aria-current`), the search field (`/` focuses it; it filters every list
+  live and marks the match; `No results for “…” · Clear`; Enter opens `/files?q=`), and Home's pages as one boot with history:
+  Home (hero and formats row, quick actions, Jump back in, Templates when there are any, Projects with `＋ New project`), Files
+  (`/files`: `All · Designs · Templates · Media · Favourites`, `Project ▾`, `Sort ▾` Last edited / Created / Name A–Z / Kind,
+  Grid / List; the list state is remembered per device and written to the URL by replace), a project (`/p/:name`: back,
+  rename by clicking the name, `⋯` Rename / Delete project with the inline `Keep designs, delete project?`), Templates
+  (`/templates`), Trash (`/trash`: rows by day, `Items are kept for 30 days.`, Restore, Delete forever and Empty trash with
+  inline confirms). Back and Forward move between them.
+- **IF-36.37** **Every file operation in three places that agree** (HOME-FILES §3): the card's `⋯` menu (revealed on hover and
+  focus, beside the link, never inside it), the context menu (right-click, Shift+F10, the Menu key) and the keyboard on a
+  focused card (F2 / Mod+Shift+R rename inline, Mod+D duplicate, Delete / Backspace trash), each a capability agents call:
+  `instaflow/rename-design`, `duplicate-design` (`<title> copy`, same project, first, focused), `move-to-project` (submenu of
+  projects, `New project…` in a popover, `No project`; drag a card onto a project card), `favorite` (the star), `trash-designs`
+  (six or more ask in the bulk bar), `restore-designs`, `delete-forever` (trash only, inline confirm), `new-project`,
+  `rename-project`, `delete-project` (designs go to No project), `search-files`; Open, Open in new tab, Use template, Edit
+  template, Copy link. Files and a project select in bulk (checkbox, Shift range, Mod toggle, Mod+A) with the bar `n selected ·
+  Move to ▾ · Duplicate · Move to trash · ×`. Non-local results toast; reversible ones carry Undo (8 s) and Mod+Z on Home runs
+  the newest toast's Undo.
+- **IF-36.38** **Home's journal** (D17 kept): Home never opens the library (a Loro document). Each file operation appends one op
+  to the journal head `home-journal` (compare-and-swap; IF-POL-055 after six lost races) and shows at once (the op is applied
+  to the Home index it reads); Studio's store side drains the journal into the library when it opens (before it plans the
+  document), when Home pings `instaflow/home-journal` and when its tab becomes visible: rename, move, favourite, trash,
+  restore, purge, duplicate (a fresh snapshot of the source's Latest as a new document, no history), import (listed unless the
+  same content is live), project rename / remove; the index is rewritten first, then the applied ops leave the journal. The
+  index writer applies pending ops too, so a Studio write never undoes what Home shows. The Home index now carries the
+  project, favourite, trash time, page count, content digest and the projects made on Home.
+- **IF-36.39** **Import on Home** (HOME-FILES §3.1): Files' `Import`, Mod+I, dropping files anywhere on the page column (the
+  tangerine outline, `Drop files to import` announced) and pasting files import images, SVG and fonts into the project on
+  screen: the bytes and the `instaflow.asset/1` record go to the workspace blob store (OPFS; the store loads on first import),
+  the listing is a journal op; the same content is never imported twice (`… is already in this workspace`); video and audio
+  are refused (`Video arrives with the Timeline lens`), anything else with `Images, SVG and fonts are supported`; several files
+  show an inline progress row with Cancel; `Imported …` toasts carry Undo (to the trash). Images show their own preview on
+  cards and rows.
+- **IF-36.40** **First run and storage** (HOME-FILES §1.4, §4): the first visit shows one welcome card `Your designs live on this
+  device` whose `Keep my designs on this device` asks `navigator.storage.persist()` on the click (then `Saved on this device`,
+  or `Chrome may clear this workspace under storage pressure. Pin this site to keep it.`), dismissable, seen per device
+  (`instaflow/ui/first-run`); the formats row says `Pick a size to start. You can change it later.` once. The footer reads
+  `1.2 GB used on this device`; a write that fails for lack of space shows the banner `Storage is full…` with `Open Trash`.
 
 ## 37. Engine gaps for B11b (M1c B12)
 

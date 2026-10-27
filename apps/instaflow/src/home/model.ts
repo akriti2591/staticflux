@@ -190,7 +190,7 @@ export interface HomeModel {
   renameProject(name: string, to: string): Promise<Result<void>>;
   deleteProject(name: string): Promise<Result<void>>;
   /** Import files into the workspace (`project`: where they land; default No project). */
-  importFiles(files: readonly File[], options?: { readonly project?: string; readonly signal?: AbortSignal }): Promise<Result<ImportSummary>>;
+  importFiles(files: readonly File[], options?: { readonly project?: string; readonly signal?: AbortSignal; readonly onProgress?: (done: number, total: number) => void }): Promise<Result<ImportSummary>>;
   dispose(): void;
 }
 
@@ -426,8 +426,9 @@ export function createHomeModel(options: HomeModelOptions): HomeModel {
     const bodies: HomeOpBody[] = [];
     const existingEntries: HomeEntry[] = [];
     const assets: string[] = [];
-    for (const file of accepted) {
+    for (const [i, file] of accepted.entries()) {
       if (s.aborted) break;
+      importOptions.onProgress?.(i, accepted.length);
       const asset = newAssetId();
       const stored = await importer.importFile(file, asset, s);
       if (!stored.ok) {
@@ -444,8 +445,9 @@ export function createHomeModel(options: HomeModelOptions): HomeModel {
       assets.push(asset);
       bodies.push({ kind: 'import', media: { ...stored.value, ...(project.length === 0 ? {} : { folder: project }) } });
     }
+    importOptions.onProgress?.(accepted.length, accepted.length);
     if (bodies.length > 0) {
-      const done = await write(bodies, s);
+      const done = await write(bodies);
       if (!done.ok) return done;
     }
     const imported = assets.map(find).filter((e): e is HomeEntry => e !== undefined);

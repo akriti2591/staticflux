@@ -541,10 +541,37 @@ describe('<if-home>', () => {
     await again(host, 5);
     expect(stored).toEqual(['lamp.png']);
     expect(model.entry('as_new1')).toMatchObject({ kind: 'image', title: 'lamp', folder: 'Spring campaign', format: { width: 10, height: 20 } });
-    expect(shown.map((s) => s.message)).toEqual(['Importing 0 of 2…', 'Imported “lamp”', 'Couldn’t import “notes.txt”. Images, SVG and fonts are supported.']);
+    expect(shown.map((s) => s.message)).toEqual(['Imported “lamp”', 'Couldn’t import “notes.txt”. Images, SVG and fonts are supported.']);
+    expect(shadow.querySelector('sf-progress-row')).toBeNull(); // gone once done
     expect(main.classList.contains('drop')).toBe(false);
     await host.importFiles([new File(['v'], 'clip.mp4', { type: 'video/mp4' })]);
     expect(shown.at(-1)?.message).toBe('Couldn’t import “clip.mp4”. Video arrives with the Timeline lens.');
+  });
+
+  it('import of several files: an inline progress row counts them; Cancel stops the rest, what is stored stays', async () => {
+    const waiting: (() => void)[] = [];
+    const importer: HomeImporter = {
+      importFile: (file, asset) =>
+        new Promise((resolve) =>
+          waiting.push(() => resolve(ok({ asset, kind: 'image', title: file.name, mime: 'image/png', size: 1, content: { digest: `sha256:${file.name}`, size: 1, mime: 'image/png' }, record: { digest: 'sha256:r', size: 1, mime: 'x' } }))),
+        ),
+    };
+    const { host, shadow, model } = await mount({ importer });
+    const files = ['a.png', 'b.png', 'c.png'].map((n) => new File([new Uint8Array([1])], n, { type: 'image/png' }));
+    const running = host.importFiles(files);
+    await again(host);
+    const row = (): HTMLElement & { label: string } => shadow.querySelector('sf-progress-row') as HTMLElement & { label: string };
+    expect(row().label).toBe('Importing 0 of 3…');
+    waiting.shift()?.();
+    await again(host);
+    expect(row().label).toBe('Importing 1 of 3…');
+    row().dispatchEvent(new CustomEvent('sf-cancel'));
+    waiting.shift()?.();
+    const summary = await running;
+    await again(host);
+    expect(summary?.imported.map((e) => e.title)).toEqual(['a.png', 'b.png']);
+    expect(model.files().filter((e) => e.kind === 'image').map((e) => e.title).sort()).toEqual(['a.png', 'b.png', 'Lantern photo'].sort());
+    expect(shadow.querySelector('sf-progress-row')).toBeNull();
   });
 
   it('first run: one welcome card (Keep asks for persistence on the click), the formats hint; seen on the next visit', async () => {

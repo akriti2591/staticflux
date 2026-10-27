@@ -718,6 +718,13 @@ live in their element and end with it; the per-device state lives in `localStora
 | style clipboard (per editor) | empty → held (Copy style: the first element's style values) → held (the next Copy style replaces it); Paste style reads it, never clears it | `apps/instaflow/src/app/studio-commands.ts` |
 | context menu (per Studio) | closed → resolving (right-click, Shift+F10 or a Layers row: `contextAt` selects the target) → open (the target's groups at the point; keyboard opens focus the first row) → closed (a row runs, Escape, an outside press: focus returns to the canvas or the row) | `apps/instaflow/src/studio/studio-element.ts`, `context-menu.ts` |
 | cheat sheet (per Studio) | closed → open (`?`: a registry snapshot, the search focused) → closed (`?` again, Escape, the close button) | `apps/instaflow/src/studio/shortcuts-sheet.ts` |
+| New design dialog (per Home; B11b/B11c) | closed → open (`＋ New design`, a format chip, `Custom…`, `▾ › Custom size…`: the remembered draft, the name or W focused) → closed (Create: the draft remembered per device, `if-create`, the capability runs and Home leaves for Studio; Cancel, ×, Escape) | `apps/instaflow/src/home/new-design.ts` |
+| Home page (per Home; B11c) | home ↔ files ↔ project ↔ templates ↔ trash (`go`: pushes history; Back / Forward: `show`); a renamed project replaces its page; a deleted one goes to home | `apps/instaflow/src/home/model.ts`, `routes.ts` |
+| Home journal op (per op; B11c) | appended (Home: compare-and-swap on `home-journal`, shown at once over the index) → applied (Studio's drain: the library commit, or dropped when it no longer applies or fails, reported) → indexed (the Home index rewritten, the library flushed first) → removed (gone from the journal). A failed index rewrite keeps every op of that run | `apps/instaflow/src/home/journal.ts`, `src/workspace/home-journal-drain.ts` |
+| card rename (per Home) | viewing → renaming (⋯ › Rename, F2 / Mod+Shift+R, a double-click on the title: the card is no link meanwhile, the field focused with the text selected) → viewing (Enter / blur: `instaflow/rename-design` when changed, a toast with Undo; Escape: nothing) | `apps/instaflow/src/home/home-element.ts` |
+| Files selection (per Home) | empty → selecting (a checkbox, Shift range from the anchor, Mod toggle, Mod+A, Space on a card: the bulk bar rises) → empty (×, Escape, an operation ran, the page changed); bulk trash of six or more: selecting → confirming (inline in the bar) → empty (confirmed) or selecting (Cancel) | `apps/instaflow/src/home/home-element.ts`, `files-view.ts` |
+| Home import (per drop or pick) | idle → refusing (unsupported files toasted) / storing (one file at a time to the blob store; the progress row for several, Cancel stops before the next file) → listed (one journal op per new content; the same content is `existing`) → idle | `apps/instaflow/src/home/model.ts`, `importer.ts` |
+| first run (per device) | unseen (the welcome card, the formats hint) → answered (`Keep my designs…`: persistence asked on the click; the status line for the session) or dismissed (×) → seen (`instaflow/ui/first-run`; Settings › Reset hints → unseen) | `apps/instaflow/src/home/first-run.ts`, `home-element.ts` |
 
 | ID | Invariant | Error / test |
 |---|---|---|
@@ -731,6 +738,12 @@ live in their element and end with it; the per-device state lives in `localStora
 | SURF-8 | A paste never reuses an id: every pasted node gets a new one, the top level is selected, and each paste or cut is one undo step | `clipboard.test.ts`, `studio.smoke.mjs` (Mod+V, Mod+Shift+V, undo ×2) |
 | SURF-9 | The context menu lists a capability only when the selection's `actions` include it, and Paste / Paste style only when there is something to paste | `context-menu.test.ts`, `studio-element.test.ts` |
 | SURF-10 | The cheat sheet lists exactly the registered, unshadowed shortcuts (each once) | `shortcuts-sheet.test.ts`, `shortcut-sheet.test.ts` (kit) |
+| SURF-11 | Home never opens the library or any document (D17): it reads heads and writes only its journal head (and, on import, the blob store) | `home-imports.test.ts`, `home.smoke.mjs` (no worker, no Wasm, no GPU) |
+| SURF-12 | A journal op is idempotent on the index and on the library; ops apply in order; an op whose asset is gone changes nothing | IF-POL-055; `journal.test.ts`, `home-journal-drain.test.ts` |
+| SURF-13 | The drain removes an op only after the library is durable and the index rewritten, so Home never shows a change undone | `home-journal-drain.test.ts`, `home.smoke.mjs` (journal drained, the library holds the rename, the copy and the image) |
+| SURF-14 | A trashed file shows only on the Trash page; Delete forever applies only to trashed files and cannot be undone (inline confirm, no toast Undo) | IF-HOME-002; `model.test.ts`, `home-element.test.ts` |
+| SURF-15 | A design name is 1–200 characters and a project name 1–60 without `/`; a refused name changes nothing | IF-POL-056, IF-POL-058; `model.test.ts` |
+| SURF-16 | The same content is never imported twice; video, audio and other files are refused before a byte is stored | IF-POL-057; `model.test.ts`, `importer.test.ts` |
 
 ## 39. Engine gaps for B11b: typing steps, hidden elements, page fill, crops (Instaflow M1c B12)
 

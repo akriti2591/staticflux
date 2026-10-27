@@ -23,7 +23,8 @@ regenerable renditions. Headless services plus one B0 panel contribution; nothin
   `LibraryPaths`, `RENDITION_ROLES`, `Rendition`, `LibraryEntry`, `NewLibraryEntry`, `readLibraryEntry`,
   `readLibraryEntries`, `entryCreateOps`, `openLibraryDocument(repo, signal)` → `{ doc, part }` (created on first use).
 - `library.ts` — `createLibrary({ source, actor, now })` → `entries()` (reactive, newest first), `entry`, `findByContent`,
-  `add`, `rename`, `setFolder`, `setFavorite`, `addTag`, `removeTag`, `trash`, `restore`, `setRendition`, `gcRoots`, `dispose`;
+  `add`, `rename`, `setFolder`, `setFavorite`, `addTag`, `removeTag`, `trash`, `restore`, `purge` (B11c: delete forever, the blobs
+  left to GC), `setRendition`, `gcRoots`, `dispose`;
   `validateTitle` / `validateTag` / `validateFolder`, `TRASH_RETENTION_MS`, `LIBRARY_FILTERS` + `LIBRARY_FILTER_TESTS` (data),
   `queryLibrary(entries, query)`.
 - `ingest.ts` — `createIngestService({ library, blobs, probes, newAssetId, actor, now, onListed })` → `ingest(file, { signal,

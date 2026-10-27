@@ -1239,6 +1239,12 @@
       "fix": "Serve the page over HTTPS and copy from a user gesture; people can allow clipboard access in site settings or select the field and copy by hand."
     },
     {
+      "code": "SF-KIT-005",
+      "kind": "validation",
+      "summary": "A width or height typed into a size field is outside the field’s limits (`min`…`max` pixels).",
+      "fix": "Type a size between `details.min` and `details.max` pixels (the field converts mm, in and pt at 96 px per inch); larger pages do not fit this device’s canvas."
+    },
+    {
       "code": "SF-LOAD-001",
       "kind": "not-found",
       "summary": "The logical chunk id is not in the build manifest.",

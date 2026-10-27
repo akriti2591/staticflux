@@ -23,6 +23,8 @@ import { defineHint } from '@staticflux/kit/hint';
 import { defineMenu, type SfMenuElement } from '@staticflux/kit/menu';
 import { definePopover, type SfPopoverElement } from '@staticflux/kit/popover';
 import { defineShortcutSheet } from '@staticflux/kit/shortcut-sheet';
+import { defineCard } from '@staticflux/kit/card';
+import { defineSizeField } from '@staticflux/kit/size-field';
 import { defineSurfaces, type SfDialogElement } from '@staticflux/kit/surfaces';
 import { defineTooltip } from '@staticflux/kit/tooltip';
 import { CLEAN_POP_COLOR_PALETTE } from '../theme/palette.js';
@@ -55,6 +57,8 @@ beforeAll(() => {
   defineHint();
   defineSurfaces();
   defineShortcutSheet();
+  defineSizeField();
+  defineCard();
 });
 afterEach(async () => {
   await dispose?.();
@@ -203,6 +207,22 @@ describe('B11a foundation blocks under Clean Pop', () => {
       { heading: 'View', rows: [{ id: 'c', label: 'Zoom in', keys: ['Mod+='] }] },
     ];
     const root = await mount(html`<sf-shortcut-sheet .groups=${groups}></sf-shortcut-sheet>`);
+    expectNoA11yIssues(root);
+  });
+
+  it('B11c size field pair (rest, units, the inline error) and the card with actions, a selection check and states', async () => {
+    const root = await mount(
+      html`<sf-size-field label="Size" .width=${1080} .height=${1350} unit="mm"></sf-size-field>
+        <sf-card href="/s/as_1" selected drop-target
+          ><span>Flyer</span><input slot="leading" type="checkbox" aria-label="Select Flyer" checked /><sf-icon-button slot="actions" label="More for Flyer"><sf-icon .icon=${trash2Icon}></sf-icon></sf-icon-button
+        ></sf-card>`,
+    );
+    expectNoA11yIssues(root);
+    const field = root.querySelector('sf-size-field') as HTMLElement & { shadowRoot: ShadowRoot };
+    const width = field.shadowRoot.querySelector('sf-number-field[data-side="width"]') as HTMLElement;
+    width.dispatchEvent(new CustomEvent('sf-change', { detail: { value: 99_999, delta: 0, source: 'type' }, bubbles: true, composed: true }));
+    await settle(2);
+    expect(field.shadowRoot.querySelector('[role="alert"]')?.textContent).toContain('Too large');
     expectNoA11yIssues(root);
   });
 

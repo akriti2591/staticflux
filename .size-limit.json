@@ -795,7 +795,7 @@
     "limit": "2.5 KB"
   },
   {
-    "name": "@staticflux/kit/size-field (<sf-size-field>: the size field pair of New design; with the number field, segmented, icon button; B11b)",
+    "name": "@staticflux/kit/size-field (<sf-size-field>: the size field pair of New design; with the number field, segmented, icon button; B11b; B11c measured 9 KB → 12.5 KB: it carries the number field (5 KB), the segmented switch, the icon button with the tooltip core and the lock icons)",
     "path": "packages/kit/dist/size-field.js",
     "ignore": [
       "mobx",
@@ -809,7 +809,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "9 KB"
+    "limit": "12.5 KB"
   },
   {
     "name": "@staticflux/kit/command-palette",
@@ -863,7 +863,7 @@
     "limit": "1.7 KB"
   },
   {
-    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>)",
+    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>; B11c 43.75 KB → 45.5 KB: <sf-size-field> (R13.48), card action and selection slots (R13.49), icon fill)",
     "path": "packages/kit/dist/index.js",
     "ignore": [
       "mobx",
@@ -877,7 +877,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "43.75 KB"
+    "limit": "45.5 KB"
   },
   {
     "name": "@staticflux/stage (stage, attribution, undo service; excl. framework)",
@@ -1083,7 +1083,7 @@
     "limit": "1.6 KB"
   },
   {
-    "name": "@instaflow/app/library (library document, ingest, renditions, thumbnail back ends; excl. framework; raised 10 → 10.25 KB by C1: the scene IR writer it shares carries glyph-run text)",
+    "name": "@instaflow/app/library (library document, ingest, renditions, thumbnail back ends; excl. framework; raised 10 → 10.25 KB by C1: the scene IR writer it shares carries glyph-run text; B11c 10.25 KB → 10.5 KB: library.purge (delete forever from Home))",
     "path": "apps/instaflow/dist/library/index.js",
     "ignore": [
       "mobx",
@@ -1098,7 +1098,7 @@
       "@staticflux/a11y",
       "@staticflux/capabilities"
     ],
-    "limit": "10.25 KB"
+    "limit": "10.5 KB"
   },
   {
     "name": "@instaflow/app/library/ui (Assets panel and its contribution; excl. lit, kit and framework)",
@@ -1323,7 +1323,7 @@
     "limit": "19.5 KB"
   },
   {
-    "name": "@staticflux/kit/card",
+    "name": "@staticflux/kit/card (B11c 1.1 KB → 1.4 KB: action and leading slots outside the link, selected / drop-target / dragging states (R13.49))",
     "path": "packages/kit/dist/card.js",
     "ignore": [
       "mobx",
@@ -1337,16 +1337,16 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "1.1 KB"
+    "limit": "1.4 KB"
   },
   {
-    "name": "@instaflow/app/home (Home's whole light boot incl. lit, mobx, kit and framework: D17, no engine, no GPU; C0)",
+    "name": "@instaflow/app/home (Home's whole light boot incl. lit, mobx, kit and framework: D17, no engine, no GPU; C0; B11c 52.5 KB → 111 KB: Home became the file manager of HOME-FILES §1–§4 — Files, projects, templates and trash pages, every file operation with its menu, context menu, inline rename and toasts (messaging + kit surfaces, menu, popover, confirm row), import (the blob store, loaded on first import but counted here), the New design dialog with the size field (B11b); still no engine, no GPU (D17); C4 splits the boot)",
     "path": "apps/instaflow/dist/home/index.js",
     "import": "{ bootHome }",
-    "limit": "52.5 KB"
+    "limit": "111 KB"
   },
   {
-    "name": "@instaflow/app/home (Home's own code: model, element, index read, routes, theme; excl. lit, kit and framework; C0)",
+    "name": "@instaflow/app/home (Home's own code: model, element, index read, routes, theme; excl. lit, kit and framework; C0; B11c 10.75 KB → 34 KB: the Home element and styles grew into Files / projects / trash / file operations / import / first run, the journal, the file capabilities and the New design dialog; kit modules and the blob store are excluded like lit)",
     "path": "apps/instaflow/dist/home/index.js",
     "import": "{ bootHome }",
     "ignore": [
@@ -1365,9 +1365,25 @@
       "@staticflux/storage",
       "@staticflux/router",
       "@staticflux/a11y",
-      "@staticflux/messaging"
+      "@staticflux/messaging",
+      "@staticflux/kit/menu",
+      "@staticflux/kit/popover",
+      "@staticflux/kit/surfaces",
+      "@staticflux/kit/surface-defs",
+      "@staticflux/kit/feedback",
+      "@staticflux/kit/confirm-row",
+      "@staticflux/kit/inline-edit",
+      "@staticflux/kit/segmented",
+      "@staticflux/kit/text-field",
+      "@staticflux/kit/icon",
+      "@staticflux/kit/icon-button",
+      "@staticflux/kit/size-field",
+      "@staticflux/kit/number-field",
+      "@staticflux/kit/color-field",
+      "@staticflux/kit/disclosure",
+      "@staticflux/blob"
     ],
-    "limit": "10.75 KB"
+    "limit": "34 KB"
   },
   {
     "name": "@instaflow/app/export (C1 on main: formats, errors, export service spawning the export worker, the export capability; excl. framework)",
@@ -1416,7 +1432,7 @@
     "limit": "3 KB"
   },
   {
-    "name": "@staticflux/kit/icon (<sf-icon> + icon data helpers; B11a)",
+    "name": "@staticflux/kit/icon (<sf-icon> + icon data helpers; B11a; B11c 1.65 KB → 1.7 KB: --sf-icon-fill (the favourite star fills))",
     "path": "packages/kit/dist/icon.js",
     "ignore": [
       "mobx",
@@ -1430,7 +1446,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "1.65 KB"
+    "limit": "1.7 KB"
   },
   {
     "name": "@staticflux/kit/icons (the whole kit icon set: 89 Lucide + 15 custom; well under STUDIO-UX-SPEC §10.2's 20 KB cap for Studio's set; B11a; B11b raised 5 → 5.5 KB: 12 more Lucide icons for the inspector — strikethrough, sub/superscript, justify, case, remove formatting, vertical text alignment, orientation, reverse)",
