@@ -101,13 +101,13 @@
     "limit": "7.5 KB"
   },
   {
-    "name": "@staticflux/a11y (full)",
+    "name": "@staticflux/a11y (full; B11c 6.7 → 6.9 KB: Alt + punctuation shortcuts matched by physical key (R15.7))",
     "path": "packages/a11y/dist/index.js",
     "ignore": [
       "mobx",
       "@staticflux/core"
     ],
-    "limit": "6.7 KB"
+    "limit": "6.9 KB"
   },
   {
     "name": "@staticflux/handoff (full)",
@@ -863,7 +863,7 @@
     "limit": "1.7 KB"
   },
   {
-    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>; B11c 43.75 KB → 45.5 KB: <sf-size-field> (R13.48), card action and selection slots (R13.49), icon fill)",
+    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>; B11c 43.75 KB → 45.5 KB: <sf-size-field> (R13.48), card action and selection slots (R13.49), icon fill; B11c 45.5 → 45.75 KB: the colour popover Image tab)",
     "path": "packages/kit/dist/index.js",
     "ignore": [
       "mobx",
@@ -877,7 +877,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "45.5 KB"
+    "limit": "45.75 KB"
   },
   {
     "name": "@staticflux/stage (stage, attribution, undo service; excl. framework)",
@@ -1340,13 +1340,13 @@
     "limit": "1.4 KB"
   },
   {
-    "name": "@instaflow/app/home (Home's whole light boot incl. lit, mobx, kit and framework: D17, no engine, no GPU; C0; B11c 52.5 KB → 111 KB: Home became the file manager of HOME-FILES §1–§4 — Files, projects, templates and trash pages, every file operation with its menu, context menu, inline rename and toasts (messaging + kit surfaces, menu, popover, confirm row), import (the blob store, loaded on first import but counted here), the New design dialog with the size field (B11b); still no engine, no GPU (D17); C4 splits the boot)",
+    "name": "@instaflow/app/home (Home's whole light boot incl. lit, mobx, kit and framework: D17, no engine, no GPU; C0; B11c 52.5 KB → 111 KB: Home became the file manager of HOME-FILES §1–§4 — Files, projects, templates and trash pages, every file operation with its menu, context menu, inline rename and toasts (messaging + kit surfaces, menu, popover, confirm row), import (the blob store, loaded on first import but counted here), the New design dialog with the size field (B11b); still no engine, no GPU (D17); C4 splits the boot; B11c 111 → 117 KB: Home file manager finished (import, trash, New design presets); C4 splits the boot so the file manager loads on demand)",
     "path": "apps/instaflow/dist/home/index.js",
     "import": "{ bootHome }",
-    "limit": "111 KB"
+    "limit": "117 KB"
   },
   {
-    "name": "@instaflow/app/home (Home's own code: model, element, index read, routes, theme; excl. lit, kit and framework; C0; B11c 10.75 KB → 34 KB: the Home element and styles grew into Files / projects / trash / file operations / import / first run, the journal, the file capabilities and the New design dialog; kit modules and the blob store are excluded like lit)",
+    "name": "@instaflow/app/home (Home's own code: model, element, index read, routes, theme; excl. lit, kit and framework; C0; B11c 10.75 KB → 34 KB: the Home element and styles grew into Files / projects / trash / file operations / import / first run, the journal, the file capabilities and the New design dialog; kit modules and the blob store are excluded like lit; B11c 34 → 40.5 KB: same growth, Home code only; C4 splits it)",
     "path": "apps/instaflow/dist/home/index.js",
     "import": "{ bootHome }",
     "ignore": [
@@ -1383,7 +1383,7 @@
       "@staticflux/kit/disclosure",
       "@staticflux/blob"
     ],
-    "limit": "34 KB"
+    "limit": "40.5 KB"
   },
   {
     "name": "@instaflow/app/export (C1 on main: formats, errors, export service spawning the export worker, the export capability; excl. framework)",
@@ -1636,7 +1636,7 @@
     "limit": "2.8 KB"
   },
   {
-    "name": "@staticflux/kit/color-popover (<sf-color-popover>: hex, opacity, eyedropper, four swatch grids, inline custom picker; B11a2)",
+    "name": "@staticflux/kit/color-popover (<sf-color-popover>: hex, opacity, eyedropper, four swatch grids, inline custom picker; B11a2; B11c 10 → 10.5 KB: the Image tab (assets, upload, fit, crop))",
     "path": "packages/kit/dist/color-popover.js",
     "ignore": [
       "mobx",
@@ -1650,7 +1650,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "10 KB"
+    "limit": "10.5 KB"
   },
   {
     "name": "@staticflux/kit/font-picker (<sf-font-picker>: virtualised in-face list with search; B11a2)",

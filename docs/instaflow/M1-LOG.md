@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-27** B11c PR #37. Coordinator full check: tests green (4819) but 5 budgets over (agent measured before its
+  last slices): a11y full, kit full, colour popover, Home boot 111 → 117 KB and Home code 34 → 40.5 KB. Raised with reasons;
+  **C4: split Home's boot so the file manager loads on demand.** Place image bound to `Mod+Shift+K` (owner).
 - **2026-10-27** B11c done (5 slices; merged on the working branch, clean, size entries 116 → 117 none lost): Home (files,
   projects, trash, operations via a journal Studio applies, import, first run, New design + custom size), Settings,
   density Focus/Standard/Pro (`Mod+.`), deep links + routable dialogs + Copy link + missing targets, hints, favicon/

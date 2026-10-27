@@ -162,7 +162,7 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 | @staticflux/kit/command-palette | 3.6 KB | packages/kit/dist/command-palette.js |
 | @staticflux/kit/roving | 1.25 KB | packages/kit/dist/roving.js |
 | @staticflux/kit/position (raised 1.5 → 1.7 KB by B11a2: shrink step and the context-menu corner rule) | 1.7 KB | packages/kit/dist/position.js |
-| @staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>; B11c 43.75 KB → 45.5 KB: <sf-size-field> (R13.48), card action and selection slots (R13.49), icon fill) | 45.5 KB | packages/kit/dist/index.js |
+| @staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>; B11c 43.75 KB → 45.5 KB: <sf-size-field> (R13.48), card action and selection slots (R13.49), icon fill; B11c 45.5 → 45.75 KB: the colour popover Image tab) | 45.75 KB | packages/kit/dist/index.js |
 | @staticflux/kit/tag | 1.1 KB | packages/kit/dist/tag.js |
 | @staticflux/kit/status | 1.1 KB | packages/kit/dist/status.js |
 | @staticflux/kit/card (B11c 1.1 KB → 1.4 KB: action and leading slots outside the link, selected / drop-target / dragging states (R13.49)) | 1.4 KB | packages/kit/dist/card.js |
@@ -178,7 +178,7 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 | @staticflux/kit/copy-field (<sf-copy-field>; B11a2) | 4.65 KB | packages/kit/dist/copy-field.js |
 | @staticflux/kit/hint (<sf-hint>: the first-use hint card; B11a2) | 2.5 KB | packages/kit/dist/hint.js |
 | @staticflux/kit/disclosure (<sf-disclosure>: section, More row, pinned; B11a2, DENSITY-DISCLOSURE §2) | 2.8 KB | packages/kit/dist/disclosure.js |
-| @staticflux/kit/color-popover (<sf-color-popover>: hex, opacity, eyedropper, four swatch grids, inline custom picker; B11a2) | 10 KB | packages/kit/dist/color-popover.js |
+| @staticflux/kit/color-popover (<sf-color-popover>: hex, opacity, eyedropper, four swatch grids, inline custom picker; B11a2; B11c 10 → 10.5 KB: the Image tab (assets, upload, fit, crop)) | 10.5 KB | packages/kit/dist/color-popover.js |
 | @staticflux/kit/font-picker (<sf-font-picker>: virtualised in-face list with search; B11a2) | 4.3 KB | packages/kit/dist/font-picker.js |
 | @staticflux/kit/align-popover (<sf-align-popover>; B11a2) | 8.65 KB | packages/kit/dist/align-popover.js |
 

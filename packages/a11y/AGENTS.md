@@ -45,7 +45,7 @@ typed declarations, scopes and conflict detection, platform preference facts, an
 
 | Check | Limit | Measures |
 |---|---|---|
-| @staticflux/a11y (full) | 6.7 KB | packages/a11y/dist/index.js |
+| @staticflux/a11y (full; B11c 6.7 → 6.9 KB: Alt + punctuation shortcuts matched by physical key (R15.7)) | 6.9 KB | packages/a11y/dist/index.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

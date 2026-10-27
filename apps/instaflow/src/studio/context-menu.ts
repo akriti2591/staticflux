@@ -106,7 +106,7 @@ function canvasGroups(env: ContextEnv): ContextGroup[] {
     env.canPaste ? [entry('cmd:paste', m.paste, 'Mod+V'), entry('cmd:paste-in-place', m.pasteInPlace, 'Mod+Shift+V')] : [],
     [entry('cmd:select-all', m.selectAll, 'Mod+A')],
     [entry('cmd:zoom-fit', m.zoomFit, 'Shift+1'), entry('cmd:zoom-100', m.zoom100, 'Shift+0')],
-    [entry('cmd:add-page', m.addPage), entry('cmd:place-image', m.placeImage)],
+    [entry('cmd:add-page', m.addPage), entry('cmd:place-image', m.placeImage, 'Mod+Shift+K')],
   ];
 }
 

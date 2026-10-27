@@ -127,6 +127,8 @@ export const ChromeShortcuts = Object.freeze({
   // B11c slice 3 (STUDIO §9.1): the find bar (`Mod+G` / `Mod+Shift+G` step while it has focus).
   find: defineShortcut({ id: 'instaflow/find-key', keys: ['Mod+F'], scope: StudioShortcutScope, description: 'Find', allowInInputs: true }),
   findReplace: defineShortcut({ id: 'instaflow/find-replace-key', keys: ['Mod+Alt+F'], scope: StudioShortcutScope, description: 'Find and replace', allowInInputs: true }),
+  // B11c: Place image (owner, 2026-10-27; Figma's key — HOME-FILES' `Mod+I` is Italic in Studio).
+  placeImage: defineShortcut({ id: 'instaflow/place-image-key', keys: ['Mod+Shift+K'], scope: StudioShortcutScope, description: 'Place image' }),
 });
 
 /** The camera commands of the View menu and the zoom pill (the editor runs them). */
@@ -717,6 +719,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         [ChromeShortcuts.settings, () => this.port?.openSettings()],
         [ChromeShortcuts.find, () => void this.openFind()],
         [ChromeShortcuts.findReplace, () => void this.openFind(true)],
+        [ChromeShortcuts.placeImage, () => this.port?.placeImage()],
       ];
       for (const [def, run, when] of keys) {
         const registered = this.shortcuts.register(def, run, { scope, ...(when === undefined ? {} : { when }) });
@@ -1101,7 +1104,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
             : nothing}`;
       })}
       <span class="sep" aria-hidden="true"></span>
-      <sf-icon-button class="place-image" label=${studioMessages.placeImage} variant="ghost" @click=${() => this.port?.placeImage()}><sf-icon .icon=${imageIcon} size="18"></sf-icon></sf-icon-button>
+      <sf-icon-button class="place-image" label=${studioMessages.placeImage} shortcut="Mod+Shift+K" variant="ghost" @click=${() => this.port?.placeImage()}><sf-icon .icon=${imageIcon} size="18"></sf-icon></sf-icon-button>
     </div>`;
   }
 
@@ -1158,7 +1161,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       { value: 'camera:zoom-in', title: studioMessages.zoomIn, shortcut: 'Mod+=' },
       { value: 'camera:zoom-out', title: studioMessages.zoomOut, shortcut: 'Mod+-' },
       { value: 'find:open', title: studioMessages.findItem, shortcut: 'Mod+F' },
-      { value: 'place:image', title: studioMessages.placeImage },
+      { value: 'place:image', title: studioMessages.placeImage, shortcut: 'Mod+Shift+K' },
       { value: 'find:replace', title: studioMessages.findReplace, shortcut: 'Mod+Alt+F' },
     ];
     const sources = { selection: this.model.selection, actions: this.model.actions, globalActions: this.model.globalActions, tools, camera, recent: [] };

@@ -188,7 +188,7 @@ Behaviour: a drop target highlights with the tangerine outline while dragging (t
 project card, the canvas room, the panel); a progress row appears in Assets (Studio) or as a toast with a count on Home
 for ≥ 2 s imports (`Importing 12 files · 4 of 12 · Cancel`); files over 100 MB ask inline once (`'video.mov' is 1.2
 GB · Import · Skip`); quota failures follow §4. The browser's `Open with` (file handler, C2) opens `.iflow` directly in
-Studio. Keyboard and a11y: `Mod+I` opens the picker anywhere; the drop zones are announced (`Drop files to import`);
+Studio. Keyboard and a11y: `Mod+I` opens the picker anywhere on Home (in Studio, `Place image…` is `Mod+Shift+K`, because `Mod+I` is Italic there; owner, 2026-10-27); the drop zones are announced (`Drop files to import`);
 every imported item is announced once. Undo: `Imported …` toasts carry `Undo` (moves the imports to trash) for 8 s.
 **Code:** `src/library/ingest.ts` (images, dedupe), `src/library/library-panel.ts` (panel drop); **missing:** Home and
 canvas drop targets (`src/home`, `src/app/studio-canvas.ts`), `.iflow`/SVG (C2), PDF rasteriser (pdf.js in a worker,

@@ -317,7 +317,10 @@ describe('<if-studio> frame (B11b)', () => {
     root.querySelector('if-command-bar')?.dispatchEvent(new CustomEvent('if-command', { detail: { value: 'place:image' } }));
     await element.openContextMenu({ kind: 'canvas' }, { x: 10, y: 10 });
     (root.querySelector('sf-menu.context-menu') as HTMLElement).dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'cmd:place-image' } }));
-    expect(calls.filter((c) => c === 'placeImage')).toHaveLength(3);
+    expect(place.getAttribute('shortcut')).toBe('Mod+Shift+K');
+    root.querySelector<HTMLElement>('.surface')?.focus();
+    press(root.querySelector('.surface') as HTMLElement, 'K', { ctrl: true, shift: true });
+    expect(calls.filter((c) => c === 'placeImage')).toHaveLength(4);
     const main = root.querySelector('main') as HTMLElement;
     const file = new File([new Uint8Array([1])], 'dot.png', { type: 'image/png' });
     const transfer = { types: ['Files'], files: [file], dropEffect: 'none' };

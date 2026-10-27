@@ -569,6 +569,7 @@ Help (`?`), tooltips and the palette show the same keys. Browser-reserved combos
 | Milestone | ⌘⌥S | Ctrl+Alt+S | ⌘S shows the "saves automatically" toast with "Create milestone" |
 | Export | ⌘⇧E | Ctrl+Shift+E | when C1 lands |
 | Settings | ⌘, | Ctrl+, | |
+| Place image… | ⌘⇧K | Ctrl+Shift+K | file picker; owner 2026-10-27 (Figma's key; `Mod+I` is Italic) |
 | Shortcuts help | ? | ? | opens Settings › Shortcuts as a dialog |
 | Copy link to the design / selection | ⌘⌥L | Ctrl+Alt+L | **moved** from ⌘⌥C (now Copy style; APPEARANCE Q6); the selection's link when one exists, else the design's (`NAVIGATION-DEEPLINKS.md` §5) |
 | Developer tools | ⌘⇧D | Ctrl+Shift+D | only while Settings › About › Developer tools is on (`DEVTOOLS-UX-SPEC.md`) |
@@ -918,7 +919,7 @@ visible control runs. The B11b column of the previous inventory is kept in git h
 | Format chips, Jump back in, Templates, Projects | works ✓ | covers wait for A6 projection covers |
 | Card `⋯` / context menu / keys (Open, Open in new tab, Rename, Duplicate, Move to ▾, Favourite, Export…, Copy link, Move to trash) | works ✓ | Home's journal (IF-36.38); Export… opens `/s/:asset/d/export` |
 | Files: filter, Project ▾, Sort ▾, Grid / List, bulk bar | works ✓ | Pro: list by default, sortable headers |
-| Import (picker, Mod+I, drop, paste) | works ✓ | images; `.iflow` / PDF / fonts wait for C2 |
+| Place image (picker, Mod+Shift+K, drop, paste) | works ✓ | images; `.iflow` / PDF / fonts wait for C2 |
 | Trash: Restore, Delete forever, Empty trash | works ✓ | |
 | First run welcome card, storage footer, storage-full banner | works ✓ | |
 | Settings gear / footer Settings | works ✓ | `/settings/:section`: General, Keyboard shortcuts, Storage, About |
