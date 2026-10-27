@@ -45,8 +45,8 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
 - `main`: M1a, M1b, B8–B10a, C0, C1, B11a, B11a2, and the full UX spec set (FOUNDATIONS, OVERLAYS-FEEDBACK, NAVIGATION,
   DENSITY-DISCLOSURE, GAP-AUDIT, TEXT-FONTS, APPEARANCE-TRANSFORM, STUDIO, HOME-FILES, CHAT, DEVTOOLS, FLOWS; all owner
   questions answered).
-- B12, B12b (PR #35), drag-stutter and text fixes done. **B11b slices 1–4** in a PR; **next: B11c** from `claude/wip-b11b-slice5` (slice 5 WIP,
-  untested) + slice 6 + find & replace + leftovers in `handoffs/B11b.md`. Then: split input-lag look, C2 Import, C3, C4 (drag layer, perf pass, e2e CI).
+- B12, B12b (PR #35), drag-stutter and text fixes done. B11b slices 1–4 merged (#36). **B11c agent running** on `claude/wip-b11c` (slice 5 finish, slice 6,
+  find & replace, leftovers, final audit). Then: split input-lag look, C2 Import, C3, C4 (drag layer, perf pass, e2e CI).
 - **Next work, in order:** B12 engine gaps → B11b (Studio and Home surfaces per the UX docs, logo wiring, nothing inert) → C2 Import →
   C3 Modes and identity → C4 Hardening (end-to-end checkpoint in CI, performance and loading pass, exit criteria).
   B10b (distort, perspective, warp) is early M2.
