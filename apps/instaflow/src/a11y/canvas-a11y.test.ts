@@ -76,7 +76,7 @@ describe.skipIf(!authoringBuilt)('canvas accessibility layer: focus path over B3
     clock.flush();
     expect(spoken.at(-1)).toBe('Selection cleared');
 
-    // A screen reader's virtual cursor (or a click) focusing a node selects it.
+    // A screen reader's virtual cursor focusing a node selects it.
     (a11y.mount.layer.element('a') as HTMLElement).focus();
     expect(f.view.selection).toEqual(['a']);
     // Arrow keys still nudge (one undo step) and the node follows.
@@ -91,6 +91,51 @@ describe.skipIf(!authoringBuilt)('canvas accessibility layer: focus path over B3
     for (const name of lent) Reflect.deleteProperty(globalThis, name);
     expect(host.children.length).toBe(0);
     expect(a11y.projector.state).toBe('disposed');
+  });
+
+  it('a press on an element does not re-select it through focus: Shift-click adds and removes, and it stays (#53)', async () => {
+    const f = await createToolFixture([sq('a', 0, 0), sq('b', 100, 0)]);
+    const window = new Window();
+    const document = window.document as unknown as Document;
+    document.body.innerHTML = '<div id="surface" tabindex="0" role="application" aria-label="Canvas surface"></div>';
+    const host = document.getElementById('surface') as HTMLElement;
+    const scope = createScope('tab');
+    const controller = createToolController(f.tools);
+    const clock = timers();
+    // The projection reaches the DOM after the press, as it does from the editor worker.
+    const flushes: (() => void)[] = [];
+    const a11y = unwrap(createCanvasA11y({ ...f.tools, host, document, announcer: { announce: () => undefined }, timers: clock, gesture: controller, schedule: (fn) => flushes.push(fn), scope }));
+    const node = (id: string): HTMLElement => a11y.mount.layer.element(id) as HTMLElement;
+    // What a browser does for a click on an element: the press lands on its projected node (focusable, it takes the
+    // pointer), Studio focuses the surface in `pointerdown`, the tool controller selects, then `mousedown`'s default
+    // action (unless prevented) focuses the node under the pointer; the release follows.
+    const click = (id: string, x: number, y: number, shift = false): void => {
+      const init = { bubbles: true, composed: true, shiftKey: shift, button: 0 };
+      node(id).dispatchEvent(new window.PointerEvent('pointerdown', init) as unknown as Event);
+      host.focus();
+      unwrap(controller.pointer({ phase: 'down', x, y, shift }));
+      if (node(id).dispatchEvent(new window.MouseEvent('mousedown', { ...init, cancelable: true }) as unknown as Event)) node(id).focus();
+      unwrap(controller.pointer({ phase: 'up', x, y, shift }));
+      node(id).dispatchEvent(new window.PointerEvent('pointerup', init) as unknown as Event);
+      for (const flush of flushes.splice(0)) flush();
+      clock.flush();
+    };
+
+    click('a', 25, 25);
+    expect(f.view.selection).toEqual(['a']);
+    click('b', 125, 25, true);
+    expect(f.view.selection).toEqual(['a', 'b']);
+    // Shift-click on a selected element removes it; a plain click still replaces.
+    click('a', 25, 25, true);
+    expect(f.view.selection).toEqual(['b']);
+    click('a', 25, 25, true);
+    expect(f.view.selection).toEqual(['b', 'a']);
+    click('b', 125, 25);
+    expect(f.view.selection).toEqual(['b']);
+    // Assistive technology focusing a node (no press) still selects it.
+    node('a').focus();
+    expect(f.view.selection).toEqual(['a']);
+    await scope.dispose();
   });
 
   it('contributes the describe-canvas capability (agents and the HUD) with a clear error without a canvas', async () => {

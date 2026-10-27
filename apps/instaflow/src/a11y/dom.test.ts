@@ -57,7 +57,7 @@ describe('DOM mount of the canvas projection', () => {
     expect(document.activeElement).toBe(host);
     // Programmatic moves are not reported back (no select → focus → select loop) …
     expect(reported).toEqual([]);
-    // … but a node focused by assistive technology or the pointer is.
+    // … but a node focused by assistive technology is.
     (mount.layer.element('a') as HTMLElement).focus();
     expect(reported).toEqual(['a']);
     // The focused element disappears (deleted): focus returns to the surface, not to <body>.
@@ -127,6 +127,28 @@ describe('DOM mount of the canvas projection', () => {
       HTMLElement.prototype.focus = focus;
       mount.dispose();
     }
+  });
+
+  it('a press on a node does not focus it (the tool controller selects on a press, Shift adds) (#53)', () => {
+    const { host } = setup();
+    const reported: string[] = [];
+    const mount = unwrap(mountCanvasA11y({ host, document, onFocusNode: (id) => reported.push(id) }));
+    host.focus();
+    mount.apply(snapshot('a'));
+    // Shift-press on `b`: unless prevented, mousedown's default action focuses the node under the pointer.
+    const b = mount.layer.element('b') as HTMLElement;
+    const down = new MouseEvent('mousedown', { bubbles: true, composed: true, cancelable: true, shiftKey: true });
+    if (b.dispatchEvent(down)) b.focus();
+    expect(down.defaultPrevented).toBe(true);
+    expect(reported).toEqual([]);
+    // A press on the surface itself (or on the text host inside it) keeps its default.
+    const onSurface = new MouseEvent('mousedown', { bubbles: true, composed: true, cancelable: true });
+    host.dispatchEvent(onSurface);
+    expect(onSurface.defaultPrevented).toBe(false);
+    // Focus without a press (assistive technology) is still reported.
+    b.focus();
+    expect(reported).toEqual(['b']);
+    mount.dispose();
   });
 
   it('needs a document (SF-SURF-004 in a worker)', () => {
