@@ -231,6 +231,8 @@ export class IfHudElement extends SfElement<typeof spec> {
   }
 
   private toggled(e: CustomEvent<{ open: boolean }>): void {
+    // Only the overlay this listener sits on: kit `sf-toggle` events bubble, so a nested menu's would count twice (#42).
+    if (e.target !== e.currentTarget) return;
     this.open = Math.max(0, this.open + (e.detail.open ? 1 : -1));
     this.dispatchEvent(new CustomEvent('if-hud-freeze', { detail: { frozen: this.open > 0 }, bubbles: true, composed: true }));
   }

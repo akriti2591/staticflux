@@ -267,6 +267,69 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     expect(calls.slice(before)).toEqual([]);
   });
 
+  it('#42: choosing in a menu inside a section, or a submenu closing, leaves the section open; its own toggle still collapses and expands it', async () => {
+    const { root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance() });
+    const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;
+    const disclosure = fill.querySelector(':scope > sf-disclosure') as HTMLElement & { open: boolean };
+    const menu = [...fill.querySelectorAll<HTMLElement & { open: boolean }>('sf-menu')].find((m) => m.getAttribute('label') === 'Add fill');
+    if (menu === undefined) throw new Error('no Add fill menu');
+    const sub = menu.querySelector<HTMLElement & { open: boolean }>('sf-menu[slot="submenu"]') as HTMLElement & { open: boolean };
+    const open = async (): Promise<void> => {
+      (menu.querySelector('[slot="trigger"]') as HTMLElement).click();
+      await settle(4);
+      expect(menu.open).toBe(true);
+    };
+    // Choosing an item closes the menu; the section stays open.
+    await open();
+    (menu.querySelector(':scope > sf-menu-item[value="colour"]') as HTMLElement).click();
+    await settle(4);
+    expect(menu.open).toBe(false);
+    expect(calls.at(-1)).toMatch(/^appearance \[\{"op":"add","stack":"fills"/);
+    expect(disclosure.open).toBe(true);
+    // A submenu closing (← in the submenu) leaves the section open too.
+    await open();
+    (menu.querySelector('sf-menu-item[value="gradient"]') as HTMLElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, composed: true }));
+    await settle(4);
+    expect(sub.open).toBe(true);
+    sub.querySelector('sf-menu-item')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, composed: true }));
+    await settle(4);
+    expect([sub.open, menu.open, disclosure.open]).toEqual([false, true, true]);
+    menu.querySelector(':scope > sf-menu-item')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true }));
+    await settle(4);
+    expect([menu.open, disclosure.open]).toEqual([false, true]);
+    // The section's own toggle still collapses and expands it, and is remembered.
+    const toggle = disclosure.shadowRoot?.querySelector('button') as HTMLButtonElement;
+    toggle.click();
+    await settle(4);
+    expect(disclosure.open).toBe(false);
+    expect(JSON.parse(localStorage.getItem('instaflow/ui/inspector-sections') ?? '{}')).toMatchObject({ fill: false });
+    toggle.click();
+    await settle(4);
+    expect(disclosure.open).toBe(true);
+  });
+
+  it('#42: a More row closing, or a menu inside it, leaves its section open and More as it was', async () => {
+    const { root } = await mount({ ...MODEL, selection: summary('image', { common: 'image', fit: 'cover', asset: 'as_1', crop: { x: 0.5, y: 0.5, scale: 1, rotation: 0 } }), imageName: 'market.jpg' });
+    const image = root.querySelector('section[data-section="image"]') as HTMLElement;
+    const section = image.querySelector(':scope > sf-disclosure') as HTMLElement & { open: boolean };
+    const more = image.querySelector('sf-disclosure[variant="more"]') as HTMLElement & { open: boolean };
+    const moreToggle = more.shadowRoot?.querySelector('button') as HTMLButtonElement;
+    moreToggle.click();
+    await settle(4);
+    expect([section.open, more.open]).toEqual([true, true]);
+    const rotate = [...more.querySelectorAll<HTMLElement & { open: boolean }>('sf-menu')].find((m) => m.getAttribute('label') === 'Rotate picture');
+    if (rotate === undefined) throw new Error('no Rotate menu');
+    (rotate.querySelector('[slot="trigger"]') as HTMLElement).click();
+    await settle(4);
+    expect(rotate.open).toBe(true);
+    (rotate.querySelector('sf-menu-item') as HTMLElement).click();
+    await settle(4);
+    expect([rotate.open, more.open, section.open]).toEqual([false, true, true]);
+    moreToggle.click();
+    await settle(4);
+    expect([more.open, section.open]).toEqual([false, true]);
+  });
+
   it('expanding a row shows its second line: kind, blend and reorder (Alt+↑ moves it up)', async () => {
     const { root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance() });
     const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;

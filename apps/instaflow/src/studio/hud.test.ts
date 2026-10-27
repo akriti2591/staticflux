@@ -117,6 +117,22 @@ describe('<if-hud> per selection kind (§4.2.4)', () => {
     expect(calls).toContain('invoke ["instaflow/mask-release",["m"]]');
   });
 
+  it('#42: only the pill’s own popovers and menus freeze it; an sf-toggle bubbling from inside one is not counted', async () => {
+    const { hud } = await mount(base('shape', { common: 'rectangle', fill: { kind: 'solid', color: '#FF5C39' }, stroke: { kind: 'none' } }));
+    const frozen: boolean[] = [];
+    hud.addEventListener('if-hud-freeze', (e) => frozen.push((e as CustomEvent<{ frozen: boolean }>).detail.frozen));
+    const inner = hud.shadowRoot?.querySelector('sf-color-popover') as HTMLElement;
+    const popover = inner.closest('sf-popover') as HTMLElement;
+    const toggle = (target: HTMLElement, open: boolean): boolean => target.dispatchEvent(new CustomEvent('sf-toggle', { detail: { open }, bubbles: true, composed: true }));
+    toggle(inner, true);
+    expect(frozen).toEqual([]);
+    toggle(popover, true);
+    toggle(inner, false);
+    expect(frozen).toEqual([true]);
+    toggle(popover, false);
+    expect(frozen).toEqual([true, false]);
+  });
+
   it('the fill swatch’s colour popover commits one paint for the selection', async () => {
     const { hud, calls } = await mount(base('shape', { common: 'rectangle', fill: { kind: 'solid', color: '#FF5C39' }, stroke: { kind: 'none' } }));
     const popover = hud.shadowRoot?.querySelector('sf-color-popover') as HTMLElement;

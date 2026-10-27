@@ -205,7 +205,7 @@ export function textSection(host: TextHost, s: TypographySummary, text: TextComm
     <div class="row" role="group" aria-label=${textMessages.align}>
       ${(['start', 'center', 'end', 'justify'] as const).map((a) => toggle(textMessages.alignLabels[a], ALIGN_ICONS[a], align === a, () => void text.setAlign(a), ALIGN_KEYS[a]))}
     </div>
-    <sf-disclosure variant="more" key="inspector/text-more" .count=${nonDefault} ?open=${moreOpen} ?pinned=${host.pro} @sf-toggle=${() => host.toggleMore('text')}>
+    <sf-disclosure variant="more" key="inspector/text-more" .count=${nonDefault} ?open=${moreOpen} ?pinned=${host.pro} @sf-toggle=${(e: Event) => (e.target === e.currentTarget ? host.toggleMore('text') : undefined)}>
       <div class="grid2">
         ${numberField(textMessages.lineHeight, s.lineHeight, (n) => void text.setLineHeight(Math.max(0, Math.min(10, n))), { min: 0, max: 10, step: 0.05 })}
         ${numberField(textMessages.letterSpacing, s.letterSpacing, (n) => void text.setLetterSpacing(Math.max(-20, Math.min(200, n))), { min: -20, max: 200, step: 0.1, unit: 'px' })}
