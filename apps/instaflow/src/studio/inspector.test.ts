@@ -134,14 +134,18 @@ const select = (root: ParentNode, label: string, value: string): void => {
 };
 
 describe('<if-inspector> sections per kind (§5.1)', () => {
-  it('nothing selected: Page (name, size preset, W × H, orientation, Background stack) and Document (title, pages, units)', async () => {
+  it('nothing selected: Page (name, size preset, the size field, Background stack) and Document (title, pages, units)', async () => {
     const { root, calls } = await mount(MODEL);
     expect(root.querySelector('header')?.textContent).toContain('Page 1');
     expect(sections(root)).toEqual(['page', 'document']);
     change(field(root, 'Page name'), { value: 'Cover' });
     select(root, 'Size preset', 'story');
-    change(field(root, 'W'), { value: 1200 });
-    button(root, 'Landscape').click();
+    // B11c: Page › Size is the kit's size field (1…16 384 px, units, keep proportions, orientation).
+    const size = root.querySelector('sf-size-field.page-size') as HTMLElement & { min: number; max: number };
+    expect([size.min, size.max]).toEqual([1, 16_384]);
+    change(size, { width: 1200, height: 1350, unit: 'px' });
+    change(size, { width: 1350, height: 1080, unit: 'px' }); // the orientation switch swaps the sides
+    change(size, { width: 1080, height: 1350, unit: 'mm' }); // a unit change alone writes nothing
     change(field(root, 'Title'), { value: 'Spring sale' });
     expect(root.querySelector('section[data-section="document"]')?.textContent).toMatch(/Pages\s*3/);
     expect(calls).toEqual(['renamePage ["Cover"]', 'resizePage [1080,1920]', 'resizePage [1200,1350]', 'resizePage [1350,1080]', 'renameTitle ["Spring sale"]']);

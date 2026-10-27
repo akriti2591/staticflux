@@ -116,11 +116,11 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     expect(app.studio.port.groups()['panel@inspector']).toEqual(['panel:instaflow/inspector']);
     await until(() => app.mirrors.view(AppearanceMirror).read('model')?.node === rect, 'appearance model mirrored');
     unwrap(await app.mirrors.view(AppearanceMirror).call('apply', { op: 'set', path: 'spatial.opacity', value: 0.5 }));
-    // B11b: the inspector's Page section edits the page through the scene mirror: size (16–8192 px) and Background.
+    // B11b: the inspector's Page section edits the page through the scene mirror: size (B11c: 1–16 384 px, New design's range) and Background.
     const sceneView = app.mirrors.view(SceneMirror);
     unwrap(await sceneView.call('resizePage', 1200, 1500));
     await until(() => sceneView.read('page')?.width === 1200 && sceneView.read('page')?.height === 1500, 'page resized');
-    const tooSmall = await sceneView.call('resizePage', 4, 4);
+    const tooSmall = await sceneView.call('resizePage', 0, 4);
     expect(!tooSmall.ok && tooSmall.error.code).toBe('IF-POL-050');
     unwrap(await sceneView.call('applyPage', { op: 'update', stack: 'fills', index: 0, patch: { paint: '#FFF4E0' } }));
     await until(() => sceneView.read('pageFill')?.fills[0]?.paint === '#FFF4E0', 'page background');

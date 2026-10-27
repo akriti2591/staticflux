@@ -22,8 +22,7 @@ import { flipVertical2Icon } from '@staticflux/kit/icons/flip-vertical-2';
 import { linkIcon } from '@staticflux/kit/icons/link';
 import { lockIcon } from '@staticflux/kit/icons/lock';
 import { lockOpenIcon } from '@staticflux/kit/icons/lock-open';
-import { rectangleHorizontalIcon } from '@staticflux/kit/icons/rectangle-horizontal';
-import { rectangleVerticalIcon } from '@staticflux/kit/icons/rectangle-vertical';
+import { defineSizeField } from '@staticflux/kit/size-field';
 import { unlinkIcon } from '@staticflux/kit/icons/unlink';
 import { defineInlineEdit } from '@staticflux/kit/inline-edit';
 import { defineMenu } from '@staticflux/kit/menu';
@@ -71,9 +70,7 @@ export const inspectorMessages = Object.freeze({
   customSize: 'Custom',
   width: 'W',
   height: 'H',
-  orientation: 'Orientation',
-  portrait: 'Portrait',
-  landscape: 'Landscape',
+  pageSize: 'Page size',
   background: 'Background',
   document: 'Document',
   title: 'Title',
@@ -292,6 +289,9 @@ export class IfInspectorElement extends SfElement<typeof spec> {
       align-items: center;
       gap: ${t.space.xs.css};
       flex-wrap: wrap;
+    }
+    sf-size-field.page-size {
+      --sf-size-field-input: 5.75rem;
     }
     .grid2 {
       display: grid;
@@ -541,7 +541,6 @@ export class IfInspectorElement extends SfElement<typeof spec> {
     const page = this.model.page;
     if (page === undefined) return nothing;
     const preset = pagePresetOf(page.width, page.height);
-    const portrait = page.height >= page.width;
     const fill = this.model.pageFill;
     return html`<div class="rows">
       <sf-text-field label=${inspectorMessages.pageName} .value=${page.name} @sf-change=${(e: CustomEvent<{ value: string }>) => port.renamePage(e.detail.value)}></sf-text-field>
@@ -552,15 +551,16 @@ export class IfInspectorElement extends SfElement<typeof spec> {
         <sf-button slot="trigger" size="sm" variant="ghost" class="wide" aria-label=${`${inspectorMessages.sizePreset}: ${preset?.label ?? inspectorMessages.customSize}`}>${preset?.label ?? inspectorMessages.customSize} <sf-icon .icon=${chevronDownIcon} size="14"></sf-icon></sf-button>
         ${pageSizePresets().map((p) => html`<sf-menu-item type="radio" value=${p.id} ?checked=${p.id === preset?.id}>${p.label}</sf-menu-item>`)}
       </sf-menu>
-      <div class="grid2">
-        ${numberField(inspectorMessages.width, page.width, (n) => port.resizePage(n, page.height), { min: PAGE_SIZE_RANGE.min, max: PAGE_SIZE_RANGE.max, unit: 'px' })}
-        ${numberField(inspectorMessages.height, page.height, (n) => port.resizePage(page.width, n), { min: PAGE_SIZE_RANGE.min, max: PAGE_SIZE_RANGE.max, unit: 'px' })}
-      </div>
-      <div class="row" role="group" aria-label=${inspectorMessages.orientation}>
-        <span class="label">${inspectorMessages.orientation}</span>
-        <sf-icon-button size="sm" variant="ghost" label=${inspectorMessages.portrait} .pressed=${portrait} @click=${() => (portrait ? undefined : port.resizePage(page.height, page.width))}><sf-icon .icon=${rectangleVerticalIcon} size="16"></sf-icon></sf-icon-button>
-        <sf-icon-button size="sm" variant="ghost" label=${inspectorMessages.landscape} .pressed=${!portrait} @click=${() => (portrait ? port.resizePage(page.height, page.width) : undefined)}><sf-icon .icon=${rectangleHorizontalIcon} size="16"></sf-icon></sf-icon-button>
-      </div>
+      <!-- B11c: the kit's size field (units, keep proportions, orientation), the same range as New design. -->
+      <sf-size-field
+        class="page-size"
+        label=${inspectorMessages.pageSize}
+        .width=${page.width}
+        .height=${page.height}
+        .min=${PAGE_SIZE_RANGE.min}
+        .max=${PAGE_SIZE_RANGE.max}
+        @sf-change=${(e: CustomEvent<{ width: number; height: number }>) => (e.detail.width === page.width && e.detail.height === page.height ? undefined : port.resizePage(e.detail.width, e.detail.height))}
+      ></sf-size-field>
       ${fill === undefined
         ? nothing
         : html`<div class="stack" role="group" aria-label=${inspectorMessages.background}>
@@ -815,6 +815,7 @@ export function defineInspectorElement(registry: CustomElementRegistry = customE
   defineNumberField(registry);
   definePopover(registry);
   defineSegmented(registry);
+  defineSizeField(registry);
   defineSlider(registry);
   defineSwatch(registry);
   defineTag(registry);

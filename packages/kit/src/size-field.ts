@@ -5,6 +5,8 @@
  * only changes how it is shown and typed. A side outside `min`…`max` px stays in its field with an inline error
  * (SF-KIT-005) and fires nothing; a valid edit fires `sf-change` `{ width, height, unit }`, and `sf-submit` on Enter.
  *
+ * Layout: `--sf-size-field-input` sets each number field's width (default 7.5rem; R13.51); the row wraps.
+ *
  * A11y: the pair is a `group` named by `label`; each field has its own name (`Width in pixels`); the orientation
  * switch is a radio group; the lock is a toggle button.
  *
@@ -117,7 +119,8 @@ export class SfSizeFieldElement extends SfElement<typeof spec> {
         gap: ${t.space.sm.css};
       }
       sf-number-field {
-        inline-size: 7.5rem;
+        /* R13.51: a narrow column (Studio's inspector) sets the field width. */
+        inline-size: var(--sf-size-field-input, 7.5rem);
         font-family: ${t.font.familyMono.css};
       }
       select {

@@ -13,7 +13,7 @@ import { canvasShortcutDefs } from '../app/canvas-shortcuts.js';
 import { ClipboardShortcuts } from '../app/clipboard-controller.js';
 import { STUDIO_KEY_COMMANDS } from '../app/studio-commands.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
-import { SHORTCUT_GROUPS, shortcutGroupOf, type ShortcutGroupName, shortcutSheet } from './shortcuts-sheet.js';
+import { printShortcuts, SHORTCUT_GROUPS, shortcutGroupOf, type ShortcutGroupName, shortcutSheet, shortcutsPrintHtml } from './shortcuts-sheet.js';
 import { ChromeShortcuts } from './studio-element.js';
 
 let dispose: (() => Promise<void>) | undefined;
@@ -79,5 +79,17 @@ describe('shortcut groups', () => {
     const sheet = root.container.querySelector('sf-shortcut-sheet') as SfShortcutSheetElement;
     expect(sheet.shadowRoot?.querySelectorAll('section').length).toBeGreaterThan(4);
     expectNoA11yIssues(sheet);
+  });
+
+  it('B11c Print: a plain page of the cards with both platforms’ keys, printed from a hidden frame', () => {
+    const groups = [{ heading: 'Edit', rows: [{ id: 'u', label: 'Undo <last>', keys: ['Mod+Z'] }] }];
+    const page = shortcutsPrintHtml(groups);
+    expect(page).toContain('<h2>Edit</h2>');
+    expect(page).toContain('<td>Undo &lt;last&gt;</td><td><kbd>Ctrl+Z</kbd></td><td><kbd>⌘Z</kbd></td>');
+    let printed = 0;
+    const frame = { contentWindow: { document: { open: () => undefined, write: (h: string) => expect(h).toBe(page), close: () => undefined }, addEventListener: () => undefined, focus: () => undefined, print: () => void (printed += 1) } };
+    const doc = { createElement: () => Object.assign(document.createElement('div'), frame), body: document.body } as unknown as Document;
+    printShortcuts(groups, doc);
+    expect(printed).toBe(1);
   });
 });

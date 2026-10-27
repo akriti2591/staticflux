@@ -17,6 +17,8 @@ describe('the tool keymap (no Wasm)', () => {
     expect(checkShortcuts(defs).filter((i) => i.severity === 'error')).toEqual([]);
     expect(TOOL_KEYMAP.find((b) => b.id === 'instaflow/arrow-left-large')?.keys).toEqual(['Shift+ArrowLeft']);
     expect(TOOL_KEYMAP.find((b) => b.id === 'instaflow/resize-up')?.keys).toEqual(['Mod+Alt+ArrowUp']);
+    // B11c: 1° steps on Alt+Shift+] / [ (R15.7 tells them from Alt+] / [).
+    expect(TOOL_KEYMAP.filter((b) => b.id.startsWith('instaflow/rotate-')).map((b) => b.keys[0])).toEqual(['Alt+]', 'Alt+[', 'Alt+Shift+]', 'Alt+Shift+[']);
     expect(ARROW_ACTIONS).toEqual({ select: 'nudge', hand: 'pan', transform: 'nudge' });
     expect(CanvasToolsShortcutScope.parent?.id).toBe('instaflow/studio');
   });

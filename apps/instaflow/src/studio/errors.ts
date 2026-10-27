@@ -7,8 +7,8 @@ import { defineError } from '@staticflux/core';
 export const PageSizeError = defineError(
   'IF-POL-050',
   'validation',
-  'A page side must be between 16 and 8192 design pixels.',
-  'Type a width and a height in that range (the Page section clamps scrubbing to it); `details` has what was asked.',
+  'A page side must be between 1 and 16 384 design pixels (New design’s range).',
+  'Type a width and a height in that range (the Page section’s size field refuses others inline); `details` has what was asked.',
 );
 
 export const NoImageSelectedError = defineError(
