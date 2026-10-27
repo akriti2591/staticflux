@@ -560,8 +560,10 @@ export class IfInspectorElement extends SfElement<typeof spec> {
   private section(s: InspectorSection, body: TemplateResult | typeof nothing, summary = ''): TemplateResult | typeof nothing {
     if (body === nothing) return nothing;
     const open = this.opened[s.id] ?? s.collapsed !== true;
+    // Kit `sf-toggle` events bubble: a menu, popover or More row inside the body fires one too. Only the
+    // disclosure's own toggle may open or close it (#42); the More rows below check the same.
     return html`<section data-section=${s.id} aria-label=${SECTION_HEADINGS[s.id]}>
-      <sf-disclosure heading=${SECTION_HEADINGS[s.id]} summary=${summary} key=${`inspector/${s.id}`} ?open=${open} ?pinned=${this.pro} @sf-toggle=${(e: CustomEvent<{ open: boolean }>) => this.setOpen(s.id, e.detail.open)}>
+      <sf-disclosure heading=${SECTION_HEADINGS[s.id]} summary=${summary} key=${`inspector/${s.id}`} ?open=${open} ?pinned=${this.pro} @sf-toggle=${(e: CustomEvent<{ open: boolean }>) => (e.target === e.currentTarget ? this.setOpen(s.id, e.detail.open) : undefined)}>
         ${body}
       </sf-disclosure>
     </section>`;
@@ -618,7 +620,7 @@ export class IfInspectorElement extends SfElement<typeof spec> {
             ${fillStack(this.host(), fill, (edit) => port.pageAppearance(edit), { name: inspectorMessages.background, page: true })}
           </div>`}
       ${this.model.pages > 1
-        ? html`<sf-disclosure variant="more" key="inspector/page-more" ?open=${this.pro || this.more.has('page')} ?pinned=${this.pro} @sf-toggle=${() => this.toggleMore('page')}>
+        ? html`<sf-disclosure variant="more" key="inspector/page-more" ?open=${this.pro || this.more.has('page')} ?pinned=${this.pro} @sf-toggle=${(e: Event) => (e.target === e.currentTarget ? this.toggleMore('page') : undefined)}>
             <sf-button class="background-all" size="sm" variant="ghost" @click=${() => port.backgroundToAllPages()}>${inspectorMessages.backgroundAll}</sf-button>
           </sf-disclosure>`
         : nothing}
@@ -649,7 +651,7 @@ export class IfInspectorElement extends SfElement<typeof spec> {
         ${numberField(inspectorMessages.angle, round(m.rotation, 1), (n) => set('rotation', n), { unit: '°', wrap: 'angle' })}
         <sf-icon-button size="sm" variant="ghost" label=${inspectorMessages.link} .pressed=${this.linked} @click=${() => (this.linked = !this.linked)}><sf-icon .icon=${this.linked ? linkIcon : unlinkIcon} size="16"></sf-icon></sf-icon-button>
       </div>
-      <sf-disclosure variant="more" key="inspector/transform-more" .count=${(m.skew !== 0 ? 1 : 0) + (m.flipX ? 1 : 0) + (m.flipY ? 1 : 0)} ?open=${moreOpen} ?pinned=${this.pro} @sf-toggle=${() => this.toggleMore('transform')}>
+      <sf-disclosure variant="more" key="inspector/transform-more" .count=${(m.skew !== 0 ? 1 : 0) + (m.flipX ? 1 : 0) + (m.flipY ? 1 : 0)} ?open=${moreOpen} ?pinned=${this.pro} @sf-toggle=${(e: Event) => (e.target === e.currentTarget ? this.toggleMore('transform') : undefined)}>
         <div class="row">
           ${numberField(inspectorMessages.skew, round(m.skew, 1), (n) => set('skew', Math.max(-80, Math.min(80, n))), { unit: '°', min: -80, max: 80 })}
           <sf-icon-button size="sm" variant="ghost" label=${inspectorMessages.flipH} shortcut="Shift+H" .pressed=${m.flipX} @click=${() => port.transform({ flip: 'horizontal' })}><sf-icon .icon=${flipHorizontal2Icon} size="16"></sf-icon></sf-icon-button>
@@ -711,7 +713,7 @@ export class IfInspectorElement extends SfElement<typeof spec> {
         <sf-button size="sm" @click=${() => port.replaceImage()}>${inspectorMessages.replace}</sf-button>
       </div>
       ${this.model.imageName === undefined ? nothing : html`<div class="row"><span class="label">${inspectorMessages.source}</span><span class="mono">${this.model.imageName}</span></div>`}
-      <sf-disclosure variant="more" key="inspector/image-more" .count=${s.cropped === true ? 1 : 0} ?open=${moreOpen} ?pinned=${this.pro} @sf-toggle=${() => this.toggleMore('image')}>
+      <sf-disclosure variant="more" key="inspector/image-more" .count=${s.cropped === true ? 1 : 0} ?open=${moreOpen} ?pinned=${this.pro} @sf-toggle=${(e: Event) => (e.target === e.currentTarget ? this.toggleMore('image') : undefined)}>
         <div class="grid2">
           ${numberField(inspectorMessages.cropX, Math.round(crop.x * 100), (n) => setCrop({ x: Math.max(0, Math.min(100, n)) / 100 }), { min: 0, max: 100, unit: '%' })}
           ${numberField(inspectorMessages.cropY, Math.round(crop.y * 100), (n) => setCrop({ y: Math.max(0, Math.min(100, n)) / 100 }), { min: 0, max: 100, unit: '%' })}
