@@ -63,17 +63,20 @@ export interface TransformBarModel extends TransformModel {
   readonly transforming: boolean;
 }
 export interface TransformMirrorShape {
-  readonly reads: { readonly model: TransformBarModel | undefined };
+  /** B11c: `pivot` — the selection's reference point (frame fractions; undefined = the centre), the Pro pivot picker. */
+  readonly reads: { readonly model: TransformBarModel | undefined; readonly pivot: readonly [number, number] | undefined };
   readonly actions: {
     /** One edit (one undo step, or one step of the active session). */
     apply(edit: TransformEdit): Result<void>;
+    /** B11c: move the pivot (null: the centre); view state only, nothing written. */
+    pivot(fraction: readonly [number, number] | null): Result<void>;
     /** Apply the active session (Enter). */
     commit(): Result<void>;
     /** Cancel the active session (Escape). */
     cancel(): Result<void>;
   };
 }
-export const TransformMirror = /* @__PURE__ */ defineMirror<TransformMirrorShape>('instaflow/mirror/transform', { model: undefined });
+export const TransformMirror = /* @__PURE__ */ defineMirror<TransformMirrorShape>('instaflow/mirror/transform', { model: undefined, pivot: undefined });
 
 /** B5's Milestones panel model (results of open / compare / new document stay with the host: plain outcomes). */
 export interface MilestonesMirrorShape {
@@ -131,6 +134,8 @@ export interface SceneMirrorShape {
     /** The top image fill's fit on every selected element (one step `Fit`). */
     setImageFit(fit: string): Result<void>;
     renamePage(name: string): Result<void>;
+    /** B11c audit (APPEARANCE §2.10): every page's Background becomes the open page's (one step). */
+    backgroundToAllPages(): Result<void>;
   };
 }
 export const SceneMirror = /* @__PURE__ */ defineMirror<SceneMirrorShape>('instaflow/mirror/scene', { page: undefined, layers: [], selection: { kind: 'none', nodes: [], label: '', typeLabel: '', locked: false, anyLocked: false, hidden: false, actions: [] }, frame: undefined, colors: [], pageFill: undefined, pages: 1, undo: undefined });

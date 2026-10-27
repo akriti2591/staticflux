@@ -73,6 +73,7 @@ import { type CameraAction, type CopyLinkTarget, defineStudio, EMPTY_CHROME, typ
 import type { HudAction } from '../studio/hud.js';
 import type { LayerRow } from './scene-summary.js';
 import { createToasts, type Toasts } from './feedback.js';
+import { bindTextKeys, TextEditingShortcutScope } from './text-keys.js';
 import { FindCapability, type FindMatch, type FindResult, ReplaceCapability, type ReplaceResult } from './find-replace.js';
 import { homeViewHref, keepForeignParams, readStudioIntent, STUDIO_DIALOGS, type StudioDialog, type StudioDockTab, type StudioLink, studioLinkHref, withoutIntents } from '../home/routes.js';
 import { createDeviceSettings, DENSITY_LINES, type DeviceSettings, nextDensity } from '../settings/device-settings.js';
@@ -1037,6 +1038,8 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     renamePage: (name) => sceneCall(scene.call('renamePage', name)),
     resizePage: (width, height) => sceneCall(scene.call('resizePage', width, height)),
     imageFill: (to, source, index) => void imageFill(index === undefined ? { to } : { to, index }, source),
+    backgroundToAllPages: () => sceneCall(scene.call('backgroundToAllPages')),
+    setPivot: (fraction) => sceneCall(transformView.call('pivot', fraction)),
   };
   const appearanceView = hub.view(AppearanceMirror);
   const transformView = hub.view(TransformMirror);
@@ -1052,6 +1055,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       appearance: appearanceView.read('model'),
       pageFill: scene.read('pageFill'),
       transform: transformView.read('model'),
+      pivot: transformView.read('pivot'),
       typography: typographyView.read('summary'),
       fonts: typographyView.read('fonts'),
       repeat: repeatView.read('model'),
@@ -1371,6 +1375,23 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
         if (!registered.ok) problem(registered.error);
       }
       clip.attach(doc, (e) => e.composedPath().includes(mounted), scope);
+      // B11c audit: the text formatting keys the inspector and the pill show (⌘B ⌘I ⌘U ⌘⇧X ⌘. ⌘, ⌘⇧L/E/R/J), while editing.
+      const editingText = (): boolean => view()?.editing !== undefined;
+      const textSelected = (): boolean => scene.read('selection').kind === 'text';
+      const textKeys = bindTextKeys({ registry: shortcuts, text: typography, summary: () => typographyView.read('summary'), editing: editingText, textSelected, problem: say, scope });
+      if (textKeys !== undefined && !textKeys.ok) problem(textKeys.error);
+      let textScope: (() => void) | undefined;
+      watch(
+        () => editingText() || textSelected(),
+        (on) => {
+          if (on && textScope === undefined) textScope = shortcuts.activate(TextEditingShortcutScope, scope);
+          if (!on) {
+            textScope?.();
+            textScope = undefined;
+          }
+        },
+        { scope, fireImmediately: true },
+      );
       if (exportsService !== undefined) {
         const registered = shortcuts.register(
           ExportShortcut,

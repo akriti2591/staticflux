@@ -437,9 +437,14 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
   mirrors.serve(
     TransformMirror,
     {
-      reads: { model: transformBar },
+      reads: { model: transformBar, pivot: () => tab()?.view.pivot },
       actions: {
         apply: (edit) => onTab((t) => t.commands.numeric(edit)),
+        pivot: (fraction) =>
+          onTab((t) => {
+            t.view.setPivot(fraction === null ? undefined : [Math.max(0, Math.min(1, fraction[0])), Math.max(0, Math.min(1, fraction[1]))]);
+            return ok();
+          }),
         commit: () => onTab((t) => t.commands.commitTransform()),
         cancel: () => onTab((t) => t.commands.cancelTransform()),
       },
@@ -667,6 +672,21 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
           const trimmed = name.trim();
           if (id === undefined || trimmed === '') return err(NoOpenPageError({ message: 'A name is required.' }));
           const done = document.undo.commit(actor(), 'Rename page', { [ROOT_PART]: [{ op: 'set', node: id, path: 'name', value: trimmed }] });
+          return done.ok ? ok() : done;
+        },
+        backgroundToAllPages() {
+          const id = tab()?.page;
+          if (id === undefined) return err(NoOpenPageError());
+          const fills = pageFills(document.view, id) as JsonValue[];
+          const parts: Record<string, PartOp[]> = {};
+          for (const p of document.pages) {
+            if (p.id === id || JSON.stringify(pageFills(document.view, p.id)) === JSON.stringify(fills)) continue;
+            parts[pagePart(p.id)] = [{ op: 'set', node: p.id, path: P.fills, value: fills }];
+          }
+          if (Object.keys(parts).length === 0) return ok();
+          const checked = document.view.checkWrite(Object.values(parts).flat(), { actor: actor() });
+          if (!checked.ok) return checked;
+          const done = document.undo.commit(actor(), 'Background to all pages', parts);
           return done.ok ? ok() : done;
         },
       },

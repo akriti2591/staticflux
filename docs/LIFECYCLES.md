@@ -756,6 +756,7 @@ live in their element and end with it; the per-device state lives in `localStora
 | SURF-19 | An arrival link never blocks: unknown pages and elements fall back one level with one toast, and the consumed intents are stripped so a reload does not repeat them; foreign query keys survive | `routes.test.ts`, `studio-app.test.ts`, `home.smoke.mjs` |
 | SURF-21 | A replace is one undo step whatever the pages it touches; it never writes to a locked element or a derived repeat instance; a replace with nothing to write writes no step | `find-replace.test.ts`, `studio-app.test.ts`, `studio.smoke.mjs` (Replace all, one step, Mod+Z) |
 | SURF-22 | An image fill or a placed image never reaches the document before its picture is uploaded to the render module; a refused file writes nothing and toasts once with its fix | IF-POL-059, IF-POL-060; `studio-app.test.ts`, `studio.smoke.mjs` (Place image…, Add image, Background image, PDF has images) |
+| SURF-23 | A shortcut the chrome shows runs: every key a tooltip, menu or inspector row names is registered in a scope that is active whenever the control is (text keys: while editing; B I U S: also with a text selected) | `text-keys.test.ts`, `studio.smoke.mjs` (⌘B while editing) |
 | SURF-20 | At most two hints show per session; none show while hints are off or after a deep-linked arrival | `hints.test.ts`, `home.smoke.mjs` |
 
 ## 39. Engine gaps for B11b: typing steps, hidden elements, page fill, crops (Instaflow M1c B12)

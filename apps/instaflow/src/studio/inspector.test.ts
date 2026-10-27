@@ -109,6 +109,8 @@ async function mount(model: InspectorModel, density = 'standard'): Promise<{ el:
     renameTitle: log('renameTitle'),
     replaceImage: log('replaceImage'),
     imageFill: log('imageFill'),
+    backgroundToAllPages: log('backgroundToAllPages'),
+    setPivot: log('setPivot'),
   };
   render(html`<if-inspector .model=${model} .port=${port} density=${density}></if-inspector>`, testRoot.container);
   await settle(8);
@@ -192,6 +194,18 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     expectNoA11yIssues(root.host as HTMLElement);
   });
 
+  it('B11c audit: the pivot picker (Transform › More, Pro open): nine points, the current one checked; the current again resets', async () => {
+    const { el, root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance(), pivot: [0, 0] }, 'pro');
+    await el.updateComplete;
+    const points = [...root.querySelectorAll<HTMLButtonElement>('section[data-section="transform"] .pivot-point')];
+    expect(points.map((p) => p.getAttribute('aria-label'))).toEqual(['Top left', 'Top centre', 'Top right', 'Middle left', 'Centre', 'Middle right', 'Bottom left', 'Bottom centre', 'Bottom right']);
+    expect(points.filter((p) => p.getAttribute('aria-checked') === 'true').map((p) => p.getAttribute('aria-label'))).toEqual(['Top left']);
+    points[8]?.click();
+    points[0]?.click();
+    expect(calls.slice(-2)).toEqual(['setPivot [[1,1]]', 'setPivot [null]']);
+    expectNoA11yIssues(root.host as HTMLElement);
+  });
+
   it('B11c the page Background takes an image too (Add ▾ › Image…, the Image tab)', async () => {
     const { el, root, calls } = await mount({ ...MODEL, images: [{ asset: 'as_photo', title: 'Photo' }] });
     const page = root.querySelector('section[data-section="page"]') as HTMLElement;
@@ -199,6 +213,9 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     await el.updateComplete;
     (page.querySelector('.paint-popover button.image-choice') as HTMLElement).click();
     expect(calls.at(-1)).toBe('imageFill ["page",{"asset":"as_photo"},0]');
+    // Page › More: Apply background to all pages (several pages).
+    (page.querySelector('sf-button.background-all') as HTMLElement).click();
+    expect(calls.at(-1)).toBe('backgroundToAllPages []');
     const menu = [...page.querySelectorAll('sf-menu')].find((m) => m.getAttribute('label') === 'Add background');
     expect([...(menu?.querySelectorAll(':scope > sf-menu-item') ?? [])].map((i) => i.getAttribute('value'))).toEqual(['colour', 'gradient', 'image']);
   });
@@ -247,6 +264,7 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     select(text, 'Style', 'Body');
     select(text, 'Weight', '500');
     change(field(text, 'Size'), { value: 32 });
+    select(text, 'Size presets', '24'); // B11c audit: the presets ▾ beside Size
     button(text, 'Strikethrough').click();
     button(text, 'Centre').click();
     change(field(text, 'Line height'), { value: 1.4 });
@@ -261,6 +279,7 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
       'text.applyPreset ["Body"]',
       'text.setWeight [500]',
       'text.setSize [32]',
+      'text.setSize [24]',
       'text.toggle ["strike"]',
       'text.setAlign ["center"]',
       'text.setLineHeight [1.4]',

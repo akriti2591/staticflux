@@ -67,6 +67,8 @@ Main side:
   (files screened: not an image IF-POL-060, over 100 MB IF-POL-059); `clipboard-controller.ts` `readSystemClipboard`,
   `PasteSources` (the menus' Paste reads the system clipboard). Worker: `imageFill` request (`ImageFillTarget`, `ImageFillResult`,
   `IMAGE_FILLABLE`); `place` puts the image in a selected frame.
+- `text-keys.ts` (B11c slice 5) — `TEXT_EDITING_KEYS`, `TextEditingShortcutScope` (child of Studio's), `bindTextKeys({ registry,
+  text, summary, editing, textSelected?, problem, scope })`; `studio-app.ts` activates the scope while editing or a text is selected.
 - `errors.ts` — `IF-INT-001` pipeline start · `002` scene record · `003` no open page · `004` canvas backend · `005` document.
 - `feedback.ts` (B11a2, main side) — `feedbackFor(error, origin, copy?)` (level by origin refined by `FAMILY_LEVELS`; Instaflow words per error
   definition; never the code), `ToastsToken` / `createToasts(manager, owner)` (`show`, `undoable` → `Restored`, `error`, `undoNewest` for Home's

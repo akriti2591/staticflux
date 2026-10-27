@@ -1724,6 +1724,12 @@ Lifecycle: LIFECYCLES §38.
   `Alt+Shift+]` / `Alt+Shift+[` rotate 1° (R15.7); the cheat sheet's `Print` prints the cards with both platforms' keys; the
   colour popover's contrast tag (`AA 4.9 : 1 on #FFFFFF`) against the page's solid Background on fill and text colours
   (R13.52); `Replace…` keeps an image's crop when the new picture has the same proportions.
+- **IF-36.52** **Final audit fixes** (B11c slice 5; STUDIO Appendix A, TEXT-FONTS §4.2, APPEARANCE §2.10 / §3.6 / §4.10): the
+  text formatting keys the inspector and the pill show work — `⌘B ⌘I ⌘U ⌘⇧X` on an edited or selected text, `⌘.` / `⌘,`
+  (super / subscript), `⌘⇧L/E/R/J` (alignment) and `⌘\` (clear formatting) while editing, in their own scope over Studio's
+  keys on the same combos; Size has its presets `▾` (12…96); Page › More › `Apply background to all pages` (one step); the
+  Transform section's pivot picker (nine points, More, Pro always; the view state's pivot). Appendix A lists every visible
+  control as working, hidden or not built.
 - **IF-36.47** **The logo in the browser** (brand README): Home's and Studio's pages link `brand/favicon.svg` (white strokes in
   dark mode), the PNG fallback, the touch icon and `brand/manifest.webmanifest` (name, colours, the 192 / 512 / SVG app icons).
 

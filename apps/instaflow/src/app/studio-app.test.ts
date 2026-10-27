@@ -218,6 +218,8 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     unwrap(await app.workers.editor.request('imageFill', { entry, target: { to: 'page' } }));
     await until(() => (sceneView.read('pageFill')?.fills.at(-1)?.paint as { kind?: string } | undefined)?.kind === 'image', 'the page background is the image');
     expect(sceneView.read('pageFill')?.fills[0]?.paint).toBe('#FFF4E0'); // the colour row stays under it
+    unwrap(await sceneView.call('backgroundToAllPages')); // B11c audit: Page › More › Apply background to all pages
+    expect(app.scene.undo).toBe('Background to all pages');
     const away = unwrap(await app.workers.editor.request('imageFill', { entry, target: { to: 'point', x: 5, y: 5 } }));
     expect('placed' in away).toBe(true);
     const notFillable = await app.workers.editor.request('imageFill', { entry, target: { to: 'selection', index: 0 } });
@@ -250,6 +252,7 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     // The Pages panel's lens controller moves the canvas to page 2.
     unwrap(app.lens.goTo('p2'));
     await until(() => app.tab?.page === 'p2', 'page 2 shown');
+    await until(() => (sceneView.read('pageFill')?.fills.at(-1)?.paint as { kind?: string } | undefined)?.kind === 'image', 'page 2 has page 1’s background');
     expect((await inspect())?.elements.length).toBe(0);
 
     // B11b: Pages › Add / Duplicate / Rename / Delete page, each one undo step across the root and page parts.

@@ -329,6 +329,14 @@ async function scenario(page) {
   await selectionIs([0, 12], 'drag across the text');
   if ((await inspect()).editing === undefined) fail('a press in the text ended editing');
   log('editing: Mod+A selects the text, a click places the caret, a drag selects');
+  // B11c audit: the formatting keys the inspector shows work while editing (one undo step each; ⌘B again undoes the look).
+  const boldNow = () => page.evaluate(() => window.__studio.scene.typography?.bold);
+  await page.keyboard.press('Control+B');
+  await page.waitForFunction(() => window.__studio.scene.typography?.bold === true, null, { timeout: 10_000 }).catch(async () => fail(`Mod+B while editing did not bold the selection: ${await boldNow()}`));
+  await page.keyboard.press('Control+B');
+  await page.waitForFunction(() => window.__studio.scene.typography?.bold === false, null, { timeout: 10_000 }).catch(async () => fail(`Mod+B again did not unbold: ${await boldNow()}`));
+  if ((await inspect()).editing === undefined) fail('Mod+B ended editing');
+  log('editing: Mod+B bolds the selected text, Mod+B again unbolds it (still editing)');
   await page.keyboard.press('Escape');
   await waitAsync(page, async () => (await window.__studio.inspect()).value?.textNodes.length === 1 && window.__studio.tab.editing === undefined, null, { timeout: 20_000, polling: 100 });
   const textNode = (await inspect()).textNodes[0];
@@ -509,8 +517,8 @@ async function scenario(page) {
   await findBar.getByText('0 of 1').waitFor({ timeout: 10_000 }).catch(async () => fail(`find "studio" counted ${await findBar.locator('.count').textContent()}`));
   await page.keyboard.press('Enter');
   await findBar.getByText('1 of 1').waitFor({ timeout: 5_000 }).catch(() => fail('Enter did not step to the match'));
-  const found = await page.evaluate(() => window.__studio.scene.selection?.kind);
-  if (found !== 'text') fail(`Enter should select the text that matches: ${found}`);
+  // The bar counts at once; the match's selection arrives from the editor a moment later (reveal is a request).
+  await page.waitForFunction(() => window.__studio.scene.selection?.kind === 'text', null, { timeout: 10_000 }).catch(async () => fail(`Enter should select the text that matches: ${await page.evaluate(() => window.__studio.scene.selection?.kind)}`));
   const uFind = await undoDepth();
   await findBar.getByRole('button', { name: 'Replace', exact: true }).first().click();
   await findBar.getByRole('textbox', { name: 'Replace with' }).fill('Flow');

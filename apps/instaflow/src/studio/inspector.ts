@@ -71,6 +71,8 @@ export const inspectorMessages = Object.freeze({
   width: 'W',
   height: 'H',
   pageSize: 'Page size',
+  pivot: 'Pivot',
+  backgroundAll: 'Apply background to all pages',
   background: 'Background',
   document: 'Document',
   title: 'Title',
@@ -166,6 +168,8 @@ export interface InspectorModel {
   readonly imageName: string | undefined;
   /** B11c: the workspace's images (the fill popover's Image tab). */
   readonly images?: readonly LibraryImage[];
+  /** B11c: the selection's pivot (frame fractions; undefined = the centre). */
+  readonly pivot?: readonly [number, number] | undefined;
 }
 
 export const EMPTY_INSPECTOR: InspectorModel = Object.freeze({
@@ -197,7 +201,16 @@ export interface InspectorPort extends HudPort {
   replaceImage(): void;
   /** B11c: an image on the selection's or the page's fills (a new top row, or `index`'s row turned into it). */
   imageFill(to: 'selection' | 'page', source: ImageSource, index?: number): void;
+  /** B11c audit: every page's Background becomes this page's (one step). */
+  backgroundToAllPages(): void;
+  /** B11c audit: the pivot picker (APPEARANCE §3.3): rotations, flips and scales turn about it; null = the centre. */
+  setPivot(fraction: readonly [number, number] | null): void;
 }
+
+/** The pivot picker's nine points (frame fractions) and their names. */
+const PIVOT_POINTS: readonly (readonly [readonly [number, number], string])[] = Object.freeze(
+  ([0, 0.5, 1] as const).flatMap((y) => ([0, 0.5, 1] as const).map((x) => [[x, y] as const, `${y === 0 ? 'Top' : y === 1 ? 'Bottom' : 'Middle'} ${x === 0 ? 'left' : x === 1 ? 'right' : 'centre'}`.replace('Middle centre', 'Centre')] as const)),
+);
 
 const spec = component({ tag: 'if-inspector', placeholder: () => nothing, description: 'Instaflow inspector: the selection kind’s sections, the page and document with nothing selected (B11b).' });
 
@@ -293,6 +306,28 @@ export class IfInspectorElement extends SfElement<typeof spec> {
       align-items: center;
       gap: ${t.space.xs.css};
       flex-wrap: wrap;
+    }
+    .pivot {
+      display: grid;
+      grid-template-columns: repeat(3, 14px);
+      gap: 4px;
+    }
+    .pivot-point {
+      inline-size: 14px;
+      block-size: 14px;
+      padding: 0;
+      border: 1px solid ${t.color.controlEdge.css};
+      border-radius: 50%;
+      background: ${t.color.surface1.css};
+      cursor: pointer;
+    }
+    .pivot-point[aria-checked='true'] {
+      background: ${t.color.accent.css};
+      border-color: ${t.color.accent.css};
+    }
+    .pivot-point:focus-visible {
+      outline: 2px solid ${t.color.focusRing.css};
+      outline-offset: 1px;
     }
     sf-size-field.page-size {
       --sf-size-field-input: 5.75rem;
@@ -582,6 +617,11 @@ export class IfInspectorElement extends SfElement<typeof spec> {
             <span class="label">${inspectorMessages.background}</span>
             ${fillStack(this.host(), fill, (edit) => port.pageAppearance(edit), { name: inspectorMessages.background, page: true })}
           </div>`}
+      ${this.model.pages > 1
+        ? html`<sf-disclosure variant="more" key="inspector/page-more" ?open=${this.pro || this.more.has('page')} ?pinned=${this.pro} @sf-toggle=${() => this.toggleMore('page')}>
+            <sf-button class="background-all" size="sm" variant="ghost" @click=${() => port.backgroundToAllPages()}>${inspectorMessages.backgroundAll}</sf-button>
+          </sf-disclosure>`
+        : nothing}
     </div>`;
   }
 
@@ -615,6 +655,7 @@ export class IfInspectorElement extends SfElement<typeof spec> {
           <sf-icon-button size="sm" variant="ghost" label=${inspectorMessages.flipH} shortcut="Shift+H" .pressed=${m.flipX} @click=${() => port.transform({ flip: 'horizontal' })}><sf-icon .icon=${flipHorizontal2Icon} size="16"></sf-icon></sf-icon-button>
           <sf-icon-button size="sm" variant="ghost" label=${inspectorMessages.flipV} shortcut="Shift+V" .pressed=${m.flipY} @click=${() => port.transform({ flip: 'vertical' })}><sf-icon .icon=${flipVertical2Icon} size="16"></sf-icon></sf-icon-button>
         </div>
+        ${this.pivotPicker(port)}
       </sf-disclosure>
       ${m.locked > 0 ? html`<p class="muted">${inspectorMessages.lockedStay(m.locked)}</p>` : nothing}
       ${m.transforming
@@ -623,6 +664,28 @@ export class IfInspectorElement extends SfElement<typeof spec> {
             <sf-button size="sm" variant="ghost" @click=${() => port.transformSession('cancel')}>${inspectorMessages.cancel}</sf-button>
           </div>`
         : nothing}
+    </div>`;
+  }
+
+  /** The pivot picker (APPEARANCE §3.6, Transform · more, Pro always): nine reference points; the current one again (or Alt-click) resets to the centre. */
+  private pivotPicker(port: InspectorPort): TemplateResult {
+    const at = this.model.pivot ?? [0.5, 0.5];
+    const same = (f: readonly [number, number]): boolean => Math.abs(f[0] - at[0]) < 1e-6 && Math.abs(f[1] - at[1]) < 1e-6;
+    return html`<div class="row">
+      <span class="label" id="pivot-label">${inspectorMessages.pivot}</span>
+      <div class="pivot" role="radiogroup" aria-labelledby="pivot-label">
+        ${PIVOT_POINTS.map(
+          ([f, name]) => html`<button
+            type="button"
+            role="radio"
+            class="pivot-point"
+            aria-checked=${same(f) ? 'true' : 'false'}
+            aria-label=${name}
+            title=${name}
+            @click=${(e: MouseEvent) => port.setPivot(e.altKey || (same(f) && !(f[0] === 0.5 && f[1] === 0.5)) ? null : f)}
+          ></button>`,
+        )}
+      </div>
     </div>`;
   }
 

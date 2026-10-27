@@ -316,7 +316,7 @@ Section **Text** comes after Transform; **Paragraph** is a sub-block of Text (on
 | Bold | toggle | 4 | Text · essential (`B I U S` row) | ⌘B | Pressed = weight ≥ 600 (summary rule) | (a) |
 | Italic | toggle | More | Text · essential | ⌘I | | (a) |
 | Underline | toggle | More | Text · essential | ⌘U | | (a) |
-| Strikethrough | toggle | More | Text · essential | ⌘⇧X | Exists in model and layout; **UI missing today** | (a) engine, (b) UI |
+| Strikethrough | toggle | More | Text · essential | ⌘⇧X | Exists in model and layout; UI and key built (B11b / B11c) | (a) engine, (b) UI |
 | Superscript / Subscript | toggle pair | — | Text · more | ⌘. / ⌘, | Mutually exclusive; size × 0.65 and a baseline shift of ±0.35 em | (c) M1 follow-up |
 | Highlight (text background) | swatch | — | Text · more | — | A rect per run behind the glyphs, 2 px padding; `None` default | (c) M2 |
 | Link | action | More | Text · essential (`🔗` icon in the `B I U S` row) | ⌘K | A popover: URL field (http(s), mailto, `#page-id` via a `Page ▾` menu for internal links), `Open`, `Remove`; linked text is underlined in the link colour `#3D5AFE`; hovering a link while **not** editing shows a tooltip with the URL and `⌘-click` opens it | (a) `setLink`; (b) popover |
@@ -344,6 +344,16 @@ Section **Text** comes after Transform; **Paragraph** is a sub-block of Text (on
 | Drop cap | toggle + number | — | Paragraph · pro | — | `Drop cap · 3 lines` | (c) M2 (decided: M2, Appendix A) |
 | Columns | number | — | — | — | **Rejected** inside one element (Appendix A); threaded boxes M3 | — |
 | Convert to outlines | action | More | — (action) | — | §7.1 | (c) M2 |
+
+**B11c audit (2026-10-27).** Reachable by pointer and key (inspector Text section, the pill, and the editing keys
+`⌘B ⌘I ⌘U ⌘⇧X ⌘. ⌘, ⌘⇧L/E/R/J ⌘\` while a text is edited; B I U S also on a selected text): Style presets, Font, Weight,
+Size (with the presets `▾`), Colour (contrast tag against the page), Bold, Italic, Underline, Strikethrough, Link, Case
+(convert), Superscript / Subscript (B12 T-5), Letter spacing, Line height (multiple), Paragraph spacing and first-line
+indent (B12 layout), Alignment, Vertical alignment (fixed boxes, B12), Auto-size with Fixed (B12), Fit to box, Effects.
+Still open: Weight lists the nine named weights rather than the family's real faces (the bundled faces are variable, so
+all nine are real for them; static user fonts are the gap); size `⌘⇧> / <`, letter spacing `⌥> / <` and line height
+`⌥⇧↑ / ↓` keys are not bound (`>` / `<` fold into `.` / `,` in the registry; `⌥⇧↑ / ↓` is the opacity step) and link
+`⌘K` is the command bar — their fields do it; List ▾ waits for markers (T-10, M2).
 
 ### 4.3 Text styles and presets
 
