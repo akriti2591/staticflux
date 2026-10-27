@@ -80,6 +80,9 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
   tokens, radius, states), grounded in Clean Pop; surface specs only map sections to those blocks. **Research is
   required and cited** (Fable did zero web searches in its first five passes; if no web access, say so). Builders follow
   the blocks. Reason: the Studio looked "off" because specs were behavioural only and each builder improvised layout.
+- **UI inventory (cheap, mechanical):** `docs/instaflow/ux/UI-INVENTORY.md` lists every custom element (74 on
+  2026-10-27). Give it to every UX/anatomy brief so agents don't spend tokens discovering components. Regenerate:
+  `git grep -h -o -E "tag: '(sf|if)-[a-z-]+'|_TAG = '(sf|if)-[a-z-]+'|customElements.define\('(sf|if)-[a-z-]+'" -- packages apps/instaflow/src ':!*.test.ts'`.
 - **Check it exists first (owner):** for a "missing" UI report, first look for the feature and any other path to it
   (collapsed sections, More folds, menus, shortcuts). If it exists, tell the owner where, and narrow the issue to
   discoverability or close it; never force a fix. **Verify on the running UI (or the render path), never from a
