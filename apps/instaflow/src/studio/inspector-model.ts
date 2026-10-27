@@ -9,7 +9,7 @@ import type { SelectionKind } from '../app/scene-summary.js';
 import { type BlendModeName, BLEND_MODE_NAMES } from '../elements/components.js';
 import type { AppearanceModel } from '../elements/inspector.js';
 import type { EffectValue, GradientStopValue, PaintValue, Vec2 } from '../elements/values.js';
-import { designFormats } from '../home/formats.js';
+import { DESIGN_SIZE_LIMITS, designFormats } from '../home/formats.js';
 
 export const INSPECTOR_SECTION_IDS = ['page', 'document', 'transform', 'text', 'image', 'frame', 'repeat', 'combine', 'mask', 'fill', 'stroke', 'corners', 'effects', 'layer', 'locked'] as const;
 export type InspectorSectionId = (typeof INSPECTOR_SECTION_IDS)[number];
@@ -457,4 +457,5 @@ export function pagePresetOf(width: number, height: number): PageSizePreset | un
 }
 
 /** Page sizes Instaflow accepts (design px). */
-export const PAGE_SIZE_RANGE = Object.freeze({ min: 16, max: 8192 });
+/** B11c: the one page-size range (New design's, HOME-FILES §1.3): 1…16 384 px a side. */
+export const PAGE_SIZE_RANGE = DESIGN_SIZE_LIMITS;

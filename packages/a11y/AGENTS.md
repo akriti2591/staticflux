@@ -19,7 +19,7 @@ typed declarations, scopes and conflict detection, platform preference facts, an
 - `announcer.ts` — `createAnnouncer({ document, timers, debounceMs, clearAfterMs, container })` → `announce(msg, { politeness, dedupe })`, `flush`, `clear`, `text`, `dispose`; `LIVE_REGION_ATTR`.
 - `shortcuts.ts` — `defineShortcutScope(id, { parent })`, `GlobalShortcutScope`, `defineShortcut({ id, keys: KeyCombo[], scope, description, allowInInputs, preventDefault })`,
   `createShortcutRegistry({ isMac })` → `register`, `activate`, `handle`, `attach`, `list`, `conflicts`, `label`, `activeScopes`;
-  `checkShortcuts(defs)` (CI), `parseCombo`, `comboId`, `eventComboId`, `comboLabel`, `RESERVED_COMBOS`; `SF-A11Y-002` conflict, `SF-A11Y-003` invalid combo.
+  `checkShortcuts(defs)` (CI), `parseCombo`, `comboId`, `eventComboId` (R15.7: Alt + punctuation by the physical key, Shift counts), `comboLabel`, `RESERVED_COMBOS`; `SF-A11Y-002` conflict, `SF-A11Y-003` invalid combo.
   Plain keys never fire while typing: text inputs, textareas, selects, contenteditable and **EditContext hosts** (canvas text editors) count as fields unless `allowInInputs`.
 - `preferences.ts` — `createPreferenceFacts({ matchMedia, scope })` → reactive `reducedMotion`, `contrast`, `forcedColors`, `colorScheme`, `reducedTransparency`, `snapshot()`; `PREFERENCE_DEFAULTS`.
 - `busy.ts` — `markBusy(el, scope?)` (ref-counted), `bindBusy(el, () => boolean, scope?)`, `busyAttributes(busy)`, `busyCount`.
@@ -45,7 +45,7 @@ typed declarations, scopes and conflict detection, platform preference facts, an
 
 | Check | Limit | Measures |
 |---|---|---|
-| @staticflux/a11y (full) | 6.7 KB | packages/a11y/dist/index.js |
+| @staticflux/a11y (full; B11c 6.7 → 6.9 KB: Alt + punctuation shortcuts matched by physical key (R15.7)) | 6.9 KB | packages/a11y/dist/index.js |
 
 Budgets ratchet (R12.8): `sf budgets` proposes tightening; raising one needs a reviewed reason.
 

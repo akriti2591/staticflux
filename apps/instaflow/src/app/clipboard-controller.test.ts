@@ -7,7 +7,7 @@ import { ActionNotApplicableError } from '../elements/errors.js';
 
 const PAYLOAD: ClipboardPayload = { format: CLIPBOARD_FORMAT, version: CLIPBOARD_VERSION, asset: 'as_1', page: 'p1', sources: ['a'], ops: [{ op: 'create', node: 'c', kind: 'shape', parent: null, props: {} }], text: 'Rectangle' };
 
-function rig(options: { selection?: string[]; editing?: boolean; copyFails?: boolean; system?: { write?: (items: readonly ClipboardItem[]) => Promise<void>; writeText?: (text: string) => Promise<void> } } = {}) {
+function rig(options: { selection?: string[]; editing?: boolean; copyFails?: boolean; system?: { write?: (items: readonly ClipboardItem[]) => Promise<void>; writeText?: (text: string) => Promise<void>; read?: () => Promise<readonly ClipboardItem[]> } } = {}) {
   const calls: string[] = [];
   const warned: string[] = [];
   const problems: SfError[] = [];
@@ -68,6 +68,25 @@ describe('clipboard controller', () => {
     await failed.controller.copy(false);
     expect(failed.controller.held.get()).toBeUndefined();
     expect(failed.problems).toHaveLength(1);
+  });
+
+  it('B11c: the menus’ Paste reads the system clipboard (Studio’s payload, an image, text); a refusal falls back to memory', async () => {
+    const item = (types: Record<string, Blob>) => ({ types: Object.keys(types), getType: async (t: string) => types[t] as Blob }) as unknown as ClipboardItem;
+    let items: ClipboardItem[] = [item({ 'text/html': new Blob([payloadToHtml(PAYLOAD)], { type: 'text/html' }) })];
+    let refuse = false;
+    const { controller, calls, placed } = rig({ system: { read: async () => (refuse ? Promise.reject(new Error('denied')) : items) } });
+    await controller.paste(false);
+    expect(calls).toEqual(['paste Rectangle false']);
+    expect(controller.held.get()).toEqual(PAYLOAD);
+    items = [item({ 'image/png': new Blob([new Uint8Array([1])], { type: 'image/png' }) })];
+    await controller.paste(false);
+    expect(placed[0]?.map((f) => [f.type, f.name])).toEqual([['image/png', 'pasted.png']]);
+    items = [item({ 'text/plain': new Blob(['Hello from Notes'], { type: 'text/plain' }) })];
+    await controller.paste(false);
+    expect(calls.at(-1)).toBe('text Hello from Notes');
+    refuse = true;
+    await controller.paste(true);
+    expect(calls.at(-1)).toBe('paste Rectangle true'); // the memory copy
   });
 
   it('Paste with nothing held says so', async () => {

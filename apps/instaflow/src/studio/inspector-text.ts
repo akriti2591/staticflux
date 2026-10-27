@@ -71,7 +71,11 @@ export const textMessages = Object.freeze({
   clear: 'Clear formatting',
   fit: 'Fit to box',
   mixed: 'Mixed',
+  sizePresets: 'Size presets',
 });
+
+/** B11c audit (TEXT-FONTS §4.2): the sizes the `▾` beside Size offers. */
+export const SIZE_PRESETS: readonly number[] = Object.freeze([12, 14, 16, 18, 20, 24, 32, 40, 48, 64, 96]);
 
 /** `Weight ▾`: the named weights (the engine synthesises the ones a face lacks, TEXT-FONTS §5.2). */
 export const WEIGHTS: readonly (readonly [number, string])[] = Object.freeze([
@@ -158,6 +162,14 @@ function linkPopover(s: TypographySummary, text: TextCommands): TemplateResult {
   </sf-popover>`;
 }
 
+/** A `▾` menu beside a field (the trigger is an icon button named `label`). */
+function menuIcon<V extends string>(label: string, items: readonly (readonly [V, string])[], current: V | undefined, pick: (v: V) => void): TemplateResult {
+  return html`<sf-menu label=${label} @sf-select=${(e: CustomEvent<{ value: V }>) => pick(e.detail.value)}>
+    <sf-icon-button slot="trigger" size="sm" variant="ghost" label=${label}><sf-icon .icon=${chevronDownIcon} size="14"></sf-icon></sf-icon-button>
+    ${items.map(([v, l]) => html`<sf-menu-item type="radio" value=${v} ?checked=${v === current}>${l}</sf-menu-item>`)}
+  </sf-menu>`;
+}
+
 function menu<V extends string>(label: string, shown: string, items: readonly (readonly [V, string])[], current: V | undefined, pick: (v: V) => void, cls = ''): TemplateResult {
   return html`<sf-menu label=${label} @sf-select=${(e: CustomEvent<{ value: V }>) => pick(e.detail.value)}>
     <sf-button slot="trigger" size="sm" variant="ghost" class=${cls} aria-label=${`${label}: ${shown}`}>${shown} <sf-icon .icon=${chevronDownIcon} size="14"></sf-icon></sf-button>
@@ -182,6 +194,7 @@ export function textSection(host: TextHost, s: TypographySummary, text: TextComm
     <div class="row">
       ${menu(textMessages.weight, weightName, WEIGHTS.map(([w, n]) => [String(w), `${n} ${w}`] as const), weight === undefined ? undefined : String(weight), (w) => void text.setWeight(Number(w)))}
       ${numberField(textMessages.size, s.size, (n) => void text.setSize(Math.max(1, Math.min(999, n))), { min: 1, max: 999, unit: 'px' })}
+      ${menuIcon(textMessages.sizePresets, SIZE_PRESETS.map((n) => [String(n), `${n} px`] as const), value(s.size) === undefined ? undefined : String(value(s.size)), (n) => void text.setSize(Number(n)))}
       ${colorSwatch(host, textMessages.colour, hex, (paint) => void text.setColor(paint), { mixed: isMixed(s.color) })}
     </div>
     <div class="row" role="group" aria-label="Character style">

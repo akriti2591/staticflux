@@ -13,6 +13,7 @@ StaticFlux's orbit colours, tangerine and mint, which ties Instaflow to the fram
 | `favicon.svg` | Browser tab icon; switches to white strokes in dark mode |
 | `favicon-16.png`, `favicon-32.png`, `favicon-48.png` | Favicon fallbacks |
 | `instaflow-app-icon.svg`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | App icon: the on-dark mark on an ink tile (rounded 112/512) for the web app manifest and home screens |
+| `manifest.webmanifest` | The web app manifest (name, colours, the app icons); Home's and Studio's pages link it with the favicons |
 | `instaflow-mark-1024.png` | Large raster for slides, social posts and the README |
 
 All marks are drawn on a 64 × 64 grid. Don't edit the geometry by hand; change it on the canvas and re-export.

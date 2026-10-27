@@ -73,6 +73,23 @@ describe('combo parsing', () => {
 });
 
 describe('shortcut registry', () => {
+  it('R15.7: with Alt, punctuation is the physical key and Shift counts (Alt+] and Alt+Shift+] differ on every layout)', () => {
+    expect(eventComboId(event(']', { altKey: true, code: 'BracketRight' }))).toBe('Alt+]');
+    expect(eventComboId(event('}', { altKey: true, shiftKey: true, code: 'BracketRight' }))).toBe('Alt+Shift+]');
+    expect(eventComboId(event('‘', { altKey: true, code: 'BracketRight' }))).toBe('Alt+]'); // macOS Option+]
+    expect(eventComboId(event('”', { altKey: true, shiftKey: true, code: 'BracketLeft' }))).toBe('Alt+Shift+[');
+    expect(eventComboId(event(']', { ctrlKey: true, altKey: true, code: 'BracketRight' }))).toBe('Ctrl+Alt+]');
+    expect(eventComboId(event('?', { shiftKey: true, code: 'Slash' }))).toBe('?'); // no Alt: the produced symbol, as before
+    const registry = createShortcutRegistry({ isMac: true });
+    const ran: string[] = [];
+    const scope = defineShortcutScope('test/rotate');
+    for (const [id, keys] of [['cw', 'Alt+]'], ['cw-1', 'Alt+Shift+]']] as const) registry.register(defineShortcut({ id: `test/${id}`, keys: [keys], scope, description: id }), () => void ran.push(id));
+    registry.activate(scope);
+    registry.handle(event('‘', { altKey: true, code: 'BracketRight' }));
+    registry.handle(event('’', { altKey: true, shiftKey: true, code: 'BracketRight' }));
+    expect(ran).toEqual(['cw', 'cw-1']);
+  });
+
   it('dispatches global shortcuts and prevents default', () => {
     const registry = createShortcutRegistry({ isMac: false });
     const handler = vi.fn();

@@ -15,6 +15,10 @@
  * commits; hover never previews (Figma). Arrows move within a grid (6 columns), Enter picks, `Mod+C` / `Mod+V` on a
  * swatch copy and paste a hex. Escape (through the surrounding popover) restores the opening value: `restore()`.
  * `mixed`: hatched value swatch, empty hex field; a commit sets every element.
+ *
+ * R13.52 (APPEARANCE §2.2 contrast tag): with `contrast-with` (a solid `#rrggbb` behind the paint) the popover shows the
+ * WCAG contrast of the current solid against it — `AAA 7.2 : 1 on #FFFFFF`, `AA`, `AA large`, `×` — as a polite mono tag,
+ * outlined when below AA. `contrastLevel` / `contrastRatio` are the pure parts.
  */
 import { I18nToken } from '@staticflux/i18n';
 import { normalizeHex } from '@staticflux/ui/theme';
@@ -163,6 +167,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
     recent: { attribute: false },
     customOpen: { type: Boolean, attribute: 'custom-open', reflect: true },
     captions: { type: Boolean },
+    contrastWith: { attribute: 'contrast-with' },
     text: { state: true },
     error: { state: true },
     hsv: { state: true },
@@ -208,6 +213,19 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
       }
       sf-number-field {
         inline-size: 72px;
+      }
+      .contrast {
+        justify-self: start;
+        padding: 1px ${t.space.xs.css};
+        border: 1px solid transparent;
+        border-radius: ${t.radius.sm.css};
+        background: ${t.color.neutral3.css};
+        font-family: ${t.font.familyMono.css};
+        font-size: ${t.type.sizeXs.css};
+        color: ${t.color.text.css};
+      }
+      .contrast[data-low] {
+        border-color: ${t.color.warning.css};
       }
       .error {
         font-size: ${t.type.sizeSm.css};
@@ -335,6 +353,8 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
   declare customOpen: boolean;
   /** Pro: hex captions under the document colours. */
   declare captions: boolean;
+  /** R13.52: the solid behind the paint (`#rrggbb`): the contrast tag compares against it. */
+  declare contrastWith: string | undefined;
   declare text: string;
   declare error: boolean;
   declare hsv: Hsv;
@@ -356,6 +376,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
     this.recent = [];
     this.customOpen = false;
     this.captions = false;
+    this.contrastWith = undefined;
     this.text = '';
     this.error = false;
     this.hsv = { h: 0, s: 0, v: 0 };
@@ -535,6 +556,14 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
     this.commitColor(hsvToHex(this.hsv));
   }
 
+  private renderContrast(current: string, text: (ref: typeof pickerMessages.contrast, args: { level: string; ratio: string; hex: string }) => string): TemplateResult | typeof nothing {
+    const behind = this.contrastWith;
+    const ratio = behind === undefined || this.mixed ? undefined : contrastRatio(current, behind);
+    if (ratio === undefined || behind === undefined) return nothing;
+    const level = contrastLevel(ratio);
+    return html`<span class="contrast" role="status" ?data-low=${ratio < 4.5}>${text(pickerMessages.contrast, { level, ratio: ratio.toFixed(1), hex: behind.slice(0, 7).toUpperCase() })}</span>`;
+  }
+
   override render(): TemplateResult {
     const i18n = this.deps.i18n;
     const k = (ref: Parameters<typeof kitText>[1]): string => kitText(i18n, ref);
@@ -603,6 +632,7 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
           : nothing}
       </div>
       ${this.error ? html`<span class="error" role="status">${k(kitMessages.invalidColor)}</span>` : nothing}
+      ${this.renderContrast(current, (ref, args) => kitText(i18n, ref, args))}
       ${this.token !== undefined && !this.unresolved
         ? html`<button type="button" class="link" @click=${() => emit<ColorChangeDetail>(this, 'sf-change', { kind: 'detach', hex: current })}>${k(pickerMessages.detachToken)}</button>`
         : nothing}
@@ -635,6 +665,24 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
       </button>
       ${custom}`;
   }
+}
+
+/** Relative luminance of `#rrggbb` (WCAG 2.2). */
+function luminance(hex: string): number {
+  const v = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * (v[0] ?? 0) + 0.7152 * (v[1] ?? 0) + 0.0722 * (v[2] ?? 0);
+}
+
+/** The WCAG contrast ratio of two `#rrggbb` colours (1…21), or undefined when either is not one. */
+export function contrastRatio(a: string, b: string): number | undefined {
+  if (!/^#[0-9a-f]{6}/i.test(a) || !/^#[0-9a-f]{6}/i.test(b)) return undefined;
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** The tag's level for a ratio: AAA ≥ 7, AA ≥ 4.5, AA large ≥ 3, else ×. */
+export function contrastLevel(ratio: number): 'AAA' | 'AA' | 'AA large' | '×' {
+  return ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA large' : '×';
 }
 
 export function defineColorPopover(registry: CustomElementRegistry = customElements): void {

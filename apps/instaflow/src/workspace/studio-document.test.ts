@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { createScope, ok } from '@staticflux/core';
 import { describe, expect, it } from 'vitest';
-import { openStudioWorkspace } from '../app/document.js';
+import { createStudioDocument, openStudioWorkspace } from '../app/document.js';
+import { P } from '../elements/components.js';
 import { person, unwrap } from '../app/test-helpers.js';
 import { createLibrary } from '../library/library.js';
 import { DEMO_DOCUMENT, listDesign, planStudioDocument, UNTITLED_DESIGN } from './studio-document.js';
@@ -31,6 +32,22 @@ describe('planStudioDocument', () => {
     expect(listDesign(library, plan)).toEqual(ok()); // already listed: no second entry
     expect(library.entries()).toHaveLength(1);
     expect((await planStudioDocument({ kind: 'new', format: undefined, template: undefined }, context, scope.signal)).ok && true).toBe(true);
+    scope.dispose();
+  });
+
+  it('new design from the New design dialog: a custom size, pages, name and background (B11b)', async () => {
+    const { scope, context, workspace } = await setup();
+    const plan = unwrap(await planStudioDocument({ kind: 'new', format: 'custom', template: undefined, size: { width: 1500, height: 500 }, pages: 3, name: 'Spring', background: '#ffeedd' }, context, scope.signal));
+    expect(plan.ref).toEqual({ asset: 'as_p1', title: 'Spring', create: { pages: 3, size: { width: 1500, height: 500 }, background: '#ffeedd' } });
+    expect(plan.listing?.title).toBe('Spring');
+    expect(plan.format).toEqual({ width: 1500, height: 500 });
+    // A custom format without a size falls back to the default format's size.
+    const bare = unwrap(await planStudioDocument({ kind: 'new', format: 'custom', template: undefined }, context, scope.signal));
+    expect(bare.ref.create?.size).toEqual({ width: 1080, height: 1080 });
+    // The document gets the background on every page.
+    const created = unwrap(await createStudioDocument(workspace, { asset: 'as_bg', title: 'Bg', pages: 2, size: { width: 100, height: 100 }, background: '#ffeedd', signal: scope.signal }));
+    const page = unwrap(await created.part('page:p2', scope.signal));
+    expect(page.prop('p2', P.fills)).toEqual([{ paint: '#ffeedd' }]);
     scope.dispose();
   });
 

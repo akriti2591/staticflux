@@ -569,6 +569,7 @@ Help (`?`), tooltips and the palette show the same keys. Browser-reserved combos
 | Milestone | ⌘⌥S | Ctrl+Alt+S | ⌘S shows the "saves automatically" toast with "Create milestone" |
 | Export | ⌘⇧E | Ctrl+Shift+E | when C1 lands |
 | Settings | ⌘, | Ctrl+, | |
+| Place image… | ⌘⇧K | Ctrl+Shift+K | file picker; owner 2026-10-27 (Figma's key; `Mod+I` is Italic) |
 | Shortcuts help | ? | ? | opens Settings › Shortcuts as a dialog |
 | Copy link to the design / selection | ⌘⌥L | Ctrl+Alt+L | **moved** from ⌘⌥C (now Copy style; APPEARANCE Q6); the selection's link when one exists, else the design's (`NAVIGATION-DEEPLINKS.md` §5) |
 | Developer tools | ⌘⇧D | Ctrl+Shift+D | only while Settings › About › Developer tools is on (`DEVTOOLS-UX-SPEC.md`) |
@@ -901,71 +902,60 @@ locally before their PR. The recommendations as written stand as decisions:
    first-timers.
 10. **Icon set licence.** Recommend Lucide (ISC). Confirm that ISC attribution in Settings › About is acceptable.
 
-## Appendix A. Live vs placeholder inventory (today's `main`)
+## Appendix A. Live vs placeholder inventory (after B11c, 2026-10-27)
 
-Status: **works** · **works, silent** (runs with no visible feedback) · **does nothing** · **not built** (placeholder
-text). Action = what this spec does with it in M1.
+Status: **works** (reachable by pointer and keyboard, tested; the smoke check drives the marked ones ✓) · **hidden**
+(not rendered until it exists) · **not built** (absent; listed so nobody looks for it). Nothing is rendered inert: every
+visible control runs. The B11b column of the previous inventory is kept in git history (`docs/instaflow/handoffs/B11b.md`).
 
-### Home (`/`)
+### Home (`/`, `/files`, `/p/:name`, `/templates`, `/trash`, `/settings`)
 
-| Control | Status | Action |
+| Control | Status | Notes |
 |---|---|---|
-| Logo / wordmark | works (link) | keep |
-| Nav: Home | works | keep |
-| Nav: Chats | not built | hide until M2 |
-| Nav: Files | works (lists designs) | keep |
-| Nav: Brand kits | not built | hide until M2 |
-| + New design | works | keep |
-| Hero composer (prompt, Attach, Brand, Claude chip, Start making) | not built (design only; C0 shows formats) | M1 hero: "What are you making?" format cards; composer returns in M2 |
-| Quick actions (one per format) | works | keep; M2 adds capability quick actions |
-| Jump back in (recents) | works | keep; add thumbnails when the projection cover lands |
-| Templates | works (after Save as template) | keep |
-| Settings gear | missing | add (§2.4) |
+| Logo lockup → Home | works | the brand mark (`theme/logo.ts`) |
+| Nav Home · Files · Templates · Trash | works ✓ | one boot, history; Chats and Brand kits hidden until M2 |
+| Search (`/`) | works | live filter, Enter → `/files?q=` |
+| `＋ New design ▾` (formats, Custom size…) | works ✓ | the New design dialog (custom 1…16 384 px) |
+| Format chips, Jump back in, Templates, Projects | works ✓ | covers wait for A6 projection covers |
+| Card `⋯` / context menu / keys (Open, Open in new tab, Rename, Duplicate, Move to ▾, Favourite, Export…, Copy link, Move to trash) | works ✓ | Home's journal (IF-36.38); Export… opens `/s/:asset/d/export` |
+| Files: filter, Project ▾, Sort ▾, Grid / List, bulk bar | works ✓ | Pro: list by default, sortable headers |
+| Place image (picker, Mod+Shift+K, drop, paste) | works ✓ | images; `.iflow` / PDF / fonts wait for C2 |
+| Trash: Restore, Delete forever, Empty trash | works ✓ | |
+| First run welcome card, storage footer, storage-full banner | works ✓ | |
+| Settings gear / footer Settings | works ✓ | `/settings/:section`: General, Keyboard shortcuts, Storage, About |
+| Hero composer | hidden | M2 |
 
 ### Studio (`/s/:asset`)
 
-| Control | Status | Action |
+| Control | Status | Notes |
 |---|---|---|
-| Logo → Home | works | keep (flushes Latest) |
-| Breadcrumb project | design only | hide in M1 |
-| Design title | works (text only) | make it rename inline |
-| Lens: Canvas, Pages | works | keep |
-| Lens: Pixel, Timeline, Flow | does nothing useful (mounts placeholder tools) | hide until the lens exists (§2.1) |
-| Save status | works | add tooltip + click → Milestones |
-| Claude · Ask chip | does nothing | hide in M1 (§2.2) |
-| Density Focus / Standard / Pro | works, unexplained | move to View menu + Settings |
-| Milestone | works, silent | toast + badge + name field focus |
-| Save as template | works, silent | move to overflow; toast |
-| Share | does nothing (speaks "arrives with export") | hide; becomes Export with C1 |
-| Chat side panel | not built | hide in M1 |
-| Dock: Layers | not built | build (§3.1) |
-| Dock: Pages | works (show, reorder) | add add/duplicate/delete |
-| Dock: Assets | works (import, place) | keep; add drag to canvas |
-| Dock: Milestones | works | keep |
-| Tool: Select | works | keep + tooltip |
-| Tool: Frame | works (white, invisible on page) | keep + overlay outline/label |
-| Tool: Shape | works (rectangle only) | keep + shape menu (ellipse, polygon, star, line) |
-| Tool: Text | works | keep + tooltip |
-| Tool: Pen | does nothing | hide until built |
-| Tool: Hand | works | keep + Space-pan |
-| HUD: ✦ Rewrite | does nothing | hide in M1 |
-| HUD: Animate | does nothing | hide in M1 |
-| HUD: ✦ Ask | does nothing | hide in M1 |
-| HUD: Radial / Grid / Mirror repeat | works | pill More / Repeat group |
-| HUD: Align ×6, Centre in container, Distribute ×4, Tidy up | works | pill Align ▾ / Distribute ▾ |
-| HUD: Union / Subtract / Intersect / Exclude | works (multi) | pill Combine ▾ |
-| HUD: Use as mask, mask modes, invert, release | works | pill / More |
-| HUD: Font, Size, Fit to box | works for text only; shown for shapes | text pill only |
-| HUD: Flip H/V, Rotate 90°, Free transform (More) | works | More |
-| HUD: Apply token | works (needs a kit) | More › Style |
-| HUD: Describe | works (speaks) | More › Describe |
-| Inspector: Typography | works for text; shown always | text only |
-| Inspector: Transform (X Y W H angle skew flip) | works; duplicate heading | fix heading; scrub; units |
-| Inspector: Fill / Stroke / Effects / Opacity | works; swatch wrong for `@primary` | resolve tokens |
-| Inspector: Repeat | works for repeats; shown always | repeats only |
-| Zoom − / value / + | works | add menu |
-| Command bar | does nothing | command palette in M1 |
-| Delete / Backspace | works only with canvas focus | fix scope |
-| Mod+D, Mod+Z, Mod+Shift+Z | works (same caveat) | keep |
-| Copy / Paste / Cut | missing | build |
-| Right-click | browser menu | build |
+| Logo → Home | works ✓ | flushes Latest |
+| Design title (inline rename) | works ✓ | |
+| Lens: Canvas, Pages | works ✓ | Focus hides the switcher (`1` / `5` still switch); Pixel, Timeline, Flow hidden |
+| Save status → Milestones | works | |
+| `View ▾` (zoom, density) | works ✓ | Snapping, Rulers, Panels not built (DENSITY §8.1) |
+| Density Focus / Standard / Pro | works ✓ | View menu, Settings, `Mod+.`; per device; Focus rail and Pro split dock not built |
+| Milestone popover | works ✓ | in `⋯ › Create milestone` in Focus |
+| `⋯`: Save as template, Rename, Copy link, Find…, Settings…, Keyboard shortcuts, About | works ✓ | Duplicate design is Home's |
+| Export (and `/d/export`) | works ✓ | routable; PNG, PDF, SVG |
+| Settings dialog (`/d/settings`) | works ✓ | routable, `Copy link` |
+| Find and replace (`Mod+F`) | works ✓ | text, fonts, colours; match highlight on the canvas not built |
+| Deep links (`lens`, `page`, `dock`, `el`, `inspect`, dialogs), Copy link to page / selection | works ✓ | missing targets fall back with one toast |
+| Dock: Layers, Pages, Assets, Milestones | works ✓ | Layers lists the open page; Pages rows have no thumbnails |
+| Tools: Select, Frame, Shape family, Text, Hand | works ✓ | Pen hidden until built |
+| Tool picker: Place image… | works ✓ | file picker; also the command bar and the canvas menu |
+| Canvas file drop | works | fills the shape under the point, else places |
+| First-use hints | works ✓ | two per session; Settings switch |
+| Selection pill (per kind), More, Align ▾, Combine ▾, Repeat | works ✓ | Rewrite, Animate, Ask hidden in M1 |
+| Inspector: Page (name, size field, Background stack with images, More › Apply to all pages), Document | works ✓ | |
+| Inspector: Transform (X Y W H ∠ link; More: skew, flips, pivot) | works ✓ | Relative to, Scale %, Constraints not built (M2) |
+| Inspector: Fill (Solid · Gradient · Image tabs), Stroke, Corners, Effects, Layer | works ✓ | colour model menu, saved colours, gradient presets, on-canvas gradient handles not built |
+| Inspector: Text (Style, Font, Weight, Size + presets, Colour, B I U S, Link, Align; More: spacing, auto-size, vertical align, sub/superscript, case, clear, Fit to box) | works ✓ | List ▾ waits for markers (T-10, M2) |
+| Inspector: Image (Fit, Replace…, crop numbers), Frame, Repeat, Combine, Mask | works | crop mode (gesture) not built |
+| Command bar (`Mod+K`) | works ✓ | capabilities, tools, camera, Find, Place image |
+| Context menu (canvas, selection, page label, Layers rows) | works ✓ | |
+| Clipboard (keys and menus) | works ✓ | menus read the system clipboard |
+| Cheat sheet (`?`), Print | works ✓ | |
+| Text formatting keys while editing (⌘B ⌘I ⌘U ⌘⇧X ⌘. ⌘, ⌘⇧L/E/R/J ⌘\) | works ✓ | size / letter-spacing / line-height keys and ⌘K link not bound (§7 conflicts) |
+| Zoom pill (− · value menu · +) | works ✓ | Pro also shows the value in the bar |
+| Claude · Ask chip, Chat panel, Share | hidden | M2 |

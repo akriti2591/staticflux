@@ -395,6 +395,15 @@ HUD rank and letter. Sections in order: Fill · Stroke · ▸ Corners · ▸ Eff
 | Select same ▾ | menu | — | ctx | — | | (b) |
 | Class overrides (dot, Reset) | chip | — | header (Pro: list) | — | | (a)+(b) |
 
+**B11c audit (2026-10-27).** Reachable: fill and stroke stacks (rows, opacity, eye, ×, reorder, blend), `+ Add ▾` Colour ·
+Gradient ▸ · Image…, the fill popover's tabs `Solid · Gradient · Image` (Image: workspace images, Upload…, Fit, crop X / Y /
+Scale), alpha, the eyedropper (where the browser has `EyeDropper`), the contrast tag (R13.52), gradient type / stops / angle /
+reverse, image Fit and Replace (the crop kept when the proportions match), stroke width / position / sides / dash / cap /
+join / miter, Outline stroke, Corners, Effects (presets, fields, From brand), Layer opacity and blend, the page Background
+stack with gradients and images (A-1) and `More › Apply background to all pages`, Copy / Paste style, Select same. Not built
+(b): the colour model menu, saved colours, gradient presets / document gradients, on-canvas gradient handles, the eyedropper's
+canvas-tile fallback, `Use for new pages`, class override dots (the M1 kit has no classes to override).
+
 ## 3. Transforms
 
 ### 3.1 Handles and gestures
@@ -493,6 +502,10 @@ cheat sheet's Transform card lists the modifiers (`Shift ratio · Alt centre · 
 | Alt-duplicate drag | gesture | — | — | Alt+drag | (b) |
 | Radius handle, star inner handle, Points pill | handles | — | canvas | Alt per-corner | (b) |
 | Image ratio-by-default | rule | — | — | Shift frees | (b) |
+
+**B11c audit.** Reachable: X Y W H with link, angle and `Alt+]/[` (15°) and `Alt+Shift+]/[` (1°, R15.7), skew, flips, the
+**pivot picker** (Transform › More, Pro always; view state, used by numeric rotate, flip and scale), Free transform. Not
+built: `Relative to` (b, Pro), swap W/H as its own button (orientation lives in the Page size field).
 
 ## 4. Structure
 
@@ -648,6 +661,10 @@ the popover's `⋯` (Pro: a second row). Position-locked elements stay and count
 | Hide / Show | toggle | More | Layers, ctx | `Mod+Shift+H` | (c) A-2 M1 |
 | Rename | inline | — | Layers, header | `Mod+Shift+R` / F2 | (b) |
 | Layers kind filter | chips | — | Layers (Pro) | — | (b) |
+
+**B11c audit.** Reachable: group / ungroup, frame selection, clip content, enter / exit, Combine, masks, corners, repeat, align
+and distribute, z-order, lock, hide (A-2), rename. Not built: `View ▾` snapping submenu, rulers and layout grid overlay
+(grids are not drawn in Studio yet), the Layers kind filter.
 
 ## 5. Per density
 

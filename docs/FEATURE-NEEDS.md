@@ -478,3 +478,23 @@ far except R13.46 (kit tree) and R13.47 (kit cheat sheet): the surfaces compose 
   facts) and the kit menu's `showAt` (R13.45).
 - "A cheat sheet that can never be stale" → `@staticflux/a11y` `ShortcutRegistry.list()` and the kit's `<sf-shortcut-sheet>`
   (R13.47).
+- B11c "Pick a page size in px, mm or in, keep the ratio, flip the orientation" → the kit's `<sf-size-field>` (R13.48) over
+  `<sf-number-field>`.
+- B11c "A card with a `⋯` menu, a star and a selection checkbox that never nest inside its link" → `<sf-card>` slots and states
+  (R13.49); the favourite star fills with `--sf-icon-fill` (R13.50).
+- B11c "Change files on Home without the document engine (D17)" → `@staticflux/document` `DocumentStore.readHead` / `writeHead`
+  (compare-and-swap on a head of Home's own: the journal); no framework API.
+- B11c "Import on Home with no engine" → `@staticflux/blob` `createBlobStore` over OPFS (`put`, content-addressed), loaded on first
+  use; the record is the library's `instaflow.asset/1`.
+- B11c "Density per device, the whole UI follows" → `@staticflux/ui/theme` appearance attributes (`data-sf-density`,
+  `data-sf-motion`) over the theme's density token sets; the spec's `density` (shell/spec) for what mounts; no framework API.
+- B11c "Settings and Export open from a link and close with Back" → `@staticflux/messaging` `createRoutableDialogBridge`
+  (`routableSurface`, `openDialog(key, params, { source })`, `onDismissIntent` back / replace) and `@staticflux/router` routes for
+  `/s/:asset/d/:dialog`; the kit dialog's `header-actions` slot holds `Copy link`; no framework API.
+- B11c "Find and replace across every page, one undo step" → `@staticflux/document` `UndoService.commit` with ops for several
+  parts (one change set); rich-text ops (`text.delete` / `text.insert` with marks, `text.mark`); no framework API.
+- B11c "Fill a shape or the page with an image, drop an image from the OS" → the B1 image paint and B12 page fill stack
+  (engine), the library's ingest; `<sf-size-field>`'s width variable (R13.51); no other framework API.
+- B11c "`Alt+Shift+]` is not `Alt+]` on a Mac" → `@staticflux/a11y` physical-key matching for Alt + punctuation (R15.7).
+- B11c "One-sentence hints at the first use, never a tour" → `@staticflux/messaging` coach marks (`coachTarget`, the seen store bound
+  to `localStorage`) and the kit's `<sf-hint>` (`defineHintSurface`); no framework API.

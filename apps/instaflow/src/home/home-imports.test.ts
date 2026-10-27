@@ -18,7 +18,8 @@ const ENTRIES = ['apps/instaflow/src/home/index.ts', 'apps/instaflow/dev/home/ma
 
 /** What Home must never load (D17): the editor, the render path, Loro / CRDT engines, GPU and Wasm. */
 const FORBIDDEN_FILES: readonly RegExp[] = [
-  /^apps\/instaflow\/src\/(app|workers|studio|spec|tools|text|elements|repeat|a11y|sequencing|render|lenses|versioning)\//,
+  /^apps\/instaflow\/src\/app\/(?!feedback\.ts$)/, // B11c: the toasts adapter (`app/feedback.ts`: kit + messaging only) is Home's too
+  /^apps\/instaflow\/src\/(workers|studio|spec|tools|text|elements|repeat|a11y|sequencing|render|lenses|versioning)\//,
   /^apps\/instaflow\/engine\//,
   /^packages\/document\/src\/(loro-crdt|yjs-crdt|crdt-v1-adapter|render-projection|spatial-index)\.ts$/,
   /^packages\/stage\//,
@@ -28,7 +29,7 @@ const FORBIDDEN_FILES: readonly RegExp[] = [
 ];
 const FORBIDDEN_PACKAGES: readonly string[] = ['loro-crdt', 'yjs', 'rbush', 'harfbuzzjs'];
 /** The only app folders Home may reach (everything else in `src/` is Studio's). */
-const ALLOWED_APP_FILES = /^apps\/instaflow\/(src\/(home|theme)\/|src\/workspace\/(browser|document-store)\.ts$|src\/library\/(kinds|library-doc|records|errors)\.ts$|dev\/home\/)/;
+const ALLOWED_APP_FILES = /^apps\/instaflow\/(src\/(home|theme|settings)\/|src\/app\/feedback\.ts$|src\/workspace\/(browser|document-store|blobs)\.ts$|src\/library\/(kinds|library-doc|records|errors)\.ts$|dev\/home\/)/;
 
 interface Graph {
   readonly files: ReadonlySet<string>;

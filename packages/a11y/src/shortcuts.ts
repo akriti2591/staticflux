@@ -150,6 +150,25 @@ export function comboId(parsed: ParsedCombo): string {
 
 const isSymbol = (key: string): boolean => SYMBOLS.has(key);
 
+/**
+ * R15.7: with Alt, punctuation matches by the physical key (US positions) and Shift counts, so `Alt+]` and
+ * `Alt+Shift+]` are two shortcuts on every layout (macOS Option turns `]` into `‘`, Shift into `}` elsewhere).
+ */
+const ALT_CODE_SYMBOLS: Readonly<Record<string, string>> = Object.freeze({
+  BracketLeft: '[',
+  BracketRight: ']',
+  Minus: '-',
+  Equal: '=',
+  Comma: ',',
+  Period: '.',
+  Slash: '/',
+  Semicolon: ';',
+  Quote: "'",
+  Backquote: '`',
+  Backslash: '\\',
+});
+const ALT_PHYSICAL = new Set(Object.values(ALT_CODE_SYMBOLS));
+
 /** Canonical combo of a keyboard event (layout-aware for symbols, code-based for Alt+letter on mac). */
 export function eventComboId(event: KeyboardEvent): string | undefined {
   let key = event.key;
@@ -161,6 +180,9 @@ export function eventComboId(event: KeyboardEvent): string | undefined {
   // Alt on macOS turns letters into symbols (Alt+K → "˚"): use the physical key.
   if (event.altKey && /^Key[A-Z]$/.test(event.code) && !/^[A-Z]$/.test(key)) key = event.code.slice(3);
   if (event.altKey && /^Digit[0-9]$/.test(event.code) && !/^[0-9]$/.test(key)) key = event.code.slice(5);
+  // R15.7: Alt + punctuation is the physical key, Shift a modifier.
+  const physical = event.altKey ? ALT_CODE_SYMBOLS[event.code] : undefined;
+  if (physical !== undefined) return comboId({ ctrl: event.ctrlKey, alt: true, shift: event.shiftKey, meta: event.metaKey, key: physical });
   // Shift is part of the produced character for symbols ("?" = Shift+/ on US layouts).
   const shift = event.shiftKey && !isSymbol(key);
   return comboId({ ctrl: event.ctrlKey, alt: event.altKey, shift, meta: event.metaKey, key });
@@ -171,8 +193,9 @@ function normalizedCombos(def: ShortcutDef, isMac: boolean): Result<readonly str
   for (const combo of def.keys) {
     const parsed = parseCombo(combo, isMac);
     if (!parsed.ok) return parsed;
-    // Symbols ignore Shift at match time, so normalize the declaration the same way.
-    const value = isSymbol(parsed.value.key) ? { ...parsed.value, shift: false } : parsed.value;
+    // Symbols ignore Shift at match time, so normalize the declaration the same way (R15.7: not with Alt).
+    const keepShift = parsed.value.alt && ALT_PHYSICAL.has(parsed.value.key);
+    const value = isSymbol(parsed.value.key) && !keepShift ? { ...parsed.value, shift: false } : parsed.value;
     out.push(comboId(value));
   }
   return ok(out);

@@ -22,7 +22,7 @@ const values = (groups: readonly (readonly ContextEntry[])[]): string[] => group
 
 describe('contextMenuGroups', () => {
   it('the empty canvas: Select all, zoom, Add page; Paste only with something copied', () => {
-    expect(values(contextMenuGroups({ kind: 'canvas' }, ENV))).toEqual(['cmd:select-all', 'cmd:zoom-fit', 'cmd:zoom-100', 'cmd:add-page']);
+    expect(values(contextMenuGroups({ kind: 'canvas' }, ENV))).toEqual(['cmd:select-all', 'cmd:zoom-fit', 'cmd:zoom-100', 'cmd:add-page', 'cmd:place-image']);
     expect(values(contextMenuGroups({ kind: 'canvas' }, { ...ENV, canPaste: true })).slice(0, 2)).toEqual(['cmd:paste', 'cmd:paste-in-place']);
   });
 

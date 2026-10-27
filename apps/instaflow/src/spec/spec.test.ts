@@ -137,7 +137,7 @@ describe('registries', () => {
     expect(shell.slots.find((s) => s.id === StudioIds.panel.milestones)?.placement).toBe('dock');
     expect(shell.slots.at(-1)).toEqual({ section: 'capability', id: proposeSpecCapability.id });
     expect(shell.pinned).toEqual(['panel:instaflow/layers']);
-    expect(toShellSpec({ ...studioSpec, density: undefined as never }).context['density']).toBe('focus');
+    expect(toShellSpec({ ...studioSpec, density: undefined as never }).context['density']).toBe('standard');
   });
 });
 

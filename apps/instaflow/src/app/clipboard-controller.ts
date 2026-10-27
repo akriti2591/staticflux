@@ -7,7 +7,9 @@
  * - **Paste** reads, in order: Studio's payload in `text/html` → image files (imported into the library, then placed) →
  *   plain text from another app (a text element) → the in-memory copy (a browser that blocked the system clipboard).
  *   `Mod+Shift+V` pastes in place.
- * - **Menus** (no clipboard event) write with the async Clipboard API when it is there, and read the in-memory copy.
+ * - **Menus** (no clipboard event) write with the async Clipboard API when it is there, and read with it too (B11c: in
+ *   the same order as the paste event — Studio's payload, images, text — falling back to the in-memory copy when the
+ *   browser refuses or has nothing).
  *
  * Events inside text fields, contenteditable regions and text editing are left to them. Client gating, not security.
  */
@@ -39,6 +41,37 @@ export interface ClipboardEditor {
 export interface SystemClipboard {
   write?(items: readonly ClipboardItem[]): Promise<void>;
   writeText?(text: string): Promise<void>;
+  /** B11c: the menus' Paste reads the system clipboard (it may refuse: then the memory copy pastes). */
+  read?(): Promise<readonly ClipboardItem[]>;
+}
+
+/** What a paste found on a clipboard (the event's data or the async API's items). */
+export interface PasteSources {
+  readonly html: string;
+  readonly files: readonly File[];
+  readonly text: string;
+}
+
+/** Read the async API's items into paste sources; undefined when the browser refuses or has no API. */
+export async function readSystemClipboard(system: SystemClipboard | undefined): Promise<PasteSources | undefined> {
+  if (system?.read === undefined) return undefined;
+  try {
+    const items = await system.read();
+    let html = '';
+    let text = '';
+    const files: File[] = [];
+    for (const item of items) {
+      for (const type of item.types) {
+        const blob = await item.getType(type);
+        if (type === 'text/html' && html === '') html = await blob.text();
+        else if (type === 'text/plain' && text === '') text = await blob.text();
+        else if (type.startsWith('image/')) files.push(new File([blob], `pasted.${type.slice('image/'.length)}`, { type }));
+      }
+    }
+    return { html, files, text };
+  } catch {
+    return undefined; // permission refused, or nothing readable
+  }
 }
 
 export interface ClipboardControllerOptions {
@@ -118,6 +151,33 @@ export function createClipboardController(options: ClipboardControllerOptions): 
     report(await options.editor.paste(payload, inPlace));
   };
 
+  /** Studio's payload → image files → our memory copy (when the text is its names) → plain text → nothing. */
+  const pasteFrom = async (sources: PasteSources, inPlace: boolean): Promise<void> => {
+    const ours = sources.html === '' ? undefined : payloadFromHtml(sources.html);
+    if (ours !== undefined) {
+      held.set(ours);
+      await pastePayload(ours, inPlace);
+      return;
+    }
+    const files = sources.files.filter((f) => f.type.startsWith('image/'));
+    if (files.length > 0) {
+      await options.placeFiles(files);
+      return;
+    }
+    const text = sources.text;
+    const memory = held.get();
+    // Our own copy whose system write failed (or put only the names there): the memory copy is the real one.
+    if (memory !== undefined && (text === '' || text === memory.text)) {
+      await pastePayload(memory, inPlace);
+      return;
+    }
+    if (text.trim() !== '') {
+      report(await options.editor.pasteText(text));
+      return;
+    }
+    options.warn(clipboardMessages.nothing);
+  };
+
   const controller: ClipboardController = {
     held,
     async copy(cut) {
@@ -125,6 +185,11 @@ export function createClipboardController(options: ClipboardControllerOptions): 
       if (payload !== undefined) await writeSystem(payload);
     },
     async paste(inPlace) {
+      const sources = await readSystemClipboard(options.system);
+      if (sources !== undefined) {
+        await pasteFrom(sources, inPlace);
+        return;
+      }
       const payload = held.get();
       if (payload === undefined) options.warn(clipboardMessages.nothing);
       else await pastePayload(payload, inPlace);
@@ -152,30 +217,7 @@ export function createClipboardController(options: ClipboardControllerOptions): 
       const inPlace = inPlaceKey;
       inPlaceKey = false;
       const data = e.clipboardData;
-      const html = data?.getData('text/html') ?? '';
-      const ours = html === '' ? undefined : payloadFromHtml(html);
-      if (ours !== undefined) {
-        held.set(ours);
-        void pastePayload(ours, inPlace);
-        return;
-      }
-      const files = [...(data?.files ?? [])].filter((f) => f.type.startsWith('image/'));
-      if (files.length > 0) {
-        void options.placeFiles(files);
-        return;
-      }
-      const text = data?.getData('text/plain') ?? '';
-      const memory = held.get();
-      // Our own copy whose system write failed (or put only the names there): the memory copy is the real one.
-      if (memory !== undefined && (text === '' || text === memory.text)) {
-        void pastePayload(memory, inPlace);
-        return;
-      }
-      if (text.trim() !== '') {
-        void options.editor.pasteText(text).then(report);
-        return;
-      }
-      options.warn(clipboardMessages.nothing);
+      void pasteFrom({ html: data?.getData('text/html') ?? '', files: [...(data?.files ?? [])], text: data?.getData('text/plain') ?? '' }, inPlace);
     },
     attach(target, within, scope) {
       const onKey = (e: Event): void => {

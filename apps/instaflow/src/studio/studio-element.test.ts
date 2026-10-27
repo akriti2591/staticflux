@@ -78,9 +78,22 @@ function recordingPort(calls: string[], context?: () => SelectionSummary | undef
     textPreset: log('textPreset'),
     fitToBox: log('fitToBox'),
     replaceImage: log('replaceImage'),
+    placeImage: log('placeImage'),
+    dropFiles: (files, at) => void calls.push(`dropFiles ${files.map((f) => f.name).join(',')} ${at.x},${at.y}`),
     pageAction: log('pageAction'),
     saveHint: log('saveHint'),
     openShortcuts: log('openShortcuts'),
+    openSettings: log('openSettings'),
+    cycleDensity: log('cycleDensity'),
+    find: async (q) => {
+      calls.push(`find ${q.kind}:${q.query}`);
+      return { matches: [{ id: 'n1:text:0', node: 'n1', page: 'p1', pageName: 'Page 1', label: 'Headline', where: 'text', from: 0, to: 5, locked: false, hidden: false }], pages: 1 };
+    },
+    replace: async (q, replacement) => {
+      calls.push(`replace ${q.query}→${replacement}`);
+      return { ops: 1, replaced: 1, skipped: 0, label: 'Replace' };
+    },
+    reveal: (match) => void calls.push(`reveal ${match.node}`),
   };
 }
 
@@ -196,7 +209,7 @@ describe('<if-studio> frame (B11b)', () => {
   it('the tool picker: icons with names and keys, the shape family as one button with a menu, no Pen', async () => {
     const { root, studio } = await mount();
     const tools = root.querySelector('.tools') as HTMLElement;
-    const buttons = [...tools.querySelectorAll(':scope > sf-icon-button')];
+    const buttons = [...tools.querySelectorAll(':scope > sf-icon-button:not(.place-image)')];
     expect(buttons.map((b) => accessibleName(b))).toEqual(['Select', 'Frame', 'Rectangle', 'Text', 'Hand']);
     expect(buttons.map((b) => b.getAttribute('shortcut'))).toEqual(['V', 'F', 'R', 'T', 'H']);
     expect(tools.querySelectorAll('sf-icon').length).toBeGreaterThanOrEqual(5);
@@ -290,11 +303,90 @@ describe('<if-studio> frame (B11b)', () => {
     input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     milestone.dispatchEvent(new Event('submit', { cancelable: true }));
     const more = [...root.querySelectorAll('header sf-menu')].at(-1) as SfMenuElement;
-    expect(menuItems(more)).toEqual(['Save as template…', 'Rename…', 'Copy link']);
-    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'save-template' } }));
-    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'copy-link' } }));
+    expect(menuItems(more)).toEqual(['Save as template…', 'Rename…', 'Copy link', 'Find…', 'Settings…', 'Keyboard shortcuts', 'About Instaflow']);
+    for (const value of ['save-template', 'copy-link', 'settings', 'shortcuts', 'about']) more.dispatchEvent(new CustomEvent('sf-select', { detail: { value } }));
     (root.querySelector('header > sf-button[variant="primary"]') as HTMLElement).click();
-    expect(calls).toEqual(['camera ["fit-page"]', 'camera ["zoom-out"]', 'createMilestone ["Client v1"]', 'saveAsTemplate', 'copyLink', 'openExport']);
+    expect(calls).toEqual(['camera ["fit-page"]', 'camera ["zoom-out"]', 'createMilestone ["Client v1"]', 'saveAsTemplate', 'copyLink', 'openSettings', 'openShortcuts', 'openSettings ["about"]', 'openExport']);
+  });
+
+  it('B11c images from files: Place image… in the tool picker, the command bar and the canvas menu; a file drop reaches the port at its point', async () => {
+    const { root, calls, element } = await mount();
+    const place = root.querySelector('.tools sf-icon-button.place-image') as HTMLElement;
+    expect(accessibleName(place)).toBe('Place image…');
+    place.click();
+    root.querySelector('if-command-bar')?.dispatchEvent(new CustomEvent('if-command', { detail: { value: 'place:image' } }));
+    await element.openContextMenu({ kind: 'canvas' }, { x: 10, y: 10 });
+    (root.querySelector('sf-menu.context-menu') as HTMLElement).dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'cmd:place-image' } }));
+    expect(place.getAttribute('shortcut')).toBe('Mod+Shift+K');
+    root.querySelector<HTMLElement>('.surface')?.focus();
+    press(root.querySelector('.surface') as HTMLElement, 'K', { ctrl: true, shift: true });
+    expect(calls.filter((c) => c === 'placeImage')).toHaveLength(4);
+    const main = root.querySelector('main') as HTMLElement;
+    const file = new File([new Uint8Array([1])], 'dot.png', { type: 'image/png' });
+    const transfer = { types: ['Files'], files: [file], dropEffect: 'none' };
+    const drag = (type: string) => Object.assign(new Event(type, { bubbles: true, cancelable: true }), { dataTransfer: transfer, clientX: 40, clientY: 30, relatedTarget: null });
+    main.dispatchEvent(drag('dragover'));
+    await element.updateComplete;
+    expect(main.hasAttribute('data-drop')).toBe(true);
+    main.dispatchEvent(drag('drop'));
+    await element.updateComplete;
+    expect(main.hasAttribute('data-drop')).toBe(false);
+    expect(calls.at(-1)).toMatch(/^dropFiles dot\.png -?\d+,-?\d+$/);
+  });
+
+  it('B11c find: Mod+F and ⋯ › Find… open the bar with its field focused, Mod+Alt+F with Replace; the bar searches through the port; Escape closes it', async () => {
+    const { root, calls, element } = await mount();
+    const surface = root.querySelector('.surface') as HTMLElement;
+    surface.focus();
+    press(surface, 'f', { ctrl: true });
+    await until(() => root.querySelector('if-find-bar') !== null);
+    const bar = root.querySelector('if-find-bar') as HTMLElement & { replacing: boolean; search(): Promise<void>; updateComplete: Promise<boolean>; step(d: 1 | -1): void };
+    await bar.updateComplete;
+    await settle(2);
+    expect(deepFocused()?.closest?.('sf-text-field') ?? deepFocused()).toBeTruthy();
+    expect(bar.replacing).toBe(false);
+    expectNoA11yIssues(root.host);
+    const input = bar.shadowRoot?.querySelector('sf-text-field.query')?.shadowRoot?.querySelector('input') as HTMLInputElement;
+    input.value = 'Hello';
+    input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    await bar.search();
+    bar.step(1);
+    expect(calls.slice(-2)).toEqual(['find text:Hello', 'reveal n1']);
+    press(input, 'Escape');
+    await element.updateComplete;
+    expect(root.querySelector('if-find-bar')).toBeNull();
+    await element.openFind(true);
+    expect((root.querySelector('if-find-bar') as typeof bar).replacing).toBe(true);
+    element.closeFind();
+    const more = root.querySelector('header sf-menu.overflow') as SfMenuElement;
+    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'find' } }));
+    await until(() => root.querySelector('if-find-bar') !== null);
+  });
+
+  it('B11c densities: Focus hides the lens switcher and folds Milestone into ⋯; Pro shows the undo label and the zoom as text; Mod+. and Mod+, reach the port', async () => {
+    const { root, studio, calls, element } = await mount({ model: { ...MODEL, undo: 'Resize headline' } });
+    expect(root.querySelector('header sf-segmented.modes')).not.toBeNull();
+    expect(root.querySelector('.undo-label')).toBeNull();
+    await studio.setDensity('focus');
+    await settle(4);
+    await element.updateComplete;
+    expect(root.querySelector('header sf-segmented.modes')).toBeNull();
+    expect(root.querySelector('header sf-popover')).toBeNull();
+    const more = root.querySelector('header sf-menu.overflow') as SfMenuElement;
+    expect(menuItems(more)[0]).toBe('Create milestone');
+    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'milestone' } }));
+    expectNoA11yIssues(root.host);
+    await studio.setDensity('pro');
+    await settle(4);
+    await element.updateComplete;
+    expect(root.querySelector('header sf-segmented.modes')).not.toBeNull();
+    expect(root.querySelector('.undo-label')?.textContent).toBe('Undo: Resize headline');
+    expect(root.querySelector('.zoom-text')?.textContent).toBe('100%');
+    expectNoA11yIssues(root.host);
+    root.querySelector<HTMLElement>('.surface')?.focus();
+    press(root.querySelector('.surface') as HTMLElement, '.', { ctrl: true });
+    press(root.querySelector('.surface') as HTMLElement, ',', { ctrl: true });
+    expect(calls).toEqual(['createMilestone [""]', 'cycleDensity', 'openSettings']);
   });
 
   it('the title renames in place through the port; the save state opens Milestones', async () => {
@@ -393,7 +485,7 @@ describe('<if-studio> keyboard paths', () => {
     surface.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, composed: true, cancelable: true, clientX: 50, clientY: 50 }));
     const menu = root.querySelector('sf-menu.context-menu') as SfMenuElement & { open?: boolean };
     await until(() => menu.open === true);
-    expect([...menu.querySelectorAll('sf-menu-item')].map((i) => i.getAttribute('value'))).toEqual(['cmd:select-all', 'cmd:zoom-fit', 'cmd:zoom-100', 'cmd:add-page']);
+    expect([...menu.querySelectorAll('sf-menu-item')].map((i) => i.getAttribute('value'))).toEqual(['cmd:select-all', 'cmd:zoom-fit', 'cmd:zoom-100', 'cmd:add-page', 'cmd:place-image']);
   });
 
   it('the chrome keys: Mod+\\ collapses the dock, Mod+S hints, ? opens the cheat sheet, Shift+F10 the menu', async () => {

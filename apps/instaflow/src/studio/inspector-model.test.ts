@@ -91,7 +91,7 @@ describe('inspector model', () => {
 
   it('page presets come from Home’s formats, one per size', () => {
     const presets = pageSizePresets();
-    expect(presets.map((p) => `${p.width}x${p.height}`)).toEqual(['1080x1350', '1080x1920', '1920x1080', '1240x1754']);
+    expect(presets.map((p) => `${p.width}x${p.height}`)).toEqual(['1080x1080', '1080x1920', '1920x1080', '794x1123', '816x1056', '1080x1350']);
     expect(pagePresetOf(1080, 1920)?.id).toBe('story');
     expect(pagePresetOf(10, 10)).toBeUndefined();
   });
