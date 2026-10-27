@@ -98,10 +98,12 @@ import { LatestServiceToken, MilestonesPanelModelToken } from '../versioning/tok
 import { type BootStudioWorkersOptions, bootStudioWorkers, type StudioWorkers } from '../workers/boot.js';
 import { createMirrorHub, type MirrorHub } from '../workers/mirror.js';
 import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, SceneMirror, StoryMirror, TransformMirror, TypographyMirror } from '../workers/mirrors.js';
-import type { InspectedElement, StudioDocumentRef, StudioInspection, StudioMetrics, ViewProjection } from '../workers/protocol.js';
+import type { ImageFillTarget, InspectedElement, StudioDocumentRef, StudioInspection, StudioMetrics, ViewProjection } from '../workers/protocol.js';
+import type { ImageSource } from '../studio/inspector-paint.js';
 import { fromWire } from '../workers/wire.js';
 import type { StudioWorkspace } from './document.js';
 import { NoOpenPageError } from './errors.js';
+import { ImageTooLargeError, MAX_IMAGE_BYTES, NotAnImageError } from '../studio/errors.js';
 import { appearanceSource, latestFromMirror, milestonesFromMirror, repeatSource, storyFromMirror, structureFromMirror, transformSource, typographyFromMirror } from './panel-mirrors.js';
 import { studioAppRegistries } from './registries.js';
 import { type CanvasHandoffFactory, type StudioCanvas, studioCanvas } from './studio-canvas.js';
@@ -919,6 +921,8 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       });
     },
     pageAction: (action, arg) => void pageAction(action, arg),
+    placeImage: () => void placeImage(),
+    dropFiles: (files, at) => void dropFiles(files, at),
     saveHint: () => toasts.show({ message: 'Instaflow saves as you work', dedupe: 'save-hint', action: { label: 'Create milestone', run: () => void createMilestone() } }),
     openShortcuts() {
       writeShortcutsSnapshot(storage, sheetGroups());
@@ -958,6 +962,69 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     const built = studioLinkHref(asset, LINKS[target]());
     return built.ok ? built.value : history.current();
   }
+  // ---------------------------------------------------------------- B11c: images from files (HOME-FILES §3.1)
+  /** Import picked or dropped files into the library; refusals toast with their fix (never a blank screen). */
+  const imported = (summary: { readonly imported: readonly LibraryEntry[]; readonly deduplicated: readonly LibraryEntry[]; readonly failed: readonly { readonly error: SfError }[] }): readonly LibraryEntry[] => {
+    for (const failed of summary.failed) toasts.error(failed.error);
+    return [...summary.imported, ...summary.deduplicated].filter((e) => e.kind === 'image');
+  };
+  /** The files Studio takes as images (HOME-FILES §3.1): others are refused, each with one toast and its fix. */
+  const screenImages = <F extends { readonly name: string; readonly type: string; readonly size: number }>(files: readonly F[]): F[] =>
+    files.filter((f) => {
+      if (!f.type.startsWith('image/')) toasts.error(NotAnImageError({ details: { name: f.name, type: f.type } }));
+      else if (f.size > MAX_IMAGE_BYTES) toasts.error(ImageTooLargeError({ details: { name: f.name, size: f.size } }));
+      else return true;
+      return false;
+    });
+  const pickImages = async (): Promise<readonly LibraryEntry[]> => {
+    const picked = await (options.library?.pickFiles ?? ((s: AbortSignal) => browserPickFiles(s)))(signal);
+    if (!picked.ok) {
+      if (picked.error.kind !== 'aborted') toasts.error(picked.error);
+      return [];
+    }
+    const files = screenImages(picked.value);
+    if (files.length === 0) return [];
+    const result = await library.panel.importFiles(files);
+    if (!result.ok) {
+      toasts.error(result.error);
+      return [];
+    }
+    return imported(result.value);
+  };
+  /** `Place image…`: the picked images at the viewport centre (or in the selected frame), the last one selected. */
+  const placeImage = async (): Promise<void> => {
+    for (const entry of await pickImages()) {
+      const placed = await editor.request('place', { entry });
+      if (!placed.ok) toasts.error(placed.error);
+      else say(`Placed ${entry.title}`);
+    }
+  };
+  /** An image on fills: a workspace image or an upload; the editor makes it one undo step. */
+  const imageFill = async (target: ImageFillTarget, source: ImageSource): Promise<void> => {
+    const entries = 'asset' in source ? library.library.entries().filter((e) => e.asset === source.asset) : (await pickImages()).slice(0, 1);
+    const entry = entries[0];
+    if (entry === undefined) return;
+    const done = await editor.request('imageFill', { entry, target });
+    if (!done.ok) toasts.error(done.error);
+    else say(target.to === 'page' ? `Background: ${entry.title}` : `Image fill: ${entry.title}`);
+  };
+  /** Files dropped on the canvas: the first fills the shape under the point (or lands there); the rest are placed. */
+  const dropFiles = async (files: readonly File[], at: { readonly x: number; readonly y: number }): Promise<void> => {
+    const images = screenImages(files);
+    if (images.length === 0) return;
+    const result = await library.panel.importFiles(images);
+    if (!result.ok) return void toasts.error(result.error);
+    const entries = imported(result.value);
+    const [first, ...rest] = entries;
+    if (first === undefined) return;
+    const done = await editor.request('imageFill', { entry: first, target: { to: 'point', x: at.x, y: at.y } });
+    if (!done.ok) toasts.error(done.error);
+    else say('filled' in done.value ? `Image fill: ${first.title}` : `Placed ${first.title}`);
+    for (const entry of rest) {
+      const placed = await editor.request('place', { entry });
+      if (!placed.ok) toasts.error(placed.error);
+    }
+  };
   // B11b: the inspector (STUDIO §5): the chrome port plus the editor's appearance, transform, repeat and typography.
   const inspectorPort: InspectorPort = {
     ...chrome,
@@ -969,6 +1036,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     text: typography,
     renamePage: (name) => sceneCall(scene.call('renamePage', name)),
     resizePage: (width, height) => sceneCall(scene.call('resizePage', width, height)),
+    imageFill: (to, source, index) => void imageFill(index === undefined ? { to } : { to, index }, source),
   };
   const appearanceView = hub.view(AppearanceMirror);
   const transformView = hub.view(TransformMirror);
@@ -989,6 +1057,13 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       repeat: repeatView.read('model'),
       colors: scene.read('colors'),
       imageName: asset === undefined ? undefined : library.library.entries().find((e) => e.asset === asset)?.title,
+      images: library.library
+        .entries()
+        .filter((e) => e.kind === 'image' && e.trashedAt === undefined && e.content !== undefined)
+        .map((e) => {
+          const thumb = library.panel.thumbnail(e.asset);
+          return { asset: e.asset as string, title: e.title, ...(thumb === undefined ? {} : { thumb }) };
+        }),
     };
   };
   inspectorBinding.bind = (element) => {

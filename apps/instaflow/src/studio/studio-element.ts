@@ -20,6 +20,7 @@ import { defineInlineEdit } from '@staticflux/kit/inline-edit';
 import { chevronDownIcon } from '@staticflux/kit/icons/chevron-down';
 import { downloadIcon } from '@staticflux/kit/icons/download';
 import { ellipsisIcon } from '@staticflux/kit/icons/ellipsis';
+import { imageIcon } from '@staticflux/kit/icons/image';
 import { minusIcon } from '@staticflux/kit/icons/minus';
 import { plusIcon } from '@staticflux/kit/icons/plus';
 import { defineMenu, type SfMenuElement } from '@staticflux/kit/menu';
@@ -104,6 +105,9 @@ export const studioMessages = Object.freeze({
   zoomValue: 'Zoom level',
   // B11c slice 3 (STUDIO §9.1).
   findItem: 'Find…',
+  // B11c: placing images from files (HOME-FILES §3.1).
+  placeImage: 'Place image…',
+  dropHint: 'Drop images to place them, or onto a shape to fill it',
   findReplace: 'Find and replace…',
 });
 
@@ -193,6 +197,10 @@ export interface StudioChromePort extends HudPort, FindBarPort {
   saveHint(): void;
   /** `?`: the keyboard cheat sheet. */
   openShortcuts(): void;
+  /** B11c: `Place image…` (tool picker, command bar, canvas menu): a file picker; the images land at the viewport centre or in a selected frame. */
+  placeImage(): void;
+  /** B11c: image files dropped on the canvas at a canvas-region point (a shape there is filled, else placed there). */
+  dropFiles(files: readonly File[], at: { readonly x: number; readonly y: number }): void;
 }
 
 export const EMPTY_CHROME: StudioChromeModel = Object.freeze({
@@ -299,6 +307,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     closed: { state: true },
     contextGroups: { state: true },
     findOpen: { state: true },
+    dropping: { state: true },
   };
   static override styles = [
     css`
@@ -434,6 +443,16 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         inset-inline-start: 50%;
         transform: translateX(-50%);
       }
+      main[data-drop] {
+        outline: 2px solid ${t.color.accent.css};
+        outline-offset: -2px;
+      }
+      .tools .sep {
+        inline-size: 1px;
+        align-self: stretch;
+        margin-inline: 2px;
+        background: ${t.color.border.css};
+      }
       .find-bar {
         position: absolute;
         z-index: 3;
@@ -539,6 +558,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
   declare contextGroups: readonly ContextGroup[];
   /** B11c: the find bar shows. */
   declare findOpen: boolean;
+  /** B11c: files are dragged over the canvas (the tangerine outline). */
+  declare dropping: boolean;
   private wired: Scope | undefined;
   private canvasSession: CanvasSession | undefined;
   private hudFrozen = false;
@@ -565,6 +586,23 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     this.closed = new Set();
     this.contextGroups = [];
     this.findOpen = false;
+    this.dropping = false;
+  }
+
+  private onDragOver(e: DragEvent): void {
+    if (!(e.dataTransfer?.types ?? []).includes('Files')) return;
+    e.preventDefault();
+    if (e.dataTransfer !== null) e.dataTransfer.dropEffect = 'copy';
+    this.dropping = true;
+  }
+
+  private onDrop(e: DragEvent): void {
+    this.dropping = false;
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (files.length === 0) return;
+    e.preventDefault();
+    const rect = this.query<HTMLElement>('.surface')?.getBoundingClientRect();
+    this.port?.dropFiles(files, { x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) });
   }
 
   /** `Mod+F` (and `⋯ › Find…`): open the find bar, or focus its field; `replace` opens the Replace row too. */
@@ -838,6 +876,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       'text-style': () => port.textPreset(arg),
       'fit-to-box': () => port.fitToBox(),
       'replace-image': () => port.replaceImage(),
+      'place-image': () => port.placeImage(),
       fit: () => port.setImageFit(arg),
       'page-rename': () => port.selectPage(true),
       'page-duplicate': () => port.pageAction('duplicate'),
@@ -868,7 +907,14 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     return html`${this.renderTopBar(studio, context.density)}
       <div class="body">
         ${this.renderDock(context)}
-        <main aria-label=${studioMessages.canvas} @contextmenu=${(e: MouseEvent) => void this.onCanvasContext(e)}>
+        <main
+          aria-label=${studioMessages.canvas}
+          ?data-drop=${this.dropping}
+          @contextmenu=${(e: MouseEvent) => void this.onCanvasContext(e)}
+          @dragover=${(e: DragEvent) => this.onDragOver(e)}
+          @dragleave=${(e: DragEvent) => (e.relatedTarget === null || !(e.currentTarget as Element).contains(e.relatedTarget as Node) ? (this.dropping = false) : undefined)}
+          @drop=${(e: DragEvent) => this.onDrop(e)}
+        >
           ${this.renderPage()}
           <div class="surface" tabindex="0" role="application" aria-roledescription="canvas" aria-label=${studioMessages.canvasSurface}></div>
           ${this.renderTools(studio)} ${this.renderHud(context.density)} ${this.renderZoom()} ${this.renderCommandBar(studio)}
@@ -1054,6 +1100,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
               </sf-menu>`
             : nothing}`;
       })}
+      <span class="sep" aria-hidden="true"></span>
+      <sf-icon-button class="place-image" label=${studioMessages.placeImage} variant="ghost" @click=${() => this.port?.placeImage()}><sf-icon .icon=${imageIcon} size="18"></sf-icon></sf-icon-button>
     </div>`;
   }
 
@@ -1110,6 +1158,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       { value: 'camera:zoom-in', title: studioMessages.zoomIn, shortcut: 'Mod+=' },
       { value: 'camera:zoom-out', title: studioMessages.zoomOut, shortcut: 'Mod+-' },
       { value: 'find:open', title: studioMessages.findItem, shortcut: 'Mod+F' },
+      { value: 'place:image', title: studioMessages.placeImage },
       { value: 'find:replace', title: studioMessages.findReplace, shortcut: 'Mod+Alt+F' },
     ];
     const sources = { selection: this.model.selection, actions: this.model.actions, globalActions: this.model.globalActions, tools, camera, recent: [] };
@@ -1125,6 +1174,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       tool: () => void studio.selectTool(id as ToolId),
       camera: () => this.port?.camera(id as CameraAction),
       find: () => void this.openFind(id === 'replace'),
+      place: () => this.port?.placeImage(),
     };
     run[kind ?? '']?.();
   }

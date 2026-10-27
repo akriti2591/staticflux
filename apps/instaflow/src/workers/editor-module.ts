@@ -32,7 +32,8 @@ import { createStudioDocument, freshPeer, openStudioDocument, type StudioDocumen
 import { NoOpenPageError } from '../app/errors.js';
 import { createImageUploads, placeImageOps } from '../app/images.js';
 import { textBoxOps, type StudioFonts } from '../app/text-layer.js';
-import { commitEdit, duplicate } from '../elements/actions.js';
+import { commitEdit, duplicate, imageFillIndex } from '../elements/actions.js';
+import { pageFills } from '../elements/values.js';
 import { elementCapabilityImplementations } from '../elements/capabilities.js';
 import { P } from '../elements/components.js';
 import { ActionNotApplicableError } from '../elements/errors.js';
@@ -67,7 +68,7 @@ import type { ExportTarget } from '../export/service.js';
 import { CapabilityNotServedError, WorkerBootError } from './errors.js';
 import { createMirrorServers, type MirrorCall, type MirrorServers, type MirrorUpdate } from './mirror.js';
 import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, SceneMirror, StoryMirror, type TransformBarModel, TransformMirror, TypographyMirror } from './mirrors.js';
-import type { CameraCommand, InspectedElement, RanCommand, StudioDocumentRef, StudioInspection, StudioStarted, ViewProjection } from './protocol.js';
+import type { CameraCommand, ImageFillResult, ImageFillTarget, InspectedElement, RanCommand, StudioDocumentRef, StudioInspection, StudioStarted, ViewProjection } from './protocol.js';
 import { implementStudioCommands, STUDIO_SELECTION_COMMANDS } from '../app/studio-commands.js';
 import { ELEMENT_ACTIONS, elementActionId, selectionFacts } from '../elements/capabilities.js';
 import { REPEAT_ACTIONS, repeatActionId, repeatSelectionFacts } from '../repeat/capabilities.js';
@@ -153,6 +154,8 @@ export interface StudioEditor {
   place(entry: LibraryEntry, signal: AbortSignal): Promise<Result<void>>;
   /** B11b: the selected images' top image fill shows `entry` (fit kept, crop reset); one step `Replace image`. */
   replaceImage(entry: LibraryEntry, signal: AbortSignal): Promise<Result<void>>;
+  /** B11c: an image fill (`ImageFillTarget`): one undo step; a drop off any fillable element places the image there. */
+  imageFill(entry: LibraryEntry, target: ImageFillTarget, signal: AbortSignal): Promise<Result<ImageFillResult>>;
   hud(action: string): Result<void>;
   /** Zoom one step in or out about the viewport centre. */
   zoom(step: 1 | -1): Result<void>;
@@ -174,6 +177,9 @@ export interface StudioEditor {
 
 /** Double click: a second press within this time and distance (the ring carries no click count). */
 export const DOUBLE_CLICK = Object.freeze({ ms: 500, px: 4 });
+
+/** B11c: element kinds an image fill can go on (text keeps its text colour; groups and masks have no fill). */
+export const IMAGE_FILLABLE: ReadonlySet<string> = new Set(['shape', 'frame', 'vector', 'boolean', 'image']);
 
 const microtask = (fn: () => void): void => queueMicrotask(fn);
 const defaultFrame = (): ((fn: () => void) => void) => {
@@ -874,9 +880,17 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       const size = await uploads.upload(entry, placeSignal);
       if (!size.ok) return size;
       const view = current.view;
-      const center = toPage(view.camera, view.viewport.width / 2, view.viewport.height / 2);
+      // B11c: one selected frame takes the image at its centre (frame space), sized to fit it; else the viewport centre.
+      const only = selection().length === 1 ? selection()[0] : undefined;
+      const frame = only !== undefined && document.view.read(only)?.kind === 'frame' && !document.view.isDerived(only) ? only : undefined;
+      const side = (path: string): number => {
+        const v = frame === undefined ? undefined : document.view.value(frame, path);
+        return typeof v === 'number' && v > 0 ? v : 0;
+      };
+      const center: readonly [number, number] = frame === undefined ? toPage(view.camera, view.viewport.width / 2, view.viewport.height / 2) : [side(P.w) / 2, side(P.h) / 2];
+      const max = frame === undefined ? 600 : Math.max(1, Math.min(600, side(P.w), side(P.h)));
       const node = document.newId();
-      const done = commitEdit(document.target(current.page), actor(), `Place ${entry.title}`, ok(placeImageOps(node, view.context, entry, size.value, center, 600)));
+      const done = commitEdit(document.target(current.page), actor(), `Place ${entry.title}`, ok(placeImageOps(node, frame ?? view.context, entry, size.value, center, max)));
       if (!done.ok) return done;
       view.select([node]);
       return ok();
@@ -902,6 +916,63 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
       });
       if (ops.length === 0) return err(NoImageSelectedError());
       return commitEdit(document.target(current.page), actor(), 'Replace image', ok(ops));
+    },
+    async imageFill(entry, target, fillSignal) {
+      const current = tab();
+      if (current === undefined) return err(NoOpenPageError());
+      const size = await uploads.upload(entry, fillSignal);
+      if (!size.ok) return size;
+      const image: JsonValue = { kind: 'image', asset: { asset: entry.asset }, fit: 'cover' };
+      /** The stack with the image: `index`'s row turned into it, or a new top row (≤ 16 rows). */
+      const withImage = (raw: JsonValue | undefined, index: number | undefined): JsonValue[] | undefined => {
+        const list = Array.isArray(raw) ? [...raw] : [];
+        const row = index === undefined ? undefined : list[index];
+        if (index !== undefined && typeof row === 'object' && row !== null && !Array.isArray(row)) {
+          list[index] = { ...row, paint: image };
+          return list;
+        }
+        if (list.length >= 16) return undefined;
+        list.push({ paint: image });
+        return list;
+      };
+      const full = (): Result<never> => err(ActionNotApplicableError({ message: 'Up to 16 fills.', details: { needs: 'a free fill row' } }));
+      if (target.to === 'page') {
+        const page = current.page;
+        const fills = withImage(pageFills(document.view, page) as JsonValue[], target.index);
+        if (fills === undefined) return full();
+        const done = document.commitOps(page, actor(), target.index === undefined ? 'Background image' : 'Background kind', [{ op: 'set', node: page, path: P.fills, value: fills }]);
+        return done.ok ? ok({ filled: [page] }) : done;
+      }
+      let nodes: NodeId[];
+      let index = target.to === 'selection' ? target.index : undefined;
+      if (target.to === 'point') {
+        const view = current.view;
+        const [px, py] = toPage(view.camera, target.x, target.y);
+        const hit = hitTest(current.tools.ctx, current.tools.index, px, py, { tolerance: 3 / view.camera.zoom, context: view.context });
+        const node = hit.ok ? hit.value?.target : undefined;
+        const kind = node === undefined ? undefined : document.view.read(node)?.kind;
+        if (node === undefined || kind === undefined || !IMAGE_FILLABLE.has(kind) || document.view.isDerived(node)) {
+          const placed = document.newId();
+          const made = commitEdit(document.target(current.page), actor(), `Place ${entry.title}`, ok(placeImageOps(placed, view.context, entry, size.value, [px, py], 600)));
+          if (!made.ok) return made;
+          view.select([placed]);
+          return ok({ placed });
+        }
+        nodes = [node];
+        // An image element shows the new picture (its top image row); a shape or frame gets an image row on top.
+        if (kind === 'image') index = imageFillIndex(document.context(), node);
+      } else nodes = editable().filter((n) => IMAGE_FILLABLE.has(document.view.read(n)?.kind ?? ''));
+      if (nodes.length === 0) return err(ActionNotApplicableError({ message: 'Select a shape or a frame to fill it with an image.', details: { needs: 'a shape or frame' } }));
+      const ops: PartOp[] = [];
+      for (const node of nodes) {
+        const fills = withImage(document.view.value(node, P.fills), index);
+        if (fills === undefined) return full();
+        ops.push({ op: 'set', node, path: P.fills, value: fills });
+      }
+      const done = commitEdit(document.target(current.page), actor(), index === undefined ? 'Image fill' : 'Fill kind', ok(ops));
+      if (!done.ok) return done;
+      if (target.to === 'point') current.view.select(nodes);
+      return ok({ filled: nodes });
     },
     copy(nodes, cut) {
       const t = tab();

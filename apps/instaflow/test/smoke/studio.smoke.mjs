@@ -36,6 +36,8 @@ const only = process.argv.find((a) => a.startsWith('--topology='))?.slice('--top
 const TOPOLOGIES = only === undefined ? ['colocated', 'split'] : [only];
 /** Studio's brand primary (`@primary`, the Shape tool's fill) and Clean Pop's accent (the selection overlay). */
 const TANGERINE = [0xff, 0x5c, 0x39];
+/** B11c: a 16 × 16 mint PNG the image steps place and fill with. */
+const MINT_PNG = 'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFUlEQVR4nGNg2FxHGhrVMKph+GoAAKheMRByqYQhAAAAAElFTkSuQmCC';
 
 let topology = '';
 const log = (m) => console.log(`[studio smoke:${topology}] ${m}`);
@@ -616,6 +618,53 @@ async function scenario(page) {
   await page.getByRole('radio', { name: 'Canvas' }).click();
   await page.waitForFunction(() => window.__studio.studio.lens?.id === 'instaflow/lens-canvas', null, { timeout: 10_000 });
   log('lens switch (Canvas → Pages → Canvas) and page switch (p1 → p2 → p1)');
+
+  // ---------------------------------------------------------------- B11c: images from files and image fills (page 2)
+  await page.evaluate(() => window.__studio.lens.goTo('p2'));
+  await page.waitForFunction(() => window.__studio.tab?.page === 'p2', null, { timeout: 20_000 });
+  const pickFile = async (click) => {
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser', { timeout: 10_000 }), click()]);
+    await chooser.setFiles({ name: 'smoke-mint.png', mimeType: 'image/png', buffer: Buffer.from(MINT_PNG, 'base64') });
+  };
+  // Place image… from the tool picker: a file picker; the image lands at the viewport centre, selected.
+  await pickFile(() => page.locator('.tools sf-icon-button.place-image').click());
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.some((e) => e.kind === 'image'), null, { timeout: 20_000 }).catch(async () => fail(`Place image… placed nothing: ${JSON.stringify(window.__studio?.toasted)}`));
+  const placedImage = (await inspect()).elements.find((e) => e.kind === 'image');
+  log(`Place image…: the file picker placed ${placedImage.id} (${Math.round(placedImage.w)}×${Math.round(placedImage.h)})`);
+  // A rectangle filled with that image from the inspector's Fill › Add image (the workspace's images).
+  await page.getByRole('button', { name: 'Rectangle', exact: true }).click();
+  await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3, { steps: 4 });
+  await page.mouse.up();
+  await page.waitForFunction(() => window.__studio.tab?.view.selection.length === 1 && window.__studio.scene.selection?.kind === 'shape', null, { timeout: 10_000 });
+  const imageRect = await page.evaluate(() => window.__studio.tab.view.selection[0]);
+  const fillSection = page.locator('if-inspector section[data-section="fill"]');
+  await fillSection.getByRole('button', { name: 'Add image to fill' }).click();
+  await fillSection.getByRole('button', { name: 'Use smoke-mint' }).click();
+  await page
+    .waitForFunction((n) => window.__studio.scene.selection?.nodes[0] === n && window.__studio.scene.undo === 'Image fill', imageRect, { timeout: 20_000 })
+    .catch(async () => fail(`Fill › Add image did not fill the rectangle: ${await page.evaluate(() => window.__studio.scene.undo)}`));
+  log(`image fill: Fill › Add image › smoke-mint filled ${imageRect} (one undo step "Image fill")`);
+  // The page Background: nothing selected, the Background row's Image tab, the same image.
+  // Escape closes the chooser popover first, then (on the canvas) clears the selection.
+  for (let i = 0; i < 3 && (await page.evaluate(() => window.__studio.tab?.view.selection.length)) !== 0; i++) {
+    await surface.focus();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+  }
+  await page.waitForFunction(() => window.__studio.tab?.view.selection.length === 0, null, { timeout: 10_000 }).catch(() => fail('Escape did not clear the selection'));
+  const pageSection = page.locator('if-inspector section[data-section="page"]');
+  await pageSection.getByRole('button', { name: 'Background', exact: true }).first().click();
+  await page.getByRole('radio', { name: 'Image' }).first().click();
+  await page.getByRole('button', { name: 'Use smoke-mint' }).first().click();
+  await page.waitForFunction(() => window.__studio.scene.undo === 'Background kind', null, { timeout: 20_000 }).catch(async () => fail(`the Background did not take the image: ${await page.evaluate(() => window.__studio.scene.undo)}`));
+  await page.keyboard.press('Escape');
+  log('page background: Background › Image tab › smoke-mint (the colour row became the image)');
+  await page.evaluate(() => window.__studio.lens.goTo('p1'));
+  await page.waitForFunction(() => window.__studio.tab?.page === 'p1', null, { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Select', exact: true }).click().catch(() => undefined);
+  await page.evaluate((n) => window.__studio.workers.editor.request('select', { nodes: [n] }), rect);
   // Studio's scope still follows the editor's selection after the switches (no stale selection scope).
   await page.waitForFunction(() => {
     const app = window.__studio;
@@ -665,6 +714,8 @@ async function scenario(page) {
   const pdf = await download('Export PDF');
   const pdfText = pdf.bytes.toString('latin1');
   if (!pdf.name.endsWith('.pdf') || !pdfText.startsWith('%PDF-1.7') || !pdfText.includes('/Count 2')) fail(`PDF export: ${pdf.name} (${pdf.bytes.length} bytes)`);
+  // B11c: page 2's placed image, image-filled rectangle and image background are in the PDF.
+  if (!/\/Subtype\s*\/Image/.test(pdfText)) fail('the PDF has no image (page 2: the placed image, the image fill, the image background)');
   const extracted = spawnSync('pdftotext', ['-enc', 'UTF-8', '-', '-'], { input: pdf.bytes, encoding: 'utf8' });
   if (extracted.error === undefined) {
     if (!extracted.stdout.includes('Hello Studio')) fail(`PDF export: the text is not extractable: ${JSON.stringify(extracted.stdout)}`);

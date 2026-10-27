@@ -57,7 +57,7 @@ import {
   pagePresetOf,
   pageSizePresets,
 } from './inspector-model.js';
-import { cornersSection, effectPresetMenu, effectStack, fillStack, layerSection, type PaintHost, paintMessages, sharedPaintRow, strokeStack } from './inspector-paint.js';
+import { cornersSection, effectPresetMenu, effectStack, fillStack, type ImageSource, layerSection, type LibraryImage, type PaintHost, paintMessages, sharedPaintRow, strokeStack } from './inspector-paint.js';
 import { type TextCommands, type TextHost, textSection } from './inspector-text.js';
 
 export const inspectorMessages = Object.freeze({
@@ -164,6 +164,8 @@ export interface InspectorModel {
   readonly colors: readonly DocumentColor[];
   /** The selected image's library name. */
   readonly imageName: string | undefined;
+  /** B11c: the workspace's images (the fill popover's Image tab). */
+  readonly images?: readonly LibraryImage[];
 }
 
 export const EMPTY_INSPECTOR: InspectorModel = Object.freeze({
@@ -193,6 +195,8 @@ export interface InspectorPort extends HudPort {
   resizePage(width: number, height: number): void;
   renameTitle(title: string): void;
   replaceImage(): void;
+  /** B11c: an image on the selection's or the page's fills (a new top row, or `index`'s row turned into it). */
+  imageFill(to: 'selection' | 'page', source: ImageSource, index?: number): void;
 }
 
 const spec = component({ tag: 'if-inspector', placeholder: () => nothing, description: 'Instaflow inspector: the selection kind’s sections, the page and document with nothing selected (B11b).' });
@@ -488,6 +492,8 @@ export class IfInspectorElement extends SfElement<typeof spec> {
         this.rows = next;
       },
       resolve: (token) => this.resolve(token),
+      images: this.model.images ?? [],
+      imageFill: (to, source, index) => this.port?.imageFill(to, source, index),
       isMoreOpen: (key) => this.more.has(key),
       toggleMore: (key) => {
         const next = new Set(this.more);
@@ -722,7 +728,7 @@ export class IfInspectorElement extends SfElement<typeof spec> {
 
   private fillSection(s: SelectionSummary, port: InspectorPort): TemplateResult | typeof nothing {
     const a = this.single(s);
-    if (a !== undefined) return fillStack(this.host(), a, (edit) => port.appearance(edit));
+    if (a !== undefined) return fillStack(this.host(), a, (edit) => port.appearance(edit), { crop: (crop) => port.invoke('instaflow/image-crop', { crop }) });
     if (s.fill === undefined) return nothing;
     return sharedPaintRow(this.host(), paintMessages.fill, paintMessages.mixedFills, s.fill, (paint) => port.setPaint('fills', paint, 'Fill'));
   }

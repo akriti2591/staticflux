@@ -209,6 +209,23 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     await until(() => app.tab?.view.selection.length === 1, 'image selected');
     const image = await app.element(app.tab?.view.selection[0] as string);
     expect([image?.kind, image?.w, image?.h]).toEqual(['image', 40, 20]);
+    // B11c: image fills — the selection (a new top row), the page's Background, and a drop on the rectangle / on nothing.
+    unwrap(await app.workers.editor.request('select', { nodes: [rect] }));
+    const filled = unwrap(await app.workers.editor.request('imageFill', { entry, target: { to: 'selection' } }));
+    expect(filled).toEqual({ filled: [rect] });
+    await until(() => app.mirrors.view(AppearanceMirror).read('model')?.fills.at(-1)?.paint !== undefined && (app.mirrors.view(AppearanceMirror).read('model')?.fills.at(-1)?.paint as { kind?: string }).kind === 'image', 'the rectangle shows the image on top');
+    expect(app.scene.undo).toBe('Image fill');
+    unwrap(await app.workers.editor.request('imageFill', { entry, target: { to: 'page' } }));
+    await until(() => (sceneView.read('pageFill')?.fills.at(-1)?.paint as { kind?: string } | undefined)?.kind === 'image', 'the page background is the image');
+    expect(sceneView.read('pageFill')?.fills[0]?.paint).toBe('#FFF4E0'); // the colour row stays under it
+    const away = unwrap(await app.workers.editor.request('imageFill', { entry, target: { to: 'point', x: 5, y: 5 } }));
+    expect('placed' in away).toBe(true);
+    const notFillable = await app.workers.editor.request('imageFill', { entry, target: { to: 'selection', index: 0 } });
+    expect(notFillable.ok).toBe(true); // the placed image is selected: its row 0 becomes the new picture
+    // Files that are not images, or too large, are refused with a toast and its fix (never a blank screen).
+    const huge = { name: 'huge.png', type: 'image/png', size: 200 * 1024 * 1024, stream: () => new ReadableStream() } as unknown as File;
+    app.chrome.dropFiles([new File(['hi'], 'notes.txt', { type: 'text/plain' }), huge], { x: 5, y: 5 });
+    await until(() => app.toasted.slice(-2).join(' | ') === 'Only images can be placed on the canvas or used as a fill. | This image is larger than 100 MB, more than Studio places or fills with from a file.', 'refusals toasted');
 
     // C1: export from a frozen snapshot in the export worker; the document gains nothing (D10).
     if (exportEnv !== undefined) {

@@ -31,6 +31,11 @@ fully by hand (D17).
   `queryNow`, `search`, `step`, `replace`; events `if-find-close`, `if-announce`; `readFindMemory` (`instaflow/ui/find`),
   `FIND_DEBOUNCE_MS`, `findBarMessages`. `<if-studio>` opens it (`openFind(replace?)`, `closeFind()`; `Mod+F`, `Mod+Alt+F`,
   `⋯ › Find…`, the command bar's `find:` rows).
+- B11c slice 4: `inspector-paint.ts` image fills (`LibraryImage`, `ImageSource`, `ImageCropPatch`, `IMAGE_FIT_LABELS`,
+  `imageChooser`; the fill swatch's `Solid · Gradient · Image` tabs; `PaintHost.images` / `imageFill`); the inspector's
+  `InspectorModel.images`, `InspectorPort.imageFill`, Page › Size as `<sf-size-field>`; `<if-studio>`'s `Place image…` (tool picker,
+  command bar `place:image`, canvas menu `cmd:place-image`) and the canvas drop (`dropFiles`); `errors.ts` IF-POL-059 / 060,
+  `MAX_IMAGE_BYTES`; `shortcuts-sheet.ts` `shortcutsPrintHtml`, `printShortcuts`.
 - `hud.ts` (B11b) — `<if-hud>`: the selection pill per kind over `studio-controls.ts` (`CONTROL_SETS`, `SECTIONS`, `CONTROL`,
   `MORE_GROUP_OF`, `MORE_EXCLUDED`); `HudPort`, `paintFromColor`, `pillCapabilities`, `moreMenuGroups`.
 - `command-bar.ts` (B11b) — `<if-command-bar .sources>` (`Mod+K`; fires `if-command { value }` = `cap:` / `tool:` / `camera:`),

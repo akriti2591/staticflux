@@ -145,6 +145,19 @@ export interface StudioInspection {
 }
 
 /** B11b: camera commands of the View menu and the zoom pill. */
+/**
+ * B11c: where an image fill goes (APPEARANCE §2.1 `+ Add ▾ Image…`, §2.2 the Image tab, HOME-FILES §3.1 canvas drop):
+ * the selection or the page's Background (a new top row, or `index`'s row turned into the image), or the element at a
+ * canvas point (a drop: a shape or frame there is filled; an image there shows the new picture; anywhere else the
+ * image is placed at the point).
+ */
+export type ImageFillTarget =
+  | { readonly to: 'selection' | 'page'; readonly index?: number }
+  | { readonly to: 'point'; readonly x: number; readonly y: number };
+
+/** What an image fill did: the elements (or the page) it filled, or the image element it placed. */
+export type ImageFillResult = { readonly filled: readonly NodeId[] } | { readonly placed: NodeId };
+
 export type CameraCommand = 'fit-page' | 'fit-selection' | 'zoom-100' | 'zoom-in' | 'zoom-out' | 'zoom-50' | 'zoom-200';
 
 /** B11b: a capability the editor ran from a key (its id, the nodes, and how many it touched). */
@@ -191,6 +204,8 @@ export const StudioWorkerProtocol = /* @__PURE__ */ defineProtocol({
     place: request<{ readonly entry: LibraryEntry }, void>({ timeoutMs: 60_000 }),
     /** B11b: the selected images show `entry` instead (Image › Replace…; fit kept, crop reset). */
     replaceImage: request<{ readonly entry: LibraryEntry }, void>({ timeoutMs: 60_000 }),
+    /** B11c: an image fill on the selection, the page's Background or the element at a drop point. */
+    imageFill: request<{ readonly entry: LibraryEntry; readonly target: ImageFillTarget }, ImageFillResult>({ timeoutMs: 60_000 }),
     hud: request<{ readonly action: string }, void>(),
     /** The zoom buttons (B3 `zoomStep`). */
     zoom: request<{ readonly step: 1 | -1 }, void>(),

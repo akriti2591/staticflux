@@ -108,6 +108,7 @@ async function mount(model: InspectorModel, density = 'standard'): Promise<{ el:
     resizePage: log('resizePage'),
     renameTitle: log('renameTitle'),
     replaceImage: log('replaceImage'),
+    imageFill: log('imageFill'),
   };
   render(html`<if-inspector .model=${model} .port=${port} density=${density}></if-inspector>`, testRoot.container);
   await settle(8);
@@ -153,6 +154,51 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     button(root, 'Hide background').click();
     expect(calls.at(-1)).toBe('pageAppearance [{"op":"toggle","stack":"fills","index":0}]');
     expectNoA11yIssues(root.host as HTMLElement);
+  });
+
+  it('B11c image fills: the fill swatch’s tabs Solid · Gradient · Image; Image chooses a workspace image or uploads; `+ Add ▾ › Image…`; image rows have Fit and the crop', async () => {
+    const images = [{ asset: 'as_photo', title: 'Photo' }, { asset: 'as_logo', title: 'Logo', thumb: 'blob:logo' }];
+    const { el, root, calls } = await mount({ ...MODEL, images, selection: summary('shape', { common: 'rectangle' }), appearance: appearance({ fills: [{ paint: '#FF5C39' }] }) });
+    const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;
+    const tabs = fill.querySelector('sf-segmented.paint-tabs') as HTMLElement & { value: string };
+    expect(tabs.value).toBe('solid');
+    change(tabs, { value: 'image' });
+    await el.updateComplete;
+    const choices = [...fill.querySelectorAll<HTMLButtonElement>('.paint-popover button.image-choice')];
+    expect(choices.map((b) => b.getAttribute('aria-label'))).toEqual(['Use Photo', 'Use Logo']);
+    expect(fill.querySelector('.paint-popover img')?.getAttribute('src')).toBe('blob:logo');
+    choices[1]?.click();
+    expect(calls.at(-1)).toBe('imageFill ["selection",{"asset":"as_logo"},0]');
+    // + Add ▾ › Image…: the chooser popover beside the menu; Upload… asks for a file.
+    select(fill, 'Add fill', 'image');
+    await el.updateComplete;
+    const picker = fill.querySelector('sf-popover.image-picker') as HTMLElement & { open: boolean };
+    expect(picker.open).toBe(true);
+    (picker.querySelector('sf-button.upload-image') as HTMLElement).click();
+    expect(calls.at(-1)).toBe('imageFill ["selection",{"upload":true}]');
+    expectNoA11yIssues(root.host as HTMLElement);
+    // An image row: thumbnail, Fit (Fill · Fit · Stretch · Tile) and the numeric crop through instaflow/image-crop.
+    el.model = { ...el.model, appearance: appearance({ fills: [{ paint: { kind: 'image', asset: { asset: 'as_logo' }, fit: 'cover' } }] }) };
+    await el.updateComplete;
+    expect(fill.querySelector('.summary')?.textContent).toContain('Image');
+    (fill.querySelector('button.summary') as HTMLElement).click();
+    await el.updateComplete;
+    select(fill, 'Fill fit', 'tile');
+    expect(calls.at(-1)).toBe('appearance [{"op":"update","stack":"fills","index":0,"patch":{"paint":{"kind":"image","asset":{"asset":"as_logo"},"fit":"tile"}}}]');
+    change(field(fill, 'Fill scale'), { value: 150 });
+    expect(calls.at(-1)).toBe('invoke ["instaflow/image-crop",{"crop":{"scale":1.5}}]');
+    expectNoA11yIssues(root.host as HTMLElement);
+  });
+
+  it('B11c the page Background takes an image too (Add ▾ › Image…, the Image tab)', async () => {
+    const { el, root, calls } = await mount({ ...MODEL, images: [{ asset: 'as_photo', title: 'Photo' }] });
+    const page = root.querySelector('section[data-section="page"]') as HTMLElement;
+    change(page.querySelector('sf-segmented.paint-tabs') as HTMLElement, { value: 'image' });
+    await el.updateComplete;
+    (page.querySelector('.paint-popover button.image-choice') as HTMLElement).click();
+    expect(calls.at(-1)).toBe('imageFill ["page",{"asset":"as_photo"},0]');
+    const menu = [...page.querySelectorAll('sf-menu')].find((m) => m.getAttribute('label') === 'Add background');
+    expect([...(menu?.querySelectorAll(':scope > sf-menu-item') ?? [])].map((i) => i.getAttribute('value'))).toEqual(['colour', 'gradient', 'image']);
   });
 
   it('a rectangle: Transform, Fill, Stroke, Corners ▸, Effects ▸, Layer ▸; the stack rows edit through the port', async () => {

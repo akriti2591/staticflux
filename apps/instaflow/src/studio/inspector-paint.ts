@@ -4,6 +4,11 @@
  * or in Pro, `+ Add ▾`), the gradient editor in the swatch's popover (type, stops, angle, reverse), Corners and Layer.
  * Templates only: every edit is an `AppearanceEdit` (one undo step each) or, for a multi-selection, a scene action on
  * every element. The host element (`<if-inspector>`) owns the state (expanded rows, recent colours) through `PaintHost`.
+ *
+ * B11c: image fills (APPEARANCE §2.1–§2.2): a fill row's swatch opens one popover with the tabs `Solid · Gradient ·
+ * Image` (switching converts the paint; Image shows the workspace's images and `Upload…`, then Fit and the numeric
+ * crop); `+ Add ▾ › Image…` and the `Add image fill` button add an image row on top; the page's Background takes
+ * gradients and images too (A-1).
  */
 import type { ColorChangeDetail, DocumentColor } from '@staticflux/kit/color-popover';
 import { arrowLeftRightIcon } from '@staticflux/kit/icons/arrow-left-right';
@@ -109,7 +114,42 @@ export const paintMessages = Object.freeze({
   fromBrand: 'From brand',
   limit: (what: string) => `Up to 16 ${what}`,
   image: 'Image',
+  // B11c: image fills.
+  imageItem: 'Image…',
+  paintKind: 'Paint kind',
+  solid: 'Solid',
+  chooseImage: 'Choose an image',
+  addImage: (name: string) => `Add image to ${name.toLowerCase()}`,
+  useImage: (title: string) => `Use ${title}`,
+  upload: 'Upload…',
+  noImages: 'No images in this workspace yet. Upload one.',
+  fit: 'Fit',
+  cropX: 'Crop X',
+  cropY: 'Crop Y',
+  cropScale: 'Scale',
 });
+
+/** A workspace image the Image tab offers (the library's live image entries). */
+export interface LibraryImage {
+  readonly asset: string;
+  readonly title: string;
+  /** Thumbnail object URL once loaded. */
+  readonly thumb?: string;
+}
+
+/** Where a picked image comes from: a workspace image, or a file the person uploads now. */
+export type ImageSource = { readonly asset: string } | { readonly upload: true };
+
+/** The image fill's crop as the inspector edits it (`instaflow/image-crop`, the top image row). */
+export interface ImageCropPatch {
+  readonly x?: number;
+  readonly y?: number;
+  readonly scale?: number;
+}
+
+/** The fit labels of an image row (`cover` shows as Fill). */
+export const IMAGE_FIT_LABELS = Object.freeze({ cover: 'Fill', contain: 'Fit', stretch: 'Stretch', tile: 'Tile' } as const);
+export type ImageFitChoice = keyof typeof IMAGE_FIT_LABELS;
 
 /** The most items a stack holds (the model's limit). */
 export const MAX_STACK_ITEMS = 16;
@@ -126,6 +166,10 @@ export interface PaintHost {
   toggleRow(key: string): void;
   /** Resolve `@token` → hex (undefined: not in the kit). */
   resolve(token: string): string | undefined;
+  /** B11c: the workspace's images (the Image tab). */
+  readonly images?: readonly LibraryImage[];
+  /** B11c: put an image on the selection's or the page's fills: a new top row, or `index`'s row turned into it. */
+  imageFill?(to: 'selection' | 'page', source: ImageSource, index?: number): void;
 }
 
 type Item = Readonly<Record<string, JsonValue>>;
@@ -189,9 +233,7 @@ export function colorSwatch(host: PaintHost, label: string, color: string | unde
 /** The swatch of any paint: a solid opens the colour popover; a gradient opens the gradient editor. */
 function paintSwatch(host: PaintHost, label: string, paint: JsonValue | undefined, set: (paint: JsonValue) => void): TemplateResult {
   const kind = paintKind(paint);
-  if (kind === 'image') {
-    return html`<span class="thumb" aria-hidden="true"><sf-icon .icon=${imageIcon} size="16"></sf-icon></span>`;
-  }
+  if (kind === 'image') return imageThumb(host, paint);
   if (isGradient(paint)) return gradientSwatch(host, label, paint, set);
   const value = typeof paint === 'string' ? paint : '#00000000';
   const token = value.startsWith('@') ? value.slice(1) : undefined;
@@ -219,13 +261,140 @@ function paintKindMenu(host: PaintHost, label: string, paint: JsonValue | undefi
 
 type Gradient = Extract<PaintValue, { readonly stops: readonly GradientStopValue[] }>;
 
+const assetOfPaint = (paint: JsonValue | undefined): string | undefined => {
+  const a = asItem(asItem(paint)['asset'])['asset'];
+  return typeof a === 'string' ? a : undefined;
+};
+
+/** An image paint's thumbnail (the library's rendition when loaded, else the image icon). */
+function imageThumb(host: PaintHost, paint: JsonValue | undefined): TemplateResult {
+  const asset = assetOfPaint(paint);
+  const thumb = host.images?.find((i) => i.asset === asset)?.thumb;
+  return html`<span class="thumb" aria-hidden="true">${thumb === undefined ? html`<sf-icon .icon=${imageIcon} size="16"></sf-icon>` : html`<img src=${thumb} alt="" />`}</span>`;
+}
+
+/** The Image tab's chooser: the workspace's images as a grid, then `Upload…` (APPEARANCE §2.2, HOME-FILES §3.1). */
+export function imageChooser(host: PaintHost, pick: (source: ImageSource) => void): TemplateResult {
+  const images = host.images ?? [];
+  return html`<div class="image-chooser">
+    <span class="label">${paintMessages.chooseImage}</span>
+    ${images.length === 0
+      ? html`<p class="muted">${paintMessages.noImages}</p>`
+      : html`<ul class="image-grid" role="list">
+          ${images.map(
+            (i) => html`<li>
+              <button type="button" class="image-choice" aria-label=${paintMessages.useImage(i.title)} title=${i.title} @click=${() => pick({ asset: i.asset })}>
+                ${i.thumb === undefined ? html`<sf-icon .icon=${imageIcon} size="20"></sf-icon>` : html`<img src=${i.thumb} alt="" />`}
+              </button>
+            </li>`,
+          )}
+        </ul>`}
+    <sf-button class="upload-image" size="sm" variant="secondary" @click=${() => pick({ upload: true })}>${paintMessages.upload}</sf-button>
+  </div>`;
+}
+
+/** The image row's fields: Fit and (the top image row of an element) the numeric crop. */
+function imageFields(rowName: string, paint: JsonValue | undefined, set: (paint: JsonValue) => void, crop?: (patch: ImageCropPatch) => void): TemplateResult {
+  const p = asItem(paint);
+  const fit = (typeof p['fit'] === 'string' && p['fit'] in IMAGE_FIT_LABELS ? p['fit'] : 'cover') as ImageFitChoice;
+  const offset = Array.isArray(p['offset']) ? (p['offset'] as number[]) : [0.5, 0.5];
+  const scale = num(p['scale'], 1);
+  return html`${choiceMenu(`${rowName} ${paintMessages.fit.toLowerCase()}`, fit, IMAGE_FIT_LABELS, (f) => set({ ...p, fit: f } as JsonValue))}
+  ${crop === undefined
+    ? nothing
+    : html`${numberField(`${rowName} ${paintMessages.cropX.toLowerCase()}`, Math.round(num(offset[0], 0.5) * 100), (n) => crop({ x: Math.max(0, Math.min(100, n)) / 100 }), { min: 0, max: 100, unit: '%' })}
+      ${numberField(`${rowName} ${paintMessages.cropY.toLowerCase()}`, Math.round(num(offset[1], 0.5) * 100), (n) => crop({ y: Math.max(0, Math.min(100, n)) / 100 }), { min: 0, max: 100, unit: '%' })}
+      ${numberField(`${rowName} ${paintMessages.cropScale.toLowerCase()}`, Math.round(scale * 100), (n) => crop({ scale: Math.max(1, Math.min(10000, n)) / 100 }), { min: 1, max: 10000, unit: '%' })}`}`;
+}
+
+type PaintTab = 'solid' | 'gradient' | 'image';
+const PAINT_TABS: readonly PaintTab[] = ['solid', 'gradient', 'image'];
+
+/**
+ * A fill row's swatch (B11c, APPEARANCE §2.2): one popover with the tabs `Solid · Gradient · Image`; switching converts
+ * the paint (to Image: the chooser shows until an image is picked, the paint stays meanwhile).
+ */
+function fillSwatch(host: PaintHost, label: string, paint: JsonValue | undefined, set: (paint: JsonValue) => void, o: { readonly key: string; readonly to: 'selection' | 'page'; readonly index: number; readonly crop?: (patch: ImageCropPatch) => void }): TemplateResult {
+  const kind = paintKind(paint);
+  const choosing = host.isExpanded(`image:${o.key}`);
+  const tab: PaintTab = kind === 'image' || choosing ? 'image' : kind === 'solid' ? 'solid' : 'gradient';
+  const colour = (typeof paint === 'string' ? (host.resolve(paint) ?? paint) : leadColor(paint)) ?? '#D9D9D9';
+  const stopChoosing = (): void => (choosing ? host.toggleRow(`image:${o.key}`) : undefined);
+  const convert = (to: PaintTab): void => {
+    if (to === tab) return;
+    if (to === 'image') {
+      if (!choosing) host.toggleRow(`image:${o.key}`);
+      return;
+    }
+    stopChoosing();
+    if (to === 'solid') set((kind === 'image' ? '#D9D9D9' : (leadColor(paint) ?? '#16151A')) as JsonValue);
+    else set(gradientFrom(colour, 'linear') as unknown as JsonValue);
+  };
+  const trigger =
+    kind === 'image'
+      ? imageThumb(host, paint)
+      : isGradient(paint)
+        ? html`<span class="gradient-thumb" style=${`background:${gradientCss(host, paint)}`}></span>`
+        : html`<sf-swatch color=${colour}></sf-swatch>`;
+  const body: Readonly<Record<PaintTab, () => TemplateResult>> = {
+    solid: () => {
+      const value = typeof paint === 'string' ? paint : colour;
+      const token = value.startsWith('@') ? value.slice(1) : undefined;
+      const resolved = token === undefined ? value : host.resolve(value);
+      return html`<sf-color-popover
+        label=${`${label} colour`}
+        value=${(resolved ?? '').slice(0, 7)}
+        token=${token ?? nothing}
+        ?unresolved=${token !== undefined && resolved === undefined}
+        ?custom-open=${host.pro}
+        ?captions=${host.pro}
+        .documentColors=${host.documentColors}
+        .palette=${CLEAN_POP_COLOR_PALETTE}
+        .recent=${host.recent}
+        @sf-change=${(e: CustomEvent<ColorChangeDetail>) => host.commitColor(e.detail, (p) => set(p))}
+      ></sf-color-popover>`;
+    },
+    gradient: () => (isGradient(paint) ? gradientEditor(host, paint, set) : html``),
+    image: () =>
+      html`${kind === 'image' ? html`<div class="row">${imageFields(label, paint, set, o.crop)}</div>` : nothing}
+      ${imageChooser(host, (source) => {
+        stopChoosing();
+        host.imageFill?.(o.to, source, o.index);
+      })}`,
+  };
+  return html`<sf-popover label=${`${label} paint`} outside="pass">
+    <sf-icon-button slot="trigger" size="sm" variant="ghost" label=${label}>${trigger}</sf-icon-button>
+    <div class="paint-popover">
+      <sf-segmented
+        class="paint-tabs"
+        label=${`${label} ${paintMessages.paintKind.toLowerCase()}`}
+        .options=${PAINT_TABS.map((t) => ({ value: t, label: t === 'solid' ? paintMessages.solid : t === 'gradient' ? paintMessages.gradient : paintMessages.image }))}
+        .value=${tab}
+        @sf-change=${(e: CustomEvent<{ value: PaintTab }>) => {
+          e.stopPropagation();
+          convert(e.detail.value);
+        }}
+      ></sf-segmented>
+      ${body[tab]()}
+    </div>
+  </sf-popover>`;
+}
+
+const gradientCss = (host: PaintHost, paint: Gradient): string => `linear-gradient(90deg, ${paint.stops.map((s) => `${host.resolve(s.color) ?? s.color} ${Math.round(s.offset * 100)}%`).join(', ')})`;
+
 /** The gradient editor (APPEARANCE §2.3.1) in the swatch's popover: type, stops (colour, position, add, remove), angle, reverse. */
 function gradientSwatch(host: PaintHost, label: string, paint: Gradient, set: (paint: JsonValue) => void): TemplateResult {
-  const put = (next: Gradient): void => set(next as unknown as JsonValue);
-  const css = `linear-gradient(90deg, ${paint.stops.map((s) => `${host.resolve(s.color) ?? s.color} ${Math.round(s.offset * 100)}%`).join(', ')})`;
   return html`<sf-popover label=${`${label} gradient`} outside="pass">
-    <sf-icon-button slot="trigger" size="sm" variant="ghost" label=${label}><span class="gradient-thumb" style=${`background:${css}`}></span></sf-icon-button>
-    <div class="gradient-editor">
+    <sf-icon-button slot="trigger" size="sm" variant="ghost" label=${label}><span class="gradient-thumb" style=${`background:${gradientCss(host, paint)}`}></span></sf-icon-button>
+    ${gradientEditor(host, paint, set)}
+  </sf-popover>`;
+}
+
+/** The gradient editor's body (the Gradient tab and the stroke's gradient popover). */
+function gradientEditor(host: PaintHost, paint: Gradient, set: (paint: JsonValue) => void): TemplateResult {
+  const put = (next: Gradient): void => set(next as unknown as JsonValue);
+  const css = gradientCss(host, paint);
+  return html`<div class="gradient-editor">
       <sf-segmented
         label=${paintMessages.gradientType}
         .options=${GRADIENT_KINDS.map((k) => ({ value: k, label: GRADIENT_LABELS[k] }))}
@@ -251,8 +420,7 @@ function gradientSwatch(host: PaintHost, label: string, paint: Gradient, set: (p
         <sf-icon-button size="sm" variant="ghost" label=${paintMessages.reverse} @click=${() => put(reversed(paint))}><sf-icon .icon=${arrowLeftRightIcon} size="14"></sf-icon></sf-icon-button>
       </div>
       <sf-button size="sm" variant="ghost" @click=${() => set((leadColor(paint) ?? '#16151A') as JsonValue)}>${paintMessages.toSolid}</sf-button>
-    </div>
-  </sf-popover>`;
+    </div>`;
 }
 
 /** One stack row: swatch · summary (expands) · opacity · eye · × ; the second line when expanded or in Pro. */
@@ -308,17 +476,18 @@ function stackRow(host: PaintHost, o: {
   </div>`;
 }
 
-const addMenu = (label: string, full: boolean, what: string, items: TemplateResult, pick: (value: string) => void): TemplateResult =>
-  html`<sf-menu label=${label} @sf-select=${(e: CustomEvent<{ value: string }>) => pick(e.detail.value)}>
+const addMenu = (label: string, full: boolean, what: string, items: TemplateResult, pick: (value: string, e: Event) => void): TemplateResult =>
+  html`<sf-menu label=${label} @sf-select=${(e: CustomEvent<{ value: string }>) => pick(e.detail.value, e)}>
     <sf-button slot="trigger" size="sm" variant="ghost" ?disabled=${full}><sf-icon .icon=${plusIcon} size="14"></sf-icon> ${paintMessages.add} <sf-icon .icon=${chevronDownIcon} size="14"></sf-icon></sf-button>
     ${items} ${full ? html`<sf-menu-item value="" disabled>${paintMessages.limit(what)}</sf-menu-item>` : nothing}
   </sf-menu>`;
 
 /** `+ Add ▾` paints: Colour · Gradient ▸ (Linear · Radial · Conic); `solidOnly` (text) lists Colour only. */
-function addPaintMenu(label: string, count: number, what: string, add: (paint: PaintValue) => void, base: string, solidOnly = false): TemplateResult {
-  const pick = (value: string): void => {
+function addPaintMenu(label: string, count: number, what: string, add: (paint: PaintValue) => void, base: string, solidOnly = false, image?: (e: Event) => void): TemplateResult {
+  const pick = (value: string, e: Event): void => {
     if (value === 'colour') add(count > 0 ? '#D9D9D9' : base);
     else if ((GRADIENT_KINDS as readonly string[]).includes(value)) add(gradientFrom(base, value as GradientKind));
+    else if (value === 'image') image?.(e);
   };
   return addMenu(
     label,
@@ -328,40 +497,61 @@ function addPaintMenu(label: string, count: number, what: string, add: (paint: P
       ${solidOnly
         ? nothing
         : html`<sf-menu-item value="gradient">${paintMessages.gradient}</sf-menu-item>
-            <sf-menu slot="submenu" label=${paintMessages.gradient}>${GRADIENT_KINDS.map((k) => html`<sf-menu-item value=${k}>${GRADIENT_LABELS[k]}</sf-menu-item>`)}</sf-menu>`}`,
+            <sf-menu slot="submenu" label=${paintMessages.gradient}>${GRADIENT_KINDS.map((k) => html`<sf-menu-item value=${k}>${GRADIENT_LABELS[k]}</sf-menu-item>`)}</sf-menu>`}
+      ${image === undefined ? nothing : html`<sf-menu-item value="image">${paintMessages.imageItem}</sf-menu-item>`}`,
     pick,
   );
 }
 
 /** The Fill stack of one element (or the page's Background, `page`). */
-export function fillStack(host: PaintHost, model: AppearanceModel, edit: (e: AppearanceEdit) => void, o: { readonly name?: string; readonly page?: boolean } = {}): TemplateResult {
+export function fillStack(
+  host: PaintHost,
+  model: AppearanceModel,
+  edit: (e: AppearanceEdit) => void,
+  o: { readonly name?: string; readonly page?: boolean; readonly crop?: (patch: ImageCropPatch) => void } = {},
+): TemplateResult {
   const name = o.name ?? paintMessages.fill;
   const count = model.fills.length;
   const top = model.fills.at(-1);
   const base = leadColor(top?.paint as JsonValue | undefined) ?? '#FF5C39';
+  const to = o.page === true ? 'page' : 'selection';
+  // The crop capability edits the top visible image row.
+  const topImage = [...model.fills.keys()].reverse().find((i) => asItem(model.fills[i])['visible'] !== false && paintKind(asItem(model.fills[i])['paint']) === 'image');
   const rows = [...model.fills.keys()].reverse().map((index) => {
     const item = asItem(model.fills[index]);
     const paint = item['paint'];
     const set = (p: JsonValue): void => edit({ op: 'update', stack: 'fills', index, patch: { paint: p } });
-    const fit = asItem(paint)['fit'];
     const rowName = count > 1 ? `${name} ${count - index}` : name;
+    const crop = index === topImage ? o.crop : undefined;
     return stackRow(host, {
       stack: 'fills',
       index,
       count,
       item,
       name: rowName,
-      swatch: paintSwatch(host, rowName, paint, set),
+      swatch: fillSwatch(host, rowName, paint, set, { key: `${to}:fills:${index}`, to, index, ...(crop === undefined ? {} : { crop }) }),
       summary: paintRowSummary(paint, (t) => host.resolve(t)),
-      detail: html`${o.page === true ? nothing : paintKindMenu(host, rowName, paint, set)}${paintKind(paint) === 'image'
-        ? choiceMenu(`${rowName} fit`, (typeof fit === 'string' ? fit : 'cover') as 'cover' | 'contain' | 'stretch' | 'tile', { cover: 'Fill', contain: 'Fit', stretch: 'Stretch', tile: 'Tile' }, (f) => set({ ...asItem(paint), fit: f } as JsonValue))
-        : nothing}
+      detail: html`${paintKind(paint) === 'image' ? imageFields(rowName, paint, set, crop) : paintKindMenu(host, rowName, paint, set)}
       ${blendMenu(`${rowName} ${paintMessages.blend.toLowerCase()}`, (item['blend'] as BlendModeName | undefined) ?? 'normal', (m) => edit({ op: 'update', stack: 'fills', index, patch: { blend: m } }))}`,
       edit,
     });
   });
+  const full = count >= MAX_STACK_ITEMS;
+  // `+ Add ▾ › Image…` opens the chooser popover beside the menu (its button is the visible way in too).
+  const openChooser = (e: Event): void => {
+    const popover = (e.target as HTMLElement).closest('.add-row')?.querySelector<HTMLElement & { open: boolean }>('sf-popover.image-picker');
+    if (popover !== null && popover !== undefined) popover.open = true;
+  };
   return html`${count === 0 ? html`<p class="muted">${paintMessages.noFill}</p>` : rows}
-    ${addPaintMenu(o.page === true ? `${paintMessages.add} ${name.toLowerCase()}` : paintMessages.addFill, count, 'fills', (paint) => edit({ op: 'add', stack: 'fills', item: { paint } }), base, o.page === true)}`;
+    <div class="add-row">
+      ${addPaintMenu(o.page === true ? `${paintMessages.add} ${name.toLowerCase()}` : paintMessages.addFill, count, 'fills', (paint) => edit({ op: 'add', stack: 'fills', item: { paint } }), base, false, host.imageFill === undefined ? undefined : openChooser)}
+      ${host.imageFill === undefined
+        ? nothing
+        : html`<sf-popover class="image-picker" label=${paintMessages.chooseImage} outside="pass">
+            <sf-icon-button slot="trigger" size="sm" variant="ghost" label=${paintMessages.addImage(name)} ?disabled=${full}><sf-icon .icon=${imageIcon} size="14"></sf-icon></sf-icon-button>
+            ${imageChooser(host, (source) => host.imageFill?.(to, source))}
+          </sf-popover>`}
+    </div>`;
 }
 
 /** The Stroke stack of one element (APPEARANCE §2.5). */

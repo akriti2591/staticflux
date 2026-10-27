@@ -332,6 +332,8 @@
 - **R13.48** Kit **size field pair** (`<sf-size-field>`): W and H number fields in a unit (`px · mm · in · pt`, 96 px per inch; the value is always px), a keep-proportions toggle, a portrait · landscape switch (swaps the sides) and a units select, plus a `presets` slot; a side outside `min`…`max` stays in its field with an inline error (SF-KIT-005) and fires nothing; `sf-change` `{ width, height, unit }`, `sf-submit` on Enter; the pair is a named group. *(Instaflow B11b / B11c)*
 - **R13.49** Kit **card slots and states** (`<sf-card>`): an `actions` slot (top-right) and a `leading` slot (top-left) outside the link, revealed on hover and focus within (always with `actions-shown`, the leading slot always when `selected`); `selected` (soft tangerine edge), `drop-target` (tangerine outline), `dragging`. *(Instaflow B11c)*
 - **R13.50** Kit **icon fill**: `--sf-icon-fill` fills an outline icon's shape (a favourite's star); default none. *(Instaflow B11c)*
+- **R13.51** `<sf-size-field>`'s number fields take their width from `--sf-size-field-input` (default 7.5rem), so a narrow
+  column (an inspector) holds the pair.
 
 ## 14. Localization (base requirement)
 
@@ -352,6 +354,8 @@
 - **R15.6** The component audit (`@staticflux/testkit/a11y`, R15.4) also checks ARIA states on roles that do not support
   them (`allowed-attr`), names on roles that prohibit one or on a plain `div` / `span` (`prohibited-name`), and duplicate
   ids within a tree (`duplicate-id`); kit inspector rows name only controls, never plain text.
+- **R15.7** The shortcut registry matches `Alt` + punctuation by the physical key (US positions) with `Shift` as a modifier,
+  so `Alt+]` and `Alt+Shift+]` are two shortcuts on every layout (macOS Option otherwise turns `]` into `‘`).
 
 ## 16. Testing (base requirement)
 

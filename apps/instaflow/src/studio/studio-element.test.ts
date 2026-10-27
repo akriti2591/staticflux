@@ -78,6 +78,8 @@ function recordingPort(calls: string[], context?: () => SelectionSummary | undef
     textPreset: log('textPreset'),
     fitToBox: log('fitToBox'),
     replaceImage: log('replaceImage'),
+    placeImage: log('placeImage'),
+    dropFiles: (files, at) => void calls.push(`dropFiles ${files.map((f) => f.name).join(',')} ${at.x},${at.y}`),
     pageAction: log('pageAction'),
     saveHint: log('saveHint'),
     openShortcuts: log('openShortcuts'),
@@ -207,7 +209,7 @@ describe('<if-studio> frame (B11b)', () => {
   it('the tool picker: icons with names and keys, the shape family as one button with a menu, no Pen', async () => {
     const { root, studio } = await mount();
     const tools = root.querySelector('.tools') as HTMLElement;
-    const buttons = [...tools.querySelectorAll(':scope > sf-icon-button')];
+    const buttons = [...tools.querySelectorAll(':scope > sf-icon-button:not(.place-image)')];
     expect(buttons.map((b) => accessibleName(b))).toEqual(['Select', 'Frame', 'Rectangle', 'Text', 'Hand']);
     expect(buttons.map((b) => b.getAttribute('shortcut'))).toEqual(['V', 'F', 'R', 'T', 'H']);
     expect(tools.querySelectorAll('sf-icon').length).toBeGreaterThanOrEqual(5);
@@ -305,6 +307,28 @@ describe('<if-studio> frame (B11b)', () => {
     for (const value of ['save-template', 'copy-link', 'settings', 'shortcuts', 'about']) more.dispatchEvent(new CustomEvent('sf-select', { detail: { value } }));
     (root.querySelector('header > sf-button[variant="primary"]') as HTMLElement).click();
     expect(calls).toEqual(['camera ["fit-page"]', 'camera ["zoom-out"]', 'createMilestone ["Client v1"]', 'saveAsTemplate', 'copyLink', 'openSettings', 'openShortcuts', 'openSettings ["about"]', 'openExport']);
+  });
+
+  it('B11c images from files: Place image… in the tool picker, the command bar and the canvas menu; a file drop reaches the port at its point', async () => {
+    const { root, calls, element } = await mount();
+    const place = root.querySelector('.tools sf-icon-button.place-image') as HTMLElement;
+    expect(accessibleName(place)).toBe('Place image…');
+    place.click();
+    root.querySelector('if-command-bar')?.dispatchEvent(new CustomEvent('if-command', { detail: { value: 'place:image' } }));
+    await element.openContextMenu({ kind: 'canvas' }, { x: 10, y: 10 });
+    (root.querySelector('sf-menu.context-menu') as HTMLElement).dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'cmd:place-image' } }));
+    expect(calls.filter((c) => c === 'placeImage')).toHaveLength(3);
+    const main = root.querySelector('main') as HTMLElement;
+    const file = new File([new Uint8Array([1])], 'dot.png', { type: 'image/png' });
+    const transfer = { types: ['Files'], files: [file], dropEffect: 'none' };
+    const drag = (type: string) => Object.assign(new Event(type, { bubbles: true, cancelable: true }), { dataTransfer: transfer, clientX: 40, clientY: 30, relatedTarget: null });
+    main.dispatchEvent(drag('dragover'));
+    await element.updateComplete;
+    expect(main.hasAttribute('data-drop')).toBe(true);
+    main.dispatchEvent(drag('drop'));
+    await element.updateComplete;
+    expect(main.hasAttribute('data-drop')).toBe(false);
+    expect(calls.at(-1)).toMatch(/^dropFiles dot\.png -?\d+,-?\d+$/);
   });
 
   it('B11c find: Mod+F and ⋯ › Find… open the bar with its field focused, Mod+Alt+F with Replace; the bar searches through the port; Escape closes it', async () => {
@@ -458,7 +482,7 @@ describe('<if-studio> keyboard paths', () => {
     surface.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, composed: true, cancelable: true, clientX: 50, clientY: 50 }));
     const menu = root.querySelector('sf-menu.context-menu') as SfMenuElement & { open?: boolean };
     await until(() => menu.open === true);
-    expect([...menu.querySelectorAll('sf-menu-item')].map((i) => i.getAttribute('value'))).toEqual(['cmd:select-all', 'cmd:zoom-fit', 'cmd:zoom-100', 'cmd:add-page']);
+    expect([...menu.querySelectorAll('sf-menu-item')].map((i) => i.getAttribute('value'))).toEqual(['cmd:select-all', 'cmd:zoom-fit', 'cmd:zoom-100', 'cmd:add-page', 'cmd:place-image']);
   });
 
   it('the chrome keys: Mod+\\ collapses the dock, Mod+S hints, ? opens the cheat sheet, Shift+F10 the menu', async () => {

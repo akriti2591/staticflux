@@ -63,6 +63,10 @@ Main side:
   `FIND_CAPABILITIES`, `FIND_KINDS`, `FIND_SCOPES`, `FindQuery`, `FindMatch`, `FindResult`, `ReplaceResult`, `FindEnv`, `findMatches`
   (pure), `replacePlan` (ops per part), `runReplace` (one undo step), `replaceLabel`, `resolvedHex`, `implementFindReplace(env)`;
   `studio-app.ts` exports `onScreen(frame, camera, viewport)` (a match off-screen is zoomed to).
+- B11c slice 4: the chrome port's `placeImage()` and `dropFiles(files, at)`, the inspector port's `imageFill(to, source, index?)`
+  (files screened: not an image IF-POL-060, over 100 MB IF-POL-059); `clipboard-controller.ts` `readSystemClipboard`,
+  `PasteSources` (the menus' Paste reads the system clipboard). Worker: `imageFill` request (`ImageFillTarget`, `ImageFillResult`,
+  `IMAGE_FILLABLE`); `place` puts the image in a selected frame.
 - `errors.ts` — `IF-INT-001` pipeline start · `002` scene record · `003` no open page · `004` canvas backend · `005` document.
 - `feedback.ts` (B11a2, main side) — `feedbackFor(error, origin, copy?)` (level by origin refined by `FAMILY_LEVELS`; Instaflow words per error
   definition; never the code), `ToastsToken` / `createToasts(manager, owner)` (`show`, `undoable` → `Restored`, `error`, `undoNewest` for Home's

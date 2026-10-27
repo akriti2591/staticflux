@@ -1707,6 +1707,21 @@ Lifecycle: LIFECYCLES §38.
   current match is selected, its page shown, the camera zoomed to it when it is off-screen, and announced (`Match 3 of 12:
   Headline on Page 2`). `Replace all` is one undo step `Replace '<a>' with '<b>'` toasted with Undo; locked elements are
   matched, skipped and counted (`2 locked, skipped`). Capabilities `instaflow/find` and `instaflow/replace` (agents too).
+- **IF-36.49** **Image fills and page background images** (APPEARANCE §2.1–§2.2, Q5; B11c slice 4): a fill row's swatch opens
+  one popover with the tabs `Solid · Gradient · Image` (switching converts the paint; `Image` lists the workspace's images and
+  `Upload…`, then `Fit ▾` Fill · Fit · Stretch · Tile and the numeric crop X · Y · Scale on the top image row of an element);
+  `+ Add ▾ › Image…` and the `Add image to fill` button add an image row on top; the page's Background is the same stack and
+  takes colours, gradients and images (A-1). Each is one undo step (`Image fill`, `Fill kind`, `Background image`,
+  `Background kind`); the editor uploads the picture to the render module first (`imageFill`).
+- **IF-36.50** **Images from files** (HOME-FILES §3.1): `Place image…` in the tool picker, the command bar and the empty canvas's
+  context menu opens a file picker; the images land at the viewport centre, or centred in the one selected frame (sized to
+  fit it). Image files dropped from the OS on the canvas (tangerine outline while dragging) fill the shape or frame under the
+  point (an image there shows the new picture), else land at the point; further files are placed. A file that is not an
+  image (IF-POL-060) or is over 100 MB (IF-POL-059) is refused with a toast and its fix; nothing blanks the screen. No key is
+  bound: HOME-FILES §3.1's `Mod+I` is Italic in Studio (TEXT §7); `Mod+Shift+K` (Figma's Place image) is proposed.
+- **IF-36.51** **Leftovers closed in B11c slice 4**: Page › Size is the kit's size field (1…16 384 px, New design's range,
+  IF-POL-050); the menus' Paste reads the system clipboard (Studio's payload, an image, text; the memory copy when refused);
+  `Alt+Shift+]` / `Alt+Shift+[` rotate 1° (R15.7); the cheat sheet's `Print` prints the cards with both platforms' keys.
 - **IF-36.47** **The logo in the browser** (brand README): Home's and Studio's pages link `brand/favicon.svg` (white strokes in
   dark mode), the PNG fallback, the touch icon and `brand/manifest.webmanifest` (name, colours, the 192 / 512 / SVG app icons).
 

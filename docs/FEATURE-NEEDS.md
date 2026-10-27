@@ -493,5 +493,8 @@ far except R13.46 (kit tree) and R13.47 (kit cheat sheet): the surfaces compose 
   `/s/:asset/d/:dialog`; the kit dialog's `header-actions` slot holds `Copy link`; no framework API.
 - B11c "Find and replace across every page, one undo step" → `@staticflux/document` `UndoService.commit` with ops for several
   parts (one change set); rich-text ops (`text.delete` / `text.insert` with marks, `text.mark`); no framework API.
+- B11c "Fill a shape or the page with an image, drop an image from the OS" → the B1 image paint and B12 page fill stack
+  (engine), the library's ingest; `<sf-size-field>`'s width variable (R13.51); no other framework API.
+- B11c "`Alt+Shift+]` is not `Alt+]` on a Mac" → `@staticflux/a11y` physical-key matching for Alt + punctuation (R15.7).
 - B11c "One-sentence hints at the first use, never a tour" → `@staticflux/messaging` coach marks (`coachTarget`, the seen store bound
   to `localStorage`) and the kit's `<sf-hint>` (`defineHintSurface`); no framework API.
