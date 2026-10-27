@@ -35,3 +35,4 @@ apps/instaflow/engine/.tools/
 
 # Golden snapshot mismatch artifacts (actual + diff PNGs), written by @staticflux/testkit goldens
 **/__goldens__/__failures__/
+apps/instaflow/dist-prod/

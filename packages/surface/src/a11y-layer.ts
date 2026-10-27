@@ -52,8 +52,8 @@ export interface AccessibleLayer {
   readonly root: HTMLElement;
   /** Reconcile the tree (keyed by id; element identity is kept for unchanged ids so focus survives). */
   update(nodes: readonly AccessibleNode[]): void;
-  /** Move keyboard focus to a node. */
-  focus(id: string): boolean;
+  /** Move keyboard focus to a node; `options` go to the element's `focus()` (e.g. `focusVisible: false` after a press). */
+  focus(id: string, options?: FocusOptions): boolean;
   /** Element of a node (tests / devtools). */
   element(id: string): HTMLElement | undefined;
   readonly size: number;
@@ -204,10 +204,10 @@ export function createAccessibleLayer(options: AccessibleLayerOptions): Result<A
         }
       }
     },
-    focus(id) {
+    focus(id, options) {
       const el = elements.get(id);
       if (el === undefined || el.getAttribute('tabindex') === null) return false;
-      el.focus();
+      el.focus(options);
       return true;
     },
     element: (id) => elements.get(id),

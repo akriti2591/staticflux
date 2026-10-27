@@ -161,6 +161,54 @@ async function scenario(page) {
   await page.waitForFunction((n) => window.__studio.tab.view.selection.join() === n, rect, { timeout: 10_000 });
   log('select by click');
 
+  // #41: a pointer press focuses the canvas without the keyboard focus ring (`:focus-visible`), also right after keys
+  // elsewhere and on the canvas; a key on the canvas still shows it. The deep active element through shadow roots.
+  const deepFocus = () =>
+    page.evaluate(() => {
+      let a = document.activeElement;
+      while (a?.shadowRoot?.activeElement) a = a.shadowRoot.activeElement;
+      return { name: a?.getAttribute('aria-label') ?? a?.localName ?? 'none', surface: a?.getAttribute('role') === 'application', ring: a?.matches(':focus-visible') === true };
+    });
+  await page.getByRole('button', { name: 'Rectangle', exact: true }).focus();
+  await page.keyboard.press('Shift'); // keyboard modality outside the canvas
+  await page.mouse.click(box.x + 8, box.y + box.height - 8);
+  await page.waitForFunction(() => window.__studio.tab.view.selection.length === 0, null, { timeout: 10_000 });
+  let focusNow = await deepFocus();
+  if (!focusNow.surface || focusNow.ring) fail(`a press on the empty canvas should focus the surface without a ring: ${JSON.stringify(focusNow)}`);
+  /** Wait until focus is on the surface (true) or on an element of the canvas (false). */
+  const focusSettles = (onSurface) =>
+    page.waitForFunction((want) => {
+      let a = document.activeElement;
+      while (a?.shadowRoot?.activeElement) a = a.shadowRoot.activeElement;
+      return (a?.getAttribute('role') === 'application') === want;
+    }, onSurface, { timeout: 10_000 });
+  // A tool key on the canvas, then a shape drawn by pointer: focus moves to the new element without a ring (then undone).
+  await page.keyboard.press('r');
+  await page.mouse.move(box.x + box.width * 0.1, box.y + box.height * 0.7);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.8, { steps: 4 });
+  await page.mouse.up();
+  await page.waitForFunction((n) => window.__studio.tab.view.selection.length === 1 && window.__studio.tab.view.selection[0] !== n, rect, { timeout: 10_000 });
+  await focusSettles(false);
+  focusNow = await deepFocus();
+  if (focusNow.ring) fail(`a shape drawn by pointer after a tool key should take focus without a ring: ${JSON.stringify(focusNow)}`);
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.length === 1, null, { timeout: 10_000 });
+  await page.mouse.click(r0.x + r0.w / 2, r0.y + r0.h / 2);
+  await page.waitForFunction((n) => window.__studio.tab.view.selection.join() === n, rect, { timeout: 10_000 });
+  await focusSettles(false);
+  await page.keyboard.press('Escape'); // a key clears the selection: focus returns to the surface with the ring
+  await page.waitForFunction(() => window.__studio.tab.view.selection.length === 0, null, { timeout: 10_000 });
+  await focusSettles(true);
+  focusNow = await deepFocus();
+  if (!focusNow.ring) fail(`focus a key moved should show the focus ring: ${JSON.stringify(focusNow)}`);
+  await page.mouse.click(r0.x + r0.w / 2, r0.y + r0.h / 2);
+  await page.waitForFunction((n) => window.__studio.tab.view.selection.join() === n, rect, { timeout: 10_000 });
+  await focusSettles(false);
+  focusNow = await deepFocus();
+  if (focusNow.ring) fail(`a press that selects should move focus to the element without a ring: ${JSON.stringify(focusNow)}`);
+  log('pointer focus shows no focus ring; focus a key moved does (#41)');
+
   const dx = 60;
   const dy = 40;
   await page.mouse.move(r0.x + r0.w / 2, r0.y + r0.h / 2);

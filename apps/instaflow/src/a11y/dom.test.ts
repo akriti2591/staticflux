@@ -2,7 +2,7 @@
 import { unwrap } from '@staticflux/core';
 import { auditA11y } from '@staticflux/testkit/a11y';
 import { describe, expect, it } from 'vitest';
-import { CANVAS_FOCUS_RING, mountCanvasA11y } from './dom.js';
+import { CANVAS_FOCUS_RING, type FocusRingOptions, mountCanvasA11y } from './dom.js';
 import { a11yMessages } from './messages.js';
 import type { CanvasSnapshot } from './projection.js';
 
@@ -91,6 +91,42 @@ describe('DOM mount of the canvas projection', () => {
     expect(auditA11y(document.body).map((i) => i.message)).toEqual([]);
     expect([...host.querySelectorAll('[tabindex="0"]')].map((el) => el.getAttribute('data-sf-a11y-id'))).toEqual(['a']);
     mount.dispose();
+  });
+
+  it('shows the focus ring on the moves a key caused, never on those a pointer press caused (#41)', () => {
+    const { host } = setup();
+    const mount = unwrap(mountCanvasA11y({ host, document }));
+    const calls: { el: string | null; options: FocusRingOptions | undefined }[] = [];
+    const focus = HTMLElement.prototype.focus;
+    HTMLElement.prototype.focus = function (this: HTMLElement, options?: FocusRingOptions) {
+      calls.push({ el: this.getAttribute('data-sf-a11y-id') ?? this.id, options });
+      focus.call(this, options);
+    };
+    try {
+      host.focus();
+      calls.length = 0;
+      // A pointer press selects `a`, then clears the selection: focus follows without the keyboard ring.
+      host.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+      mount.apply(snapshot('a'));
+      mount.apply(snapshot(undefined));
+      expect(calls).toEqual([
+        { el: 'a', options: { focusVisible: false } },
+        { el: 'surface', options: { focusVisible: false } },
+      ]);
+      // A key (Tab, arrows, Escape) moves it: the ring shows.
+      calls.length = 0;
+      host.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, composed: true }));
+      mount.apply(snapshot('b'));
+      expect(calls).toEqual([{ el: 'b', options: { focusVisible: true } }]);
+      // A press on a node inside the canvas counts too (capture on the surface).
+      calls.length = 0;
+      mount.layer.element('b')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+      mount.apply(snapshot('a'));
+      expect(calls).toEqual([{ el: 'a', options: { focusVisible: false } }]);
+    } finally {
+      HTMLElement.prototype.focus = focus;
+      mount.dispose();
+    }
   });
 
   it('needs a document (SF-SURF-004 in a worker)', () => {
