@@ -72,6 +72,14 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-27** B11c done (5 slices; merged on the working branch, clean, size entries 116 → 117 none lost): Home (files,
+  projects, trash, operations via a journal Studio applies, import, first run, New design + custom size), Settings,
+  density Focus/Standard/Pro (`Mod+.`), deep links + routable dialogs + Copy link + missing targets, hints, favicon/
+  manifest, find & replace (`Mod+F`), image fills (Solid · Gradient · Image tabs) on shapes and page background, Place
+  image… picker + OS drop, leftovers, final audit (inert text keys fixed; Appendix A rewritten). Owner decision: Place
+  image shortcut `Mod+Shift+K` (spec's `Mod+I` = Italic). Still unbuilt (no visible controls): Focus rail / Pro split
+  dock, rulers + snapping menu, on-canvas gradient handles, crop mode, colour model menu, saved colours / gradient
+  presets, eyedropper fallback, Layers across pages, Pages thumbnails, real static-font weights, canvas find highlights.
 - **2026-10-27** Owner: no way to pick an image file in Studio (only Finder copy-paste, which white-screens). Added to B11c's
   image item: Place image… file picker (tool/Insert, Mod+K, context menu), OS drag-and-drop onto the canvas, errors as
   toasts, smoke step via the file chooser. The paste white-screen stays in the follow-up batch.
