@@ -10,8 +10,9 @@
  *   with the check / dot icon), `.icon` (a 16 px `IconDef`), `shortcut` (visible `<kbd>` + `aria-keyshortcuts`),
  *   `disabled`; group headings with `<sf-menu-group label>`; dividers with `<div role="separator">`;
  * - **one level of submenu:** an item followed by `<sf-menu slot="submenu">` is a submenu row (`aria-haspopup`,
- *   `aria-expanded`, chevron): opens on hover after 150 ms or on → / Enter, closes on ← / Escape or when the pointer
- *   has left both for 300 ms; a submenu inside a submenu is refused (SF-KIT-003, `sf-overlay-refused`);
+ *   `aria-expanded`, chevron): opens on hover after 150 ms or on → / Enter, closes on ← / Escape or 300 ms after the
+ *   pointer moved to a sibling row (never when it only leaves for empty space); a submenu inside a submenu is refused
+ *   (SF-KIT-003, `sf-overlay-refused`);
  * - **context menu:** `showAt({ x, y }, { keyboard, returnTo })` puts the top-left corner on the pointer and opens left
  *   or up near the edges (`bindContextMenu` wires right-click, `Shift+F10` and the Menu key);
  * - **searchable:** `filterable` adds a filter field on top (the More menu), focused on open;
@@ -455,7 +456,9 @@ export class SfMenuElement extends SfElement<typeof menuSpec> {
       this.addEventListener('click', (event) => this.onClick(event), { signal });
       this.addEventListener('keydown', (event) => this.onKeydown(event), { signal });
       this.addEventListener('pointerover', (event) => this.onPointerOver(event), { signal });
-      this.addEventListener('pointerleave', () => this.scheduleSubmenuClose(), { signal });
+      // Leaving the menu (and its submenu) for empty space is not hover intent (#58): it closes nothing and cancels a
+      // pending open or close. Only a pointer resting on a sibling row closes the submenu (`onPointerOver`).
+      this.addEventListener('pointerleave', () => clearTimeout(this.subTimer), { signal });
       // A selection in a submenu closes this menu too (the event bubbles on to the app).
       this.addEventListener('sf-select', (event) => event.target !== this && this.open && this.hide(true), { signal });
     });

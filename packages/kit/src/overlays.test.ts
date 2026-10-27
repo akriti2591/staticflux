@@ -101,6 +101,50 @@ describe('<sf-popover>', () => {
     expect(shadow(popover, '.panel').hasAttribute('data-open')).toBe(false);
   });
 
+  it('#58: stays open with its menu and submenu while the pointer moves away; an outside press still closes them', async () => {
+    const { element } = await fixture<HTMLDivElement>(
+      html`<div>
+        <sf-popover label="Fill colour" outside="pass">
+          <sf-button slot="trigger">Fill</sf-button>
+          <sf-menu label="Type">
+            <sf-button slot="trigger">Type</sf-button>
+            <sf-menu-item value="gradient">Gradient</sf-menu-item>
+            <sf-menu slot="submenu" label="Gradient"><sf-menu-item value="linear">Linear</sf-menu-item></sf-menu>
+          </sf-menu>
+        </sf-popover>
+        <div class="canvas"></div>
+      </div>`,
+    );
+    const popover = element.querySelector('sf-popover') as SfPopoverElement;
+    const menu = popover.querySelector('sf-menu') as SfMenuElement;
+    const sub = menu.querySelector('sf-menu') as SfMenuElement;
+    const canvas = element.querySelector('.canvas') as HTMLElement;
+    const changes = [...events(element, 'sf-select'), ...events(element, 'sf-change')];
+    popover.show();
+    await settle();
+    menu.show();
+    await settle();
+    (menu.querySelector('sf-menu-item') as SfMenuItemElement).dispatchEvent(new PointerEvent('pointerover', { bubbles: true, composed: true, pointerType: 'mouse' }));
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(sub.open).toBe(true);
+    const move = { bubbles: true, composed: true, pointerType: 'mouse', relatedTarget: canvas } as const;
+    for (const host of [sub, menu, popover]) {
+      host.dispatchEvent(new PointerEvent('pointerout', move));
+      host.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse', relatedTarget: canvas }));
+      host.dispatchEvent(new MouseEvent('mouseleave', { relatedTarget: canvas }));
+    }
+    canvas.dispatchEvent(new PointerEvent('pointerover', move));
+    canvas.dispatchEvent(new PointerEvent('pointermove', move));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await settle();
+    expect([popover.open, menu.open, sub.open]).toEqual([true, true, true]);
+    expect(changes).toHaveLength(0);
+    const down = new PointerEvent('pointerdown', { bubbles: true, composed: true, cancelable: true, pointerType: 'mouse' });
+    canvas.dispatchEvent(down);
+    await settle();
+    expect([popover.open, menu.open, sub.open]).toEqual([false, false, false]);
+  });
+
   it('anchors to an external element and finds the first focusable child', async () => {
     const anchor = document.createElement('div');
     document.body.append(anchor);

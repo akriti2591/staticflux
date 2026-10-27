@@ -244,6 +244,29 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     expectNoA11yIssues(root.host as HTMLElement);
   });
 
+  it('#58: Fill › + Add ▾ › Gradient ▸ stays open when the pointer moves away (no click), and nothing is added', async () => {
+    const { root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance() });
+    const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;
+    const menu = [...fill.querySelectorAll<HTMLElement & { open: boolean }>('sf-menu')].find((m) => m.getAttribute('label') === 'Add fill');
+    if (menu === undefined) throw new Error('no Add fill menu');
+    const sub = menu.querySelector<HTMLElement & { open: boolean }>('sf-menu[slot="submenu"]') as HTMLElement & { open: boolean };
+    (menu.querySelector('[slot="trigger"]') as HTMLElement).click();
+    await settle(4);
+    expect(menu.open).toBe(true);
+    const gradient = menu.querySelector('sf-menu-item[value="gradient"]') as HTMLElement;
+    gradient.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, composed: true, pointerType: 'mouse' }));
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(sub.open).toBe(true);
+    // Out of the submenu and the menu, across the inspector, pointer only.
+    const before = calls.length;
+    for (const host of [sub, menu]) host.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse', relatedTarget: fill }));
+    fill.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, composed: true, pointerType: 'mouse' }));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await settle(4);
+    expect([menu.open, sub.open]).toEqual([true, true]);
+    expect(calls.slice(before)).toEqual([]);
+  });
+
   it('expanding a row shows its second line: kind, blend and reorder (Alt+↑ moves it up)', async () => {
     const { root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance() });
     const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;

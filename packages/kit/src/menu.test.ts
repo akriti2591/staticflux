@@ -110,7 +110,7 @@ describe('submenus (one level)', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
-  it('opens on hover after 150 ms, closes 300 ms after the pointer left both, and a pick closes every level', async () => {
+  it('opens on hover after 150 ms, closes 300 ms after the pointer moved to a sibling row, and a pick closes every level', async () => {
     const { menu, trigger, row, sub } = await arrangeMenu();
     const picks = events<{ value: string }>(menu, 'sf-select');
     trigger.click();
@@ -120,9 +120,13 @@ describe('submenus (one level)', () => {
     expect(sub.open).toBe(false);
     await wait(160);
     expect(sub.open).toBe(true);
-    menu.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
-    await wait(350);
+    const sibling = menu.querySelector('sf-menu-item[value="delete"]') as SfMenuItemElement;
+    sibling.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, composed: true, pointerType: 'mouse' }));
+    await wait(200);
+    expect(sub.open).toBe(true);
+    await wait(150);
     expect(sub.open).toBe(false);
+    expect(menu.open).toBe(true);
     row.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, composed: true, pointerType: 'mouse' }));
     await wait(200);
     (sub.querySelectorAll('sf-menu-item')[1] as HTMLElement).click();
@@ -130,6 +134,44 @@ describe('submenus (one level)', () => {
     expect(picks.map((e) => e.detail.value)).toEqual(['back']);
     expect(sub.open).toBe(false);
     expect(menu.open).toBe(false);
+  });
+
+  it('#58: moving the pointer away (no click, no Escape) closes nothing and selects nothing', async () => {
+    const { menu, trigger, row, sub } = await arrangeMenu();
+    const picks = events<{ value: string }>(menu, 'sf-select');
+    const toggles = events<{ open: boolean }>(menu, 'sf-toggle');
+    trigger.click();
+    await settle();
+    row.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, composed: true, pointerType: 'mouse' }));
+    await wait(200);
+    expect(sub.open).toBe(true);
+    // Out of the submenu and out of the menu into empty space, the way a mouse does it.
+    const outside = document.createElement('div');
+    document.body.append(outside);
+    const out = { bubbles: true, composed: true, pointerType: 'mouse', relatedTarget: outside } as const;
+    sub.querySelector('sf-menu-item')?.dispatchEvent(new PointerEvent('pointerout', out));
+    sub.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse', relatedTarget: outside }));
+    menu.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse', relatedTarget: outside }));
+    outside.dispatchEvent(new PointerEvent('pointerover', out));
+    outside.dispatchEvent(new PointerEvent('pointermove', out));
+    document.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse' }));
+    await wait(400);
+    await settle();
+    expect(sub.open).toBe(true);
+    expect(menu.open).toBe(true);
+    expect(picks).toHaveLength(0);
+    expect(toggles.filter((e) => !e.detail.open)).toHaveLength(0);
+    // Brushing a sibling row on the way out is not hover intent: leaving into empty space cancels the pending close.
+    (menu.querySelector('sf-menu-item[value="delete"]') as SfMenuItemElement).dispatchEvent(new PointerEvent('pointerover', { bubbles: true, composed: true, pointerType: 'mouse' }));
+    menu.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse', relatedTarget: outside }));
+    await wait(400);
+    expect(sub.open).toBe(true);
+    // An outside press still closes every level (light dismiss).
+    outside.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true, pointerType: 'mouse' }));
+    await settle();
+    expect(sub.open).toBe(false);
+    expect(menu.open).toBe(false);
+    expect(picks).toHaveLength(0);
   });
 
   it('refuses a submenu inside a submenu (SF-KIT-003)', async () => {
