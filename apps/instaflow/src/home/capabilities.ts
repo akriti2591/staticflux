@@ -36,8 +36,11 @@ export const NewDesignCapability = /* @__PURE__ */ defineCapability({
 export const OpenDesignCapability = /* @__PURE__ */ defineCapability({
   id: 'instaflow/open-design',
   title: 'Open design',
-  description: 'Open a design from the workspace (one of Home’s recents or files) in Studio.',
-  input: s.object({ asset: s.string({ minLength: 1, maxLength: 120, description: 'The asset id, e.g. "as_…"' }) }),
+  description: 'Open a design from the workspace (one of Home’s recents or files) in Studio, optionally with a routable dialog open (B11c: `export`).',
+  input: s.object({
+    asset: s.string({ minLength: 1, maxLength: 120, description: 'The asset id, e.g. "as_…"' }),
+    dialog: s.optional(s.enum(['export'] as const, { description: 'Open Studio with this dialog (`/s/:asset/d/export`)' })),
+  }),
   output: href,
   requiresConfirmation: false,
   destructive: false,

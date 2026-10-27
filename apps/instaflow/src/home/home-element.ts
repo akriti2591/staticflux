@@ -102,12 +102,12 @@ const SORT_LABELS: Readonly<Record<FilesSort, 'sortEdited' | 'sortCreated' | 'so
 const LAYOUT_LABELS: Readonly<Record<FilesLayout, 'layoutGrid' | 'layoutList'>> = { grid: 'layoutGrid', list: 'layoutList' };
 
 /** The file menu's rows (DENSITY §8.4), per kind of entry and state: data, not branches. */
-export type FileAction = 'open' | 'open-tab' | 'use' | 'edit-template' | 'rename' | 'duplicate' | 'move' | 'favourite' | 'unfavourite' | 'copy-link' | 'trash' | 'restore' | 'delete-forever';
+export type FileAction = 'open' | 'open-tab' | 'use' | 'edit-template' | 'rename' | 'duplicate' | 'move' | 'favourite' | 'unfavourite' | 'export' | 'copy-link' | 'trash' | 'restore' | 'delete-forever';
 export function fileActions(entry: HomeEntry): readonly FileAction[] {
   if (entry.trashedAt !== undefined) return ['restore', 'delete-forever'];
   const fav: FileAction = entry.favorite === true ? 'unfavourite' : 'favourite';
   const PER_KIND: Readonly<Partial<Record<LibraryAssetKind, readonly FileAction[]>>> = {
-    composition: ['open', 'open-tab', 'rename', 'duplicate', 'move', fav, 'copy-link', 'trash'],
+    composition: ['open', 'open-tab', 'rename', 'duplicate', 'move', fav, 'export', 'copy-link', 'trash'],
     template: ['use', 'edit-template', 'rename', 'duplicate', 'move', fav, 'trash'],
   };
   return PER_KIND[entry.kind] ?? ['rename', 'move', fav, 'trash'];
@@ -122,6 +122,7 @@ const ACTION_LABELS: Readonly<Record<FileAction, keyof typeof m & `menu${string}
   move: 'menuMove',
   favourite: 'menuFavourite',
   unfavourite: 'menuUnfavourite',
+  export: 'menuExport',
   'copy-link': 'menuCopyLink',
   trash: 'menuTrash',
   restore: 'menuRestore',
@@ -952,6 +953,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     }
     const RUN: Readonly<Record<string, () => unknown>> = {
       open: () => this.run(() => model.open(entry.asset), entry.title),
+      export: () => this.run(() => model.open(entry.asset, 'export'), entry.title),
       'open-tab': () => this.openInNewTab(entry),
       use: () => this.run(() => model.useTemplate(entry.asset), entry.title),
       'edit-template': () => this.editTemplate(entry),

@@ -81,6 +81,8 @@ function recordingPort(calls: string[], context?: () => SelectionSummary | undef
     pageAction: log('pageAction'),
     saveHint: log('saveHint'),
     openShortcuts: log('openShortcuts'),
+    openSettings: log('openSettings'),
+    cycleDensity: log('cycleDensity'),
   };
 }
 
@@ -290,11 +292,36 @@ describe('<if-studio> frame (B11b)', () => {
     input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     milestone.dispatchEvent(new Event('submit', { cancelable: true }));
     const more = [...root.querySelectorAll('header sf-menu')].at(-1) as SfMenuElement;
-    expect(menuItems(more)).toEqual(['Save as template…', 'Rename…', 'Copy link']);
-    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'save-template' } }));
-    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'copy-link' } }));
+    expect(menuItems(more)).toEqual(['Save as template…', 'Rename…', 'Copy link', 'Settings…', 'Keyboard shortcuts', 'About Instaflow']);
+    for (const value of ['save-template', 'copy-link', 'settings', 'shortcuts', 'about']) more.dispatchEvent(new CustomEvent('sf-select', { detail: { value } }));
     (root.querySelector('header > sf-button[variant="primary"]') as HTMLElement).click();
-    expect(calls).toEqual(['camera ["fit-page"]', 'camera ["zoom-out"]', 'createMilestone ["Client v1"]', 'saveAsTemplate', 'copyLink', 'openExport']);
+    expect(calls).toEqual(['camera ["fit-page"]', 'camera ["zoom-out"]', 'createMilestone ["Client v1"]', 'saveAsTemplate', 'copyLink', 'openSettings', 'openShortcuts', 'openSettings ["about"]', 'openExport']);
+  });
+
+  it('B11c densities: Focus hides the lens switcher and folds Milestone into ⋯; Pro shows the undo label and the zoom as text; Mod+. and Mod+, reach the port', async () => {
+    const { root, studio, calls, element } = await mount({ model: { ...MODEL, undo: 'Resize headline' } });
+    expect(root.querySelector('header sf-segmented.modes')).not.toBeNull();
+    expect(root.querySelector('.undo-label')).toBeNull();
+    await studio.setDensity('focus');
+    await settle(4);
+    await element.updateComplete;
+    expect(root.querySelector('header sf-segmented.modes')).toBeNull();
+    expect(root.querySelector('header sf-popover')).toBeNull();
+    const more = root.querySelector('header sf-menu.overflow') as SfMenuElement;
+    expect(menuItems(more)[0]).toBe('Create milestone');
+    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'milestone' } }));
+    expectNoA11yIssues(root.host);
+    await studio.setDensity('pro');
+    await settle(4);
+    await element.updateComplete;
+    expect(root.querySelector('header sf-segmented.modes')).not.toBeNull();
+    expect(root.querySelector('.undo-label')?.textContent).toBe('Undo: Resize headline');
+    expect(root.querySelector('.zoom-text')?.textContent).toBe('100%');
+    expectNoA11yIssues(root.host);
+    root.querySelector<HTMLElement>('.surface')?.focus();
+    press(root.querySelector('.surface') as HTMLElement, '.', { ctrl: true });
+    press(root.querySelector('.surface') as HTMLElement, ',', { ctrl: true });
+    expect(calls).toEqual(['createMilestone [""]', 'cycleDensity', 'openSettings']);
   });
 
   it('the title renames in place through the port; the save state opens Milestones', async () => {

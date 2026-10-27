@@ -241,6 +241,22 @@ export function studioLinkHref(asset: string, link: StudioLink = {}): Result<str
   return instaflowRoutes().build({ to: studioDialogRoute, params: { asset, dialog: link.dialog }, search: { ...search, ...(link.dialog === 'settings' && link.section !== undefined ? { section: link.section } : {}) } });
 }
 
+/** The query keys a Studio link owns (NAVIGATION §2.2); any other key in the URL belongs to someone else. */
+export const STUDIO_LINK_KEYS = ['lens', 'page', 'dock', 'el', 'inspect', 'section'] as const;
+
+/**
+ * `href` plus the query params of `current` that Studio links do not own (boot settings such as `topology`, sticky
+ * debug flags): NAVIGATION §7 "an unknown query key is ignored and preserved".
+ */
+export function keepForeignParams(href: string, current: string): string {
+  const at = current.indexOf('?');
+  if (at < 0) return href;
+  const foreign = new URLSearchParams(current.slice(at + 1));
+  for (const key of STUDIO_LINK_KEYS) foreign.delete(key);
+  const text = foreign.toString();
+  return text === '' ? href : `${href}${href.includes('?') ? '&' : '?'}${text}`;
+}
+
 /** A link without its intents (`el`, `inspect`): what the URL keeps once they are consumed (§6 step 7). */
 export function withoutIntents(link: StudioLink): StudioLink {
   const { el: _el, inspect: _inspect, unknownDialog: _unknown, ...rest } = link;

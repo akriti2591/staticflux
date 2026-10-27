@@ -10,15 +10,22 @@
  * makes one (the URL then becomes `/s/:asset`), and `/dev/studio/` opens the demo document (created on first use).
  * The logo goes back to Home (`/`) after saving; exports run in an export worker spawned per export (C1). `window.__studio` exposes the app (and `window.__session` the
  * session) for the smoke checks and devtools.
+ *
+ * B11c: a design that is not on this device, or is in the trash, shows `<if-missing-design>` at the same URL
+ * (NAVIGATION §4); its Restore writes a Home journal op and reloads (the session drains the journal before it plans).
  */
 import type { FlagDefinition } from '@staticflux/config';
 import { createInjector, createScope, ok, type Result } from '@staticflux/core';
 import { browserEnv, readWebApis } from '@staticflux/platform';
 import { TextInputFactoryToken, textInputBindings } from '@staticflux/surface/text-input';
+import { defineUiElements, provideScope } from '@staticflux/ui';
 import { compileTheme } from '@staticflux/ui/theme';
 import { fromWorker } from '@staticflux/worker';
 import type { StudioApp } from '../../src/app/studio-app.js';
-import { newDesignRoute, readStudioIntent } from '../../src/home/routes.js';
+import { UnknownDesignError } from '../../src/home/errors.js';
+import { homeOp, appendHomeOps } from '../../src/home/journal.js';
+import { defineMissingDesign, type IfMissingDesignElement } from '../../src/home/missing-design.js';
+import { homeHref, newDesignRoute, readStudioIntent } from '../../src/home/routes.js';
 import { resolveSequencingSettings } from '../../src/sequencing/sequencing.bindings.js';
 import { cleanPopTheme } from '../../src/theme/clean-pop.js';
 import { openWorkspaceBlobs } from '../../src/workspace/blobs.js';
@@ -54,7 +61,30 @@ function keptQuery(): string {
   return text.length === 0 ? '' : `?${text}`;
 }
 
-async function main(): Promise<StudioSession> {
+/** NAVIGATION §4: the design is not here (or is in the trash): a Home-shell page at the same URL, no toast. */
+function showMissing(store: Parameters<typeof appendHomeOps>[0], details: Readonly<Record<string, unknown>>): void {
+  defineUiElements();
+  defineMissingDesign();
+  const container = document.getElementById('studio') as HTMLElement;
+  provideScope(container, { injector: createInjector({ units: [] }), name: 'instaflow/missing-design' });
+  const home = homeHref();
+  const page = document.createElement('if-missing-design') as IfMissingDesignElement;
+  page.asset = String(details['asset'] ?? '');
+  page.trashed = details['trashed'] === true;
+  page.designTitle = typeof details['title'] === 'string' ? details['title'] : '';
+  page.homeHref = home.ok ? home.value : '/';
+  page.addEventListener('if-restore', () => {
+    void appendHomeOps(store, [homeOp({ kind: 'restore', assets: [page.asset] })], new AbortController().signal).then((done) => {
+      if (done.ok) location.reload();
+      else page.restoreFailed();
+    });
+  });
+  container.replaceChildren(page);
+  document.title = `${page.trashed ? 'In the trash' : 'Not on this device'} · Instaflow`;
+  void page.focusPrimary();
+}
+
+async function main(): Promise<StudioSession | undefined> {
   const style = document.createElement('style');
   style.textContent = compileTheme(cleanPopTheme);
   document.head.append(style);
@@ -65,8 +95,7 @@ async function main(): Promise<StudioSession> {
   const input = createInjector({ units: textInputBindings({ editContext: () => readWebApis(browserEnv()).editContext }) });
   const textInput = must(await input.get(TextInputFactoryToken), 'text input');
   const settings = resolveSequencingSettings(readFlag);
-  const session = must(
-    await openStudioSession({
+  const opened = await openStudioSession({
       intent: readStudioIntent(`${location.pathname}${location.search}`),
       documents: documents.store,
       blobs,
@@ -91,9 +120,13 @@ async function main(): Promise<StudioSession> {
       isMac: /Mac/.test(navigator.platform),
       replaceUrl: (href) => history.replaceState(null, '', `${href}${keptQuery()}`),
       scope,
-    }),
-    'studio',
-  );
+    });
+  if (!opened.ok && opened.error.code === UnknownDesignError.code) {
+    status.remove();
+    showMissing(documents.store, (opened.error.details ?? {}) as Readonly<Record<string, unknown>>);
+    return undefined;
+  }
+  const session = must(opened, 'studio');
   session.app.mount(document.getElementById('studio') as HTMLElement);
   status.remove();
   return session;
@@ -101,6 +134,7 @@ async function main(): Promise<StudioSession> {
 
 main().then(
   (session) => {
+    if (session === undefined) return;
     (window as unknown as { __studio: StudioApp; __session: StudioSession }).__studio = session.app;
     (window as unknown as { __session: StudioSession }).__session = session;
   },

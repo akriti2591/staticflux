@@ -169,6 +169,9 @@ async function scenario(page) {
   const box = await surface.boundingBox();
   if (box === null) fail('no canvas surface');
   await page.getByRole('button', { name: 'Rectangle', exact: true }).click();
+  // B11c: the first use of a tool shows its one-sentence hint (OVERLAYS §5); using the tool retires it.
+  const hint = page.getByText('Drag to draw. Shift keeps it square, Alt draws from the centre.');
+  await hint.waitFor({ timeout: 10_000 }).catch(() => fail('the Shape tool showed no first-use hint'));
   await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.35);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.47, box.y + box.height * 0.42, { steps: 4 });
@@ -178,7 +181,8 @@ async function scenario(page) {
   const shape = await page.evaluate(() => window.__studio.tab.view.selection[0]);
   const drawn = (await inspect(page, [shape])).elements[0];
   if (drawn?.kind !== 'shape' || !(drawn.w > 10)) fail(`no shape drawn: ${JSON.stringify(drawn)}`);
-  log(`drew shape ${shape} (${Math.round(drawn.w)}×${Math.round(drawn.h)})`);
+  await hint.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => fail('the Shape hint stayed after the tool was used'));
+  log(`drew shape ${shape} (${Math.round(drawn.w)}×${Math.round(drawn.h)}); its first-use hint showed, then left once used`);
 
   // ---------------------------------------------------------------- back Home: the design is in recents
   await page.getByRole('link', { name: 'Home', exact: true }).click();
@@ -292,6 +296,47 @@ async function scenario(page) {
   if (journal !== 0) fail(`Studio should drain Home's journal: ${journal} ops left`);
   log(`reopened ${asset}: title "${title}", shape ${shape} there; the library has the copy (in its project) and the image; journal drained`);
   if (!(studioGpu > 0)) log('note: Studio made no GPU adapter request through navigator.gpu on main (the render worker owns the device)');
+
+  // ---------------------------------------------------------------- B11c: Settings, density, deep links, fallbacks
+  // Settings from ⋯ is a routable dialog: pushed in-app, Back closes it; `Mod+.` cycles the density on this device.
+  await page.getByRole('button', { name: 'More' }).first().click();
+  await page.getByRole('menuitem', { name: 'Settings…' }).click();
+  const settingsDialog = page.getByRole('dialog', { name: 'Settings' });
+  await settingsDialog.waitFor({ timeout: 10_000 }).catch(() => fail('⋯ › Settings… opened no dialog'));
+  await page.waitForURL(new RegExp(`/s/${asset}/d/settings(\\?|$)`), { timeout: 5_000 }).catch(() => fail('Settings did not push /d/settings'));
+  await settingsDialog.getByRole('link', { name: 'Keyboard shortcuts' }).click();
+  await page.waitForURL(new RegExp(`/s/${asset}/d/settings\\?section=shortcuts`), { timeout: 5_000 }).catch(() => fail('the Shortcuts section did not reach the URL'));
+  await auditOrFail('Settings dialog');
+  await page.goBack();
+  await settingsDialog.waitFor({ state: 'detached', timeout: 10_000 }).catch(() => fail('Back did not close the Settings dialog'));
+  await page.locator('if-studio').locator('.surface').focus();
+  await page.keyboard.press('Control+.');
+  await page.waitForFunction(() => document.documentElement.getAttribute('data-sf-density') === 'pro', null, { timeout: 10_000 }).catch(() => fail('Mod+. did not switch to Pro'));
+  await toasted('Pro · Everything, with numbers.', 'Mod+.');
+  await page.locator('if-studio').locator('.undo-label, .zoom-text').first().waitFor({ timeout: 5_000 }).catch(() => fail('Pro shows no undo label or zoom text'));
+  log('Settings: ⋯ › Settings… pushed /d/settings, the section is in the URL, Back closed it; Mod+. → Pro (root density, toast, zoom text)');
+  // A cold boot of a link: the element is selected, the inspector's Fill is revealed, the dialog opens last; Escape on
+  // the deep-linked dialog replaces the path (never leaves the design); the intents are stripped.
+  await page.goto(`${origin}/s/${asset}/d/export?el=${shape},e_gone&inspect=fill`);
+  await studioReady(page);
+  const exportDialog = page.getByRole('dialog', { name: 'Export' });
+  await exportDialog.waitFor({ timeout: 30_000 }).catch(() => fail('the deep-linked Export dialog did not open'));
+  const linked = await page.evaluate(() => [...(window.__studio.tab?.view.selection ?? [])]);
+  if (JSON.stringify(linked) !== JSON.stringify([shape])) fail(`el= should select the shape: ${JSON.stringify(linked)}`);
+  await toasted('1 of 2 linked elements are no longer in this design', 'the half-missing el=');
+  await page.keyboard.press('Escape');
+  await exportDialog.waitFor({ state: 'detached', timeout: 10_000 }).catch(() => fail('Escape did not close the deep-linked dialog'));
+  await page.waitForURL(`${origin}/s/${asset}`, { timeout: 5_000 }).catch(async () => fail(`Escape should replace the path with the design's: ${page.url()}`));
+  const density = await page.evaluate(() => window.__studio.studio.density);
+  if (density !== 'pro') fail(`the density is remembered per device: ${density}`);
+  log('link /d/export?el=…&inspect=fill: shape selected, the missing id named once, Export opened last; Escape → /s/:asset; Pro remembered');
+  // Missing targets (NAVIGATION §4): a design that is not here gets the Home-shell page, no toast.
+  await page.goto(`${origin}/s/as_not_here`);
+  await page.getByRole('heading', { level: 1, name: 'This design isn’t on this device' }).waitFor({ timeout: 30_000 }).catch(async () => fail(`/s/as_not_here showed no fallback page: ${JSON.stringify(await page.locator('body').innerHTML())} ${JSON.stringify(errors)}`));
+  await auditOrFail('missing design');
+  await page.getByRole('button', { name: 'Go to Home' }).click();
+  await homeReady(page);
+  log('missing design: /s/as_not_here → "This design isn’t on this device" → Go to Home');
 
   const relevant = errors.filter((e) => !/favicon/.test(e));
   if (relevant.length > 0) fail(`page errors:\n${relevant.join('\n')}`);

@@ -116,6 +116,8 @@ export interface SceneMirrorShape {
     readonly pageFill: AppearanceModel | undefined;
     /** How many pages the design has (the Document section). */
     readonly pages: number;
+    /** B11c: the label of the person's next undo step (Pro's top bar `Undo: Resize headline`); undefined: nothing to undo. */
+    readonly undo: string | undefined;
   };
   readonly actions: {
     setPaint(stack: 'fills' | 'strokes', paint: JsonValue, label: string): Result<void>;
@@ -131,7 +133,7 @@ export interface SceneMirrorShape {
     renamePage(name: string): Result<void>;
   };
 }
-export const SceneMirror = /* @__PURE__ */ defineMirror<SceneMirrorShape>('instaflow/mirror/scene', { page: undefined, layers: [], selection: { kind: 'none', nodes: [], label: '', typeLabel: '', locked: false, anyLocked: false, hidden: false, actions: [] }, frame: undefined, colors: [], pageFill: undefined, pages: 1 });
+export const SceneMirror = /* @__PURE__ */ defineMirror<SceneMirrorShape>('instaflow/mirror/scene', { page: undefined, layers: [], selection: { kind: 'none', nodes: [], label: '', typeLabel: '', locked: false, anyLocked: false, hidden: false, actions: [] }, frame: undefined, colors: [], pageFill: undefined, pages: 1, undo: undefined });
 
 /** B4's composition structure (the Pages panel's lens controller reads it on main) and story edits. */
 export interface StoryMirrorShape {

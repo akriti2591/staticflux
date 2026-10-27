@@ -68,7 +68,8 @@ const PLANNERS: Readonly<Record<StudioIntent['kind'], Planner>> = {
     const head = await context.store.readHead(asset, signal);
     if (!head.ok) return err(DesignOpenError({ cause: head.error, details: { step: 'read head', asset } }));
     const entry = readLibraryEntry(context.library, asset);
-    if (head.value === undefined || entry?.trashedAt !== undefined) return err(UnknownDesignError({ details: { asset } }));
+    // B11c: `trashed` tells the fallback page to offer Restore (NAVIGATION §4).
+    if (head.value === undefined || entry?.trashedAt !== undefined) return err(UnknownDesignError({ details: { asset, trashed: head.value !== undefined && entry?.trashedAt !== undefined, title: entry?.title ?? null } }));
     const title = entry?.title ?? UNTITLED_DESIGN;
     return ok({ ref: { asset, title }, listing: listingFor(entry, asset, title, (context.now ?? Date.now)()), format: await knownFormat(context.store, asset, signal), created: false });
   },

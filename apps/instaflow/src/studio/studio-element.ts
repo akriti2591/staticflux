@@ -48,6 +48,9 @@ import type { DocumentColor } from '@staticflux/kit/color-popover';
 import type { CanvasPort, CanvasSession } from './canvas.js';
 import { defineInspectorElement } from './inspector.js';
 import { defineLayersPanel, type LayerContextDetail } from './layers-panel.js';
+import type { SettingsSection } from '../settings/settings-element.js';
+import { coachTarget, type CoachTarget } from '@staticflux/messaging';
+import { HintTargets } from './hints.js';
 import { type CommandEntry, defineCommandBar, type IfCommandBarElement } from './command-bar.js';
 import { defineHud, type HudAction, type HudPort, type IfHudElement } from './hud.js';
 import { type Studio, StudioShortcutScope } from './studio.js';
@@ -91,6 +94,13 @@ export const studioMessages = Object.freeze({
   dismiss: 'Dismiss',
   canvasFailed: 'The canvas could not start. The rest of Studio still works.',
   contextMenu: 'Context menu',
+  // B11c: the overflow's Settings, Shortcuts and About (DENSITY §8.2), Focus's folded Milestone, Pro's undo label.
+  settings: 'Settings…',
+  shortcuts: 'Keyboard shortcuts',
+  about: 'About Instaflow',
+  createMilestone: 'Create milestone',
+  undo: (label: string) => `Undo: ${label}`,
+  zoomValue: 'Zoom level',
 });
 
 /** The chrome's own keys (STUDIO-UX-SPEC §7, B11b slice 4); the cheat sheet lists them with every other shortcut. */
@@ -103,6 +113,9 @@ export const ChromeShortcuts = Object.freeze({
   save: defineShortcut({ id: 'instaflow/save-key', keys: ['Mod+S'], scope: StudioShortcutScope, description: 'Instaflow saves as you work' }),
   help: defineShortcut({ id: 'instaflow/shortcuts-help', keys: ['Shift+?'], scope: StudioShortcutScope, description: 'Keyboard shortcuts' }),
   contextMenu: defineShortcut({ id: 'instaflow/context-menu-key', keys: ['Shift+F10'], scope: StudioShortcutScope, description: 'Open the context menu' }),
+  // B11c (DENSITY §7.1, STUDIO §2.4).
+  cycleDensity: defineShortcut({ id: 'instaflow/cycle-density', keys: ['Mod+.'], scope: StudioShortcutScope, description: 'Next density (Focus, Standard, Pro)' }),
+  settings: defineShortcut({ id: 'instaflow/settings-key', keys: ['Mod+,'], scope: StudioShortcutScope, description: 'Settings' }),
 });
 
 /** The camera commands of the View menu and the zoom pill (the editor runs them). */
@@ -133,7 +146,12 @@ export interface StudioChromeModel {
   readonly clipboard: { readonly canPaste: boolean; readonly styleCopied: boolean };
   /** Pages in the design (Delete page needs two). */
   readonly pages: number;
+  /** B11c: the label of the next undo step (Pro shows `Undo: …` in the top bar). */
+  readonly undo?: string | undefined;
 }
+
+/** What "Copy link to this" links to (NAVIGATION §5). */
+export type CopyLinkTarget = 'design' | 'page' | 'selection';
 
 /** What the chrome runs (the app implements it over capabilities and mirrors). */
 export interface StudioChromePort extends HudPort {
@@ -142,7 +160,12 @@ export interface StudioChromePort extends HudPort {
   openExport(): void;
   createMilestone(name: string): void;
   saveAsTemplate(): void;
-  copyLink(): void;
+  /** Copy a link to the design (default), the open page or the selection (NAVIGATION §5). */
+  copyLink(target?: CopyLinkTarget): void;
+  /** B11c: Settings in a dialog over Studio (`/d/settings`), at a section. */
+  openSettings(section?: SettingsSection): void;
+  /** B11c: `Mod+.` — the next density, named in a short toast. */
+  cycleDensity(): void;
   /** Leave Studio for `href` after saving (the Home link). */
   navigate(href: string): void;
   /** The page label (STUDIO §1): select the page (nothing selected: the inspector shows Page); `rename` focuses its name. */
@@ -196,6 +219,14 @@ const TOOL_ICONS: Readonly<Record<string, IconDef>> = {
   [StudioIds.tool.polygon]: pentagonIcon,
   [StudioIds.tool.star]: starIcon,
   [StudioIds.tool.line]: minusIcon,
+};
+
+/** B11c: where each first-use hint points (OVERLAYS §5): the tool buttons. */
+const TOOL_HINT_TARGETS: Readonly<Record<string, CoachTarget>> = {
+  [StudioIds.tool.frame]: HintTargets.frameTool,
+  [StudioIds.tool.shape]: HintTargets.shapeTool,
+  [StudioIds.tool.text]: HintTargets.textTool,
+  [StudioIds.tool.hand]: HintTargets.handTool,
 };
 
 /** Lenses shown in M1 (STUDIO-UX-SPEC §2.1: the layout lenses that exist). */
@@ -425,6 +456,17 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       .muted {
         color: ${t.color.textMuted.css};
       }
+      .mono {
+        font-family: ${t.font.familyMono.css};
+        font-size: 12px;
+        color: ${t.color.textMuted.css};
+        white-space: nowrap;
+      }
+      .undo-label {
+        max-inline-size: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
       [role='alert'] {
         position: absolute;
         z-index: 3;
@@ -600,6 +642,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         [ChromeShortcuts.save, () => this.port?.saveHint()],
         [ChromeShortcuts.help, () => this.port?.openShortcuts()],
         [ChromeShortcuts.contextMenu, () => void this.openContextMenuFromKeyboard()],
+        [ChromeShortcuts.cycleDensity, () => this.port?.cycleDensity()],
+        [ChromeShortcuts.settings, () => this.port?.openSettings()],
       ];
       for (const [def, run, when] of keys) {
         const registered = this.shortcuts.register(def, run, { scope, ...(when === undefined ? {} : { when }) });
@@ -749,6 +793,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       'copy-as-text': () => port.clipboard('copy-as-text'),
       rename: () => this.rename(),
       'copy-link': () => port.copyLink(),
+      'copy-link-page': () => port.copyLink('page'),
+      'copy-link-selection': () => port.copyLink('selection'),
       'select-all': () => port.selectAll(),
       'zoom-fit': () => port.camera('fit-page'),
       'zoom-100': () => port.camera('zoom-100'),
@@ -805,22 +851,30 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       .map((lens) => ({ value: lens.id, label: lens.label, icon: html`<span aria-hidden="true" style=${lensMarkStyle(lensOf(lens.palette))}></span>` }));
     const port = this.port;
     const title = this.model.title || this.assetTitle;
-    return html`<header>
+    // B11c (DENSITY §3.1): Focus hides the lens switcher while only Canvas and Pages exist (`1` / `5` still switch) and
+    // folds Milestone into `⋯`; Pro adds the undo label and the zoom value as text.
+    const focus = density === 'focus';
+    const pro = density === 'pro';
+    return html`<header data-density=${density}>
       <a class="home" href=${this.homeHref} aria-label=${studioMessages.home} @click=${(e: MouseEvent) => this.onHome(e)}>${instaflowMark(26)}</a>
       <sf-inline-edit class="title" trigger="click" label=${studioMessages.title} placeholder=${studioMessages.untitled} .value=${title} @sf-change=${(e: CustomEvent<{ value: string }>) => port?.renameTitle(e.detail.value)}></sf-inline-edit>
-      <sf-segmented
-        class="modes"
-        label=${studioMessages.lens}
-        .options=${options}
-        value=${lensEntry?.slot.id ?? ''}
-        data-slot=${lensEntry?.slot.key ?? nothing}
-        data-group="lens@default"
-        @sf-change=${(e: CustomEvent<{ value: string }>) => void studio.switchLens(e.detail.value as `${string}/${string}`)}
-      ></sf-segmented>
+      ${focus && options.length <= 2
+        ? html`<span class="modes"></span>`
+        : html`<sf-segmented
+            class="modes"
+            label=${studioMessages.lens}
+            .options=${options}
+            value=${lensEntry?.slot.id ?? ''}
+            data-slot=${lensEntry?.slot.key ?? nothing}
+            data-group="lens@default"
+            @sf-change=${(e: CustomEvent<{ value: string }>) => void studio.switchLens(e.detail.value as `${string}/${string}`)}
+          ></sf-segmented>`}
+      ${pro && this.model.undo !== undefined ? html`<span class="undo-label mono">${studioMessages.undo(this.model.undo)}</span>` : nothing}
+      ${pro ? html`<span class="zoom-text mono" aria-hidden="true" title=${studioMessages.zoomValue}>${Math.round(this.zoom * 100)}%</span>` : nothing}
       <button class="saved" type="button" title=${studioMessages.saveHint} @click=${() => void this.showPanel(StudioIds.panel.milestones)}>
         ${this.status === undefined ? html`<span role="status">${studioMessages.saved}</span>` : this.status}
       </button>
-      ${this.renderViewMenu(studio, density)} ${this.renderMilestone()} ${this.renderOverflow()}
+      ${this.renderViewMenu(studio, density)} ${focus ? nothing : this.renderMilestone()} ${this.renderOverflow(focus)}
       ${this.model.exportAvailable
         ? html`<sf-button variant="primary" @click=${() => port?.openExport()}><sf-icon .icon=${downloadIcon} size="16"></sf-icon> ${studioMessages.export}</sf-button>`
         : nothing}
@@ -873,18 +927,27 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     </sf-popover>`;
   }
 
-  private renderOverflow(): TemplateResult {
+  private renderOverflow(focus: boolean): TemplateResult {
     const port = this.port;
     const actions: Readonly<Record<string, () => void>> = {
+      milestone: () => port?.createMilestone(''),
       'save-template': () => port?.saveAsTemplate(),
       rename: () => this.focusTitle(),
       'copy-link': () => port?.copyLink(),
+      settings: () => port?.openSettings(),
+      shortcuts: () => port?.openShortcuts(),
+      about: () => port?.openSettings('about'),
     };
-    return html`<sf-menu label=${studioMessages.more} @sf-select=${(e: CustomEvent<{ value: string }>) => actions[e.detail.value]?.()}>
+    return html`<sf-menu class="overflow" label=${studioMessages.more} @sf-select=${(e: CustomEvent<{ value: string }>) => actions[e.detail.value]?.()}>
       <sf-icon-button slot="trigger" variant="ghost" label=${studioMessages.more}><sf-icon .icon=${ellipsisIcon} size="18"></sf-icon></sf-icon-button>
+      ${focus ? html`<sf-menu-item value="milestone" shortcut="Mod+Alt+S">${studioMessages.createMilestone}</sf-menu-item>` : nothing}
       ${this.model.templatesAvailable ? html`<sf-menu-item value="save-template">${studioMessages.saveTemplate}</sf-menu-item>` : nothing}
       <sf-menu-item value="rename">${studioMessages.rename}</sf-menu-item>
       <sf-menu-item value="copy-link" shortcut="Mod+Alt+L">${studioMessages.copyLink}</sf-menu-item>
+      <div role="separator"></div>
+      <sf-menu-item value="settings" shortcut="Mod+,">${studioMessages.settings}</sf-menu-item>
+      <sf-menu-item value="shortcuts" shortcut="?">${studioMessages.shortcuts}</sf-menu-item>
+      <sf-menu-item value="about">${studioMessages.about}</sf-menu-item>
     </sf-menu>`;
   }
 
@@ -916,7 +979,9 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const shape = family.find((e) => e.slot.id === this.shapeTool) ?? family[0];
     const button = (entry: SpecLayoutEntry): TemplateResult => {
       const tool = studio.registries.tool(entry.slot.id);
+      const hint = TOOL_HINT_TARGETS[entry.slot.id];
       return html`<sf-icon-button
+        ${hint === undefined ? nothing : coachTarget(hint)}
         label=${entry.slot.contribution.label}
         shortcut=${tool?.shortcut ?? nothing}
         variant="ghost"
@@ -953,6 +1018,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const port = this.port;
     if (port === undefined) return nothing;
     return html`<if-hud
+      ${coachTarget(HintTargets.multiSelection)}
       ?data-hidden=${this.hudHidden}
       .summary=${this.model.selection}
       .typography=${this.model.typography}
@@ -1059,7 +1125,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
           @sf-change=${(e: CustomEvent<{ value: SpecSlotKey }>) => this.pickDockTab(e)}
           @if-layer-context=${(e: CustomEvent<LayerContextDetail>) => void this.onLayerContext(e.detail)}
         >
-          ${present.map((entry) => html`<sf-tab value=${entry.slot.key} data-slot=${entry.slot.key} data-group="panel@dock" data-phase=${entry.phase} style=${motionStyle(entry)}>${entry.slot.contribution.label}</sf-tab>`)}
+          ${present.map((entry) => html`<sf-tab ${entry.slot.id === StudioIds.panel.layers ? coachTarget(HintTargets.layers) : nothing} value=${entry.slot.key} data-slot=${entry.slot.key} data-group="panel@dock" data-phase=${entry.phase} style=${motionStyle(entry)}>${entry.slot.contribution.label}</sf-tab>`)}
           ${present.map((entry) => {
             const panel = studio.registries.panel(entry.slot.id);
             return html`<sf-tab-panel value=${entry.slot.key}>${panel?.render(context) ?? nothing}</sf-tab-panel>`;

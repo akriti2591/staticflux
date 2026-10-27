@@ -20,7 +20,7 @@ describe('createStudio', () => {
   it('opens the Studio spec: canvas lens, full toolbar, dock, inspector, Standard density (B11b)', async () => {
     const studio = make();
     expect(studio.spec).toBeUndefined();
-    expect(studio.density).toBe('focus');
+    expect(studio.density).toBe('standard'); // B11c: the default when no spec is mounted (DENSITY §7.1);
     const opened = await studio.open();
     expect(opened.ok).toBe(true);
     expect(studio.spec?.id).toBe('instaflow/studio');

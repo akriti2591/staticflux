@@ -15,7 +15,8 @@ import { StudioIds } from '../spec/studio-ids.js';
 import { AppearanceMirror, SceneMirror, StoryMirror } from '../workers/mirrors.js';
 import { dragEvents, inProcessWorkers, inputWriter, until } from '../workers/test-helpers.js';
 import { openStudioWorkspace } from './document.js';
-import { createStudioApp } from './studio-app.js';
+import { createDeviceSettings } from '../settings/device-settings.js';
+import { createStudioApp, type StudioHistory } from './studio-app.js';
 import { authoringBuilt, lendDom, manualTimers, person, scriptedTextInput, unwrap } from './test-helpers.js';
 
 describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Studio app over its workers (B8, B9): %s', (topology) => {
@@ -32,10 +33,26 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     // C1: an in-process export worker over the Node toolchain (real composition and writers; rasters recorded).
     const exportEnv = exportBuilt ? (await createExportFixture()).env : undefined;
     const delivered: ExportFile[][] = [];
+    // B11c: a memory history (routable dialogs, links) and this "device"'s settings.
+    const asset = `as_app_${topology}`;
+    let at = `/s/${asset}?topology=${topology}`;
+    const moves: string[] = [];
+    const history: StudioHistory = {
+      current: () => at,
+      origin: () => 'https://instaflow.test',
+      push: (href) => void moves.push(`push ${(at = href)}`),
+      replace: (href) => void moves.push(`replace ${(at = href)}`),
+      back: () => void moves.push('back'),
+      onPop: () => () => undefined,
+    };
+    const settings = createDeviceSettings({ storage: null, window: null });
     const app = unwrap(
       await createStudioApp({
         workspace,
-        document: { asset: `as_app_${topology}`, title: 'Flyer', create: { pages: 2 } },
+        document: { asset, title: 'Flyer', create: { pages: 2 } },
+        history,
+        settings,
+        storage: null,
         person,
         workers: { settings: { ...DEFAULT_SEQUENCING_SETTINGS, topology }, spawn: () => workers.spawn(), assets: { manifest: 'memory://manifest', fonts: [] } },
         ...(exportEnv === undefined
@@ -143,6 +160,38 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     // The Milestone button creates a milestone (B5 capability in the editor, store writes through the port).
     unwrap(await app.createMilestone('First draft'));
     expect(app.spoken.at(-1)).toBe('Milestone created: First draft');
+
+    // B11c: Pro's undo label reads the person's next undo step; density is the device's setting and the spec's at once.
+    await until(() => typeof app.scene.undo === 'string', 'undo label mirrored');
+    expect(app.studio.density).toBe('standard');
+    app.chrome.cycleDensity();
+    await until(() => app.studio.density === 'pro', 'Mod+. cycles to Pro');
+    expect(settings.current.density).toBe('pro');
+    expect(app.toasted.at(-1)).toBe('Pro · Everything, with numbers.');
+    settings.set({ density: 'focus' }); // another tab, or Settings › General
+    await until(() => app.studio.density === 'focus', 'the setting reaches the spec');
+    settings.set({ density: 'standard' });
+    await until(() => app.studio.density === 'standard', 'back to Standard');
+    // "Copy link to this": the design, the open page, the selection on its page (NAVIGATION §5).
+    expect(app.linkTo('design')).toBe(`/s/${asset}`);
+    expect(app.linkTo('page')).toBe(`/s/${asset}?lens=pages&page=p1`);
+    unwrap(await app.workers.editor.request('select', { nodes: [rect] }));
+    await until(() => app.tab?.view.selection.length === 1, 'rect selected again');
+    expect(app.linkTo('selection')).toBe(`/s/${asset}?page=p1&el=${encodeURIComponent(rect)}`);
+    // Routable dialogs: in-app opens push `/d/<key>` (boot settings kept); Settings' section is in the query.
+    unwrap(await app.openDialog('settings', 'shortcuts'));
+    expect(moves.at(-1)).toBe(`push /s/${asset}/d/settings?section=shortcuts&topology=${topology}`);
+    // A link: the known element is selected and framed, the unknown one is named once; intents leave the URL.
+    unwrap(await app.workers.editor.request('select', { nodes: [] }));
+    at = `/s/${asset}?page=p1&el=${rect},e_gone&topology=${topology}`;
+    await app.applyLink({ page: 'p1', el: [rect, 'e_gone'] });
+    expect(app.tab?.view.selection).toEqual([rect]);
+    expect(app.spoken.at(-1)).toBe('1 element selected');
+    expect(app.toasted.at(-1)).toBe('1 of 2 linked elements are no longer in this design');
+    expect(moves.at(-1)).toBe(`replace /s/${asset}?page=p1&topology=${topology}`);
+    await app.applyLink({ page: 'p9' });
+    expect(app.toasted.at(-1)).toBe('That page is no longer in this design');
+    expect(moves.at(-1)).toBe(`replace /s/${asset}?topology=${topology}`);
 
     // Place: the library (main, store side) asks the editor; the editor reads the blob through the store port.
     const content = unwrap(await workspace.blobs.put(new Uint8Array([1, 2, 3]), { mime: 'image/png' }));

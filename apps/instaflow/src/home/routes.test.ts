@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { aspectOf, DEFAULT_DESIGN_FORMAT, DESIGN_FORMAT_IDS, DESIGN_FORMATS, designFormat, designFormats, formatOfSize, groupDigits, NEW_DESIGN_CHIPS } from './formats.js';
-import { homeHref, homeViewHref, instaflowRoutes, newDesignHref, readHomeView, readStudioIntent, studioHref } from './routes.js';
+import { homeHref, homeViewHref, instaflowRoutes, keepForeignParams, newDesignHref, readElementIds, readHomeView, readStudioIntent, studioHref, studioLinkHref, withoutIntents } from './routes.js';
 
 const value = <T>(r: { ok: true; value: T } | { ok: false }): T => {
   if (!r.ok) throw new Error('not ok');
@@ -54,6 +54,46 @@ describe('surface routes (D17)', () => {
 
   it('builds the route table once', () => {
     expect(instaflowRoutes()).toBe(instaflowRoutes());
+  });
+});
+
+describe('deep links (B11c, NAVIGATION §2, §5, §6)', () => {
+  it('builds a place in a design in the spec’s order: path, lens, page, dock, el, inspect, then the dialog', () => {
+    const href = (link: Parameters<typeof studioLinkHref>[1]) => {
+      const r = studioLinkHref('as_1', link);
+      return r.ok ? r.value : r.error.code;
+    };
+    expect(href({})).toBe('/s/as_1');
+    expect(href({ lens: 'canvas', page: 'p2' })).toBe('/s/as_1?page=p2');
+    expect(href({ lens: 'pages', page: 'p2', dock: 'layers', el: ['e1', 'e2'], inspect: 'fill' })).toBe('/s/as_1?lens=pages&page=p2&dock=layers&el=e1%2Ce2&inspect=fill');
+    expect(href({ dialog: 'export' })).toBe('/s/as_1/d/export');
+    expect(href({ dialog: 'settings', section: 'shortcuts' })).toBe('/s/as_1/d/settings?section=shortcuts');
+    expect(href({ dialog: 'export', section: 'shortcuts' })).toBe('/s/as_1/d/export');
+  });
+
+  it('reads links back: view params, intents (≤ 20 ids, no repeats), a dialog, an unknown dialog key', () => {
+    expect(readStudioIntent('/s/as_1?lens=pages&page=p2&dock=assets&el=e1,e1,,e2&inspect=stroke')).toEqual({ kind: 'open', asset: 'as_1', link: { lens: 'pages', page: 'p2', dock: 'assets', el: ['e1', 'e2'], inspect: 'stroke' } });
+    expect(readStudioIntent('/s/as_1/d/settings?section=about')).toEqual({ kind: 'open', asset: 'as_1', link: { dialog: 'settings', section: 'about' } });
+    expect(readStudioIntent('/s/as_1/d/share')).toEqual({ kind: 'open', asset: 'as_1', link: { unknownDialog: 'share' } });
+    expect(readStudioIntent('/s/as_1?lens=timeline&inspect=nope')).toEqual({ kind: 'open', asset: 'as_1' });
+    expect(readElementIds(Array.from({ length: 30 }, (_, i) => `e${i}`).join(','))).toHaveLength(20);
+    expect(readElementIds(' , ')).toBeUndefined();
+    expect(withoutIntents({ page: 'p1', el: ['e1'], inspect: 'fill', unknownDialog: 'x', dialog: 'export' })).toEqual({ page: 'p1', dialog: 'export' });
+  });
+
+  it('keeps query keys Studio links do not own (boot settings, debug flags)', () => {
+    expect(keepForeignParams('/s/as_1/d/export', '/s/as_1?topology=split&el=e1&page=p1')).toBe('/s/as_1/d/export?topology=split');
+    expect(keepForeignParams('/s/as_1?page=p1', '/s/as_1?sf-debug=2')).toBe('/s/as_1?page=p1&sf-debug=2');
+    expect(keepForeignParams('/s/as_1', '/s/as_1?el=e1')).toBe('/s/as_1');
+    expect(keepForeignParams('/s/as_1', '/s/as_1')).toBe('/s/as_1');
+  });
+
+  it('Settings is a Home page: /settings and /settings/:section (unknown sections fall back to General)', () => {
+    expect(readHomeView('/settings')).toEqual({ kind: 'settings' });
+    expect(readHomeView('/settings/storage')).toEqual({ kind: 'settings', section: 'storage' });
+    expect(readHomeView('/settings/nope')).toEqual({ kind: 'settings' });
+    const built = [homeViewHref({ kind: 'settings' }), homeViewHref({ kind: 'settings', section: 'general' }), homeViewHref({ kind: 'settings', section: 'about' })].map((r) => (r.ok ? r.value : r.error.code));
+    expect(built).toEqual(['/settings', '/settings', '/settings/about']);
   });
 });
 

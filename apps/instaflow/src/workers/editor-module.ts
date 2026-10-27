@@ -225,6 +225,9 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
   const problem = (error: SfError): void => events.problem(error);
   const announce = (message: string): void => events.announce(message);
   const docChanges = (listener: () => void): (() => void) => document.view.onInvalidate(() => listener());
+  // B11c: a revision bumped on every document change (undo history is not reactive itself; Pro's undo label reads it).
+  const revision = box(0);
+  scope.defer(docChanges(() => revision.set(revision.get() + 1)));
 
   // ---------------------------------------------------------------- services
   const typography = createTypographyService({
@@ -540,6 +543,10 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
         pages: () => {
           const read = structure.read();
           return read.ok ? read.value.pages.length : 1;
+        },
+        undo: () => {
+          revision.get();
+          return document.undo.history(person.id).undo[0]?.label;
         },
         frame: () => {
           const corners = tab()?.view.overlay.frame?.corners;

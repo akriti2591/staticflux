@@ -90,6 +90,7 @@ export const homeMessages = /* @__PURE__ */ defineMessages('instaflow-home', {
   menuMove: 'Move to',
   menuFavourite: 'Add to favourites',
   menuUnfavourite: 'Remove from favourites',
+  menuExport: 'Export…',
   menuCopyLink: 'Copy link',
   menuTrash: 'Move to trash',
   menuRestore: 'Restore',

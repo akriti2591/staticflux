@@ -46,7 +46,7 @@ import { CustomSizeError, HomeImportError, HomeIndexReadError, HomeNameError, Ho
 import { CUSTOM_FORMAT, type DesignFormatId } from './formats.js';
 import { EMPTY_HOME_INDEX, type HomeEntry, type HomeIndex, type ProjectSummary, readHomeIndex, recentDesigns, trashedFiles, workspaceFiles, workspaceProjects, workspaceTemplates } from './index-record.js';
 import { appendHomeOps, HOME_JOURNAL_ASSET, homeOp, type HomeOp, type HomeOpBody, type ImportedMedia, overlayJournal, readHomeJournal } from './journal.js';
-import { type HomeView, homeViewHref, newDesignHref, studioHref } from './routes.js';
+import { type HomeView, homeViewHref, newDesignHref, studioHref, studioLinkHref } from './routes.js';
 
 export const HomeMachine = /* @__PURE__ */ defineMachine({
   id: 'instaflow/home',
@@ -175,7 +175,8 @@ export interface HomeModel {
   show(view: HomeView): void;
   /** A format id, or the New design dialog's full choice (a custom size, pages, name, background). */
   newDesign(request?: DesignFormatId | NewDesignInput): Promise<Result<HomeActionOutput>>;
-  open(asset: string): Promise<Result<HomeActionOutput>>;
+  /** B11c: `dialog: 'export'` opens Studio with the Export dialog (`⋯ › Export…`). */
+  open(asset: string, dialog?: 'export'): Promise<Result<HomeActionOutput>>;
   /** `name`: the new design's title (New design › Name). */
   useTemplate(template: string, name?: string): Promise<Result<HomeActionOutput>>;
   runQuickAction(action: HomeQuickAction): Promise<Result<HomeActionOutput>>;
@@ -308,7 +309,9 @@ export function createHomeModel(options: HomeModelOptions): HomeModel {
         }),
       );
     }),
-    implementCapability(OpenDesignCapability, async (input) => (design(input.asset) === undefined ? err(UnknownDesignError({ details: { asset: input.asset } })) : go(studioHref(input.asset)))),
+    implementCapability(OpenDesignCapability, async (input) =>
+      design(input.asset) === undefined ? err(UnknownDesignError({ details: { asset: input.asset } })) : go(input.dialog === undefined ? studioHref(input.asset) : studioLinkHref(input.asset, { dialog: input.dialog })),
+    ),
     implementCapability(UseTemplateCapability, async (input) =>
       template(input.template) === undefined ? err(UnknownTemplateError({ details: { template: input.template } })) : go(newDesignHref({ template: input.template, ...(input.name === undefined ? {} : { name: input.name }) })),
     ),
@@ -503,7 +506,7 @@ export function createHomeModel(options: HomeModelOptions): HomeModel {
     },
     show: (next) => view.set(next),
     newDesign: (request) => invoke(NewDesignCapability, request === undefined ? {} : typeof request === 'string' ? { format: request } : request),
-    open: (asset) => invoke(OpenDesignCapability, { asset }),
+    open: (asset, dialog) => invoke(OpenDesignCapability, dialog === undefined ? { asset } : { asset, dialog }),
     useTemplate: (t, name) => invoke(UseTemplateCapability, { template: t, ...(name === undefined ? {} : { name }) }),
     runQuickAction: (action) => invoke(action.capability, action.input),
     rename: (asset, title) => unit(invoke(RenameDesignCapability, { asset, title })),

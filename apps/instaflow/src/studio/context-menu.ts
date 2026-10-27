@@ -56,7 +56,7 @@ export const contextMessages = Object.freeze({
   rename: 'Rename',
   selectSame: 'Select same',
   same: { fill: 'Fill', stroke: 'Stroke', effects: 'Effects', font: 'Font', kind: 'Kind' } as Readonly<Record<string, string>>,
-  copyLink: 'Copy link',
+  copyLink: 'Copy link to selection',
   useAsMask: 'Use as mask',
   outlineStroke: 'Outline stroke',
   flatten: 'Flatten',
@@ -123,7 +123,7 @@ function pageGroups(env: ContextEnv): ContextGroup[] {
       ),
       entry('cmd:page-background', m.background),
     ],
-    [entry('cmd:copy-link', m.copyPageLink, 'Mod+Alt+L')],
+    [entry('cmd:copy-link-page', m.copyPageLink)],
   ];
 }
 
@@ -169,7 +169,7 @@ function selectionGroups(s: SelectionSummary, env: ContextEnv): ContextGroup[] {
   const sameBy = s.common === 'text' ? ['fill', 'font', 'kind'] : ['fill', 'stroke', 'effects', 'kind'];
   const more: ContextEntry[] = [
     ...(has('instaflow/select-same') ? [entry('cmd:select-same', m.selectSame, undefined, sameBy.map((by) => entry(`cap:instaflow/select-same?by=${by}`, m.same[by] ?? by)))] : []),
-    entry('cmd:copy-link', m.copyLink, 'Mod+Alt+L'),
+    entry('cmd:copy-link-selection', m.copyLink),
   ];
   const repeatMenu = (['radial', 'grid', 'mirror'] as const).filter((k) => has(`instaflow/repeat-${k}`)).map((k) => entry(`cap:instaflow/repeat-${k}`, m.repeats[k] ?? k));
   const KIND: Readonly<Record<string, () => ContextEntry[]>> = {

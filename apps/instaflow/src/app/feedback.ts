@@ -50,6 +50,8 @@ export interface ToastRequest {
   /** Same id → one toast with a count (`Copied ×3`). */
   readonly dedupe?: string;
   readonly urgent?: boolean;
+  /** B11c: a shorter life for a toast that only confirms (`Link copied`, the density name: 1.5 s, NAVIGATION §5). */
+  readonly durationMs?: number;
 }
 
 export interface Toasts {
@@ -94,7 +96,7 @@ export function createToasts(manager: SurfaceManager, owner: SurfaceOwner): Toas
   const show = (request: ToastRequest, undo = false): SurfaceHandle => {
     const tone = request.tone ?? 'neutral';
     const props: ToastProps = { message: request.message, tone, action: request.action, undo };
-    const durationMs = toastDuration(tone, request.action !== undefined, request.urgent === true);
+    const durationMs = request.durationMs ?? toastDuration(tone, request.action !== undefined, request.urgent === true);
     const def = request.action === undefined ? plainToastSurface : toastSurface;
     return manager.request(def, { owner, props, durationMs });
   };

@@ -1,14 +1,16 @@
 # apps/instaflow/src/home — AGENTS.md
 
 **Work package:** Instaflow M1c **C0 Home route** (D17, D18; IF-28.4–28.25, LIFECYCLES §30, `IF-HOME-001…007`); **B11b/B11c** Home, New
-design, files, projects, trash, import, first run (IF-36.35–36.40, LIFECYCLES §38, `IF-POL-054…058`). **Layer:** app.
+design, files, projects, trash, import, first run (IF-36.35–36.40, LIFECYCLES §38, `IF-POL-054…058`); B11c slice 2 the Settings page,
+Pro Home, deep links and the missing-design page (IF-36.41–36.45). **Layer:** app.
 **Entry point:** `@instaflow/app/home` (`dist/home/index.js`; the dev page `dev/home/main.ts`; the dev server maps `/`, `/files`, `/p/:name`,
 `/templates`, `/trash` to it).
 **Depends on:** `@staticflux/core`, `@staticflux/ui` (+ `/theme`), `@staticflux/kit` (button, card, tag, icon, icon-button, menu, popover,
 inline-edit, confirm-row, feedback, segmented, text-field, size-field, number-field, color-field, disclosure, surfaces), `@staticflux/messaging`
 (toasts), `@staticflux/i18n`, `@staticflux/capabilities`, `@staticflux/router` (route table only), `@staticflux/loader` (boot plan data),
 `@staticflux/document/v2` (heads, `HeadConflictError`), `@staticflux/blob` (import and previews, loaded on first use), `../workspace/browser.ts`
-+ `document-store.ts` + `blobs.ts`, `../library` (`kinds`, `library-doc`, `records`, `errors`), `../app/feedback.ts` (toasts), `../theme`.
++ `document-store.ts` + `blobs.ts`, `../library` (`kinds`, `library-doc`, `records`, `errors`), `../app/feedback.ts` (toasts), `../theme`,
+`../settings` (B11c: device settings, `<if-settings>`).
 **Never** the editor, render, Loro, worker, Wasm or GPU code (D17; `home-imports.test.ts` fails the build otherwise).
 **Budgets:** Home's whole boot 111 KB, Home's own code 34 KB brotli (`.size-limit.json`, "@instaflow/app/home"; raised by B11c with reasons).
 
@@ -33,7 +35,10 @@ capability, so agents can do it too.
 - `routes.ts` — `homeRoute` (`/`), `studioRoute` (`/s/:asset`), `newDesignRoute` (`/new?format|template|w|h|unit|pages|name|bg`), B11c
   `filesRoute` (`/files?q|filter|sort|view`), `projectRoute` (`/p/:name`), `templatesRoute`, `trashRoute`, `instaflowRoutes()`, `homeHref`,
   `studioHref`, `newDesignHref`, `HomeView`, `homeViewHref`, `readHomeView`, `FILES_FILTERS` / `FILES_SORTS` / `FILES_LAYOUTS`,
-  `DESIGN_UNITS`, `readStudioIntent` → `StudioIntent` (`open | new | demo`).
+  `DESIGN_UNITS`, `readStudioIntent` → `StudioIntent` (`open | new | demo`; `open` carries the `StudioLink`). B11c slice 2:
+  `settingsRoute` (`/settings`), `settingsSectionRoute` (`/settings/:section`), `SETTINGS_SECTION_IDS`, `studioDialogRoute`
+  (`/s/:asset/d/:dialog`), `STUDIO_DIALOGS` (`export`, `settings`), `STUDIO_LENSES`, `STUDIO_DOCK_TABS`, `INSPECT_SECTIONS`, `StudioLink`,
+  `studioLinkHref` (the spec's order), `readElementIds` (≤ 20), `withoutIntents`, `STUDIO_LINK_KEYS`, `keepForeignParams`.
 - `capabilities.ts` — `NewDesignCapability` (formats or `custom` W × H), `OpenDesignCapability`, `UseTemplateCapability`, B11c
   `RenameDesignCapability`, `DuplicateDesignCapability`, `MoveToProjectCapability`, `FavoriteCapability`, `TrashDesignsCapability`,
   `RestoreDesignsCapability`, `DeleteForeverCapability`, `NewProjectCapability`, `RenameProjectCapability`, `DeleteProjectCapability`,
@@ -54,8 +59,12 @@ capability, so agents can do it too.
   functions (`initialDraft`, `chooseFormat`, `setDraftSize`, `setStartFrom`, `draftRequest`), `readNewDesignMemory` / `writeNewDesignMemory`.
 - `home-element.ts` — `<if-home>` (`defineHome`, render dep `HomeModelToken`, lazy `I18nToken` and `ToastsToken`; `.previews`, `.storage`),
   `fileActions(entry)` (the file menu's rows, data), `isPlainActivation`, `BULK_TRASH_CONFIRM_FROM`, `ASSETS_DRAG_TYPE`. `home-styles.ts`.
-- `boot.ts` — `bootHome({ container, scope, store?, host?, importer?, theme? })` → `{ model, element, toasts }`; refreshes on bfcache
-  restore, visibility and Studio's ping; follows Back / Forward.
+- `boot.ts` — `bootHome({ container, scope, store?, host?, importer?, theme? })` → `{ model, element, toasts, settings }`; refreshes on
+  bfcache restore, visibility and Studio's ping; follows Back / Forward; applies the device settings to the root.
+- `shortcuts.ts` — `HOME_SHORTCUTS` (Home's card in Settings › Keyboard shortcuts; the keys `<if-home>` handles).
+- `missing-design.ts` — `<if-missing-design asset trashed design-title home-href>` (`defineMissingDesign`): `This design isn't on this
+  device` / `This design is in the trash` with `Restore` (`if-restore`) and `Go to Home` (`if-navigate`, cancelable); `focusPrimary`,
+  `restoreFailed`. Studio's dev entry shows it at the same URL (NAVIGATION §4).
 - `boot-plan.ts` — `INSTAFLOW_CHUNKS`, `HOME_BOOT_PLAN`, `STUDIO_BOOT_PLAN`, `bootClosure`.
 - `messages.ts` — `homeMessages` (`instaflow-home`), `homeText`, `fallbackText` (English plurals without the service), `relativeTime`.
   `tokens.ts` — `HomeModelToken`. `errors.ts` — `IF-HOME-001…007`, `IF-POL-054…058`.

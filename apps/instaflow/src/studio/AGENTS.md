@@ -22,7 +22,10 @@ fully by hand (D17).
   shape family, `<if-hud>`, zoom pill, `<if-command-bar>`, proposal card), inspector column. `StudioChromeModel` in (mirrors),
   `StudioChromePort` out (capabilities, mirror actions, camera, export, milestone, template, copy link, page selection).
   `hudPosition` (pure pill placement), `EMPTY_CHROME`, `M1_LENSES`, `focusHud`, `focusTitle`, `focusCommandBar`,
-  `focusCanvas`, `showPanel`, `canvasActive`, `studioMessages`. Event `if-navigate { href }` (the Home link, cancelable).
+  `focusCanvas`, `showPanel`, `canvasActive`, `studioMessages`. Event `if-navigate { href }` (the Home link, cancelable). B11c: per
+  density (DENSITY §3.1) Focus hides the lens switcher (two lenses) and folds Milestone into `⋯ › Create milestone`, Pro shows the
+  model's `undo` label and the zoom as text; `⋯` adds Settings… (`Mod+,`), Keyboard shortcuts (`?`), About; `CopyLinkTarget`; the tool
+  buttons, the Layers tab and the pill are coach targets for the first-use hints.
 - `hud.ts` (B11b) — `<if-hud>`: the selection pill per kind over `studio-controls.ts` (`CONTROL_SETS`, `SECTIONS`, `CONTROL`,
   `MORE_GROUP_OF`, `MORE_EXCLUDED`); `HudPort`, `paintFromColor`, `pillCapabilities`, `moreMenuGroups`.
 - `command-bar.ts` (B11b) — `<if-command-bar .sources>` (`Mod+K`; fires `if-command { value }` = `cap:` / `tool:` / `camera:`),
@@ -43,7 +46,7 @@ fully by hand (D17).
   cheat sheet's cards from `registry.list()`), `shortcutsSheetSurface(groups)` (the settings-size dialog over the kit's
   `<sf-shortcut-sheet>`).
 - `ChromeShortcuts` (in `studio-element.ts`, B11b slice 4) — the chrome's own keys (dock, inspector, rename, copy link,
-  milestone, save hint, cheat sheet, context menu); the port grew `contextAt`, `clipboard`, `selectAll`, `editText`,
+  milestone, save hint, cheat sheet, context menu; B11c `cycleDensity` `Mod+.`, `settings` `Mod+,`); the port grew `contextAt`, `clipboard`, `selectAll`, `editText`,
   `textPreset`, `fitToBox`, `replaceImage`, `pageAction`, `saveHint`, `openShortcuts`; the model `clipboard` and `pages`.
 - `canvas.ts` — **`CanvasPort`** (`start(surface, signal) → CanvasSession { forwarded, stop }`), `sequencingCanvas({ boot, env,
   schedule })` (boots A7, forwards surface input into the editor's input ring; IF-SPEC-005 on failure).

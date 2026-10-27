@@ -114,8 +114,8 @@ export function createEditorRegistries(init: EditorRegistriesInit): Result<Edito
   });
 }
 
-/** Default density when a spec does not say (UX §3: Focus for new users). */
-export const DEFAULT_DENSITY = 'focus';
+/** Default density when a spec does not say (B11c: Standard, DENSITY-DISCLOSURE §7.1 "First run opens in Standard"). */
+export const DEFAULT_DENSITY = 'standard';
 
 /** The framework form of an editor spec. */
 export function toShellSpec(spec: EditorSpec): ShellSpec {

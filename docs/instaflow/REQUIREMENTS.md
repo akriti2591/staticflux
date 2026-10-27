@@ -1662,6 +1662,43 @@ Lifecycle: LIFECYCLES §38.
   or `Chrome may clear this workspace under storage pressure. Pin this site to keep it.`), dismissable, seen per device
   (`instaflow/ui/first-run`); the formats row says `Pick a size to start. You can change it later.` once. The footer reads
   `1.2 GB used on this device`; a write that fails for lack of space shows the banner `Storage is full…` with `Open Trash`.
+- **IF-36.41** **Settings** (STUDIO §2.4, DENSITY §7, §8.3; B11c slice 2): one `<if-settings>` with the M1 sections General ·
+  Keyboard shortcuts · Storage · About, a page in Home's shell (`/settings`, `/settings/:section`; the header's gear and the
+  footer's `Settings`) and a dialog over Studio (`/s/:asset/d/settings?section=`; `⋯ › Settings…`, `Mod+,`; `⋯ › About`).
+  General: the density radio cards with their one-liners and preview drawings; `More ▾` holds Units (New design's default),
+  Reduced motion (follow the system, reduce, full) and `Show first-use hints` with `Reset hints`. Shortcuts: the cheat sheet
+  (Studio's registry; on Home the last Studio snapshot plus Home's own card). Storage: space used with a bar, persistence and
+  `Keep my designs on this device`, `Open Trash`. About: version, `Copy diagnostics`, licences (with the fonts you added).
+  Every change is saved per device at once (`instaflow/ui/settings`), never in a document or a URL.
+- **IF-36.42** **Density modes** (DENSITY §1, §3.1, §4, §6, §7.1): Focus · Standard (default, first run) · Pro, chosen in
+  `View ▾ › Density`, Settings › General or `Mod+.` (cycles, a 1.5 s toast `Standard · Your work, with the panels that explain
+  it.`), remembered per device and followed by other tabs; the device setting and the mounted spec are one value. The root
+  carries `data-sf-density` (the theme's §6 token sets) and `data-sf-motion`. Focus hides the lens switcher while only Canvas
+  and Pages exist (`1` / `5` still switch) and folds `Milestone` into `⋯ › Create milestone`; Pro adds the undo label
+  (`Undo: Resize headline`) and the zoom as text in the top bar; Home in Pro is the file manager (compact hero, 12 recents,
+  compact project and template rows, Files as a list by default with sortable headers and a Pages column, the bulk bar docked).
+- **IF-36.43** **Deep links and routable dialogs** (NAVIGATION §2–§6): Export and Settings are routable dialogs (`/d/export`,
+  `/d/settings`): opened in-app they push (Back closes; `×` / Escape go back), opened from a link Escape replaces the path with
+  the design's; the Settings section is replaced in the query; each has a `Copy link` in its header. A cold boot applies the
+  link in order: the canvas opens on `page=`, then `lens=`, `dock=`, `el=` (select the ids that exist, zoom to them, announce
+  `2 elements selected`), `inspect=` (expand and scroll that inspector section, focus stays on the canvas), the dialog last;
+  `el` / `inspect` (and an unknown dialog key) are stripped by replace. Query keys Studio does not own survive every rewrite.
+  Hints are suppressed on arrivals with `el=`, `page=` or a dialog. Home's card `⋯ › Export…` opens `/s/:asset/d/export`
+  (`instaflow/open-design` with `dialog: 'export'`).
+- **IF-36.44** **Copy link to this** (NAVIGATION §5): `⋯ › Copy link` and `Mod+Alt+L` copy `/s/:asset`; the page label's menu
+  `Copy link to page` copies `/s/:asset?lens=pages&page=`; the selection's context menu `Copy link to selection` copies
+  `/s/:asset?page=&el=`; a routable dialog's `Copy link` copies its path with its section; `Link copied` (1.5 s, deduped).
+- **IF-36.45** **Missing targets** (NAVIGATION §4): an unknown page id opens the first page with `That page is no longer in
+  this design`; unknown element ids select the rest with `That element…` / `2 of 3 linked elements are no longer in this
+  design`; a design not on this device shows `<if-missing-design>` at the same URL (`This design isn't on this device`, the
+  sentence, `Go to Home`); a design in the trash shows `This design is in the trash` with `Restore` (a Home journal op, then
+  the page reloads into Studio) — M1 has no read-only Studio, so the trash case departs from "opens read-only" (handoff).
+- **IF-36.46** **First-use hints** (OVERLAYS §5): the M1 set (Frame, Shape, Text, Hand under the tool picker; Layers' first
+  element; the first multi-selection) shown at the first use, one at a time, at most two per session, seen once per device
+  (`instaflow/ui/hints`, the surface manager's seen store), retired when the tool is used; `Show first-use hints` turns them
+  off and `Reset hints` brings them (and Home's welcome card) back.
+- **IF-36.47** **The logo in the browser** (brand README): Home's and Studio's pages link `brand/favicon.svg` (white strokes in
+  dark mode), the PNG fallback, the touch icon and `brand/manifest.webmanifest` (name, colours, the 192 / 512 / SVG app icons).
 
 ## 37. Engine gaps for B11b (M1c B12)
 

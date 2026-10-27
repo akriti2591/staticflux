@@ -113,6 +113,8 @@ export async function openStudioSession(options: StudioSessionOptions): Promise<
   const { intent: _intent, documents: _documents, blobs: _blobs, navigate, replaceUrl, newAssetId: _newAssetId, now: _now, index: indexTiming, channel: _channel, ...appOptions } = options;
   const created = await createStudioApp({
     ...appOptions,
+    // B11c: where the URL points within the design (applied once the canvas shows, NAVIGATION §6).
+    ...(intent.kind === 'open' && intent.link !== undefined ? { link: intent.link } : {}),
     workspace: workspace.value,
     document: plan.value.ref,
     homeHref: home.ok ? home.value : '/',

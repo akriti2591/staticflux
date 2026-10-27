@@ -486,3 +486,10 @@ far except R13.46 (kit tree) and R13.47 (kit cheat sheet): the surfaces compose 
   (compare-and-swap on a head of Home's own: the journal); no framework API.
 - B11c "Import on Home with no engine" → `@staticflux/blob` `createBlobStore` over OPFS (`put`, content-addressed), loaded on first
   use; the record is the library's `instaflow.asset/1`.
+- B11c "Density per device, the whole UI follows" → `@staticflux/ui/theme` appearance attributes (`data-sf-density`,
+  `data-sf-motion`) over the theme's density token sets; the spec's `density` (shell/spec) for what mounts; no framework API.
+- B11c "Settings and Export open from a link and close with Back" → `@staticflux/messaging` `createRoutableDialogBridge`
+  (`routableSurface`, `openDialog(key, params, { source })`, `onDismissIntent` back / replace) and `@staticflux/router` routes for
+  `/s/:asset/d/:dialog`; the kit dialog's `header-actions` slot holds `Copy link`; no framework API.
+- B11c "One-sentence hints at the first use, never a tour" → `@staticflux/messaging` coach marks (`coachTarget`, the seen store bound
+  to `localStorage`) and the kit's `<sf-hint>` (`defineHintSurface`); no framework API.

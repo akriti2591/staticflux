@@ -53,11 +53,17 @@ Main side:
   injector, the capability registry with forwarding implementations, Studio controller, canvas, scope-follows-selection,
   lens controller over the mirrored structure, HUD dispatch, `createMilestone`, `place`, `inspect`, `element`, `metrics`,
   `mount(container)`, `spoken`, `view`, `tab`; C0: `library`, `flush()` (Latest durable), `leave(href)` (the Home link: flush, then
-  `options.leave`), `saveAsTemplate(title?)` (`instaflow/save-as-template` on main over `options.templates`), `homeHref`).
+  `options.leave`), `saveAsTemplate(title?)` (`instaflow/save-as-template` on main over `options.templates`), `homeHref`). B11c slice 2:
+  options `settings` (device settings), `link` (the URL's `StudioLink`), `history` (`StudioHistory`; `browserStudioHistory()`),
+  `storage`, `storageFacts`; app `settings`, `hints`, `openDialog(key, section?)` (routable Export and Settings: push in-app, back on
+  dismissal, replace when deep-linked; Back / Forward follow), `linkTo(target)` (design, page, selection), `applyLink(link)` (cold
+  boot order: page, lens, dock, `el`, `inspect`, the dialog last; intents stripped), `linked`; the chrome port's `copyLink(target)`,
+  `openSettings(section?)`, `cycleDensity()`; the seen store bound to `instaflow/ui/hints`; `linkMessages`.
 - `errors.ts` — `IF-INT-001` pipeline start · `002` scene record · `003` no open page · `004` canvas backend · `005` document.
 - `feedback.ts` (B11a2, main side) — `feedbackFor(error, origin, copy?)` (level by origin refined by `FAMILY_LEVELS`; Instaflow words per error
   definition; never the code), `ToastsToken` / `createToasts(manager, owner)` (`show`, `undoable` → `Restored`, `error`, `undoNewest` for Home's
-  `Mod+Z`), `INSTAFLOW_SURFACE_UNITS` (messaging under `strictSurfacePolicy`). B11b binds the units and the token.
+  `Mod+Z`), `INSTAFLOW_SURFACE_UNITS` (messaging under `strictSurfacePolicy`). B11b binds the units and the token. B11c: `ToastRequest.durationMs`
+  (1.5 s confirmations: `Link copied`, the density name).
 - `test-helpers.ts` (test-only) — `createStudioFixture`, `scriptedTextInput`, `lendDom`, `manualTimers`, `textPortRig` (the
   TextInput port with both queues held by the test).
 

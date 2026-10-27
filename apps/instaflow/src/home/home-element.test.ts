@@ -240,13 +240,13 @@ describe('<if-home>', () => {
   });
 
   it('the file menu lists what each kind can do (data), and the menu opens from ⋯ and from a right-click', async () => {
-    expect(fileActions(INDEX.entries[0] as HomeEntry)).toEqual(['open', 'open-tab', 'rename', 'duplicate', 'move', 'favourite', 'copy-link', 'trash']);
+    expect(fileActions(INDEX.entries[0] as HomeEntry)).toEqual(['open', 'open-tab', 'rename', 'duplicate', 'move', 'favourite', 'export', 'copy-link', 'trash']);
     expect(fileActions(INDEX.entries[2] as HomeEntry)).toEqual(['use', 'edit-template', 'rename', 'duplicate', 'move', 'favourite', 'trash']);
     expect(fileActions(INDEX.entries[3] as HomeEntry)).toEqual(['rename', 'move', 'favourite', 'trash']);
     expect(fileActions(INDEX.entries[4] as HomeEntry)).toEqual(['restore', 'delete-forever']);
     const { host, shadow, root } = await mount();
     await openMenu(host, 'as_flyer');
-    expect(menuValues(shadow)).toEqual(['open', 'open-tab', 'rename', 'duplicate', 'move', 'favourite', 'copy-link', 'trash']);
+    expect(menuValues(shadow)).toEqual(['open', 'open-tab', 'rename', 'duplicate', 'move', 'favourite', 'export', 'copy-link', 'trash']);
     expect([...shadow.querySelectorAll('sf-menu.file-menu sf-menu[slot="submenu"] sf-menu-item')].map((i) => i.getAttribute('value'))).toEqual(['move:Spring campaign', 'move-new', 'move:']);
     expect(card(shadow, 'as_flyer').hasAttribute('actions-shown')).toBe(true);
     expect(auditA11y(root.container)).toEqual([]);
@@ -338,6 +338,14 @@ describe('<if-home>', () => {
     await again(host);
     expect(written).toEqual([new URL('/s/as_flyer', location.href).href]);
     expect(shown.at(-1)).toEqual({ message: 'Link copied' });
+  });
+
+  it('⋯ › Export… opens the design in Studio with the Export dialog (B11c: /s/:asset/d/export)', async () => {
+    const { host, went } = await mount();
+    await openMenu(host, 'as_flyer');
+    await pick(host, 'export');
+    await again(host);
+    expect(went.at(-1)).toBe('/s/as_flyer/d/export');
   });
 
   it('projects: ＋ New project names one inline; a card dragged onto a project card moves there', async () => {
