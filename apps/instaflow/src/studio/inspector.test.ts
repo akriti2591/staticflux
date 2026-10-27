@@ -162,6 +162,8 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;
     const tabs = fill.querySelector('sf-segmented.paint-tabs') as HTMLElement & { value: string };
     expect(tabs.value).toBe('solid');
+    // R13.52: the Solid tab's contrast tag compares against the page's solid Background.
+    expect(fill.querySelector('sf-color-popover')?.getAttribute('contrast-with')).toBe('#FFFFFF');
     change(tabs, { value: 'image' });
     await el.updateComplete;
     const choices = [...fill.querySelectorAll<HTMLButtonElement>('.paint-popover button.image-choice')];

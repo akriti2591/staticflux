@@ -222,6 +222,10 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     expect('placed' in away).toBe(true);
     const notFillable = await app.workers.editor.request('imageFill', { entry, target: { to: 'selection', index: 0 } });
     expect(notFillable.ok).toBe(true); // the placed image is selected: its row 0 becomes the new picture
+    // B11c: Replace keeps the crop when the new picture has the same proportions.
+    unwrap(await app.capabilities.invoke('instaflow/image-crop', { nodes: [...(app.tab?.view.selection ?? [])], crop: { scale: 2 } }, { subject: 'user', signal }));
+    unwrap(await app.workers.editor.request('replaceImage', { entry }));
+    expect(app.scene.selection?.crop?.scale).toBe(2);
     // Files that are not images, or too large, are refused with a toast and its fix (never a blank screen).
     const huge = { name: 'huge.png', type: 'image/png', size: 200 * 1024 * 1024, stream: () => new ReadableStream() } as unknown as File;
     app.chrome.dropFiles([new File(['hi'], 'notes.txt', { type: 'text/plain' }), huge], { x: 5, y: 5 });

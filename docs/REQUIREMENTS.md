@@ -334,6 +334,8 @@
 - **R13.50** Kit **icon fill**: `--sf-icon-fill` fills an outline icon's shape (a favourite's star); default none. *(Instaflow B11c)*
 - **R13.51** `<sf-size-field>`'s number fields take their width from `--sf-size-field-input` (default 7.5rem), so a narrow
   column (an inspector) holds the pair.
+- **R13.52** `<sf-color-popover contrast-with>` shows the WCAG contrast of the current solid against the solid behind it as a
+  polite mono tag (`AAA 7.2 : 1` · `AA` · `AA large` · `×`), outlined below AA; `contrastRatio`, `contrastLevel` exported.
 
 ## 14. Localization (base requirement)
 

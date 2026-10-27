@@ -166,6 +166,8 @@ export interface PaintHost {
   toggleRow(key: string): void;
   /** Resolve `@token` → hex (undefined: not in the kit). */
   resolve(token: string): string | undefined;
+  /** B11c: the page's top solid Background (`#rrggbb`): the colour popover's contrast tag compares against it (R13.52). */
+  readonly background?: string;
   /** B11c: the workspace's images (the Image tab). */
   readonly images?: readonly LibraryImage[];
   /** B11c: put an image on the selection's or the page's fills: a new top row, or `index`'s row turned into it. */
@@ -222,6 +224,7 @@ export function colorSwatch(host: PaintHost, label: string, color: string | unde
       ?unresolved=${o.unresolved === true}
       ?custom-open=${host.pro}
       ?captions=${host.pro}
+      contrast-with=${host.background ?? nothing}
       .documentColors=${host.documentColors}
       .palette=${CLEAN_POP_COLOR_PALETTE}
       .recent=${host.recent}
@@ -348,6 +351,7 @@ function fillSwatch(host: PaintHost, label: string, paint: JsonValue | undefined
         ?unresolved=${token !== undefined && resolved === undefined}
         ?custom-open=${host.pro}
         ?captions=${host.pro}
+        contrast-with=${o.to === 'page' ? nothing : (host.background ?? nothing)}
         .documentColors=${host.documentColors}
         .palette=${CLEAN_POP_COLOR_PALETTE}
         .recent=${host.recent}

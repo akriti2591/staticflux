@@ -15,6 +15,7 @@ export const pickerMessages = /* @__PURE__ */ defineMessages('kit-pickers', {
   customColor: 'Custom',
   detachToken: 'Detach from token',
   replaceWith: 'Replace with {hex}',
+  contrast: '{level} {ratio} : 1 on {hex}',
   hue: 'Hue',
   saturation: 'Saturation and brightness',
   searchFonts: 'Search fonts',

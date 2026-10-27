@@ -466,6 +466,14 @@ export class IfInspectorElement extends SfElement<typeof spec> {
     writeOpen(this.opened);
   }
 
+  /** The page's top visible solid Background as `#rrggbb` (the contrast tag's "behind"); undefined for an image or gradient. */
+  private pageBackground(): string | undefined {
+    const top = [...(this.model.pageFill?.fills ?? [])].reverse().find((f) => (f as { visible?: boolean }).visible !== false) as { paint?: unknown } | undefined;
+    const paint = top?.paint;
+    const hex = typeof paint === 'string' ? (paint.startsWith('@') ? this.resolve(paint) : paint) : undefined;
+    return hex !== undefined && /^#[0-9a-f]{6}/i.test(hex) ? hex.slice(0, 7) : undefined;
+  }
+
   private host(): PaintHost & TextHost {
     const self = this;
     return {
@@ -493,6 +501,7 @@ export class IfInspectorElement extends SfElement<typeof spec> {
       },
       resolve: (token) => this.resolve(token),
       images: this.model.images ?? [],
+      ...(this.pageBackground() === undefined ? {} : { background: this.pageBackground() as string }),
       imageFill: (to, source, index) => this.port?.imageFill(to, source, index),
       isMoreOpen: (key) => this.more.has(key),
       toggleMore: (key) => {

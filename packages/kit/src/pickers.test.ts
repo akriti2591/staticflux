@@ -3,7 +3,7 @@ import { deepFocused, expectNoA11yIssues, press } from '@staticflux/testkit/a11y
 import { html } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { alignTarget, defineAlignPopover, distributeActions, type SfAlignPopoverElement } from './align-popover.js';
-import { completeHex, defineColorPopover, gridNextIndex, hexToHsv, hsvToHex, pushRecentColor, rankDocumentColors, type SfColorPopoverElement } from './color-popover.js';
+import { completeHex, contrastLevel, contrastRatio, defineColorPopover, gridNextIndex, hexToHsv, hsvToHex, pushRecentColor, rankDocumentColors, type SfColorPopoverElement } from './color-popover.js';
 import { defineFontPicker, fontFaceCss, fontRows, fontWindow, type SfFontPickerElement } from './font-picker.js';
 import { definePopover, type SfPopoverElement } from './popover.js';
 import { cleanup, events, fixture, settle, shadow, shadowAll } from './test-helpers.js';
@@ -52,6 +52,22 @@ describe('<sf-color-popover>', () => {
     await settle();
     return element;
   }
+
+  it('R13.52: the contrast tag against the solid behind (AAA, AA, AA large, ×), outlined below AA, absent without one', async () => {
+    expect(contrastRatio('#000000', '#FFFFFF')).toBeCloseTo(21, 5);
+    expect(contrastRatio('#FFFFFF', '#FFFFFF')).toBeCloseTo(1, 5);
+    expect(contrastRatio('nope', '#FFFFFF')).toBeUndefined();
+    expect([7.2, 4.9, 3.1, 1.8].map(contrastLevel)).toEqual(['AAA', 'AA', 'AA large', '×']);
+    const none = await picker();
+    expect(none.shadowRoot?.querySelector('.contrast')).toBeNull();
+    const dark = await picker({ value: '#16151A', contrastWith: '#ffffff' } as Partial<SfColorPopoverElement>);
+    expect(shadow(dark, '.contrast')?.textContent).toBe('AAA 18.2 : 1 on #FFFFFF');
+    expect(shadow(dark, '.contrast')?.hasAttribute('data-low')).toBe(false);
+    const light = await picker({ contrastWith: '#FFFFFF' } as Partial<SfColorPopoverElement>);
+    expect(shadow(light, '.contrast')?.textContent).toMatch(/^× 1\.\d : 1 on #FFFFFF$/);
+    expect(shadow(light, '.contrast')?.hasAttribute('data-low')).toBe(true);
+    expectNoA11yIssues(light);
+  });
 
   it('previews a complete hex while typing and commits once on Enter; refuses an invalid one inline', async () => {
     const element = await picker();

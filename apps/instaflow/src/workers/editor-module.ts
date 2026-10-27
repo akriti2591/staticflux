@@ -152,7 +152,7 @@ export interface StudioEditor {
   call(call: MirrorCall): Promise<Result<unknown>>;
   text(event: TextHostEvent): void;
   place(entry: LibraryEntry, signal: AbortSignal): Promise<Result<void>>;
-  /** B11b: the selected images' top image fill shows `entry` (fit kept, crop reset); one step `Replace image`. */
+  /** B11b: the selected images' top image fill shows `entry` (fit kept; B11c: the crop kept when the proportions match, else reset); one step `Replace image`. */
   replaceImage(entry: LibraryEntry, signal: AbortSignal): Promise<Result<void>>;
   /** B11c: an image fill (`ImageFillTarget`): one undo step; a drop off any fillable element places the image there. */
   imageFill(entry: LibraryEntry, target: ImageFillTarget, signal: AbortSignal): Promise<Result<ImageFillResult>>;
@@ -177,6 +177,12 @@ export interface StudioEditor {
 
 /** Double click: a second press within this time and distance (the ring carries no click count). */
 export const DOUBLE_CLICK = Object.freeze({ ms: 500, px: 4 });
+
+/** The asset id of an image paint's `asset` reference. */
+const assetOf = (ref: JsonValue | undefined): string | undefined => {
+  const a = typeof ref === 'object' && ref !== null && !Array.isArray(ref) ? (ref as Record<string, JsonValue>)['asset'] : undefined;
+  return typeof a === 'string' ? a : undefined;
+};
 
 /** B11c: element kinds an image fill can go on (text keeps its text colour; groups and masks have no fill). */
 export const IMAGE_FILLABLE: ReadonlySet<string> = new Set(['shape', 'frame', 'vector', 'boolean', 'image']);
@@ -909,7 +915,11 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
           if (typeof item !== 'object' || item === null || Array.isArray(item)) continue;
           const paint = item['paint'];
           if (typeof paint !== 'object' || paint === null || Array.isArray(paint) || paint['kind'] !== 'image') continue;
-          list[i] = { ...item, paint: { kind: 'image', asset: { asset: entry.asset }, fit: paint['fit'] ?? 'cover' } };
+          // B11c: the crop stays when the new picture has the old one's proportions (APPEARANCE §2.4), else it resets.
+          const old = uploads.size(assetOf(paint['asset']) ?? '');
+          const keep = old !== undefined && Math.abs(old.width / old.height - size.value.width / size.value.height) < 0.01;
+          const crop = keep ? Object.fromEntries((['offset', 'scale', 'rotation'] as const).flatMap((k) => (paint[k] === undefined ? [] : [[k, paint[k]]]))) : {};
+          list[i] = { ...item, paint: { kind: 'image', asset: { asset: entry.asset }, fit: paint['fit'] ?? 'cover', ...crop } };
           return [{ op: 'set', node, path: P.fills, value: list }];
         }
         return [];

@@ -1721,7 +1721,9 @@ Lifecycle: LIFECYCLES §38.
   bound: HOME-FILES §3.1's `Mod+I` is Italic in Studio (TEXT §7); `Mod+Shift+K` (Figma's Place image) is proposed.
 - **IF-36.51** **Leftovers closed in B11c slice 4**: Page › Size is the kit's size field (1…16 384 px, New design's range,
   IF-POL-050); the menus' Paste reads the system clipboard (Studio's payload, an image, text; the memory copy when refused);
-  `Alt+Shift+]` / `Alt+Shift+[` rotate 1° (R15.7); the cheat sheet's `Print` prints the cards with both platforms' keys.
+  `Alt+Shift+]` / `Alt+Shift+[` rotate 1° (R15.7); the cheat sheet's `Print` prints the cards with both platforms' keys; the
+  colour popover's contrast tag (`AA 4.9 : 1 on #FFFFFF`) against the page's solid Background on fill and text colours
+  (R13.52); `Replace…` keeps an image's crop when the new picture has the same proportions.
 - **IF-36.47** **The logo in the browser** (brand README): Home's and Studio's pages link `brand/favicon.svg` (white strokes in
   dark mode), the PNG fallback, the touch icon and `brand/manifest.webmanifest` (name, colours, the 192 / 512 / SVG app icons).
 

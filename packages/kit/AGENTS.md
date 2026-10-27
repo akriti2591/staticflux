@@ -43,6 +43,7 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
   focus ring, name from its text or `label`; `--kit-card-padding`, `--kit-card-gap`, `::part(card)`), `defineCard`. *(Instaflow C0 Home)*
   *B11c (R13.49):* an `actions` slot (top-right) and a `leading` slot (top-left) outside the link, shown on hover / focus within (always
   with `actions-shown`), and the `selected`, `drop-target`, `dragging` states.
+- `color-popover` (B11c) — `contrast-with` and the contrast tag (R13.52), `contrastRatio`, `contrastLevel`.
 - `size-field` — `<sf-size-field label .width .height unit locked min max disabled>` (R13.51: `--sf-size-field-input` sets the field width; R13.48: W and H number fields in `px · mm · in · pt`
   at 96 px/in, keep proportions, portrait · landscape, units, a `presets` slot; inline error outside `min`…`max`, SF-KIT-005;
   `sf-change` `{ width, height, unit }`, `sf-submit` on Enter), `sizeInUnit`, `sizeFromUnit`, `validateSide`, `keepRatio`, `orientationOf`,
