@@ -52,7 +52,7 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
   re-check #49 group/mask, #50 union, #52 radial repeat) → #51 subtract blanks (intermittent; image suspected) →
   #54 paths don't resize (flatten bounds) → #39 Finder paste white screen → #43 page bg image not on canvas →
   #45 colour popover cropped → #46 page W/H truncated → #47 polygon Sides (control defined, never rendered: add to
-  inspector + HUD, label Sides) → #55 inspector layout + #40 dock padding (**Fable spec running**,
+  inspector + HUD, label Sides) → #56 Settings shortcuts sheet (two scroll bars, raw key names, lists unbuilt tools) → #55 inspector layout + #40 dock padding (**Fable spec running**,
   `claude/ux-inspector-layout` → INSPECTOR-LAYOUT-SPEC.md; then one implementation pass, owner reviews).
 - **After the bugs:** fonts package (owner approved): Google Fonts catalogue (download on pick, cached in the
   workspace), small curated offline set, fonts on this computer in Studio, picker rows previewed in their own face
