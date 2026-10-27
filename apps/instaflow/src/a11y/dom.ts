@@ -5,8 +5,9 @@
  * element); with nothing selected it returns to the canvas surface itself. Keys stay with B3's shortcuts (the layer
  * activates nothing on Enter / Space), so arrow, Tab, Enter and Escape mean the same with and without a screen reader.
  *
- * A node focused by assistive technology or a click (a virtual cursor landing on it) reports `onFocusNode` so the
- * wiring can select it; focus the mount moved itself is not reported back (no loop).
+ * A node focused by assistive technology (a virtual cursor landing on it) reports `onFocusNode` so the wiring can
+ * select it; focus the mount moved itself is not reported back (no loop). A pointer press never focuses a node (its
+ * `mousedown` default is prevented, #53): the tool controller owns what a press selects (Shift adds or removes).
  *
  * The focused node shows the theme's focus ring (2 px `color.focusRing`, 2 px offset); nodes are otherwise transparent.
  * The ring is for keyboard focus only (`:focus-visible`, #41): the moves follow the input that caused them, so focus
@@ -30,7 +31,7 @@ export interface CanvasA11yMountOptions {
   /** The canvas surface element (focusable; Studio's `.surface`, `role="application"`). */
   readonly host: HTMLElement;
   readonly document: Document | undefined;
-  /** A person focused a node (assistive technology, pointer): usually `view.select([id])` in the editor. */
+  /** A person focused a node (assistive technology; a pointer press does not focus one): usually `view.select([id])`. */
   readonly onFocusNode?: (id: NodeId) => void;
 }
 
@@ -67,6 +68,9 @@ export function mountCanvasA11y(options: CanvasA11yMountOptions): Result<CanvasA
   let keyboard: boolean | undefined;
   options.host.addEventListener('pointerdown', () => (keyboard = false), { capture: true, signal: stop.signal });
   options.host.addEventListener('keydown', () => (keyboard = true), { capture: true, signal: stop.signal });
+  // A press on a node must not focus it (#53): that focus would report `onFocusNode` and replace the selection the tool
+  // controller made for the press (Shift-click added, then collapsed to the pressed node). Focus follows in `apply`.
+  options.host.addEventListener('mousedown', (e) => (layer.root.contains(e.target as Node | null) ? e.preventDefault() : undefined), { capture: true, signal: stop.signal });
   const ring = (): FocusRingOptions | undefined => (keyboard === undefined ? undefined : { focusVisible: keyboard });
   const active = (): Element | null => (options.host.getRootNode() as Document | ShadowRoot).activeElement ?? null;
   const canvasHasFocus = (): boolean => {
