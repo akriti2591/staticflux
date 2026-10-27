@@ -71,7 +71,8 @@ import type { CameraCommand, InspectedElement, RanCommand, StudioDocumentRef, St
 import { implementStudioCommands, STUDIO_SELECTION_COMMANDS } from '../app/studio-commands.js';
 import { ELEMENT_ACTIONS, elementActionId, selectionFacts } from '../elements/capabilities.js';
 import { REPEAT_ACTIONS, repeatActionId, repeatSelectionFacts } from '../repeat/capabilities.js';
-import { documentColors, layerTree, type SceneReader, type SelectionSummary, selectionSummary } from '../app/scene-summary.js';
+import { displayName, documentColors, layerKindOf, layerTree, type SceneReader, type SelectionSummary, selectionSummary } from '../app/scene-summary.js';
+import { implementFindReplace } from '../app/find-replace.js';
 import { pagePart, ROOT_PART } from '../app/document.js';
 import { PAGE_SIZE_RANGE } from '../studio/inspector-model.js';
 import { NoImageSelectedError, PageSizeError } from '../studio/errors.js';
@@ -285,8 +286,29 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
     ...a11yCapabilityImplementations({ canvas: () => tab()?.a11y }),
     implementCreateMilestone({ milestones: versioning.milestones, actorFor, prompt: () => announce('Name the milestone in the Milestones panel.') }),
     ...implementStudioCommands({ tab, document, actorFor }),
+    // B11c slice 3 (STUDIO §9.1): find and replace across every page.
+    ...implementFindReplace({
+      document,
+      page: () => tab()?.page,
+      defaultFamily: () => env.fonts.engine.fonts[0]?.families[0] ?? 'Noto Sans',
+      name: (node) => findName(node),
+      actorFor,
+    }),
   ];
   const byId = new Map(implementations.map((impl) => [impl.capability.id as string, impl]));
+  /** A match's display name: its own name, else its text's first words (from whichever page holds it), else its kind's. */
+  function findName(node: NodeId): string {
+    const holder = document.pages.map((p) => document.part(p.id)).find((part) => part?.has(node) === true);
+    const named: SceneReader = {
+      ...reader,
+      text: (n) => {
+        const block = holder === undefined ? undefined : readTextBlock(holder, n);
+        return block?.ok === true ? block.value.text : undefined;
+      },
+    };
+    const kind = layerKindOf(named, node);
+    return kind === undefined ? 'Page' : displayName(named, node, kind);
+  }
   /**
    * Run one capability here; an output naming what to select (B12's structure actions, duplicate) selects it on the
    * open tab (B11b: a new group is selected, ungrouped children are).

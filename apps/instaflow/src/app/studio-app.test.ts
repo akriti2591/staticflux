@@ -172,6 +172,15 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     await until(() => app.studio.density === 'focus', 'the setting reaches the spec');
     settings.set({ density: 'standard' });
     await until(() => app.studio.density === 'standard', 'back to Standard');
+    // B11c slice 3: the find bar's port runs `instaflow/find` / `instaflow/replace` in the editor (one undo step, toasted).
+    const found = await app.chrome.find({ kind: 'text', query: 'hi' });
+    expect(found?.matches.map((m) => [m.page, m.where, m.from])).toEqual([['p1', 'text', 0]]);
+    const swapped = await app.chrome.replace({ kind: 'text', query: 'hi' }, 'Hey', {});
+    expect(swapped).toMatchObject({ replaced: 1, label: "Replace 'hi' with 'Hey'" });
+    expect(app.toasted.at(-1)).toBe("Replace 'hi' with 'Hey' · 1 match");
+    await until(() => app.scene.undo === "Replace 'hi' with 'Hey'", 'one undo step');
+    app.chrome.invoke('instaflow/undo', {}, []);
+    await until(async () => ((await app.chrome.find({ kind: 'text', query: 'hi' }))?.matches.length ?? 0) === 1, 'undo restores the text');
     // "Copy link to this": the design, the open page, the selection on its page (NAVIGATION §5).
     expect(app.linkTo('design')).toBe(`/s/${asset}`);
     expect(app.linkTo('page')).toBe(`/s/${asset}?lens=pages&page=p1`);

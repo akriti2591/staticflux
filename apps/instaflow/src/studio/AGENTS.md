@@ -26,6 +26,11 @@ fully by hand (D17).
   density (DENSITY §3.1) Focus hides the lens switcher (two lenses) and folds Milestone into `⋯ › Create milestone`, Pro shows the
   model's `undo` label and the zoom as text; `⋯` adds Settings… (`Mod+,`), Keyboard shortcuts (`?`), About; `CopyLinkTarget`; the tool
   buttons, the Layers tab and the pill are coach targets for the first-use hints.
+- `find-bar.ts` (B11c slice 3) — `<if-find-bar .port .fonts .selection>` (`defineFindBar`, `FIND_BAR_TAG`): Kind, field, count,
+  ↑ ↓, Aa, Replace row, Scope, ×; `FindBarPort` (`find`, `replace`, `reveal`; the chrome port extends it), `focusField`,
+  `queryNow`, `search`, `step`, `replace`; events `if-find-close`, `if-announce`; `readFindMemory` (`instaflow/ui/find`),
+  `FIND_DEBOUNCE_MS`, `findBarMessages`. `<if-studio>` opens it (`openFind(replace?)`, `closeFind()`; `Mod+F`, `Mod+Alt+F`,
+  `⋯ › Find…`, the command bar's `find:` rows).
 - `hud.ts` (B11b) — `<if-hud>`: the selection pill per kind over `studio-controls.ts` (`CONTROL_SETS`, `SECTIONS`, `CONTROL`,
   `MORE_GROUP_OF`, `MORE_EXCLUDED`); `HudPort`, `paintFromColor`, `pillCapabilities`, `moreMenuGroups`.
 - `command-bar.ts` (B11b) — `<if-command-bar .sources>` (`Mod+K`; fires `if-command { value }` = `cap:` / `tool:` / `camera:`),

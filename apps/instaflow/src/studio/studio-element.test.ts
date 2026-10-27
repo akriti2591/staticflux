@@ -83,6 +83,15 @@ function recordingPort(calls: string[], context?: () => SelectionSummary | undef
     openShortcuts: log('openShortcuts'),
     openSettings: log('openSettings'),
     cycleDensity: log('cycleDensity'),
+    find: async (q) => {
+      calls.push(`find ${q.kind}:${q.query}`);
+      return { matches: [{ id: 'n1:text:0', node: 'n1', page: 'p1', pageName: 'Page 1', label: 'Headline', where: 'text', from: 0, to: 5, locked: false, hidden: false }], pages: 1 };
+    },
+    replace: async (q, replacement) => {
+      calls.push(`replace ${q.query}→${replacement}`);
+      return { ops: 1, replaced: 1, skipped: 0, label: 'Replace' };
+    },
+    reveal: (match) => void calls.push(`reveal ${match.node}`),
   };
 }
 
@@ -292,10 +301,39 @@ describe('<if-studio> frame (B11b)', () => {
     input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     milestone.dispatchEvent(new Event('submit', { cancelable: true }));
     const more = [...root.querySelectorAll('header sf-menu')].at(-1) as SfMenuElement;
-    expect(menuItems(more)).toEqual(['Save as template…', 'Rename…', 'Copy link', 'Settings…', 'Keyboard shortcuts', 'About Instaflow']);
+    expect(menuItems(more)).toEqual(['Save as template…', 'Rename…', 'Copy link', 'Find…', 'Settings…', 'Keyboard shortcuts', 'About Instaflow']);
     for (const value of ['save-template', 'copy-link', 'settings', 'shortcuts', 'about']) more.dispatchEvent(new CustomEvent('sf-select', { detail: { value } }));
     (root.querySelector('header > sf-button[variant="primary"]') as HTMLElement).click();
     expect(calls).toEqual(['camera ["fit-page"]', 'camera ["zoom-out"]', 'createMilestone ["Client v1"]', 'saveAsTemplate', 'copyLink', 'openSettings', 'openShortcuts', 'openSettings ["about"]', 'openExport']);
+  });
+
+  it('B11c find: Mod+F and ⋯ › Find… open the bar with its field focused, Mod+Alt+F with Replace; the bar searches through the port; Escape closes it', async () => {
+    const { root, calls, element } = await mount();
+    const surface = root.querySelector('.surface') as HTMLElement;
+    surface.focus();
+    press(surface, 'f', { ctrl: true });
+    await until(() => root.querySelector('if-find-bar') !== null);
+    const bar = root.querySelector('if-find-bar') as HTMLElement & { replacing: boolean; search(): Promise<void>; updateComplete: Promise<boolean>; step(d: 1 | -1): void };
+    await bar.updateComplete;
+    await settle(2);
+    expect(deepFocused()?.closest?.('sf-text-field') ?? deepFocused()).toBeTruthy();
+    expect(bar.replacing).toBe(false);
+    expectNoA11yIssues(root.host);
+    const input = bar.shadowRoot?.querySelector('sf-text-field.query')?.shadowRoot?.querySelector('input') as HTMLInputElement;
+    input.value = 'Hello';
+    input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    await bar.search();
+    bar.step(1);
+    expect(calls.slice(-2)).toEqual(['find text:Hello', 'reveal n1']);
+    press(input, 'Escape');
+    await element.updateComplete;
+    expect(root.querySelector('if-find-bar')).toBeNull();
+    await element.openFind(true);
+    expect((root.querySelector('if-find-bar') as typeof bar).replacing).toBe(true);
+    element.closeFind();
+    const more = root.querySelector('header sf-menu.overflow') as SfMenuElement;
+    more.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'find' } }));
+    await until(() => root.querySelector('if-find-bar') !== null);
   });
 
   it('B11c densities: Focus hides the lens switcher and folds Milestone into ⋯; Pro shows the undo label and the zoom as text; Mod+. and Mod+, reach the port', async () => {

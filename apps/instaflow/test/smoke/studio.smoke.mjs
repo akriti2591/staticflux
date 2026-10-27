@@ -498,6 +498,35 @@ async function scenario(page) {
   await sheet.waitFor({ state: 'detached', timeout: 10_000 }).catch(() => fail('Escape did not close the cheat sheet'));
   log(`cheat sheet: ? opened it, "paste" kept ${rows.length} rows, Escape closed it`);
 
+  // B11c find and replace (STUDIO §9.1): Mod+F, type, Enter selects the match; Replace all is one undo step; Escape.
+  await surface.focus();
+  await page.keyboard.press('Control+F');
+  const findBar = page.getByRole('search', { name: 'Find' });
+  await findBar.waitFor({ timeout: 10_000 }).catch(() => fail('Mod+F opened no find bar'));
+  await page.keyboard.type('studio');
+  await findBar.getByText('0 of 1').waitFor({ timeout: 10_000 }).catch(async () => fail(`find "studio" counted ${await findBar.locator('.count').textContent()}`));
+  await page.keyboard.press('Enter');
+  await findBar.getByText('1 of 1').waitFor({ timeout: 5_000 }).catch(() => fail('Enter did not step to the match'));
+  const found = await page.evaluate(() => window.__studio.scene.selection?.kind);
+  if (found !== 'text') fail(`Enter should select the text that matches: ${found}`);
+  const uFind = await undoDepth();
+  await findBar.getByRole('button', { name: 'Replace', exact: true }).first().click();
+  await findBar.getByRole('textbox', { name: 'Replace with' }).fill('Flow');
+  await findBar.getByRole('button', { name: 'Replace all' }).click();
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.some((e) => e.text === 'Hello Flow日本語' || e.text?.startsWith('Hello Flow')), null, { timeout: 10_000 }).catch(async () =>
+    fail(`Replace all did not rewrite the text: ${JSON.stringify((await inspect()).elements.filter((e) => e.kind === 'text').map((e) => e.text))}`),
+  );
+  if ((await undoDepth()) !== uFind + 1) fail(`Replace all: ${uFind} → ${await undoDepth()} undo steps (want one)`);
+  // OVERLAYS §3.5: Escape reaches the newest toast first (the replace toast with Undo), then the bar.
+  const toastUp = await page.locator('sf-toast').filter({ hasText: "Replace 'studio' with 'Flow'" }).count();
+  await page.keyboard.press('Escape');
+  if (toastUp > 0) await page.keyboard.press('Escape');
+  await findBar.waitFor({ state: 'detached', timeout: 5_000 }).catch(() => fail(`Escape did not close the find bar (toast up: ${toastUp})`));
+  await surface.focus();
+  await page.keyboard.press('Control+Z');
+  await waitAsync(page, async () => (await window.__studio.inspect()).value?.elements.some((e) => e.text?.startsWith('Hello Studio')), null, { timeout: 10_000 }).catch(() => fail('Mod+Z did not undo the replace'));
+  log('find: Mod+F "studio" → 1 match, Enter selected the text; Replace all "Flow" (one undo step); Escape closed; Mod+Z restored');
+
   // Layers (STUDIO §3.1): rename a row inline, move it up with Alt+↑ (one step each), then undo both.
   const layersOf = () => page.evaluate(() => window.__studio.scene.layers.map((l) => [l.id, l.name]));
   const layersBefore = await layersOf();

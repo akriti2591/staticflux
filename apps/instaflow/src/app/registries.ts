@@ -27,6 +27,7 @@ import { ExportCapability } from '../export/capability.js';
 import { exportPanel } from '../export/panel.js';
 import { milestonesPanelContribution } from '../versioning/contributions.js';
 import { STUDIO_COMMAND_CAPABILITIES } from './studio-commands.js';
+import { FIND_CAPABILITIES } from './find-replace.js';
 import { inspectorPanel } from '../studio/inspector-panel.js';
 import { layersPanel } from '../studio/layers-panel.js';
 
@@ -56,7 +57,7 @@ export function studioContributions(bindPanel: PanelBinder = (p) => p): StudioCo
     tools: replaceById(studioTools, [...toolContributions, textTool]),
     panels: replaceById(studioPanels, [pagesPanel, libraryPanel, typographyPanel, milestonesPanelContribution, bindPanel(transformBarPanel), bindPanel(appearancePanel), bindPanel(repeatPanel), bindPanel(exportPanel), bindPanel(inspectorPanel), bindPanel(layersPanel)]),
     hud: replaceById(studioHudActions, [...elementHudActions, ...repeatHudActions, ...textHudActions, ...toolHudActions, describeHudAction]),
-    capabilities: [proposeSpecCapability, editDocumentCapability, ...elementCapabilities, ...repeatCapabilities, ...toolCapabilities, describeCanvasCapability, CreateMilestoneCapability, ExportCapability, ...STUDIO_COMMAND_CAPABILITIES],
+    capabilities: [proposeSpecCapability, editDocumentCapability, ...elementCapabilities, ...repeatCapabilities, ...toolCapabilities, describeCanvasCapability, CreateMilestoneCapability, ExportCapability, ...STUDIO_COMMAND_CAPABILITIES, ...FIND_CAPABILITIES],
   };
 }
 

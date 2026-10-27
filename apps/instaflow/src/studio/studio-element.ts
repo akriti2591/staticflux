@@ -51,6 +51,7 @@ import { defineLayersPanel, type LayerContextDetail } from './layers-panel.js';
 import type { SettingsSection } from '../settings/settings-element.js';
 import { coachTarget, type CoachTarget } from '@staticflux/messaging';
 import { HintTargets } from './hints.js';
+import { defineFindBar, type FindBarPort, type IfFindBarElement } from './find-bar.js';
 import { type CommandEntry, defineCommandBar, type IfCommandBarElement } from './command-bar.js';
 import { defineHud, type HudAction, type HudPort, type IfHudElement } from './hud.js';
 import { type Studio, StudioShortcutScope } from './studio.js';
@@ -101,6 +102,9 @@ export const studioMessages = Object.freeze({
   createMilestone: 'Create milestone',
   undo: (label: string) => `Undo: ${label}`,
   zoomValue: 'Zoom level',
+  // B11c slice 3 (STUDIO §9.1).
+  findItem: 'Find…',
+  findReplace: 'Find and replace…',
 });
 
 /** The chrome's own keys (STUDIO-UX-SPEC §7, B11b slice 4); the cheat sheet lists them with every other shortcut. */
@@ -116,6 +120,9 @@ export const ChromeShortcuts = Object.freeze({
   // B11c (DENSITY §7.1, STUDIO §2.4).
   cycleDensity: defineShortcut({ id: 'instaflow/cycle-density', keys: ['Mod+.'], scope: StudioShortcutScope, description: 'Next density (Focus, Standard, Pro)' }),
   settings: defineShortcut({ id: 'instaflow/settings-key', keys: ['Mod+,'], scope: StudioShortcutScope, description: 'Settings' }),
+  // B11c slice 3 (STUDIO §9.1): the find bar (`Mod+G` / `Mod+Shift+G` step while it has focus).
+  find: defineShortcut({ id: 'instaflow/find-key', keys: ['Mod+F'], scope: StudioShortcutScope, description: 'Find', allowInInputs: true }),
+  findReplace: defineShortcut({ id: 'instaflow/find-replace-key', keys: ['Mod+Alt+F'], scope: StudioShortcutScope, description: 'Find and replace', allowInInputs: true }),
 });
 
 /** The camera commands of the View menu and the zoom pill (the editor runs them). */
@@ -154,7 +161,7 @@ export interface StudioChromeModel {
 export type CopyLinkTarget = 'design' | 'page' | 'selection';
 
 /** What the chrome runs (the app implements it over capabilities and mirrors). */
-export interface StudioChromePort extends HudPort {
+export interface StudioChromePort extends HudPort, FindBarPort {
   renameTitle(title: string): void;
   camera(action: CameraAction): void;
   openExport(): void;
@@ -291,6 +298,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     hudHidden: { state: true },
     closed: { state: true },
     contextGroups: { state: true },
+    findOpen: { state: true },
   };
   static override styles = [
     css`
@@ -426,6 +434,12 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         inset-inline-start: 50%;
         transform: translateX(-50%);
       }
+      .find-bar {
+        position: absolute;
+        z-index: 3;
+        inset-block-start: 16px;
+        inset-inline-end: 16px;
+      }
       if-hud[data-hidden] {
         visibility: hidden;
       }
@@ -523,6 +537,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
   declare closed: ReadonlySet<PanelPlacementId>;
   /** The open context menu's items (STUDIO §8.2). */
   declare contextGroups: readonly ContextGroup[];
+  /** B11c: the find bar shows. */
+  declare findOpen: boolean;
   private wired: Scope | undefined;
   private canvasSession: CanvasSession | undefined;
   private hudFrozen = false;
@@ -548,6 +564,23 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     this.hudHidden = false;
     this.closed = new Set();
     this.contextGroups = [];
+    this.findOpen = false;
+  }
+
+  /** `Mod+F` (and `⋯ › Find…`): open the find bar, or focus its field; `replace` opens the Replace row too. */
+  async openFind(replace = false): Promise<void> {
+    this.findOpen = true;
+    await this.updateComplete;
+    const bar = this.query<IfFindBarElement>('if-find-bar');
+    if (bar === null) return;
+    if (replace) bar.replacing = true;
+    await bar.focusField();
+  }
+
+  /** Close the find bar (Escape, `×`); the selection stays, the focus goes back to the canvas. */
+  closeFind(): void {
+    this.findOpen = false;
+    this.focusCanvas();
   }
 
   override disconnectedCallback(): void {
@@ -644,6 +677,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         [ChromeShortcuts.contextMenu, () => void this.openContextMenuFromKeyboard()],
         [ChromeShortcuts.cycleDensity, () => this.port?.cycleDensity()],
         [ChromeShortcuts.settings, () => this.port?.openSettings()],
+        [ChromeShortcuts.find, () => void this.openFind()],
+        [ChromeShortcuts.findReplace, () => void this.openFind(true)],
       ];
       for (const [def, run, when] of keys) {
         const registered = this.shortcuts.register(def, run, { scope, ...(when === undefined ? {} : { when }) });
@@ -838,7 +873,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
           <div class="surface" tabindex="0" role="application" aria-roledescription="canvas" aria-label=${studioMessages.canvasSurface}></div>
           ${this.renderTools(studio)} ${this.renderHud(context.density)} ${this.renderZoom()} ${this.renderCommandBar(studio)}
           ${this.canvasError === undefined ? nothing : html`<p role="alert">${this.canvasError}</p>`} ${this.renderProposal(studio.proposals.pending)}
-          ${this.renderContextMenu()}
+          ${this.renderContextMenu()} ${this.renderFind()}
         </main>
         ${this.renderPanels('inspector', context)}
       </div>`;
@@ -934,6 +969,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       'save-template': () => port?.saveAsTemplate(),
       rename: () => this.focusTitle(),
       'copy-link': () => port?.copyLink(),
+      find: () => void this.openFind(),
       settings: () => port?.openSettings(),
       shortcuts: () => port?.openShortcuts(),
       about: () => port?.openSettings('about'),
@@ -944,6 +980,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       ${this.model.templatesAvailable ? html`<sf-menu-item value="save-template">${studioMessages.saveTemplate}</sf-menu-item>` : nothing}
       <sf-menu-item value="rename">${studioMessages.rename}</sf-menu-item>
       <sf-menu-item value="copy-link" shortcut="Mod+Alt+L">${studioMessages.copyLink}</sf-menu-item>
+      <sf-menu-item value="find" shortcut="Mod+F">${studioMessages.findItem}</sf-menu-item>
       <div role="separator"></div>
       <sf-menu-item value="settings" shortcut="Mod+,">${studioMessages.settings}</sf-menu-item>
       <sf-menu-item value="shortcuts" shortcut="?">${studioMessages.shortcuts}</sf-menu-item>
@@ -952,6 +989,12 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
   }
 
   /** The page card (behind the transparent canvas) and its label (STUDIO-UX-SPEC §1). */
+  private renderFind(): TemplateResult | typeof nothing {
+    const port = this.port;
+    if (!this.findOpen || port === undefined) return nothing;
+    return html`<if-find-bar class="find-bar" .port=${port} .fonts=${this.model.fonts} .selection=${this.model.selection?.nodes ?? []} @if-find-close=${() => this.closeFind()}></if-find-bar>`;
+  }
+
   private renderPage(): TemplateResult | typeof nothing {
     const page = this.model.page;
     if (page === undefined) return nothing;
@@ -1066,6 +1109,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       { value: 'camera:zoom-100', title: studioMessages.zoom100, shortcut: 'Shift+0' },
       { value: 'camera:zoom-in', title: studioMessages.zoomIn, shortcut: 'Mod+=' },
       { value: 'camera:zoom-out', title: studioMessages.zoomOut, shortcut: 'Mod+-' },
+      { value: 'find:open', title: studioMessages.findItem, shortcut: 'Mod+F' },
+      { value: 'find:replace', title: studioMessages.findReplace, shortcut: 'Mod+Alt+F' },
     ];
     const sources = { selection: this.model.selection, actions: this.model.actions, globalActions: this.model.globalActions, tools, camera, recent: [] };
     return html`<if-command-bar class="command-bar" .sources=${sources} @if-command=${(e: CustomEvent<{ value: string }>) => this.runCommand(studio, e.detail.value)}></if-command-bar>`;
@@ -1079,6 +1124,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       cap: () => (this.model.globalActions.includes(id) ? this.port?.invoke(id, {}, []) : this.port?.invoke(id)),
       tool: () => void studio.selectTool(id as ToolId),
       camera: () => this.port?.camera(id as CameraAction),
+      find: () => void this.openFind(id === 'replace'),
     };
     run[kind ?? '']?.();
   }
@@ -1179,6 +1225,7 @@ export function defineStudio(registry: CustomElementRegistry = customElements): 
   defineCommandBar(registry);
   defineInspectorElement(registry);
   defineLayersPanel(registry);
+  defineFindBar(registry);
   if (registry.get(studioComponent.tag) === undefined) defineComponent(IfStudioElement, registry);
 }
 

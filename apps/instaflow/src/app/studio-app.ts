@@ -73,6 +73,7 @@ import { type CameraAction, type CopyLinkTarget, defineStudio, EMPTY_CHROME, typ
 import type { HudAction } from '../studio/hud.js';
 import type { LayerRow } from './scene-summary.js';
 import { createToasts, type Toasts } from './feedback.js';
+import { FindCapability, type FindMatch, type FindResult, ReplaceCapability, type ReplaceResult } from './find-replace.js';
 import { homeViewHref, keepForeignParams, readStudioIntent, STUDIO_DIALOGS, type StudioDialog, type StudioDockTab, type StudioLink, studioLinkHref, withoutIntents } from '../home/routes.js';
 import { createDeviceSettings, DENSITY_LINES, type DeviceSettings, nextDensity } from '../settings/device-settings.js';
 import { defineSettings, diagnosticsText, SETTINGS_SECTIONS, type SettingsSection, type SettingsStorage } from '../settings/settings-element.js';
@@ -172,6 +173,13 @@ export function browserStudioHistory(): StudioHistory {
       return () => g.removeEventListener?.('popstate', listener);
     },
   };
+}
+
+/** Whether page-space `frame` shows in the viewport at `camera` (pure). */
+export function onScreen(frame: { readonly x: number; readonly y: number; readonly w: number; readonly h: number }, camera: { readonly tx: number; readonly ty: number; readonly zoom: number }, viewport: { readonly width: number; readonly height: number }): boolean {
+  const x = frame.x * camera.zoom + camera.tx;
+  const y = frame.y * camera.zoom + camera.ty;
+  return x >= 0 && y >= 0 && x + frame.w * camera.zoom <= viewport.width && y + frame.h * camera.zoom <= viewport.height;
 }
 
 /** The dock tab a link names → the panel it shows. */
@@ -842,6 +850,29 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     saveAsTemplate: () => void saveAsTemplate(titleBox.get()),
     copyLink: (target) => writeClipboard(linkTo(target ?? 'design')),
     openSettings: (section) => void openDialog('settings', section),
+    // B11c slice 3 (STUDIO §9.1): the find bar over `instaflow/find` / `instaflow/replace`.
+    async find(query) {
+      const found = await capabilities.invoke(FindCapability, query, { subject: 'user', signal, origin: { channel: 'ui/find' } });
+      if (found.ok) return found.value as FindResult;
+      toasts.error(found.error);
+      return undefined;
+    },
+    async replace(query, replacement, o) {
+      const font = o.font !== undefined && 'font' in o.font ? { font: o.font.font, ...(o.font.family === undefined ? {} : { family: o.font.family }) } : undefined;
+      const input = { ...query, replacement, ...(font === undefined ? {} : { font }), ...(o.only === undefined ? {} : { only: [...o.only] }) };
+      const done = await capabilities.invoke(ReplaceCapability, input, { subject: 'user', signal, origin: { channel: 'ui/find' } });
+      if (!done.ok) {
+        toasts.error(done.error);
+        return undefined;
+      }
+      const r = done.value as ReplaceResult;
+      const what = `${r.label} · ${r.replaced === 1 ? '1 match' : `${r.replaced} matches`}${r.skipped > 0 ? ` · ${r.skipped} locked, skipped` : ''}`;
+      if (r.replaced > 0) toasts.undoable({ message: what, undo: () => run(UndoCapability.id, {}, []) });
+      else if (r.skipped > 0) toasts.show({ message: `${r.skipped} locked, skipped`, tone: 'warning' });
+      say(what);
+      return r;
+    },
+    reveal: (match) => void revealMatch(match),
     cycleDensity() {
       const next = nextDensity(studio.density);
       void studio.setDensity(next, signal);
@@ -899,6 +930,23 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       sheet = manager.request(sheetDialog, { owner: ownerOf(injector) });
     },
   };
+  /** A find match: its page shown, it selected (the page itself for a background), the camera on it when off-screen. */
+  async function revealMatch(m: FindMatch): Promise<void> {
+    if (view()?.page !== m.page) {
+      await lens.goTo(m.page as NodeId);
+      await until(() => view()?.page === m.page);
+    }
+    if (m.where === 'background') {
+      chrome.selectPage(false);
+      return;
+    }
+    const picked = await editor.request('select', { nodes: [m.node as NodeId] });
+    if (!picked.ok) return problem(picked.error);
+    await until(() => selection()[0] === m.node && scene.read('frame') !== undefined);
+    const frame = scene.read('frame');
+    const v = view();
+    if (frame !== undefined && v !== undefined && !onScreen(frame, v.camera, v.viewport)) chrome.camera('fit-selection');
+  }
   /** "Copy link to this" (NAVIGATION §5): the design, the open page (Pages lens) or the selection on its page. */
   function linkTo(target: CopyLinkTarget): string {
     const page = canvas.page ?? view()?.page;
@@ -1105,12 +1153,17 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     if (link.unknownDialog !== undefined) console.info(`[studio] dropped unknown dialog "${link.unknownDialog}" (${STUDIO_DIALOGS.join(', ')} exist)`);
     if (link.dialog !== undefined) await openDialog(link.dialog, link.section, 'deep-link');
   };
-  /** Resolves once `test()` holds (reactive). */
-  function until(test: () => boolean): Promise<void> {
+  /** Resolves once `test()` holds (reactive), or after `ms` whatever happens (a link or a match never hangs Studio). */
+  function until(test: () => boolean, ms = 5000): Promise<void> {
     return new Promise((resolve) => {
       if (test()) return resolve();
       const stop = createScope('instaflow/until');
       scope.defer(() => stop.dispose());
+      const late = setTimeout(() => {
+        void stop.dispose();
+        resolve();
+      }, ms);
+      stop.defer(() => clearTimeout(late));
       watch(
         test,
         (held) => {
@@ -1217,6 +1270,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
           asset-title=${options.document.title}
           home-href=${options.homeHref ?? '/'}
           project-title="Instaflow"
+          @if-announce=${(e: CustomEvent<{ message: string }>) => say(e.detail.message)}
           @if-navigate=${(e: CustomEvent<{ href: string }>) => {
             e.preventDefault();
             void leave(e.detail.href);

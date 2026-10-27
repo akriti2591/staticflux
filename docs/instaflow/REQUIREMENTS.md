@@ -1697,6 +1697,16 @@ Lifecycle: LIFECYCLES §38.
   element; the first multi-selection) shown at the first use, one at a time, at most two per session, seen once per device
   (`instaflow/ui/hints`, the surface manager's seen store), retired when the tool is used; `Show first-use hints` turns them
   off and `Reset hints` brings them (and Home's welcome card) back.
+- **IF-36.48** **Find and replace** (STUDIO §9.1; B11c slice 3): `Mod+F` (also `⋯ › Find…`, the command bar's `Find…`;
+  `Mod+Alt+F` with Replace open) shows the find bar at the canvas's top-right, non-modal: `Kind ▾` (Text · Font · Colour), the
+  field, the count `3 of 12` (polite), `↑ ↓` (Enter / Shift+Enter; `Mod+G` / `Mod+Shift+G` while the bar has focus), `Aa`,
+  `Replace ▾` (the replacement — text, a font from the document's fonts, a colour — `Replace` and `Replace all`), `Scope ▾`
+  (All pages · This page · Selection) and `×`; Escape closes it and keeps the selection; Kind and Scope are remembered per
+  device. Matches come from every page: text case-insensitive by default (marks kept on replace), fonts by family (runs with
+  no font mark are the default face), colours by resolved hex in solid fills, strokes, text colour and page backgrounds. The
+  current match is selected, its page shown, the camera zoomed to it when it is off-screen, and announced (`Match 3 of 12:
+  Headline on Page 2`). `Replace all` is one undo step `Replace '<a>' with '<b>'` toasted with Undo; locked elements are
+  matched, skipped and counted (`2 locked, skipped`). Capabilities `instaflow/find` and `instaflow/replace` (agents too).
 - **IF-36.47** **The logo in the browser** (brand README): Home's and Studio's pages link `brand/favicon.svg` (white strokes in
   dark mode), the PNG fallback, the touch icon and `brand/manifest.webmanifest` (name, colours, the 192 / 512 / SVG app icons).
 

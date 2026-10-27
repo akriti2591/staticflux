@@ -59,6 +59,10 @@ Main side:
   dismissal, replace when deep-linked; Back / Forward follow), `linkTo(target)` (design, page, selection), `applyLink(link)` (cold
   boot order: page, lens, dock, `el`, `inspect`, the dialog last; intents stripped), `linked`; the chrome port's `copyLink(target)`,
   `openSettings(section?)`, `cycleDensity()`; the seen store bound to `instaflow/ui/hints`; `linkMessages`.
+- `find-replace.ts` (B11c slice 3, worker side) — `FindCapability` (`instaflow/find`), `ReplaceCapability` (`instaflow/replace`),
+  `FIND_CAPABILITIES`, `FIND_KINDS`, `FIND_SCOPES`, `FindQuery`, `FindMatch`, `FindResult`, `ReplaceResult`, `FindEnv`, `findMatches`
+  (pure), `replacePlan` (ops per part), `runReplace` (one undo step), `replaceLabel`, `resolvedHex`, `implementFindReplace(env)`;
+  `studio-app.ts` exports `onScreen(frame, camera, viewport)` (a match off-screen is zoomed to).
 - `errors.ts` — `IF-INT-001` pipeline start · `002` scene record · `003` no open page · `004` canvas backend · `005` document.
 - `feedback.ts` (B11a2, main side) — `feedbackFor(error, origin, copy?)` (level by origin refined by `FAMILY_LEVELS`; Instaflow words per error
   definition; never the code), `ToastsToken` / `createToasts(manager, owner)` (`show`, `undoable` → `Restored`, `error`, `undoNewest` for Home's
