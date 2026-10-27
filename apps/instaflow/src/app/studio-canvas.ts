@@ -22,7 +22,7 @@ import { inputRingSink } from '@staticflux/surface/input-ring';
 import type { TextInput } from '@staticflux/surface/text-input';
 import { fromWireError } from '@staticflux/worker';
 import { render as renderLit } from 'lit';
-import { type CanvasA11yMount, mountCanvasA11y } from '../a11y/dom.js';
+import { type CanvasA11yMount, type FocusRingOptions, mountCanvasA11y } from '../a11y/dom.js';
 import type { CanvasPort, CanvasSession } from '../studio/canvas.js';
 import { CanvasToolsShortcutScope } from '../tools/keyboard.js';
 import { guideLabelTemplate } from '../tools/overlay-labels.js';
@@ -31,6 +31,16 @@ import { CanvasTransferError } from '../workers/errors.js';
 import { createTextHostBridge, type TextHostBridge } from '../workers/text-port.js';
 import { canvasShortcutDefs } from './canvas-shortcuts.js';
 import { NoOpenPageError } from './errors.js';
+
+/**
+ * Focus an element because of a pointer press (#41). Script focus in `pointerdown` runs before the browser records the
+ * press as the focus cause, so Chromium's heuristic shows the keyboard focus ring there (and every programmatic move
+ * after it inherits that ring); `focusVisible: false` says it is pointer focus, as a native click would be.
+ */
+export function focusFromPointer(el: HTMLElement): void {
+  const options: FocusRingOptions = { preventScroll: true, focusVisible: false };
+  el.focus(options);
+}
 
 /** What hands the canvas to the render module (default: `transferControlToOffscreen`; tests pass a stand-in). */
 export type CanvasHandoffFactory = (canvas: HTMLCanvasElement) => Result<{ readonly canvas: unknown; readonly transfer: readonly Transferable[] }>;
@@ -210,7 +220,8 @@ export function studioCanvas(options: StudioCanvasOptions): StudioCanvas {
         (e) => {
           if (e.button !== 0) return;
           surface.setPointerCapture?.(e.pointerId); // a drag-select may leave the text host
-          if (!fromTextHost(e)) surface.focus({ preventScroll: true }); // the host keeps the focus while editing
+          // The host keeps the focus while editing. Pointer focus: no keyboard focus ring (#41).
+          if (!fromTextHost(e)) focusFromPointer(surface);
         },
         listening,
       );

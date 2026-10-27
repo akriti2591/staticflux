@@ -232,6 +232,16 @@ describe('accessible DOM layer', () => {
     expect(layer.focus('text-1')).toBe(true);
     expect(layer.focus('block-1')).toBe(false);
     expect(layer.focus('nope')).toBe(false);
+    // Focus options reach the element (e.g. `focusVisible: false` for a move a pointer press caused, #41).
+    const seen: unknown[] = [];
+    const focus = text.focus.bind(text);
+    text.focus = (options?: FocusOptions) => {
+      seen.push(options);
+      focus(options);
+    };
+    const options = { preventScroll: true, focusVisible: false };
+    expect(layer.focus('text-1', options)).toBe(true);
+    expect(seen).toEqual([options]);
     text.click();
     const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
     text.dispatchEvent(enter);

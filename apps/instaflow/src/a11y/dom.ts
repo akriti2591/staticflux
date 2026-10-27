@@ -9,6 +9,8 @@
  * wiring can select it; focus the mount moved itself is not reported back (no loop).
  *
  * The focused node shows the theme's focus ring (2 px `color.focusRing`, 2 px offset); nodes are otherwise transparent.
+ * The ring is for keyboard focus only (`:focus-visible`, #41): the moves follow the input that caused them, so focus
+ * that follows a pointer press asks for no ring (`focusVisible: false`) and focus that follows a key asks for one.
  */
 import { err, ok, type Result } from '@staticflux/core';
 import type { NodeId } from '@staticflux/document/v2';
@@ -20,6 +22,9 @@ import type { CanvasSnapshot } from './projection.js';
 
 /** The canvas focus ring: 2 px of the theme's focus colour (Clean Pop: deep tangerine), offset 2 px. */
 export const CANVAS_FOCUS_RING = Object.freeze({ outline: `2px solid ${t.color.focusRing.ref}`, offset: '2px' });
+
+/** `focus()` options with `focusVisible` (HTML; not yet in TypeScript's DOM lib; browsers without it ignore it). */
+export type FocusRingOptions = FocusOptions & { readonly focusVisible?: boolean };
 
 export interface CanvasA11yMountOptions {
   /** The canvas surface element (focusable; Studio's `.surface`, `role="application"`). */
@@ -57,6 +62,12 @@ export function mountCanvasA11y(options: CanvasA11yMountOptions): Result<CanvasA
   if (!created.ok) return created;
   const layer = created.value;
   layer.root.setAttribute('aria-description', a11yMessages.instructions);
+  // Was the last input on the canvas a key (true) or a press (false)? Capture: its nodes and text host count too.
+  const stop = new AbortController();
+  let keyboard: boolean | undefined;
+  options.host.addEventListener('pointerdown', () => (keyboard = false), { capture: true, signal: stop.signal });
+  options.host.addEventListener('keydown', () => (keyboard = true), { capture: true, signal: stop.signal });
+  const ring = (): FocusRingOptions | undefined => (keyboard === undefined ? undefined : { focusVisible: keyboard });
   const active = (): Element | null => (options.host.getRootNode() as Document | ShadowRoot).activeElement ?? null;
   const canvasHasFocus = (): boolean => {
     const el = active();
@@ -86,13 +97,14 @@ export function mountCanvasA11y(options: CanvasA11yMountOptions): Result<CanvasA
       move(() => layer.update(snapshot.nodes));
       if (!hadFocus) return ok();
       const target = snapshot.focus;
-      if (target !== undefined && focusedId() !== target) move(() => layer.focus(target));
-      else if (target === undefined && active() !== options.host) move(() => options.host.focus());
+      if (target !== undefined && focusedId() !== target) move(() => layer.focus(target, ring()));
+      else if (target === undefined && active() !== options.host) move(() => options.host.focus(ring()));
       return ok();
     },
     dispose() {
       if (disposed) return;
       disposed = true;
+      stop.abort();
       layer.dispose();
     },
   };
