@@ -72,6 +72,11 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-27** Owner: after the bug batch, a focused **fonts work package** (Google Fonts catalogue, on-demand download
+  cached in the workspace; small curated offline set; fonts on this computer in Studio), pulled forward from M2. Font
+  picker rows preview each family in its own face (lazy, visible rows only, Google `text=` subsets). Owner confirmed text
+  formatting works (B/I/U/strike/align/sub-super/case); asked about **lists** (T-10, M2: levels stored, markers not
+  drawn): candidate to pull forward with fonts.
 - **2026-10-27** #37 (B11c) merged. Bug phase, one at a time (owner rule). Issues #39–#52 filed. Order: #41 focus → #42
   section collapse → #48 top-element hit (re-check #49/#50/#52 after) → #51 subtract blank → #39 paste white → #43, #44,
   #45, #46, #47, #40. #38 (issue form) open. Started #41 on `claude/fix-41-focus`.
