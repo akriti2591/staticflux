@@ -59,3 +59,31 @@ export const CustomSizeError = defineError(
   'New design was asked for a custom size without both a width and a height.',
   'Pass `width` and `height` in px (1…16 384 each) with `format: "custom"`, or pick a format id (`post`, `story`, …) instead.',
 );
+
+export const HomeJournalWriteError = defineError(
+  'IF-POL-055',
+  'conflict',
+  'A Home file operation could not be saved: the Home journal kept changing (compare-and-swap lost every retry).',
+  'Try the operation again; another tab is writing the journal in a loop if it keeps failing (`details.attempts`).',
+);
+
+export const HomeNameError = defineError(
+  'IF-POL-056',
+  'validation',
+  'A design or project name is empty or longer than allowed (200 characters for a design, 60 for a project).',
+  'Type at least one non-space character and stay within the limit (`details.max`); Escape keeps the old name.',
+);
+
+export const HomeImportError = defineError(
+  'IF-POL-057',
+  'validation',
+  'Home cannot import this file: images, SVG and fonts import in M1 (video and audio arrive with the Timeline lens; .iflow and PDF files with import, C2).',
+  'Pick an image (PNG, JPEG, WebP, GIF, AVIF), an SVG or a font (TTF, OTF, WOFF, WOFF2); `details.name` names the file.',
+);
+
+export const UnknownProjectError = defineError(
+  'IF-POL-058',
+  'validation',
+  'There is no project with this name in the workspace, or a project with the new name already exists.',
+  'Pass a `name` from `window.__home.model.projects()`; pick a name no other project has when renaming.',
+);

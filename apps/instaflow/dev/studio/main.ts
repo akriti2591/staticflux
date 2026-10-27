@@ -18,7 +18,7 @@ import { TextInputFactoryToken, textInputBindings } from '@staticflux/surface/te
 import { compileTheme } from '@staticflux/ui/theme';
 import { fromWorker } from '@staticflux/worker';
 import type { StudioApp } from '../../src/app/studio-app.js';
-import { readStudioIntent } from '../../src/home/routes.js';
+import { newDesignRoute, readStudioIntent } from '../../src/home/routes.js';
 import { resolveSequencingSettings } from '../../src/sequencing/sequencing.bindings.js';
 import { cleanPopTheme } from '../../src/theme/clean-pop.js';
 import { openWorkspaceBlobs } from '../../src/workspace/blobs.js';
@@ -29,8 +29,8 @@ const MANIFEST = '/engine/dist/sf-wasm-manifest.json';
 const FONTS = ['NotoSans-Latin.wght.ttf', 'NotoSansArabic.wght.ttf', 'NotoSansDevanagari.wght.ttf', 'NotoSansThai.wght.ttf'].map((f) => `/test/fonts/${f}`);
 const status = document.getElementById('boot') as HTMLElement;
 const query = new URLSearchParams(location.search);
-/** Query keys that say which document to make; every other key (boot settings) survives the URL replace. */
-const DOCUMENT_KEYS = ['format', 'template'];
+/** Query keys that say which document to make (`/new`'s search params); every other key (boot settings) survives the URL replace. */
+const DOCUMENT_KEYS = Object.keys(newDesignRoute.search ?? {});
 
 const must = <T>(r: Result<T>, what: string): T => {
   if (!r.ok) throw new Error(`${what}: ${r.error.code} ${r.error.message}${r.error.cause instanceof Error ? ` (${r.error.cause.message})` : ''}`);

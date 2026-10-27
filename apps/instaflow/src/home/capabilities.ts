@@ -53,7 +53,140 @@ export const UseTemplateCapability = /* @__PURE__ */ defineCapability({
   destructive: false,
 });
 
-export const HOME_CAPABILITIES = [NewDesignCapability, OpenDesignCapability, UseTemplateCapability] as const;
+// ---------------------------------------------------------------- B11c: every file operation (HOME-FILES §3)
+
+const asset = (description = 'The asset id, e.g. "as_…"') => s.string({ minLength: 1, maxLength: 120, description });
+const assets = s.array(asset(), { minItems: 1, maxItems: 500, description: 'Asset ids (from `window.__home.model.files()`)' });
+const done = s.object({ count: s.number({ description: 'How many files the operation changed' }) });
+/** A project name (one folder level in M1: no `/`). */
+const projectName = (description: string) => s.string({ minLength: 1, maxLength: 60, pattern: '^[^/]*\\S[^/]*$', description });
+
+export const RenameDesignCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/rename-design',
+  title: 'Rename',
+  description: 'Rename a design, template or media file in the workspace (1–200 characters).',
+  input: s.object({ asset: asset(), title: s.string({ minLength: 1, maxLength: 200, description: 'The new name' }) }),
+  output: done,
+  requiresConfirmation: false,
+  destructive: false,
+});
+
+export const DuplicateDesignCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/duplicate-design',
+  title: 'Duplicate',
+  description: 'Make a copy of a design (or template) next to it, in the same project, named "<title> copy". The copy is a new document from a snapshot of the original, with no history.',
+  input: s.object({ asset: asset() }),
+  output: s.object({ asset: s.string({ description: 'The copy’s asset id' }), title: s.string() }),
+  requiresConfirmation: false,
+  destructive: false,
+});
+
+export const MoveToProjectCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/move-to-project',
+  title: 'Move to project',
+  description: 'Move files into a project, or out of every project with `project: ""` ("No project"). A project that does not exist yet is made.',
+  input: s.object({ assets, project: s.string({ maxLength: 60, pattern: '^[^/]*$', description: 'The project name; "" for No project' }) }),
+  output: done,
+  requiresConfirmation: false,
+  destructive: false,
+});
+
+export const FavoriteCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/favorite',
+  title: 'Add to favourites',
+  description: 'Mark a file as a favourite (a star on its card, the Favourites filter in Files), or unmark it.',
+  input: s.object({ asset: asset(), favorite: s.boolean({ description: 'true to add, false to remove' }) }),
+  output: done,
+  requiresConfirmation: false,
+  destructive: false,
+});
+
+export const TrashDesignsCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/trash-designs',
+  title: 'Move to trash',
+  description: 'Move files to the trash. They can be restored for 30 days, then they are deleted.',
+  input: s.object({ assets }),
+  output: done,
+  requiresConfirmation: false,
+  destructive: false,
+});
+
+export const RestoreDesignsCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/restore-designs',
+  title: 'Restore',
+  description: 'Bring files back from the trash into their project.',
+  input: s.object({ assets }),
+  output: done,
+  requiresConfirmation: false,
+  destructive: false,
+});
+
+export const DeleteForeverCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/delete-forever',
+  title: 'Delete forever',
+  description: 'Delete files in the trash for good. This cannot be undone; only files already in the trash can be deleted.',
+  input: s.object({ assets }),
+  output: done,
+  requiresConfirmation: false,
+  destructive: true,
+});
+
+export const NewProjectCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/new-project',
+  title: 'New project',
+  description: 'Make an empty project (a group of designs; one level in M1).',
+  input: s.object({ name: projectName('The project name (1–60 characters, no "/")') }),
+  output: done,
+  requiresConfirmation: false,
+  destructive: false,
+});
+
+export const RenameProjectCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/rename-project',
+  title: 'Rename project',
+  description: 'Rename a project; its designs move with it.',
+  input: s.object({ name: projectName('The project to rename'), to: projectName('The new name') }),
+  output: done,
+  requiresConfirmation: false,
+  destructive: false,
+});
+
+export const DeleteProjectCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/delete-project',
+  title: 'Delete project',
+  description: 'Delete a project. Its designs move to "No project"; nothing goes to the trash.',
+  input: s.object({ name: projectName('The project to delete') }),
+  output: done,
+  requiresConfirmation: false,
+  destructive: false,
+});
+
+export const SearchFilesCapability = /* @__PURE__ */ defineCapability({
+  id: 'instaflow/search-files',
+  title: 'Search designs',
+  description: 'Find files whose title or project contains the text (case-insensitive), newest edit first.',
+  input: s.object({ query: s.string({ maxLength: 200, description: 'The text to find' }) }),
+  output: s.object({ assets: s.array(s.string()) }),
+  requiresConfirmation: false,
+  destructive: false,
+});
+
+/** The file operations (B11c): output `{ count }` unless noted. */
+export const HOME_FILE_CAPABILITIES = [
+  RenameDesignCapability,
+  DuplicateDesignCapability,
+  MoveToProjectCapability,
+  FavoriteCapability,
+  TrashDesignsCapability,
+  RestoreDesignsCapability,
+  DeleteForeverCapability,
+  NewProjectCapability,
+  RenameProjectCapability,
+  DeleteProjectCapability,
+  SearchFilesCapability,
+] as const;
+
+export const HOME_CAPABILITIES = [NewDesignCapability, OpenDesignCapability, UseTemplateCapability, ...HOME_FILE_CAPABILITIES] as const;
 
 export type NewDesignInput = CapabilityInput<typeof NewDesignCapability>;
 export type OpenDesignInput = CapabilityInput<typeof OpenDesignCapability>;

@@ -33,12 +33,29 @@ export interface HomeEntry {
   readonly size?: number;
   /** Designs and templates: the page size they were made with. */
   readonly format?: DesignSize;
+  /** B11c (HOME-FILES §2.1): the project (one folder level in M1; absent = "No project"). */
+  readonly folder?: string;
+  readonly favorite?: true;
+  /** In the trash since (ISO). Trashed entries show only on the Trash page. */
+  readonly trashedAt?: string;
+  /** Designs: the page count, when Studio knows it. */
+  readonly pages?: number;
+  /** Media: the content digest (Home's import dedupe). */
+  readonly digest?: string;
+}
+
+/** A project made on Home before it holds a design (HOME-FILES §2.1: kept in the index until it gets one). */
+export interface HomeProject {
+  readonly name: string;
+  readonly createdAt: string;
 }
 
 export interface HomeIndex {
   readonly schema: typeof HOME_INDEX_SCHEMA;
   /** Newest edit first. */
   readonly entries: readonly HomeEntry[];
+  /** Projects made on Home (empty or not); a project also exists while any entry has its folder. */
+  readonly projects?: readonly HomeProject[];
 }
 
 export const EMPTY_HOME_INDEX: HomeIndex = Object.freeze({ schema: HOME_INDEX_SCHEMA, entries: Object.freeze([]) as readonly HomeEntry[] });
@@ -72,7 +89,28 @@ export function readHomeEntry(raw: unknown): HomeEntry | undefined {
     ...(typeof v['mime'] === 'string' ? { mime: v['mime'] } : {}),
     ...(positive(v['size']) ? { size: v['size'] } : {}),
     ...(positive(format?.width) && positive(format?.height) ? { format: { width: format.width, height: format.height } } : {}),
+    ...(typeof v['folder'] === 'string' && v['folder'].trim().length > 0 ? { folder: v['folder'].trim() } : {}),
+    ...(v['favorite'] === true ? { favorite: true as const } : {}),
+    ...(isIso(v['trashedAt']) ? { trashedAt: v['trashedAt'] } : {}),
+    ...(positive(v['pages']) && Number.isInteger(v['pages']) ? { pages: v['pages'] } : {}),
+    ...(typeof v['digest'] === 'string' && v['digest'].length > 0 ? { digest: v['digest'] } : {}),
   };
+}
+
+/** Projects from JSON (tolerant: malformed and repeated names are dropped). */
+export function readHomeProjects(raw: unknown): readonly HomeProject[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: HomeProject[] = [];
+  for (const item of raw as unknown[]) {
+    if (typeof item !== 'object' || item === null) continue;
+    const v = item as Record<string, unknown>;
+    const name = typeof v['name'] === 'string' ? v['name'].trim() : '';
+    if (name.length === 0 || seen.has(name) || !isIso(v['createdAt'])) continue;
+    seen.add(name);
+    out.push({ name, createdAt: v['createdAt'] });
+  }
+  return out;
 }
 
 /** The Home index of the library head (empty when there is no head or no index yet). */
@@ -89,7 +127,8 @@ export function readHomeIndex(head: Pick<DocumentHead, 'app'> | undefined): Home
     seen.add(entry.asset);
     entries.push(entry);
   }
-  return { schema: HOME_INDEX_SCHEMA, entries: entries.sort(byEdited) };
+  const projects = readHomeProjects(value['projects']);
+  return { schema: HOME_INDEX_SCHEMA, entries: entries.sort(byEdited), ...(projects.length === 0 ? {} : { projects }) };
 }
 
 function entryJson(entry: HomeEntry): JsonObject {
@@ -103,33 +142,74 @@ function entryJson(entry: HomeEntry): JsonObject {
     ...(entry.mime === undefined ? {} : { mime: entry.mime }),
     ...(entry.size === undefined ? {} : { size: entry.size }),
     ...(entry.format === undefined ? {} : { format: { width: entry.format.width, height: entry.format.height } }),
+    ...(entry.folder === undefined ? {} : { folder: entry.folder }),
+    ...(entry.favorite === true ? { favorite: true } : {}),
+    ...(entry.trashedAt === undefined ? {} : { trashedAt: entry.trashedAt }),
+    ...(entry.pages === undefined ? {} : { pages: entry.pages }),
+    ...(entry.digest === undefined ? {} : { digest: entry.digest }),
   };
 }
 
+const projectsJson = (projects: readonly HomeProject[] | undefined): JsonObject[] => [...(projects ?? [])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)).map((p) => ({ name: p.name, createdAt: p.createdAt }));
+
 /** A head carrying `index` (generation unchanged: the caller sets it). */
 export function withHomeIndex<H extends Pick<DocumentHead, 'app'>>(head: H, index: HomeIndex): H {
-  return { ...head, app: { ...(head.app ?? {}), [HOME_INDEX_APP_KEY]: { schema: HOME_INDEX_SCHEMA, entries: [...index.entries].sort(byEdited).map(entryJson) } } };
+  const projects = projectsJson(index.projects);
+  return {
+    ...head,
+    app: { ...(head.app ?? {}), [HOME_INDEX_APP_KEY]: { schema: HOME_INDEX_SCHEMA, entries: [...index.entries].sort(byEdited).map(entryJson), ...(projects.length === 0 ? {} : { projects }) } },
+  };
 }
 
 /** Same content (order-insensitive): an unchanged index is never rewritten. */
 export function sameHomeIndex(a: HomeIndex, b: HomeIndex): boolean {
   if (a.entries.length !== b.entries.length) return false;
+  if (JSON.stringify(projectsJson(a.projects)) !== JSON.stringify(projectsJson(b.projects))) return false;
   const key = (e: HomeEntry): string => JSON.stringify(entryJson(e));
   const left = new Set(a.entries.map(key));
   return b.entries.every((e) => left.has(key(e)));
 }
 
-/** Designs to jump back into: compositions, newest edit first. */
+const live = (e: HomeEntry): boolean => e.trashedAt === undefined;
+
+/** Designs to jump back into: live compositions, newest edit first. */
 export function recentDesigns(index: HomeIndex, limit = 8): readonly HomeEntry[] {
-  return index.entries.filter((e) => e.kind === 'composition').slice(0, limit);
+  return index.entries.filter((e) => live(e) && e.kind === 'composition').slice(0, limit);
 }
 
-/** Every listed file (designs, templates, media), newest edit first. */
+/** Every live file (designs, templates, media), newest edit first. */
 export function workspaceFiles(index: HomeIndex): readonly HomeEntry[] {
-  return index.entries;
+  return index.entries.filter(live);
 }
 
-/** Templates (B5 tree assets of kind `template`), newest edit first. */
+/** Live templates (B5 tree assets of kind `template`), newest edit first. */
 export function workspaceTemplates(index: HomeIndex): readonly HomeEntry[] {
-  return index.entries.filter((e) => e.kind === 'template');
+  return index.entries.filter((e) => live(e) && e.kind === 'template');
+}
+
+/** The trash, newest trashed first (HOME-FILES §2.4). */
+export function trashedFiles(index: HomeIndex): readonly HomeEntry[] {
+  return index.entries.filter((e) => e.trashedAt !== undefined).sort((a, b) => Date.parse(b.trashedAt as string) - Date.parse(a.trashedAt as string) || byEdited(a, b));
+}
+
+/** A project as Home shows it (HOME-FILES §1.2: name, count, last edited). */
+export interface ProjectSummary {
+  readonly name: string;
+  /** Live entries in it. */
+  readonly count: number;
+  /** The newest edit of its entries (or when it was made, while empty). */
+  readonly editedAt: string;
+}
+
+/** Every project: the folders of live entries and the projects made on Home, newest edit first, then by name. */
+export function workspaceProjects(index: HomeIndex): readonly ProjectSummary[] {
+  const byName = new Map<string, { count: number; editedAt: string }>();
+  for (const p of index.projects ?? []) byName.set(p.name, { count: 0, editedAt: p.createdAt });
+  for (const e of index.entries) {
+    if (!live(e) || e.folder === undefined) continue;
+    const found = byName.get(e.folder);
+    if (found === undefined) byName.set(e.folder, { count: 1, editedAt: e.editedAt });
+    else byName.set(e.folder, { count: found.count + 1, editedAt: found.count === 0 || Date.parse(e.editedAt) > Date.parse(found.editedAt) ? e.editedAt : found.editedAt });
+  }
+  return [...byName].map(([name, v]) => ({ name, ...v })).sort((a, b) => Date.parse(b.editedAt) - Date.parse(a.editedAt) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 }

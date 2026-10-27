@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { aspectOf, DEFAULT_DESIGN_FORMAT, DESIGN_FORMAT_IDS, DESIGN_FORMATS, designFormat, designFormats, formatOfSize, groupDigits, NEW_DESIGN_CHIPS } from './formats.js';
-import { homeHref, instaflowRoutes, newDesignHref, readStudioIntent, studioHref } from './routes.js';
+import { homeHref, homeViewHref, instaflowRoutes, newDesignHref, readHomeView, readStudioIntent, studioHref } from './routes.js';
 
 const value = <T>(r: { ok: true; value: T } | { ok: false }): T => {
   if (!r.ok) throw new Error('not ok');
@@ -17,6 +17,24 @@ describe('surface routes (D17)', () => {
     // B11b: the New design dialog's choices (px is the default unit; a blank name is dropped).
     expect(value(newDesignHref({ format: 'custom', size: { width: 1500, height: 500 }, unit: 'mm', pages: 3, name: ' Spring ', background: '#ffeedd' }))).toBe('/new?format=custom&w=1500&h=500&unit=mm&pages=3&name=Spring&bg=%23ffeedd');
     expect(value(newDesignHref({ format: 'post', unit: 'px', name: '  ' }))).toBe('/new?format=post');
+  });
+
+  it('builds and reads Home’s own pages (B11c): Files with its view params, a project, templates, trash', () => {
+    expect(value(homeViewHref({ kind: 'home' }))).toBe('/');
+    expect(value(homeViewHref({ kind: 'files' }))).toBe('/files');
+    expect(value(homeViewHref({ kind: 'files', query: ' flyer ', filter: 'media', sort: 'name', layout: 'list' }))).toBe('/files?q=flyer&filter=media&sort=name&view=list');
+    expect(value(homeViewHref({ kind: 'files', filter: 'all', sort: 'edited' }))).toBe('/files');
+    expect(value(homeViewHref({ kind: 'project', name: 'Spring campaign' }))).toBe('/p/Spring%20campaign');
+    expect(value(homeViewHref({ kind: 'templates' }))).toBe('/templates');
+    expect(value(homeViewHref({ kind: 'trash' }))).toBe('/trash');
+    expect(readHomeView('/files?q=flyer&filter=media&sort=name&view=list')).toEqual({ kind: 'files', query: 'flyer', filter: 'media', sort: 'name', layout: 'list' });
+    expect(readHomeView('/files?filter=nope')).toEqual({ kind: 'files' });
+    expect(readHomeView('/p/Spring%20campaign')).toEqual({ kind: 'project', name: 'Spring campaign' });
+    expect(readHomeView('/templates')).toEqual({ kind: 'templates' });
+    expect(readHomeView('/trash')).toEqual({ kind: 'trash' });
+    expect(readHomeView('/')).toEqual({ kind: 'home' });
+    expect(readHomeView('/s/as_1')).toEqual({ kind: 'home' });
+    expect(readStudioIntent('/files')).toEqual({ kind: 'demo' });
   });
 
   it('reads what a Studio URL asks for (and keeps unrelated query keys out of it)', () => {

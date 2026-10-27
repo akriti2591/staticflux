@@ -4,8 +4,12 @@
 //   pnpm build && NODE_PATH=/opt/node-tools/node_modules pnpm --filter @instaflow/app smoke:home
 //
 // One fresh browser profile: open Home (no worker, no Wasm, no GPU adapter requested; the accessibility audit passes;
-// recents are empty), start "New design" from the keyboard, land in Studio on an empty document, draw one shape, go
-// back Home with the logo, see the design in "Jump back in", reopen it and find the shape. Starts the dev server
+// the first-run welcome card and formats hint show; "Keep my designs on this device" answers), start "New design" from
+// the keyboard with a custom size (20 000 refused inline, then 1500 × 500 and a name), land in Studio on an empty
+// document of that size, draw one shape, go back Home, see the design in "Jump back in". Then the file operations
+// (B11c): rename from ⋯, duplicate with Mod+D, a new project and ⋯ › Move to, the project page, Delete → trash,
+// Restore from the trash, Files in list view, Import an image (shown with its preview). Reopen the design: Studio
+// drained Home's journal (the title, the copy in its project, the image are in the library). Starts the dev server
 // (dev/studio/vite.config.ts) on a free port and drives the pages by role and name. Options: `--headed`,
 // `--screenshot=<prefix>` (Home before and after), `SF_GPU=real`. Studio boots in its default topology (the
 // Studio smoke covers both). Exit code 1 on failure.
@@ -24,6 +28,8 @@ const screenshot = process.argv.find((a) => a.startsWith('--screenshot='))?.slic
 const AUDIT = `/@fs${fileURLToPath(new URL('../../../../packages/testkit/src/a11y.ts', import.meta.url))}`;
 
 const log = (m) => console.log(`[home smoke] ${m}`);
+/** A 1 × 1 PNG (import). */
+const PNG_1X1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 const fail = (m) => {
   throw new Error(m);
 };
@@ -96,33 +102,48 @@ async function scenario(page) {
     w.on('console', (m) => (m.type() === 'error' ? errors.push(`worker: ${m.text()}`) : undefined));
   });
   page.on('request', (r) => requests.push(r.url()));
+  // Toasts queue past three (OVERLAYS-FEEDBACK §3.5: a queued one shows when a slot frees, ≤ 8 s): wait up to 20 s.
+  const toast = (text) => page.locator('sf-toast').filter({ hasText: text }).first();
+  const toasted = (text, what) => toast(text).waitFor({ timeout: 20_000 }).catch(() => fail(`${what} toasted nothing`));
+  const card = (name) => page.locator('sf-card.tile').filter({ hasText: name }).first();
+  const auditOrFail = async (what) => {
+    const issues = await audit(page);
+    if (issues.length > 0) fail(`accessibility audit (${what}):\n${issues.join('\n')}`);
+  };
 
-  // ---------------------------------------------------------------- Home: light boot, empty workspace
+  // ---------------------------------------------------------------- Home: light boot, first run (HOME-FILES §1.4)
   log(`open ${origin}/`);
   await page.goto(`${origin}/`);
   await homeReady(page);
   await page.getByRole('heading', { level: 1, name: /Make something\s+bold\s+today/ }).waitFor({ timeout: 10_000 });
-  await page.getByText('No designs yet').waitFor({ timeout: 10_000 });
+  const welcome = page.getByRole('region', { name: 'Your designs live on this device' });
+  await welcome.waitFor({ timeout: 10_000 }).catch(() => fail('the first run shows no welcome card'));
+  await page.getByText('Pick a size to start. You can change it later.').waitFor({ timeout: 5_000 });
   const engine = requests.filter((u) => /\.wasm|studio\.worker|loro|engine\/dist|^worker /.test(u));
   if (engine.length > 0) fail(`Home loaded engine code: ${engine.join(', ')}`);
   const gpu = await page.evaluate(() => globalThis.__gpuRequests);
   if (gpu !== 0) fail(`Home requested a GPU adapter ${gpu} time(s)`);
-  log(`Home is up (${requests.length} requests, no worker, no Wasm, no GPU adapter); recents empty`);
-  const issues = await audit(page);
-  if (issues.length > 0) fail(`accessibility audit:\n${issues.join('\n')}`);
-  log('accessibility audit passes (empty workspace)');
-  if (screenshot !== undefined) await page.screenshot({ path: `${screenshot}-home-empty.png`, fullPage: true });
+  log(`Home is up (${requests.length} requests, no worker, no Wasm, no GPU adapter); first run: welcome card + formats hint`);
+  await auditOrFail('first run');
+  if (screenshot !== undefined) await page.screenshot({ path: `${screenshot}-home-first-run.png`, fullPage: true });
+  await welcome.getByRole('button', { name: 'Keep my designs on this device' }).click();
+  const kept = page.getByText(/Saved on this device|Chrome may clear this workspace/);
+  await kept.waitFor({ timeout: 10_000 }).catch(() => fail('Keep my designs gave no answer'));
+  log(`first run: "Keep my designs on this device" → "${(await kept.textContent())?.trim()}"`);
 
-  // ---------------------------------------------------------------- New design, from the keyboard
-  // B11b (HOME-FILES §1.3): the New design dialog — Custom, W × H typed, a name, Enter creates.
+  // ---------------------------------------------------------------- New design with a custom size, from the keyboard
+  // B11b / B11c (HOME-FILES §1.3, F-54): the New design dialog — Custom, W × H typed, a name, Enter creates.
+  await page.locator('body').click({ position: { x: 5, y: 300 } });
   await tabTo(page, (el) => el?.localName === 'sf-button' && /New design/.test(el.textContent ?? ''), 'New design');
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog', { name: 'New design' });
   await dialog.waitFor({ timeout: 10_000 }).catch(() => fail('New design opened no dialog'));
-  const dialogIssues = await audit(page);
-  if (dialogIssues.length > 0) fail(`accessibility audit (New design dialog):\n${dialogIssues.join('\n')}`);
+  await auditOrFail('New design dialog');
   await dialog.getByRole('radio', { name: /^Custom/ }).click();
   const width = dialog.getByRole('spinbutton', { name: 'Width' });
+  await width.fill('20000');
+  await width.press('Tab');
+  await dialog.getByText('Too large for this device (max 16 384 px)').waitFor({ timeout: 5_000 }).catch(() => fail('a too-large width shows no inline error'));
   await width.fill('1500');
   await width.press('Tab');
   const height = dialog.getByRole('spinbutton', { name: 'Height' });
@@ -132,6 +153,7 @@ async function scenario(page) {
   await name.fill('Smoke banner');
   await name.press('Enter');
   await page.waitForURL(/\/s\/as_[a-z0-9]+(\?|$)/, { timeout: 60_000 });
+  if (/[?&](w|h|name)=/.test(page.url())) fail(`the new design's URL kept the New design keys: ${page.url()}`);
   await studioReady(page);
   const asset = new URL(page.url()).pathname.split('/').pop();
   const plan = await page.evaluate(() => window.__studio.workers.plan.topology);
@@ -140,7 +162,7 @@ async function scenario(page) {
   const made = await page.evaluate(() => ({ page: window.__studio.scene.page, title: window.__studio.scene.title }));
   if (made.page?.width !== 1500 || made.page?.height !== 500 || made.title !== 'Smoke banner') fail(`New design made ${JSON.stringify(made)} (want Smoke banner, 1500 × 500)`);
   const studioGpu = await page.evaluate(() => globalThis.__gpuRequests);
-  log(`New design dialog (Custom 1500 × 500, "Smoke banner", Enter) → Studio on ${asset} (${plan}), empty document of that size`);
+  log(`New design dialog (20 000 refused inline; Custom 1500 × 500, "Smoke banner", Enter) → Studio on ${asset} (${plan}), empty, that size`);
 
   // ---------------------------------------------------------------- draw one shape
   const surface = page.getByRole('application', { name: 'Canvas surface' });
@@ -163,17 +185,89 @@ async function scenario(page) {
   await page.waitForURL(`${origin}/`, { timeout: 30_000 });
   await homeReady(page);
   const recents = page.getByRole('region', { name: 'Jump back in' });
-  const tile = recents.getByRole('link', { name: /Smoke banner/ });
-  await tile.waitFor({ timeout: 10_000 });
+  await recents.getByRole('link', { name: /Smoke banner/ }).waitFor({ timeout: 10_000 });
   const listed = await page.evaluate(() => window.__home.model.recents().map((e) => e.asset));
   if (listed[0] !== asset) fail(`recents should start with ${asset}: ${JSON.stringify(listed)}`);
-  const issuesAfter = await audit(page);
-  if (issuesAfter.length > 0) fail(`accessibility audit with recents:\n${issuesAfter.join('\n')}`);
-  log(`back Home (logo link): "${(await recents.locator('sf-card').first().textContent())?.replace(/\s+/g, ' ').trim()}" in Jump back in; audit passes`);
+  if ((await page.locator('.welcome').count()) > 0) fail('the welcome card came back after it was answered');
+  await auditOrFail('Home with recents');
+  log(`back Home: "${(await recents.locator('sf-card').first().textContent())?.replace(/\s+/g, ' ').trim()}" in Jump back in; audit passes`);
   if (screenshot !== undefined) await page.screenshot({ path: `${screenshot}-home-recents.png`, fullPage: true });
 
-  // ---------------------------------------------------------------- reopen it
-  await tile.click();
+  // ---------------------------------------------------------------- file operations on Home (HOME-FILES §3)
+  // Rename from the card's ⋯ menu.
+  await card('Smoke banner').hover();
+  await card('Smoke banner').getByRole('button', { name: 'More for Smoke banner' }).click();
+  await page.getByRole('menuitem', { name: 'Rename' }).click();
+  const field = card('Smoke banner').getByRole('textbox');
+  await field.waitFor({ timeout: 5_000 }).catch(() => fail('Rename opened no field'));
+  await field.fill('Smoke poster');
+  await field.press('Enter');
+  await recents.getByRole('link', { name: /Smoke poster/ }).waitFor({ timeout: 10_000 });
+  await toasted('Renamed to “Smoke poster”', 'Rename');
+  log('⋯ › Rename → "Smoke poster" (toast with Undo)');
+  // Duplicate with Mod+D on the focused card: the copy comes first and takes the focus.
+  await recents.getByRole('link', { name: /Smoke poster/ }).first().focus();
+  await page.keyboard.press('ControlOrMeta+d');
+  const copy = recents.getByRole('link', { name: /Smoke poster copy/ });
+  await copy.waitFor({ timeout: 10_000 }).catch(() => fail('Mod+D made no copy'));
+  const focused = await page.evaluate(() => {
+    let el = document.activeElement;
+    while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement;
+    return (el?.getRootNode()?.host ?? el)?.textContent ?? ''; // the card's link lives in its shadow root
+  });
+  if (!/Smoke poster copy/.test(focused)) fail(`the copy should take the focus: "${focused.replace(/\s+/g, ' ').trim()}"`);
+  log('Mod+D → "Smoke poster copy" first, focused');
+  // A new project, then move the copy there from ⋯ › Move to.
+  const projects = page.getByRole('region', { name: 'Projects' });
+  await projects.getByRole('button', { name: /New project/ }).first().click();
+  const projectName = projects.getByRole('textbox', { name: 'Project name' });
+  await projectName.fill('Smoke project');
+  await projectName.press('Enter');
+  await projects.getByRole('link', { name: /Smoke project/ }).waitFor({ timeout: 5_000 }).catch(() => fail('New project made no card'));
+  await card('Smoke poster copy').hover();
+  await card('Smoke poster copy').getByRole('button', { name: 'More for Smoke poster copy' }).click();
+  await page.getByRole('menuitem', { name: 'Move to', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: 'Smoke project' }).click();
+  await toasted('Moved to Smoke project', 'Move');
+  await projects.getByRole('link', { name: /Smoke project.*1 design/ }).waitFor({ timeout: 5_000 }).catch(() => fail('the project card does not count the moved design'));
+  log('＋ New project "Smoke project"; ⋯ › Move to › Smoke project (toast; the card counts 1 design)');
+  // The project page lists it; Delete on the focused card trashes it (toast with Undo).
+  await projects.getByRole('link', { name: /Smoke project/ }).click();
+  await page.waitForURL(`${origin}/p/Smoke%20project`, { timeout: 10_000 });
+  await page.getByRole('heading', { level: 1, name: /Smoke project/ }).waitFor({ timeout: 5_000 });
+  await auditOrFail('project page');
+  await page.getByRole('link', { name: /Smoke poster copy/ }).focus();
+  await page.keyboard.press('Delete');
+  await toasted('Moved “Smoke poster copy” to trash', 'Delete');
+  log('project page /p/Smoke%20project; Delete on the copy → trash (toast with Undo)');
+  // The trash: Restore brings it back.
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Trash' }).click();
+  await page.waitForURL(`${origin}/trash`, { timeout: 10_000 });
+  await page.getByText('Items are kept for 30 days.').waitFor({ timeout: 5_000 });
+  await auditOrFail('trash');
+  await page.getByRole('button', { name: 'Restore Smoke poster copy' }).click();
+  await toasted('Restored “Smoke poster copy”', 'Restore');
+  await page.getByText('The trash is empty.').waitFor({ timeout: 5_000 });
+  log('Trash → Restore "Smoke poster copy" (toast with Open); the trash is empty');
+  // Files: list view, then import an image through the toolbar's Import (Mod+I opens the same picker).
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Files' }).click();
+  await page.waitForURL(`${origin}/files`, { timeout: 10_000 });
+  await page.getByRole('radio', { name: 'List' }).click();
+  await page.waitForURL(`${origin}/files?view=list`, { timeout: 5_000 }).catch(() => fail('the list layout did not reach the URL (view param, replaced)'));
+  const rows = await page.locator('ul.list li.row[data-asset]').count();
+  if (rows !== 2) fail(`Files (list) should show the 2 designs: ${rows}`);
+  await auditOrFail('Files (list)');
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Import' }).click();
+  await (await chooser).setFiles({ name: 'smoke-dot.png', mimeType: 'image/png', buffer: Buffer.from(PNG_1X1, 'base64') });
+  await toasted('Imported “smoke-dot”', 'Import');
+  await page.locator('li.row', { hasText: 'smoke-dot' }).locator('img.preview').waitFor({ timeout: 10_000 }).catch(() => fail('the imported image shows no preview'));
+  log('Files: List (URL ?view=list), 2 rows; Import → "smoke-dot" listed with its preview');
+  if (screenshot !== undefined) await page.screenshot({ path: `${screenshot}-files.png`, fullPage: true });
+
+  // ---------------------------------------------------------------- reopen it: Studio applied what Home changed
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home' }).click();
+  await recents.getByRole('link', { name: /^Smoke poster(?! copy)/ }).click();
   await page.waitForURL(new RegExp(`/s/${asset}(\\?|$)`), { timeout: 60_000 });
   await studioReady(page);
   const reopened = await inspect(page);
@@ -181,7 +275,22 @@ async function scenario(page) {
   if (reopened.elements.length !== 1 || again === undefined || Math.abs(again.x - drawn.x) > 0.01 || Math.abs(again.w - drawn.w) > 0.01) {
     fail(`the reopened design lost its shape: ${JSON.stringify({ drawn, reopened: reopened.elements })}`);
   }
-  log(`reopened ${asset} from recents: shape ${shape} is there (${Math.round(again.w)}×${Math.round(again.h)})`);
+  const title = await page.evaluate(() => window.__studio.scene.title);
+  if (title !== 'Smoke poster') fail(`Studio should open the renamed design as "Smoke poster": "${title}"`);
+  const library = await page.evaluate(() =>
+    window.__studio.library
+      .entries()
+      .map((e) => `${e.title}|${e.folder}|${e.trashedAt === undefined ? 'live' : 'trash'}`)
+      .sort(),
+  );
+  const want = ['Smoke poster copy|Smoke project|live', 'Smoke poster||live', 'smoke-dot||live'].sort();
+  if (JSON.stringify(library) !== JSON.stringify(want)) fail(`the library should hold what Home did: ${JSON.stringify(library)}`);
+  const journal = await page.evaluate(async () => {
+    const head = await window.__session.workspace.store.readHead('home-journal', new AbortController().signal);
+    return head.ok ? (head.value?.app?.journal?.ops ?? []).length : -1;
+  });
+  if (journal !== 0) fail(`Studio should drain Home's journal: ${journal} ops left`);
+  log(`reopened ${asset}: title "${title}", shape ${shape} there; the library has the copy (in its project) and the image; journal drained`);
   if (!(studioGpu > 0)) log('note: Studio made no GPU adapter request through navigator.gpu on main (the render worker owns the device)');
 
   const relevant = errors.filter((e) => !/favicon/.test(e));

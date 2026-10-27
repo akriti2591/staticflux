@@ -36,7 +36,29 @@ export const newDesignRoute = /* @__PURE__ */ defineRoute({
   description: 'Studio creating a new design from a format (or a custom size) or a template.',
 });
 
-export const INSTAFLOW_ROUTES = [homeRoute, studioRoute, newDesignRoute] as const;
+// B11c (HOME-FILES §2, NAVIGATION §2.1): Home's own pages — one boot, moved between with history.
+/** Files' list state (HOME-FILES §2.2; NAVIGATION §2.2: view params, replaced in history, remembered per device). */
+export const FILES_FILTERS = ['all', 'designs', 'templates', 'media', 'favourites'] as const;
+export type FilesFilter = (typeof FILES_FILTERS)[number];
+export const FILES_SORTS = ['edited', 'created', 'name', 'kind'] as const;
+export type FilesSort = (typeof FILES_SORTS)[number];
+export const FILES_LAYOUTS = ['grid', 'list'] as const;
+export type FilesLayout = (typeof FILES_LAYOUTS)[number];
+
+export const filesRoute = /* @__PURE__ */ defineRoute({
+  id: 'instaflow/files',
+  path: '/files',
+  search: { q: searchParam.string(), filter: searchParam.enum(FILES_FILTERS), sort: searchParam.enum(FILES_SORTS), view: searchParam.enum(FILES_LAYOUTS) },
+  description: 'Files: everything in the workspace, with filters, sort, grid or list, and search.',
+});
+
+export const templatesRoute = /* @__PURE__ */ defineRoute({ id: 'instaflow/templates', path: '/templates', description: 'The workspace’s templates.' });
+
+export const projectRoute = /* @__PURE__ */ defineRoute({ id: 'instaflow/project', path: '/p/:name', description: 'One project’s designs.' });
+
+export const trashRoute = /* @__PURE__ */ defineRoute({ id: 'instaflow/trash', path: '/trash', description: 'The trash: restore or delete forever (kept 30 days).' });
+
+export const INSTAFLOW_ROUTES = [homeRoute, studioRoute, newDesignRoute, filesRoute, projectRoute, templatesRoute, trashRoute] as const;
 
 let table: RouteTable | undefined;
 
@@ -53,6 +75,60 @@ export function instaflowRoutes(): RouteTable {
 /** Home's href. */
 export function homeHref(): Result<string> {
   return instaflowRoutes().build({ to: homeRoute });
+}
+
+/** Which Home page a URL shows (B11c). */
+export type HomeView =
+  | { readonly kind: 'home' }
+  | { readonly kind: 'files'; readonly query?: string; readonly filter?: FilesFilter; readonly sort?: FilesSort; readonly layout?: FilesLayout }
+  | { readonly kind: 'project'; readonly name: string }
+  | { readonly kind: 'templates' }
+  | { readonly kind: 'trash' };
+
+export type HomeViewKind = HomeView['kind'];
+
+/** The href of a Home page. */
+export function homeViewHref(view: HomeView): Result<string> {
+  const routes = instaflowRoutes();
+  const HREFS: Readonly<Record<HomeView['kind'], () => Result<string>>> = {
+    home: () => routes.build({ to: homeRoute }),
+    files: () => {
+      const f = view as Extract<HomeView, { kind: 'files' }>;
+      const q = f.query?.trim();
+      return routes.build({
+        to: filesRoute,
+        search: {
+          ...(q === undefined || q === '' ? {} : { q }),
+          ...(f.filter === undefined || f.filter === 'all' ? {} : { filter: f.filter }),
+          ...(f.sort === undefined || f.sort === 'edited' ? {} : { sort: f.sort }),
+          ...(f.layout === undefined ? {} : { view: f.layout }),
+        },
+      });
+    },
+    project: () => routes.build({ to: projectRoute, params: { name: (view as Extract<HomeView, { kind: 'project' }>).name } }),
+    templates: () => routes.build({ to: templatesRoute }),
+    trash: () => routes.build({ to: trashRoute }),
+  };
+  return HREFS[view.kind]();
+}
+
+/** The Home page for a URL (`pathname + search`); anything else is Home itself. */
+export function readHomeView(href: string): HomeView {
+  const match = instaflowRoutes().match(href);
+  if (isMatchOf(match, filesRoute)) {
+    const { q, filter, sort, view } = match.search;
+    return {
+      kind: 'files',
+      ...(q === undefined || q.trim() === '' ? {} : { query: q }),
+      ...(filter === undefined ? {} : { filter }),
+      ...(sort === undefined ? {} : { sort }),
+      ...(view === undefined ? {} : { layout: view }),
+    };
+  }
+  if (isMatchOf(match, projectRoute) && match.params.name.length > 0) return { kind: 'project', name: decodeURIComponent(match.params.name) };
+  if (isMatchOf(match, templatesRoute)) return { kind: 'templates' };
+  if (isMatchOf(match, trashRoute)) return { kind: 'trash' };
+  return { kind: 'home' };
 }
 
 /** Studio on an existing design. */
