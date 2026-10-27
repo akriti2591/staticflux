@@ -109,6 +109,8 @@ export interface HomeHost {
   navigate(href: string): void;
   /** Show another Home page (`history.pushState`); default: a full navigation. */
   push?(href: string): void;
+  /** Replace this Home page's URL (Settings sections, Files' view params; default: `push`). */
+  replace?(href: string): void;
 }
 
 export interface HomeModelOptions {
@@ -168,7 +170,7 @@ export interface HomeModel {
   /** Read the index again. */
   refresh(): Promise<Result<HomeIndex>>;
   /** Show a Home page and push it to history. */
-  go(view: HomeView): void;
+  go(view: HomeView, options?: { readonly replace?: boolean }): void;
   /** Show a Home page (Back / Forward: history already moved). */
   show(view: HomeView): void;
   /** A format id, or the New design dialog's full choice (a custom size, pages, name, background). */
@@ -492,11 +494,12 @@ export function createHomeModel(options: HomeModelOptions): HomeModel {
       return href?.ok === true ? href.value : undefined;
     },
     refresh,
-    go(next) {
+    go(next, goOptions = {}) {
       const href = homeViewHref(next);
       if (!href.ok) return;
       view.set(next);
-      (host.push ?? host.navigate)(href.value);
+      const push = host.push ?? host.navigate;
+      (goOptions.replace === true ? (host.replace ?? push) : push)(href.value);
     },
     show: (next) => view.set(next),
     newDesign: (request) => invoke(NewDesignCapability, request === undefined ? {} : typeof request === 'string' ? { format: request } : request),

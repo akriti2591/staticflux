@@ -16,6 +16,9 @@ import { relativeTime } from './messages.js';
 import { createHomeModel, type HomeImporter, type HomeIndexSource, type HomeModel, storeIndexSource, storeJournalWriter } from './model.js';
 import type { HomeView } from './routes.js';
 import { HomeModelToken } from './tokens.js';
+import { createDeviceSettings, type DeviceSettings } from '../settings/device-settings.js';
+import { SHORTCUTS_SNAPSHOT_KEY } from '../settings/shortcuts-snapshot.js';
+import { HOME_SHORTCUTS } from './shortcuts.js';
 
 const NOW = Date.parse('2026-10-25T12:00:00.000Z');
 const entry = (asset: string, kind: HomeEntry['kind'], title: string, editedAt: string, extra: Partial<HomeEntry> = {}): HomeEntry => ({
@@ -97,7 +100,7 @@ describe('<if-home>', () => {
     readonly root: ReturnType<typeof mountTestRoot>;
   }
 
-  async function mount(options: { index?: HomeIndex; source?: HomeIndexSource; storage?: StoragePort | null; importer?: HomeImporter; view?: HomeView } = {}): Promise<Mounted> {
+  async function mount(options: { index?: HomeIndex; source?: HomeIndexSource; storage?: StoragePort | null; importer?: HomeImporter; view?: HomeView; settings?: DeviceSettings } = {}): Promise<Mounted> {
     const style = document.createElement('style');
     style.textContent = compileTheme(cleanPopTheme);
     document.head.append(style);
@@ -126,7 +129,7 @@ describe('<if-home>', () => {
       controller.abort();
       await root.dispose();
     };
-    render(html`<if-home .now=${NOW} .storage=${options.storage === undefined ? null : options.storage}></if-home>`, root.container);
+    render(html`<if-home .now=${NOW} .storage=${options.storage === undefined ? null : options.storage} .settings=${options.settings}></if-home>`, root.container);
     await settle(3);
     const host = root.container.querySelector('if-home') as IfHomeElement;
     await host.updateComplete;
@@ -183,8 +186,8 @@ describe('<if-home>', () => {
   it('keyboard: one native focusable per action, the card actions after their link, no positive tabindex', async () => {
     const { shadow, root } = await mount();
     const links = deepAll(root.container, 'a[href]');
-    // logo + 4 nav + 7 quick actions + 2 recents + 1 template + 1 project
-    expect(links).toHaveLength(16);
+    // logo + 4 nav + 7 quick actions + 2 recents + 1 template + 1 project + the footer's Settings
+    expect(links).toHaveLength(17);
     expect(deepAll(root.container, '[tabindex]').filter((el) => Number(el.getAttribute('tabindex')) > 0)).toEqual([]);
     expect([...shadow.querySelectorAll('header sf-button')].map((b) => b.textContent?.trim())).toEqual(['＋ New design']);
     const flyer = card(shadow, 'as_flyer');
@@ -404,7 +407,7 @@ describe('<if-home>', () => {
     (shadow.querySelector('sf-segmented.layout') as HTMLElement).dispatchEvent(new CustomEvent('sf-change', { detail: { value: 'list' } }));
     await again(host);
     expect(shadow.querySelectorAll('ul.list li.row[data-asset]')).toHaveLength(4);
-    expect(JSON.parse(localStorage.getItem('instaflow/ui/files') ?? '{}')).toEqual({ filter: 'all', sort: 'name', layout: 'list' });
+    expect(JSON.parse(localStorage.getItem('instaflow/ui/files') ?? '{}')).toEqual({ filter: 'all', sort: 'name', layout: 'list', chosen: true });
     expect(auditA11y(root.container)).toEqual([]);
     const check = (asset: string, shift = false): void => void (card(shadow, asset).querySelector('input.check') as HTMLInputElement).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: shift }));
     check('as_img');
@@ -598,6 +601,76 @@ describe('<if-home>', () => {
     expect([...shadow.querySelectorAll('.empty')].map((p) => p.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['Your designs will appear here.', 'Group designs into projects ＋ New project']);
     expect(localStorage.getItem(FIRST_RUN_KEY)).toBe('seen');
     expect(auditA11y(root.container)).toEqual([]);
+  });
+
+  it('Settings is a page in Home’s shell: the gear and the footer open it; sections replace the URL; density applies at once', async () => {
+    localStorage.setItem(SHORTCUTS_SNAPSHOT_KEY, JSON.stringify([{ heading: 'Edit', rows: [{ id: 'undo', label: 'Undo', keys: ['Mod+Z'] }] }]));
+    const settings = createDeviceSettings({ storage: localStorage, window: null });
+    const { host, shadow, pushed, model, root } = await mount({ settings, storage: persistence(true) });
+    (shadow.querySelector('sf-icon-button.settings-link') as HTMLElement).click();
+    await again(host);
+    expect(pushed).toEqual(['/settings']);
+    const page = shadow.querySelector('if-settings') as HTMLElement & { shadowRoot: ShadowRoot; section: string };
+    expect(page.section).toBe('general');
+    expect(shadow.querySelector('#settings-title')?.textContent).toBe('Settings');
+    await again(host);
+    expect(auditA11y(root.container)).toEqual([]);
+    // Pro from Settings › General: Home becomes the file manager (no headline, compact formats, rows for projects).
+    (page.shadowRoot.querySelector('input[name="density"][value="pro"]') as HTMLInputElement).dispatchEvent(new Event('change'));
+    await again(host);
+    expect(settings.current.density).toBe('pro');
+    expect(JSON.parse(localStorage.getItem('instaflow/ui/settings') ?? '{}').density).toBe('pro');
+    (page.shadowRoot.querySelector('a[data-section="shortcuts"]') as HTMLElement).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+    await again(host);
+    expect(model.view).toEqual({ kind: 'settings', section: 'shortcuts' });
+    const sheet = page.shadowRoot.querySelector('sf-shortcut-sheet') as HTMLElement & { groups: readonly { heading: string }[] };
+    expect(sheet.groups.map((g) => g.heading)).toEqual(['Edit', 'Home']);
+    expect(auditA11y(root.container)).toEqual([]);
+    model.go({ kind: 'home' });
+    await again(host);
+    expect(host.hasAttribute('pro')).toBe(true);
+    expect(shadow.querySelector('.hero.compact h1')?.classList.contains('sr-only')).toBe(true);
+    expect(shadow.querySelector('.projects-list [data-project="Spring campaign"]')).not.toBeNull();
+    expect(card(shadow, 'as_menu').textContent).toContain('Spring campaign'); // Pro meta names the project
+    expect(auditA11y(root.container)).toEqual([]);
+    (shadow.querySelector('footer a.settings-footer') as HTMLElement).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+    await again(host);
+    expect(pushed.at(-1)).toBe('/settings/storage');
+  });
+
+  it('Pro Files: a list by default with always-visible checkboxes, sortable column headers and a Pages column', async () => {
+    const settings = createDeviceSettings({ storage: localStorage, window: null });
+    settings.set({ density: 'pro' });
+    const { host, shadow, root } = await mount({ settings, view: { kind: 'files' } });
+    expect(shadow.querySelectorAll('ul.list li.row[data-asset]')).toHaveLength(4);
+    expect(shadow.querySelector('li.row[data-asset="as_flyer"] .pages')?.textContent).toBe('3');
+    const head = [...shadow.querySelectorAll('.row.head button.sort-head')];
+    expect(head.map((b) => b.textContent)).toEqual(['Name', 'Kind', 'Edited']);
+    (head[0] as HTMLElement).click();
+    await again(host);
+    expect([...shadow.querySelectorAll('ul.list li.row[data-asset]')].map((r) => r.getAttribute('data-asset'))).toEqual(['as_img', 'as_flyer', 'as_tpl', 'as_menu']);
+    expect(shadow.querySelector('.row.head [aria-sort="descending"] button')?.textContent).toBe('Name');
+    expect(auditA11y(root.container)).toEqual([]);
+  });
+
+  it('Reset hints brings the first run back; New design starts in Settings’ units', async () => {
+    const settings = createDeviceSettings({ storage: localStorage, window: null });
+    settings.set({ units: 'mm' });
+    localStorage.setItem('instaflow/ui/hints/messaging/seen/instaflow/hint-frame', 'true');
+    const { host, shadow, model } = await mount({ settings, view: { kind: 'settings' } });
+    const page = shadow.querySelector('if-settings') as HTMLElement & { shadowRoot: ShadowRoot };
+    page.dispatchEvent(new CustomEvent('if-reset-hints', { bubbles: true, composed: true }));
+    await again(host);
+    expect(localStorage.getItem('instaflow/ui/first-run')).toBeNull();
+    expect(localStorage.getItem('instaflow/ui/hints/messaging/seen/instaflow/hint-frame')).toBeNull();
+    model.go({ kind: 'home' });
+    await again(host);
+    expect(shadow.querySelector('.first-run-hint')).not.toBeNull(); // the first run is back (the card shows while Jump back in is empty)
+    await host.openNewDesign();
+    await again(host);
+    const dialog = shadow.querySelector('if-new-design') as HTMLElement & { draft: { unit: string } };
+    expect(dialog.draft.unit).toBe('mm');
+    expect(HOME_SHORTCUTS.map((r) => r.keys[0])).toEqual(['/', 'Mod+I', 'Mod+Z', 'F2', 'Mod+D', 'Delete', 'Shift+F10', 'Space', 'Mod+A', 'Escape']);
   });
 
   it('speaks a failed action in the polite live region', async () => {

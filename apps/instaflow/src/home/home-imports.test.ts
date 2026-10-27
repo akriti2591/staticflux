@@ -29,7 +29,7 @@ const FORBIDDEN_FILES: readonly RegExp[] = [
 ];
 const FORBIDDEN_PACKAGES: readonly string[] = ['loro-crdt', 'yjs', 'rbush', 'harfbuzzjs'];
 /** The only app folders Home may reach (everything else in `src/` is Studio's). */
-const ALLOWED_APP_FILES = /^apps\/instaflow\/(src\/(home|theme)\/|src\/app\/feedback\.ts$|src\/workspace\/(browser|document-store|blobs)\.ts$|src\/library\/(kinds|library-doc|records|errors)\.ts$|dev\/home\/)/;
+const ALLOWED_APP_FILES = /^apps\/instaflow\/(src\/(home|theme|settings)\/|src\/app\/feedback\.ts$|src\/workspace\/(browser|document-store|blobs)\.ts$|src\/library\/(kinds|library-doc|records|errors)\.ts$|dev\/home\/)/;
 
 interface Graph {
   readonly files: ReadonlySet<string>;

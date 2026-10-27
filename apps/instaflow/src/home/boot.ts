@@ -17,6 +17,7 @@ import { allowAllDecideUnit, defineUiElements, provideScope, visibilityObserverU
 import { compileTheme } from '@staticflux/ui/theme';
 import { html, render } from 'lit';
 import { createToasts, INSTAFLOW_SURFACE_UNITS, type Toasts, ToastsToken } from '../app/feedback.js';
+import { createDeviceSettings, type DeviceSettings } from '../settings/device-settings.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
 import { openWorkspaceDocuments } from '../workspace/browser.js';
 import { HomeIndexReadError } from './errors.js';
@@ -40,12 +41,15 @@ export interface BootHomeOptions {
   readonly importer?: () => Promise<HomeImporter>;
   /** Add the compiled theme to the document (default true; tests that bring their own theme pass false). */
   readonly theme?: boolean;
+  /** This device's settings (default: over `localStorage`); applied to the document root (density, motion). */
+  readonly settings?: DeviceSettings;
 }
 
 export interface BootedHome {
   readonly model: HomeModel;
   readonly element: IfHomeElement;
   readonly toasts: Toasts;
+  readonly settings: DeviceSettings;
 }
 
 /** Structurally a `BroadcastChannel`. */
@@ -79,6 +83,7 @@ export async function bootHome(options: BootHomeOptions): Promise<Result<BootedH
   const host: HomeHost = options.host ?? {
     navigate: (href) => view?.location.assign(href),
     push: (href) => view?.history.pushState(null, '', href),
+    replace: (href) => view?.history.replaceState(null, '', href),
   };
   const importer = options.importer ?? (() => import('./importer.js').then((m) => m.openBrowserImporter()));
   const model = createHomeModel({
@@ -110,8 +115,10 @@ export async function bootHome(options: BootHomeOptions): Promise<Result<BootedH
   defineHome();
   const provided = provideScope(container, { injector, name: 'instaflow/home' });
   scope.defer(() => provided.dispose());
+  const settings = options.settings ?? createDeviceSettings();
+  settings.apply(doc.documentElement, scope);
   const previews = createPreviewSource({ open: () => import('../workspace/blobs.js').then(async (m) => (await m.openWorkspaceBlobs()).blobs), signal: scope.signal });
-  render(html`<if-home .previews=${previews}></if-home><sf-surface-layer></sf-surface-layer>`, container);
+  render(html`<if-home .previews=${previews} .settings=${settings}></if-home><sf-surface-layer></sf-surface-layer>`, container);
   scope.defer(() => render(html``, container));
   const element = container.querySelector('if-home') as IfHomeElement;
 
@@ -122,5 +129,5 @@ export async function bootHome(options: BootHomeOptions): Promise<Result<BootedH
   channel?.addEventListener('message', refresh, { signal: scope.signal });
   // Back and Forward between Home's pages.
   view?.addEventListener('popstate', () => model.show(readHomeView(`${view.location.pathname}${view.location.search}`)), { signal: scope.signal });
-  return ok({ model, element, toasts });
+  return ok({ model, element, toasts, settings });
 }

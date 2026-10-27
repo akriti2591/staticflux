@@ -169,6 +169,10 @@ export const homeMessages = /* @__PURE__ */ defineMessages('instaflow-home', {
   undo: 'Undo',
   open: 'Open',
   failedAction: '{message}',
+  // B11c slice 2: Settings, Home's shortcuts, Pro columns
+  settings: 'Settings',
+  homeShortcuts: 'Home',
+  colPages: 'Pages',
   // Storage (§4)
   storageUsed: '{size} used on this device',
   storageFull: 'Storage is full. Your latest changes are kept until this tab closes. Free space by emptying the trash.',

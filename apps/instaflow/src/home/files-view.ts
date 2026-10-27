@@ -14,6 +14,8 @@ export interface FilesPrefs {
   readonly filter: FilesFilter;
   readonly sort: FilesSort;
   readonly layout: FilesLayout;
+  /** The person picked the layout (else Pro lists and the other modes show a grid, DENSITY §4). */
+  readonly chosen?: boolean;
 }
 
 export const DEFAULT_FILES_PREFS: FilesPrefs = Object.freeze({ filter: 'all', sort: 'edited', layout: 'grid' });
@@ -56,7 +58,7 @@ export function readFilesPrefs(storage: Pick<Storage, 'getItem'> | undefined): F
   try {
     const raw = storage?.getItem(FILES_MEMORY_KEY);
     const v = raw === null || raw === undefined ? {} : (JSON.parse(raw) as Partial<Record<keyof FilesPrefs, unknown>>);
-    return { filter: pick(FILES_FILTERS, v.filter, 'all'), sort: pick(FILES_SORTS, v.sort, 'edited'), layout: pick(FILES_LAYOUTS, v.layout, 'grid') };
+    return { filter: pick(FILES_FILTERS, v.filter, 'all'), sort: pick(FILES_SORTS, v.sort, 'edited'), layout: pick(FILES_LAYOUTS, v.layout, 'grid'), ...(v.chosen === true ? { chosen: true } : {}) };
   } catch {
     return DEFAULT_FILES_PREFS;
   }

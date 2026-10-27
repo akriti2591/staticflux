@@ -34,6 +34,7 @@ import { folderIcon } from '@staticflux/kit/icons/folder';
 import { imageIcon } from '@staticflux/kit/icons/image';
 import { starIcon } from '@staticflux/kit/icons/star';
 import { typeIcon } from '@staticflux/kit/icons/type';
+import { settingsIcon } from '@staticflux/kit/icons/settings';
 import { uploadIcon } from '@staticflux/kit/icons/upload';
 import { xIcon } from '@staticflux/kit/icons/x';
 import { defineInlineEdit, type InlineEditChangeDetail } from '@staticflux/kit/inline-edit';
@@ -45,6 +46,9 @@ import { defineTextField } from '@staticflux/kit/text-field';
 import { component, defineComponent, SfElement } from '@staticflux/ui';
 import { html, nothing, type TemplateResult } from 'lit';
 import { type Toasts, ToastsToken } from '../app/feedback.js';
+import type { DeviceSettings } from '../settings/device-settings.js';
+import { defineSettings, diagnosticsText, type SettingsSection } from '../settings/settings-element.js';
+import { HINT_STORAGE_PREFIXES, readShortcutsSnapshot, resetHintsOnDevice } from '../settings/shortcuts-snapshot.js';
 import type { LibraryAssetKind } from '../library/kinds.js';
 import { lensMarkStyle, lensOf, lenses, lensTag } from '../theme/lenses.js';
 import { instaflowMark } from '../theme/logo.js';
@@ -56,6 +60,7 @@ import type { HomeEntry, ProjectSummary } from './index-record.js';
 import { homeStyles } from './home-styles.js';
 import { homeMessages as m, homeText, relativeTime } from './messages.js';
 import type { HomeModel, ImportSummary } from './model.js';
+import { HOME_SHORTCUTS } from './shortcuts.js';
 import { defineNewDesign, type IfNewDesignElement, type NewDesignCreateDetail } from './new-design.js';
 import { FILES_FILTERS, FILES_LAYOUTS, FILES_SORTS, type FilesFilter, type FilesLayout, type FilesSort, type HomeView, homeViewHref, newDesignHref, studioHref } from './routes.js';
 import { HomeModelToken } from './tokens.js';
@@ -181,6 +186,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     full: { state: true },
     shown: { state: true },
     importing: { state: true },
+    settings: { attribute: false },
   };
   static override styles = homeStyles;
 
@@ -211,6 +217,8 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
   declare shown: ReadonlyMap<string, string>;
   /** An import in progress (the inline progress row; Cancel aborts the rest). */
   declare importing: { readonly done: number; readonly total: number; readonly controller: AbortController } | undefined;
+  /** This device's settings (density, units, hints); Settings writes them. */
+  declare settings: DeviceSettings | undefined;
 
   private anchor: string | undefined;
   private titleTimer: ReturnType<typeof setTimeout> | undefined;
@@ -240,6 +248,16 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     this.full = false;
     this.shown = new Map();
     this.importing = undefined;
+    this.settings = undefined;
+  }
+
+  /** Pro turns Home into a working file manager (DENSITY-DISCLOSURE §4); Focus and Standard look the same here. */
+  private get pro(): boolean {
+    return this.settings?.current.density === 'pro';
+  }
+
+  override updated(): void {
+    this.toggleAttribute('pro', this.pro);
   }
 
   override connectedCallback(): void {
@@ -359,7 +377,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
         ${model.state === 'loading' ? html`<p class="empty" role="status">${this.text(m.loading)}</p>` : nothing}
         ${this.dropping ? html`<p class="sr-only" role="status">${this.text(m.dropFiles)}</p>` : nothing}
       </main>
-      ${this.renderFooter()} ${this.renderBulk()} ${this.renderFileMenu()}
+      ${this.renderFooter()} ${this.pro ? nothing : this.renderBulk()} ${this.renderFileMenu()}
       <sf-popover class="new-project-popover" label=${this.text(m.newProject)} @sf-toggle=${(e: CustomEvent<{ open: boolean }>) => (e.detail.open ? undefined : (this.moveAfterCreate = []))}>
         <form class="new-project" @submit=${(e: SubmitEvent) => this.onPopoverProject(e)}>
           <sf-text-field class="popover-name" label=${this.text(m.newProjectName)} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' ? void this.onPopoverProject(e) : undefined)}></sf-text-field>
@@ -367,7 +385,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
         </form>
       </sf-popover>
       <input class="picker" type="file" multiple hidden accept="image/*,.svg,.ttf,.otf,.woff,.woff2" @change=${(e: Event) => void this.onPicked(e)} />
-      <if-new-design .templates=${model.templates()} .last=${model.recents()[0]?.format} @if-create=${(e: CustomEvent<NewDesignCreateDetail>) => void this.onCreate(e.detail)}></if-new-design>
+      <if-new-design .templates=${model.templates()} .last=${model.recents()[0]?.format} .defaultUnit=${this.settings?.current.units ?? 'px'} @if-create=${(e: CustomEvent<NewDesignCreateDetail>) => void this.onCreate(e.detail)}></if-new-design>
       <div class="sr-only" role="status" aria-live="polite">${this.announcement}</div>`;
   }
 
@@ -394,6 +412,9 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
         @input=${(e: Event) => (this.query = (e.composedPath()[0] as HTMLInputElement).value ?? '')}
         @keydown=${(e: KeyboardEvent) => this.onSearchKey(e)}
       ></sf-text-field>
+      <sf-icon-button class="settings-link" variant="ghost" label=${this.text(m.settings)} .pressed=${view.kind === 'settings'} @click=${() => this.go({ kind: 'settings' })}
+        ><sf-icon .icon=${settingsIcon} size="18"></sf-icon
+      ></sf-icon-button>
       <div class="new" role="group" aria-label=${this.text(m.newDesign)}>
         <sf-button class="new-design" variant="primary" @click=${() => void this.openNewDesign()}>＋ ${this.text(m.newDesign)}</sf-button>
         <sf-menu label=${this.text(m.newFormats)} align="end" @sf-select=${(e: CustomEvent<{ value: string }>) => this.onFormatMenu(e.detail.value)}>
@@ -419,6 +440,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
       project: () => this.renderProject((view as Extract<HomeView, { kind: 'project' }>).name),
       templates: () => this.renderTemplatesPage(),
       trash: () => this.renderTrash(),
+      settings: () => this.renderSettings((view as Extract<HomeView, { kind: 'settings' }>).section ?? 'general'),
     };
     return PAGES[view.kind]();
   }
@@ -442,26 +464,26 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     const model = this.deps.model;
     const [layout] = lenses();
     const searching = this.query.trim() !== '';
-    const recents = this.searched(model.recents());
+    const recents = this.searched(this.pro ? model.index.entries.filter((e) => e.kind === 'composition' && e.trashedAt === undefined).slice(0, 12) : model.recents());
     const templates = this.searched(model.templates());
     const projects = searching ? model.projects().filter((p) => p.name.toLocaleLowerCase().includes(this.query.trim().toLocaleLowerCase())) : model.projects();
     const firstRun = this.welcome !== 'gone';
     const nothingFound = searching && recents.length === 0 && templates.length === 0 && projects.length === 0;
-    return html`<section class="hero" aria-labelledby="hero">
-        <h1 id="hero" style=${`--if-home-bold:${layout?.color ?? 'transparent'};--if-home-bold-ink:${layout?.onColor ?? 'inherit'}`}>
+    return html`<section class=${this.pro ? 'hero compact' : 'hero'} aria-labelledby="hero">
+        <h1 id="hero" class=${this.pro ? 'sr-only' : ''} style=${`--if-home-bold:${layout?.color ?? 'transparent'};--if-home-bold-ink:${layout?.onColor ?? 'inherit'}`}>
           ${this.text(m.heroBefore)} <span class="bold">${this.text(m.heroBold)}</span> ${this.text(m.heroAfter)}
         </h1>
-        <p class="lead">${this.text(m.heroLead)}</p>
+        ${this.pro ? nothing : html`<p class="lead">${this.text(m.heroLead)}</p>`}
         <ul class="formats" role="list" aria-label=${this.text(m.formats)}>
           ${NEW_DESIGN_CHIPS.map(
             (id) => html`<li>
-              <sf-button variant="secondary" data-format=${id} @click=${() => void this.run(() => model.newDesign(id), DESIGN_FORMATS[id].title)}>
+              <sf-button variant="secondary" size=${this.pro ? 'sm' : 'md'} data-format=${id} @click=${() => void this.run(() => model.newDesign(id), DESIGN_FORMATS[id].title)}>
                 <span aria-hidden="true" style=${lensMarkStyle(lensOf(DESIGN_FORMATS[id].lens), 1)}></span>
                 ${DESIGN_FORMATS[id].title} <span class="size">${groupDigits(DESIGN_FORMATS[id].size.width)} × ${groupDigits(DESIGN_FORMATS[id].size.height)}</span>
               </sf-button>
             </li>`,
           )}
-          <li><sf-button variant="secondary" data-format=${CUSTOM_FORMAT} @click=${() => void this.openNewDesign(CUSTOM_FORMAT, 'width')}>${this.text(m.customSizeShort)}</sf-button></li>
+          <li><sf-button variant="secondary" size=${this.pro ? 'sm' : 'md'} data-format=${CUSTOM_FORMAT} @click=${() => void this.openNewDesign(CUSTOM_FORMAT, 'width')}>${this.text(m.customSizeShort)}</sf-button></li>
         </ul>
         ${firstRun ? html`<p class="muted first-run-hint">${this.text(m.formatsHint)}</p>` : nothing}
       </section>
@@ -529,9 +551,13 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
   private renderTemplates(entries: readonly HomeEntry[]): TemplateResult {
     return html`<section aria-labelledby="templates">
       <h2 id="templates">${this.text(m.templates)}</h2>
-      <ul class="grid" role="list">
-        ${entries.map((e) => this.renderCard(e))}
-      </ul>
+      ${this.pro
+        ? html`<ul class="list compact" role="list">
+            ${entries.map((e) => this.renderRow(e, false))}
+          </ul>`
+        : html`<ul class="grid" role="list">
+            ${entries.map((e) => this.renderCard(e))}
+          </ul>`}
     </section>`;
   }
 
@@ -543,8 +569,8 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
       </div>
       ${projects.length === 0 && !this.creatingProject
         ? html`<p class="empty">${this.text(m.projectsEmpty)} <sf-button size="sm" variant="secondary" class="first-project" @click=${() => this.startProject()}>＋ ${this.text(m.newProject)}</sf-button></p>`
-        : html`<ul class="grid" role="list">
-            ${this.creatingProject ? html`<li>${this.renderNewProjectCard()}</li>` : nothing} ${projects.map((p) => this.renderProjectCard(p))}
+        : html`<ul class=${this.pro ? 'list compact projects-list' : 'grid'} role="list">
+            ${this.creatingProject ? html`<li>${this.renderNewProjectCard()}</li>` : nothing} ${projects.map((p) => (this.pro ? this.renderProjectRow(p) : this.renderProjectCard(p)))}
           </ul>`}
     </section>`;
   }
@@ -603,6 +629,24 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     </li>`;
   }
 
+  /** A project as a compact row (Pro). */
+  private renderProjectRow(p: ProjectSummary): TemplateResult {
+    const href = homeViewHref({ kind: 'project', name: p.name });
+    const when = relativeTime(p.editedAt, this.now ?? Date.now(), this.locale());
+    return html`<li
+      class="row project-row"
+      data-project=${p.name}
+      ?data-drop=${this.dropProject === p.name}
+      @dragover=${(e: DragEvent) => this.onProjectDragOver(e, p.name)}
+      @dragleave=${() => (this.dropProject = undefined)}
+      @drop=${(e: DragEvent) => void this.onProjectDrop(e, p.name)}
+    >
+      <span class="mark" aria-hidden="true"><sf-icon .icon=${folderIcon} size="16"></sf-icon></span>
+      <a class="tile-title" href=${href.ok ? href.value : nothing} @click=${(e: MouseEvent) => this.go({ kind: 'project', name: p.name }, e)}>${this.highlight(p.name)}</a>
+      <span class="cell">${this.text(m.projectMeta, { count: p.count, when })}</span>
+    </li>`;
+  }
+
   // ---------------------------------------------------------------- cards and rows
 
   private locale(): string | undefined {
@@ -618,7 +662,8 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     const when = relativeTime(entry.editedAt, this.now ?? Date.now(), this.locale());
     const base = entry.pages !== undefined && entry.pages > 1 ? this.text(m.editedPages, { when, pages: entry.pages }) : this.text(m.edited, { when });
     const size = entry.format === undefined ? '' : ` · ${this.text(m.size, { width: entry.format.width, height: entry.format.height })}`;
-    return `${base}${size}`;
+    const project = this.pro && entry.folder !== undefined ? ` · ${entry.folder}` : '';
+    return `${base}${size}${project}`;
   }
 
   /** The title with the search match marked. */
@@ -1066,8 +1111,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     const view = this.deps.model.view;
     if (view.kind !== 'files') return;
     // View params replace history (NAVIGATION §3): the URL shows the list state without new entries.
-    const href = homeViewHref({ kind: 'files', ...(view.query === undefined ? {} : { query: view.query }), ...this.filesView() });
-    if (href.ok) this.ownerDocument.defaultView?.history.replaceState(null, '', href.value);
+    this.deps.model.go({ kind: 'files', ...(view.query === undefined ? {} : { query: view.query }), ...this.filesView() }, { replace: true });
   }
 
   private renderFilesToolbar(withProject: boolean): TemplateResult {
@@ -1102,8 +1146,8 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
         label=${this.text(m.layout)}
         size="sm"
         .options=${FILES_LAYOUTS.map((l) => ({ value: l, label: this.text(m[LAYOUT_LABELS[l]]) }))}
-        .value=${p.layout}
-        @sf-change=${(e: CustomEvent<{ value: FilesLayout }>) => this.setPrefs({ layout: e.detail.value })}
+        .value=${this.layout()}
+        @sf-change=${(e: CustomEvent<{ value: FilesLayout }>) => this.setPrefs({ layout: e.detail.value, chosen: true })}
       ></sf-segmented>
       <sf-button class="push import" size="sm" variant="secondary" @click=${() => this.pickFiles()}><sf-icon .icon=${uploadIcon} size="16"></sf-icon> ${this.text(m.import)}</sf-button>
     </div>`;
@@ -1116,14 +1160,33 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
   /** The grid or list of Files and the project view (bulk-selectable). */
   private renderEntries(entries: readonly HomeEntry[]): TemplateResult {
     if (entries.length === 0) return this.query.trim() !== '' ? this.renderNoResults() : html`<p class="empty">${this.text(m.filesNothing)}</p>`;
-    if (this.prefs.layout === 'grid') return html`<ul class="grid" role="list" data-selectable-list @keydown=${(e: KeyboardEvent) => this.onListKey(e)}>${entries.map((e) => this.renderCard(e, true))}</ul>`;
+    if (this.layout() === 'grid') return html`<ul class="grid" role="list" data-selectable-list @keydown=${(e: KeyboardEvent) => this.onListKey(e)}>${entries.map((e) => this.renderCard(e, true))}</ul>`;
     return html`<ul class="list" role="list" data-selectable-list ?data-selecting=${this.selection.size > 0} aria-label=${this.text(m.filesList)} @keydown=${(e: KeyboardEvent) => this.onListKey(e)}>
-      <li class="row head" aria-hidden="true">
-        <span></span><span></span><span>${this.text(m.colTitle)}</span><span>${this.text(m.colKind)}</span><span>${this.text(m.colProject)}</span><span>${this.text(m.colEdited)}</span
-        ><span>${this.text(m.colSize)}</span><span></span>
-      </li>
+      ${this.pro
+        ? html`<li class="row head">
+            <span></span><span></span>${this.sortHeader('name', m.colTitle)}${this.sortHeader('kind', m.colKind)}<span>${this.text(m.colProject)}</span>${this.sortHeader('edited', m.colEdited)}<span
+              >${this.text(m.colSize)}</span
+            ><span>${this.text(m.colPages)}</span><span></span>
+          </li>`
+        : html`<li class="row head" aria-hidden="true">
+            <span></span><span></span><span>${this.text(m.colTitle)}</span><span>${this.text(m.colKind)}</span><span>${this.text(m.colProject)}</span><span>${this.text(m.colEdited)}</span
+            ><span>${this.text(m.colSize)}</span><span></span>
+          </li>`}
       ${entries.map((e) => this.renderRow(e))}
     </ul>`;
+  }
+
+  /** Files' layout: the person's choice, else List in Pro and Grid otherwise (DENSITY §4). */
+  private layout(): FilesLayout {
+    return this.prefs.chosen === true ? this.prefs.layout : this.pro ? 'list' : this.prefs.layout;
+  }
+
+  /** A sortable column header (Pro): a button that sorts by it, `aria-sort` on the active one. */
+  private sortHeader(sort: FilesSort, label: typeof m.colTitle | typeof m.colKind | typeof m.colEdited): TemplateResult {
+    const active = this.prefs.sort === sort;
+    return html`<span role="columnheader" aria-sort=${active ? 'descending' : 'none'}
+      ><button type="button" class="sort-head" aria-pressed=${active ? 'true' : 'false'} @click=${() => this.setPrefs({ sort })}>${this.text(label)}</button></span
+    >`;
   }
 
   private onListKey(e: KeyboardEvent): void {
@@ -1133,7 +1196,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     }
   }
 
-  private renderRow(entry: HomeEntry): TemplateResult {
+  private renderRow(entry: HomeEntry, selectable = true): TemplateResult {
     const href = this.deps.model.hrefOf(entry);
     const open = this.opener(entry);
     const tag = lensTag(lensOf(entry.lens));
@@ -1152,7 +1215,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
       @contextmenu=${(e: MouseEvent) => this.onContextMenu(e, entry)}
       @dblclick=${(e: MouseEvent) => this.onCardDoubleClick(e, entry)}
     >
-      <input class="check" type="checkbox" aria-label=${this.text(m.selectFile, { title: entry.title })} .checked=${selected} @click=${(e: MouseEvent) => this.onCheck(e, entry.asset)} />
+      ${selectable ? html`<input class="check" type="checkbox" aria-label=${this.text(m.selectFile, { title: entry.title })} .checked=${selected} @click=${(e: MouseEvent) => this.onCheck(e, entry.asset)} />` : html`<span></span>`}
       <span class="mark" aria-hidden="true"
         >${preview !== undefined ? html`<img class="preview" alt="" src=${preview} />` : icon !== undefined ? html`<sf-icon .icon=${icon} size="16"></sf-icon>` : html`<span style=${lensMarkStyle(lensOf(entry.lens), 1.4)}></span>`}</span
       >
@@ -1165,6 +1228,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
       <span class="cell">${entry.folder ?? this.text(m.noProject)}</span>
       <span class="cell">${when}</span>
       <span class="cell mono">${size}</span>
+      ${this.pro && selectable ? html`<span class="cell mono pages">${entry.pages ?? (entry.kind === 'composition' ? '1' : '')}</span>` : nothing}
       <sf-icon-button
         class="more"
         size="sm"
@@ -1186,7 +1250,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     void view;
     return html`<section aria-labelledby="files-title">
       <h1 class="page-title" id="files-title">${this.text(m.filesTitle)}</h1>
-      ${this.renderFilesToolbar(true)}
+      ${this.renderFilesToolbar(true)} ${this.pro ? this.renderBulk() : nothing}
       ${this.query.trim() !== '' && entries.length > 0 ? html`<p class="muted" role="status">${this.text(m.searchResults, { count: entries.length, query: this.query.trim() })}</p>` : nothing}
       ${this.renderEntries(entries)}
     </section>`;
@@ -1234,6 +1298,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
           ></sf-confirm-row>`
         : nothing}
       ${project === undefined && home.ok ? html`<p class="empty">${this.text(m.noResults, { query: name })}</p>` : nothing} ${this.renderFilesToolbar(false)}
+      ${this.pro ? this.renderBulk() : nothing}
       ${entries.length === 0 && this.query.trim() === '' ? html`<p class="empty">${this.text(m.projectEmpty)}</p>` : this.renderEntries(entries)}
     </section>`;
   }
@@ -1389,7 +1454,41 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
 
   private renderFooter(): TemplateResult {
     const usage = this.facts?.usage;
-    return html`<footer class="foot">${usage === undefined ? nothing : html`<span class="storage">${this.text(m.storageUsed, { size: formatBytes(usage, this.locale()) })}</span>`}</footer>`;
+    const href = homeViewHref({ kind: 'settings', section: 'storage' });
+    return html`<footer class="foot">
+      ${usage === undefined ? nothing : html`<span class="storage">${this.text(m.storageUsed, { size: formatBytes(usage, this.locale()) })}</span> · `}<a
+        class="settings-footer"
+        href=${href.ok ? href.value : nothing}
+        @click=${(e: MouseEvent) => this.go({ kind: 'settings', section: 'storage' }, e)}
+        >${this.text(m.settings)}</a
+      >
+    </footer>`;
+  }
+
+  // ---------------------------------------------------------------- Settings (STUDIO §2.4, a page in Home's shell)
+
+  private renderSettings(section: SettingsSection): TemplateResult {
+    const model = this.deps.model;
+    const studio = readShortcutsSnapshot(globalThis.localStorage);
+    const fonts = model.files().filter((e) => e.kind === 'font').map((e) => e.title);
+    return html`<section class="settings-page" aria-labelledby="settings-title">
+      <h1 class="page-title" id="settings-title">${this.text(m.settings)}</h1>
+      <if-settings
+        section=${section}
+        .settings=${this.settings}
+        .storage=${this.port}
+        .shortcuts=${[...studio, { heading: this.text(m.homeShortcuts), rows: HOME_SHORTCUTS }]}
+        .userFonts=${fonts}
+        .diagnostics=${() => diagnosticsText({ surface: 'Home', density: this.settings?.current.density ?? 'standard', extra: { Files: String(model.files().length), Trash: String(model.trashed().length) } })}
+        @if-section=${(e: CustomEvent<{ section: SettingsSection }>) => model.go({ kind: 'settings', section: e.detail.section }, { replace: true })}
+        @if-reset-hints=${() => {
+          resetHintsOnDevice(globalThis.localStorage, HINT_STORAGE_PREFIXES);
+          this.welcome = 'card';
+        }}
+        @if-open-trash=${() => this.go({ kind: 'trash' })}
+        @click=${() => this.requestUpdate()}
+      ></if-settings>
+    </section>`;
   }
 
   // ---------------------------------------------------------------- New design
@@ -1583,6 +1682,7 @@ export function defineHome(registry: CustomElementRegistry = customElements): vo
   defineSegmented(registry);
   defineTextField(registry);
   defineNewDesign(registry);
+  defineSettings(registry);
   if (registry.get(homeSpec.tag) === undefined) defineComponent(IfHomeElement, registry);
 }
 

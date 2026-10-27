@@ -493,6 +493,68 @@ export const homeStyles = css`
     color: ${t.color.textMuted.css};
     font-size: ${t.type.sizeSm.css};
   }
+  /* B11c: Pro (DENSITY-DISCLOSURE §4) — a working file manager. */
+  .hero.compact {
+    flex-direction: row;
+    align-items: center;
+    gap: ${t.space.md.css};
+    text-align: start;
+  }
+  .hero.compact .formats {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+  :host([pro]) main {
+    gap: 28px;
+    padding-block-start: 20px;
+  }
+  :host([pro]) .thumb {
+    block-size: 112px;
+  }
+  :host([pro]) .page {
+    max-block-size: 84px;
+  }
+  :host([pro]) .list .check {
+    opacity: 1;
+  }
+  :host([pro]) .row {
+    grid-template-columns: 28px 32px minmax(0, 2fr) 96px minmax(0, 1fr) minmax(0, 1fr) 96px 56px 34px;
+  }
+  :host([pro]) .list.compact .row,
+  .list.compact .row {
+    grid-template-columns: 28px 32px minmax(0, 2fr) 96px minmax(0, 1fr) minmax(0, 1fr) 96px 34px;
+  }
+  .projects-list .row {
+    grid-template-columns: 32px minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+  .row[data-drop] {
+    outline: 2px solid ${t.color.accent.css};
+    outline-offset: -2px;
+  }
+  .sort-head {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+  }
+  .sort-head[aria-pressed='true'] {
+    color: ${t.color.text.css};
+  }
+  :host([pro]) .bulk {
+    position: static;
+    transform: none;
+    align-self: flex-start;
+    box-shadow: none;
+    animation: none;
+  }
+  footer.foot a {
+    color: ${t.color.textMuted.css};
+  }
   .sr-only {
     position: absolute;
     inline-size: 1px;

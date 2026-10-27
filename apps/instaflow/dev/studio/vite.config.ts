@@ -37,8 +37,8 @@ export default defineConfig({
         server.middlewares.use((req, _res, next) => {
           const [path = '/', search = ''] = (req.url ?? '/').split('?');
           // B11c: Home's own pages (`/files`, `/p/:name`, `/templates`, `/trash`) are the Home page too.
-          const home = path === '/' || path === '/index.html' || /^\/(files|templates|trash|p\/[^/]+)\/?$/.test(path);
-          const page = home ? '/dev/home/index.html' : /^\/(s\/[^/]+|new)\/?$/.test(path) ? '/dev/studio/index.html' : undefined;
+          const home = path === '/' || path === '/index.html' || /^\/(files|templates|trash|settings(\/[^/]+)?|p\/[^/]+)\/?$/.test(path);
+          const page = home ? '/dev/home/index.html' : /^\/(s\/[^/]+(\/d\/[^/]+)?|new)\/?$/.test(path) ? '/dev/studio/index.html' : undefined;
           if (page !== undefined) req.url = search.length > 0 ? `${page}?${search}` : page;
           next();
         });

@@ -107,9 +107,9 @@ export function writeNewDesignMemory(storage: Pick<Storage, 'setItem'> | undefin
   }
 }
 
-/** The draft the dialog opens with: the last choice on this device, else the default format; `format` overrides. */
-export function initialDraft(memory: NewDesignMemory | undefined, format?: NewDesignFormatId): NewDesignDraft {
-  const base: NewDesignDraft = { format: DEFAULT_DESIGN_FORMAT, size: DESIGN_FORMATS[DEFAULT_DESIGN_FORMAT].size, unit: 'px', start: { kind: 'blank' }, name: UNTITLED, pages: 1, background: DEFAULT_BACKGROUND };
+/** The draft the dialog opens with: the last choice on this device, else the default format in Settings' units; `format` overrides. */
+export function initialDraft(memory: NewDesignMemory | undefined, format?: NewDesignFormatId, defaultUnit: DesignUnit = 'px'): NewDesignDraft {
+  const base: NewDesignDraft = { format: DEFAULT_DESIGN_FORMAT, size: DESIGN_FORMATS[DEFAULT_DESIGN_FORMAT].size, unit: defaultUnit, start: { kind: 'blank' }, name: UNTITLED, pages: 1, background: DEFAULT_BACKGROUND };
   const remembered = memory === undefined ? base : { ...base, format: memory.format, size: memory.size, unit: memory.unit, pages: memory.format === CUSTOM_FORMAT ? 1 : designFormat(memory.format).pages };
   if (format === undefined || format === remembered.format) return remembered;
   return format === CUSTOM_FORMAT ? { ...remembered, format } : chooseFormat(remembered, format);
@@ -163,6 +163,7 @@ export class IfNewDesignElement extends SfElement<typeof spec> {
   static override properties = {
     templates: { attribute: false },
     last: { attribute: false },
+    defaultUnit: { attribute: false },
     draft: { state: true },
   };
   static override styles = css`
@@ -275,12 +276,15 @@ export class IfNewDesignElement extends SfElement<typeof spec> {
   declare templates: readonly HomeEntry[];
   /** The last design's page size (`Start from › Last design`). */
   declare last: DesignSize | undefined;
+  /** Settings › General › Units: the unit a first New design starts in (the remembered choice wins after). */
+  declare defaultUnit: DesignUnit;
   declare draft: NewDesignDraft;
 
   constructor() {
     super();
     this.templates = [];
     this.last = undefined;
+    this.defaultUnit = 'px';
     this.draft = initialDraft(undefined);
   }
 
@@ -294,7 +298,7 @@ export class IfNewDesignElement extends SfElement<typeof spec> {
 
   /** Open on the remembered choice (or `format`); `focus: 'width'` puts the caret in W (Custom size…), else the name. */
   async show(options: { readonly format?: NewDesignFormatId; readonly focus?: 'width' | 'name' } = {}): Promise<void> {
-    this.draft = initialDraft(readNewDesignMemory(globalThis.localStorage), options.format);
+    this.draft = initialDraft(readNewDesignMemory(globalThis.localStorage), options.format, this.defaultUnit);
     await this.updateComplete;
     const dialog = this.dialog;
     if (dialog === null) return;
