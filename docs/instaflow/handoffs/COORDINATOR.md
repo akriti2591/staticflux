@@ -75,6 +75,11 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
   bug and fixes them **one at a time**: failing test first, root cause with evidence, smallest fix, its own small PR
   that closes the issue, owner verifies before the next. No big multi-feature agents for bug work; one bug per brief
   if an agent is used at all. The owner felt big batches lowered quality (inert controls, misreported budgets).
+- **UX spec method (owner, 2026-10-27):** no visual mockups (token cost). Fable writes exhaustive Markdown specs on a
+  **reusable layer**: `ux/COMPONENT-ANATOMY.md` (every block's parts, sizes and spacing per density, type, colour
+  tokens, radius, states), grounded in Clean Pop; surface specs only map sections to those blocks. **Research is
+  required and cited** (Fable did zero web searches in its first five passes; if no web access, say so). Builders follow
+  the blocks. Reason: the Studio looked "off" because specs were behavioural only and each builder improvised layout.
 - **Check it exists first (owner):** for a "missing" UI report, first look for the feature and any other path to it
   (collapsed sections, More folds, menus, shortcuts). If it exists, tell the owner where, and narrow the issue to
   discoverability or close it; never force a fix. **Verify on the running UI (or the render path), never from a
