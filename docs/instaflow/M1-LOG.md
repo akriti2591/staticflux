@@ -76,7 +76,7 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   cached in the workspace; small curated offline set; fonts on this computer in Studio), pulled forward from M2. Font
   picker rows preview each family in its own face (lazy, visible rows only, Google `text=` subsets). Owner confirmed text
   formatting works (B/I/U/strike/align/sub-super/case); asked about **lists** (T-10, M2: levels stored, markers not
-  drawn): candidate to pull forward with fonts.
+  drawn). Owner: keep lists in M2 as planned; no change.
 - **2026-10-27** #37 (B11c) merged. Bug phase, one at a time (owner rule). Issues #39–#52 filed. Order: #41 focus → #42
   section collapse → #48 top-element hit (re-check #49/#50/#52 after) → #51 subtract blank → #39 paste white → #43, #44,
   #45, #46, #47, #40. #38 (issue form) open. Started #41 on `claude/fix-41-focus`.
