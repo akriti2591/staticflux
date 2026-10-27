@@ -47,7 +47,7 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
   MOTION-TIMELINE, STUDIO, HOME-FILES, CHAT, DEVTOOLS, FLOWS). Open PR: #38 (issue form, config only).
 - **Bug phase (owner rules above: one bug at a time, failing test first, root cause, smallest fix, own PR "Fixes #n",
   owner verifies before the next; check a "missing" thing exists **on the running UI** first).**
-  Issues #39–#55. Order: **#41 focus (running, `claude/fix-41-focus`)** → #53 Shift multi-select reverts → #42
+  Issues #39–#55. Order: #41 focus (PR #57, owner verified) → **#58 popovers close on pointer leave (running, `claude/fix-58-popover-dismiss`)** → #42 → #53 Shift multi-select reverts →
   section collapses on popover use (then re-check #44 Page › Background `+ Add ▾`) → #48 top element hit (then
   re-check #49 group/mask, #50 union, #52 radial repeat) → #51 subtract blanks (intermittent; image suspected) →
   #54 paths don't resize (flatten bounds) → #39 Finder paste white screen → #43 page bg image not on canvas →
