@@ -34,7 +34,8 @@ import type { TextHostCommand, TextHostEvent } from './text-port.js';
 export interface StudioDocumentRef {
   readonly asset: string;
   readonly title: string;
-  readonly create?: { readonly pages: number; readonly size?: { readonly width: number; readonly height: number } };
+  /** A new document: pages, page size and (B11b New design) the pages' background. */
+  readonly create?: { readonly pages: number; readonly size?: { readonly width: number; readonly height: number }; readonly background?: string };
 }
 
 /** What the editor role needs at start. */

@@ -39,6 +39,9 @@ describe('Home model', () => {
     expect(story).toBeDefined();
     expect(await model.runQuickAction(story as (typeof HOME_QUICK_ACTIONS)[number])).toEqual(ok({ href: '/new?format=story' }));
     expect(went).toEqual(['/new', '/new?format=slides', '/s/as_d', '/new?template=as_t', '/new?format=story']);
+    // B11b: the New design dialog's full choice, and a template with a name.
+    expect(await model.newDesign({ format: 'custom', width: 640, height: 480, pages: 2, name: 'Menu', background: '#000000' })).toEqual(ok({ href: '/new?format=custom&w=640&h=480&pages=2&name=Menu&bg=%23000000' }));
+    expect(await model.useTemplate('as_t', 'Spring')).toEqual(ok({ href: '/new?template=as_t&name=Spring' }));
   });
 
   it('refuses designs and templates the workspace does not have (and navigates nowhere)', async () => {
@@ -52,6 +55,10 @@ describe('Home model', () => {
     expect(!template.ok && template.error.code).toBe('IF-HOME-003');
     const invalid = await model.newDesign('banner' as never);
     expect(!invalid.ok && invalid.error.code).toBe('SF-CAP-002');
+    const sizeless = await model.newDesign({ format: 'custom', width: 640 });
+    expect(!sizeless.ok && sizeless.error.code).toBe('IF-POL-054');
+    const huge = await model.newDesign({ format: 'custom', width: 20_000, height: 10 });
+    expect(!huge.ok && huge.error.code).toBe('SF-CAP-002');
     expect(went).toEqual([]);
   });
 

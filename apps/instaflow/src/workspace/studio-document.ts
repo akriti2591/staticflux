@@ -16,7 +16,7 @@ import { err, ok, type Result } from '@staticflux/core';
 import type { CrdtEngine, DocumentStore } from '@staticflux/document/v2';
 import type { Actor } from '@staticflux/stage';
 import { DesignOpenError, UnknownDesignError, UnknownTemplateError } from '../home/errors.js';
-import { DEFAULT_DESIGN_FORMAT, designFormat } from '../home/formats.js';
+import { CUSTOM_FORMAT, DEFAULT_DESIGN_FORMAT, designFormat } from '../home/formats.js';
 import { type DesignSize, readHomeIndex } from '../home/index-record.js';
 import type { StudioIntent } from '../home/routes.js';
 import type { Library } from '../library/library.js';
@@ -73,21 +73,25 @@ const PLANNERS: Readonly<Record<StudioIntent['kind'], Planner>> = {
     return ok({ ref: { asset, title }, listing: listingFor(entry, asset, title, (context.now ?? Date.now)()), format: await knownFormat(context.store, asset, signal), created: false });
   },
   async new(intent, context, signal) {
-    const { format, template } = intent as Extract<StudioIntent, { kind: 'new' }>;
+    const { format, template, size, pages, name, background } = intent as Extract<StudioIntent, { kind: 'new' }>;
     const now = (context.now ?? Date.now)();
     const asset = context.newAssetId();
     if (template !== undefined) {
       const source = readLibraryEntry(context.library, template);
       if (source?.kind !== 'template' || source.trashedAt !== undefined) return err(UnknownTemplateError({ details: { template } }));
-      const made = await newDocumentFromTemplate({ store: context.store, engine: context.engine, actor: context.actor }, { template, asset, title: source.title }, signal);
+      const title = name ?? source.title;
+      const made = await newDocumentFromTemplate({ store: context.store, engine: context.engine, actor: context.actor }, { template, asset, title }, signal);
       if (!made.ok) return made;
-      return ok({ ref: { asset, title: source.title }, listing: listingFor(undefined, asset, source.title, now), format: await knownFormat(context.store, template, signal), created: true });
+      return ok({ ref: { asset, title }, listing: listingFor(undefined, asset, title, now), format: await knownFormat(context.store, template, signal), created: true });
     }
-    const chosen = designFormat(format ?? DEFAULT_DESIGN_FORMAT);
+    // B11b: a custom size from New design (the route already checked it), else the format's; pages, name, background.
+    const chosen = designFormat(format === CUSTOM_FORMAT ? DEFAULT_DESIGN_FORMAT : (format ?? DEFAULT_DESIGN_FORMAT));
+    const pageSize = format === CUSTOM_FORMAT && size !== undefined ? size : chosen.size;
+    const title = name ?? UNTITLED_DESIGN;
     return ok({
-      ref: { asset, title: UNTITLED_DESIGN, create: { pages: chosen.pages, size: { ...chosen.size } } },
-      listing: listingFor(undefined, asset, UNTITLED_DESIGN, now),
-      format: chosen.size,
+      ref: { asset, title, create: { pages: pages ?? chosen.pages, size: { ...pageSize }, ...(background === undefined ? {} : { background }) } },
+      listing: listingFor(undefined, asset, title, now),
+      format: pageSize,
       created: true,
     });
   },

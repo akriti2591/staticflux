@@ -11,9 +11,9 @@ import { box, createMachine, defineMachine, err, ok, type Result, type SfError }
 import type { DocumentStore } from '@staticflux/document/v2';
 import type { LibraryAssetKind } from '../library/kinds.js';
 import { LIBRARY_ASSET } from '../library/library-doc.js';
-import { HOME_CAPABILITIES, HOME_QUICK_ACTIONS, type HomeActionOutput, type HomeQuickAction, NewDesignCapability, OpenDesignCapability, UseTemplateCapability } from './capabilities.js';
-import { HomeIndexReadError, HomeRouteError, UnknownDesignError, UnknownTemplateError } from './errors.js';
-import type { DesignFormatId } from './formats.js';
+import { HOME_CAPABILITIES, HOME_QUICK_ACTIONS, type HomeActionOutput, type HomeQuickAction, NewDesignCapability, type NewDesignInput, OpenDesignCapability, UseTemplateCapability } from './capabilities.js';
+import { CustomSizeError, HomeIndexReadError, HomeRouteError, UnknownDesignError, UnknownTemplateError } from './errors.js';
+import { CUSTOM_FORMAT, type DesignFormatId } from './formats.js';
 import { EMPTY_HOME_INDEX, type HomeEntry, type HomeIndex, readHomeIndex, recentDesigns, workspaceFiles, workspaceTemplates } from './index-record.js';
 import { newDesignHref, studioHref } from './routes.js';
 
@@ -78,9 +78,11 @@ export interface HomeModel {
   hrefOf(entry: HomeEntry): string | undefined;
   /** Read the index again. */
   refresh(): Promise<Result<HomeIndex>>;
-  newDesign(format?: DesignFormatId): Promise<Result<HomeActionOutput>>;
+  /** A format id, or the New design dialog's full choice (a custom size, pages, name, background). */
+  newDesign(request?: DesignFormatId | NewDesignInput): Promise<Result<HomeActionOutput>>;
   open(asset: string): Promise<Result<HomeActionOutput>>;
-  useTemplate(template: string): Promise<Result<HomeActionOutput>>;
+  /** `name`: the new design's title (New design › Name). */
+  useTemplate(template: string, name?: string): Promise<Result<HomeActionOutput>>;
   runQuickAction(action: HomeQuickAction): Promise<Result<HomeActionOutput>>;
   dispose(): void;
 }
@@ -114,10 +116,23 @@ export function createHomeModel(options: HomeModelOptions): HomeModel {
     options.capabilities ??
     createCapabilityRegistry({ decide: allowAllDecidePort, confirm: failClosedConfirmPort, meter: unmeteredPort, activation: alwaysActivePort, declarations: [...HOME_CAPABILITIES] });
   const implementations = [
-    implementCapability(NewDesignCapability, async (input) => go(newDesignHref(input.format === undefined ? {} : { format: input.format }))),
+    implementCapability(NewDesignCapability, async (input) => {
+      const custom = input.format === CUSTOM_FORMAT;
+      if (custom && (input.width === undefined || input.height === undefined)) return err(CustomSizeError({ details: { width: input.width ?? null, height: input.height ?? null } }));
+      return go(
+        newDesignHref({
+          ...(input.format === undefined ? {} : { format: input.format }),
+          ...(custom && input.width !== undefined && input.height !== undefined ? { size: { width: input.width, height: input.height } } : {}),
+          ...(input.unit === undefined ? {} : { unit: input.unit }),
+          ...(input.pages === undefined ? {} : { pages: input.pages }),
+          ...(input.name === undefined ? {} : { name: input.name }),
+          ...(input.background === undefined ? {} : { background: input.background }),
+        }),
+      );
+    }),
     implementCapability(OpenDesignCapability, async (input) => (design(input.asset) === undefined ? err(UnknownDesignError({ details: { asset: input.asset } })) : go(studioHref(input.asset)))),
     implementCapability(UseTemplateCapability, async (input) =>
-      template(input.template) === undefined ? err(UnknownTemplateError({ details: { template: input.template } })) : go(newDesignHref({ template: input.template })),
+      template(input.template) === undefined ? err(UnknownTemplateError({ details: { template: input.template } })) : go(newDesignHref({ template: input.template, ...(input.name === undefined ? {} : { name: input.name }) })),
     ),
   ];
   const released = implementations.flatMap((impl) => {
@@ -177,9 +192,9 @@ export function createHomeModel(options: HomeModelOptions): HomeModel {
       return href?.ok === true ? href.value : undefined;
     },
     refresh,
-    newDesign: (format) => invoke(NewDesignCapability, format === undefined ? {} : { format }),
+    newDesign: (request) => invoke(NewDesignCapability, request === undefined ? {} : typeof request === 'string' ? { format: request } : request),
     open: (asset) => invoke(OpenDesignCapability, { asset }),
-    useTemplate: (t) => invoke(UseTemplateCapability, { template: t }),
+    useTemplate: (t, name) => invoke(UseTemplateCapability, { template: t, ...(name === undefined ? {} : { name }) }),
     runQuickAction: (action) => invoke(action.capability, action.input),
     dispose,
   };

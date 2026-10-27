@@ -78,7 +78,9 @@ describe('<if-home>', () => {
     // Sections are named regions (landmarks a screen reader lists).
     expect([...shadow.querySelectorAll('section')].map((s) => s.getAttribute('aria-labelledby'))).toEqual(['hero', 'quick', 'recent', 'templates', 'files']);
     const quick = [...shadow.querySelectorAll('.quick sf-card')];
-    expect(quick.map((c) => c.getAttribute('href'))).toEqual(['/new?format=post', '/new?format=story', '/new?format=carousel', '/new?format=slides', '/new?format=poster']);
+    expect(quick.map((c) => c.getAttribute('href'))).toEqual(['/new?format=post', '/new?format=story', '/new?format=landscape', '/new?format=slides', '/new?format=poster', '/new?format=letter', '/new?format=carousel']);
+    // B11b: the hero's format row (HOME-FILES §1.2) and Custom….
+    expect([...shadow.querySelectorAll('.formats sf-button')].map((b) => b.getAttribute('data-format'))).toEqual(['post', 'story', 'landscape', 'slides', 'poster', 'letter', 'custom']);
     expect(quick.map((c) => c.getAttribute('data-action'))).toEqual(HOME_QUICK_ACTIONS.map((a) => a.id));
     const recents = [...shadow.querySelectorAll('section[aria-labelledby="recent"] sf-card')];
     expect(recents.map((c) => [c.getAttribute('data-asset'), c.getAttribute('href')])).toEqual([
@@ -99,11 +101,12 @@ describe('<if-home>', () => {
   it('keyboard: every action is one native focusable control (links and buttons, no positive tabindex)', async () => {
     const { shadow, root } = await mount();
     const links = deepAll(root.container, 'a[href]');
-    // logo + 5 quick actions + 2 recents + 1 template + 3 linked files
-    expect(links).toHaveLength(12);
+    // logo + 7 quick actions + 2 recents + 1 template + 3 linked files
+    expect(links).toHaveLength(14);
     expect(deepAll(root.container, '[tabindex]').filter((el) => Number(el.getAttribute('tabindex')) > 0)).toEqual([]);
-    const buttons = [...shadow.querySelectorAll('sf-button')];
+    const buttons = [...shadow.querySelectorAll('header sf-button')];
     expect(buttons.map((b) => b.textContent?.trim())).toEqual(['＋ New design']);
+    expect(shadow.querySelector('header sf-icon-button')?.getAttribute('label')).toBe('New design formats');
     expect(buttons[0]?.getAttribute('role')).toBe('button');
   });
 
@@ -119,12 +122,36 @@ describe('<if-home>', () => {
     card.dispatchEvent(newTab);
     expect(newTab.defaultPrevented).toBe(false);
     (shadow.querySelector('.quick sf-card') as HTMLElement).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
-    (shadow.querySelector('sf-button') as HTMLElement).click();
+    (shadow.querySelector('.formats sf-button[data-format="story"]') as HTMLElement).click();
     (shadow.querySelector('.file a') as HTMLElement).click();
     await settle();
-    expect(went).toEqual(['/s/as_flyer', '/new?format=post', '/new', '/s/as_flyer']);
+    expect(went).toEqual(['/s/as_flyer', '/new?format=post', '/new?format=story', '/s/as_flyer']);
     expect(isPlainActivation(new MouseEvent('click', { button: 1 }))).toBe(false);
     expect(isPlainActivation(new MouseEvent('click', { button: 0, metaKey: true }))).toBe(false);
+  });
+
+  it('New design opens the dialog; Create runs the capability with the custom size; the ▾ menu starts a format or Custom size…', async () => {
+    const { shadow, went, root } = await mount();
+    (shadow.querySelector('header sf-button.new-design') as HTMLElement).click();
+    await settle(4);
+    const dialog = shadow.querySelector('if-new-design') as HTMLElement & { open: boolean };
+    expect(dialog.open).toBe(true);
+    expect(auditA11y(root.container)).toEqual([]);
+    const size = dialog.shadowRoot?.querySelector('sf-size-field') as HTMLElement;
+    size.dispatchEvent(new CustomEvent('sf-change', { detail: { width: 1500, height: 500, unit: 'px' } }));
+    await settle(2);
+    (dialog.shadowRoot?.querySelector('footer sf-button[variant="primary"]') as HTMLElement).click();
+    await settle();
+    expect(went).toEqual(['/new?format=custom&w=1500&h=500']);
+    expect(dialog.open).toBe(false);
+    const menu = shadow.querySelector('header sf-menu') as HTMLElement;
+    menu.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'landscape' } }));
+    await settle();
+    expect(went.at(-1)).toBe('/new?format=landscape');
+    menu.dispatchEvent(new CustomEvent('sf-select', { detail: { value: 'custom' } }));
+    await settle(4);
+    expect(dialog.open).toBe(true);
+    expect(dialog.shadowRoot?.querySelector('.chip[aria-checked="true"]')?.getAttribute('data-format')).toBe('custom');
   });
 
   it('speaks a failed action in the polite live region', async () => {
