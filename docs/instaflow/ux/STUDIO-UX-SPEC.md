@@ -406,6 +406,11 @@ under a `More ▾` row); in Pro everything is expanded, including the pivot pick
 
 ### 5.2 Field layout at 264 px
 
+> **Superseded for layout (2026-10-27):** the panel frame, row grid, row types, field styling and section anatomy are
+> `COMPONENT-ANATOMY.md`; the section-by-section mapping is `INSPECTOR-LAYOUT-SPEC.md`. The sketch below is kept for the
+> control list; where it differs (glyph labels inside the field, Geist tabular values, the link in the gutter), the two
+> files win.
+
 Content width 236 px. Two columns of `label(12 px) + field(1fr)` with 8 px gaps (StudioCP geometry grid):
 
 ```
