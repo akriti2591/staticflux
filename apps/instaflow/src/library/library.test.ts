@@ -86,6 +86,19 @@ describe('createLibrary', () => {
     expect([...library.gcRoots()].sort()).toEqual(['as_b', 'as_c']);
   });
 
+  it('purge deletes entries forever in one commit; unknown assets are refused (B11c)', async () => {
+    const { library, document } = await seeded();
+    const commits: string[] = [];
+    document.doc.onCommit((record) => commits.push(record.meta.label));
+    unwrap(library.purge(['as_a', 'as_b', 'as_a']));
+    expect(library.entries().map((e) => e.asset)).toEqual(['as_c']);
+    expect(library.gcRoots()).toEqual(['as_c']);
+    const unknown = library.purge(['as_a']);
+    expect(!unknown.ok && unknown.error.code).toBe('IF-LIB-003');
+    unwrap(library.purge(['as_c']));
+    expect(commits).toEqual(['Delete 2 forever', 'Delete forever']);
+  });
+
   it('records renditions and is reactive to every change', async () => {
     const { library } = await seeded();
     const seen: number[] = [];

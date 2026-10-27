@@ -59,6 +59,8 @@ export interface Library {
   removeTag(asset: AssetId, tag: string): Result<void>;
   trash(assets: readonly AssetId[]): Result<void>;
   restore(assets: readonly AssetId[]): Result<void>;
+  /** Delete forever (B11c, HOME-FILES §2.4): the entries go; their blobs are left to GC (no longer roots). */
+  purge(assets: readonly AssetId[]): Result<void>;
   setRendition(asset: AssetId, role: RenditionRole, rendition: Rendition): Result<void>;
   /** GC roots: live entries plus trashed ones still inside the retention period. */
   gcRoots(): readonly AssetId[];
@@ -195,6 +197,10 @@ export function createLibrary(options: LibraryOptions): Library {
     restore(assets) {
       const ops = each(assets, (e): PartOp[] => (e.trashedAt === undefined ? [] : [{ op: 'set', node: e.asset, path: LibraryPaths.trashedAt, value: null }]));
       return ops.ok ? commit(assets.length === 1 ? 'Restore' : `Restore ${assets.length}`, ops.value) : ops;
+    },
+    purge(assets) {
+      const ops = each(assets, (e): PartOp[] => [{ op: 'delete', node: e.asset }]);
+      return ops.ok ? commit(ops.value.length === 1 ? 'Delete forever' : `Delete ${ops.value.length} forever`, ops.value) : ops;
     },
     setRendition: (asset, role, rendition) => set(`Rendition ${role}`, asset, LibraryPaths.rendition(role), rendition as unknown as JsonValue),
     gcRoots() {

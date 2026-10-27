@@ -108,6 +108,9 @@ async function mount(model: InspectorModel, density = 'standard'): Promise<{ el:
     resizePage: log('resizePage'),
     renameTitle: log('renameTitle'),
     replaceImage: log('replaceImage'),
+    imageFill: log('imageFill'),
+    backgroundToAllPages: log('backgroundToAllPages'),
+    setPivot: log('setPivot'),
   };
   render(html`<if-inspector .model=${model} .port=${port} density=${density}></if-inspector>`, testRoot.container);
   await settle(8);
@@ -134,14 +137,18 @@ const select = (root: ParentNode, label: string, value: string): void => {
 };
 
 describe('<if-inspector> sections per kind (§5.1)', () => {
-  it('nothing selected: Page (name, size preset, W × H, orientation, Background stack) and Document (title, pages, units)', async () => {
+  it('nothing selected: Page (name, size preset, the size field, Background stack) and Document (title, pages, units)', async () => {
     const { root, calls } = await mount(MODEL);
     expect(root.querySelector('header')?.textContent).toContain('Page 1');
     expect(sections(root)).toEqual(['page', 'document']);
     change(field(root, 'Page name'), { value: 'Cover' });
     select(root, 'Size preset', 'story');
-    change(field(root, 'W'), { value: 1200 });
-    button(root, 'Landscape').click();
+    // B11c: Page › Size is the kit's size field (1…16 384 px, units, keep proportions, orientation).
+    const size = root.querySelector('sf-size-field.page-size') as HTMLElement & { min: number; max: number };
+    expect([size.min, size.max]).toEqual([1, 16_384]);
+    change(size, { width: 1200, height: 1350, unit: 'px' });
+    change(size, { width: 1350, height: 1080, unit: 'px' }); // the orientation switch swaps the sides
+    change(size, { width: 1080, height: 1350, unit: 'mm' }); // a unit change alone writes nothing
     change(field(root, 'Title'), { value: 'Spring sale' });
     expect(root.querySelector('section[data-section="document"]')?.textContent).toMatch(/Pages\s*3/);
     expect(calls).toEqual(['renamePage ["Cover"]', 'resizePage [1080,1920]', 'resizePage [1200,1350]', 'resizePage [1350,1080]', 'renameTitle ["Spring sale"]']);
@@ -149,6 +156,68 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     button(root, 'Hide background').click();
     expect(calls.at(-1)).toBe('pageAppearance [{"op":"toggle","stack":"fills","index":0}]');
     expectNoA11yIssues(root.host as HTMLElement);
+  });
+
+  it('B11c image fills: the fill swatch’s tabs Solid · Gradient · Image; Image chooses a workspace image or uploads; `+ Add ▾ › Image…`; image rows have Fit and the crop', async () => {
+    const images = [{ asset: 'as_photo', title: 'Photo' }, { asset: 'as_logo', title: 'Logo', thumb: 'blob:logo' }];
+    const { el, root, calls } = await mount({ ...MODEL, images, selection: summary('shape', { common: 'rectangle' }), appearance: appearance({ fills: [{ paint: '#FF5C39' }] }) });
+    const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;
+    const tabs = fill.querySelector('sf-segmented.paint-tabs') as HTMLElement & { value: string };
+    expect(tabs.value).toBe('solid');
+    // R13.52: the Solid tab's contrast tag compares against the page's solid Background.
+    expect(fill.querySelector('sf-color-popover')?.getAttribute('contrast-with')).toBe('#FFFFFF');
+    change(tabs, { value: 'image' });
+    await el.updateComplete;
+    const choices = [...fill.querySelectorAll<HTMLButtonElement>('.paint-popover button.image-choice')];
+    expect(choices.map((b) => b.getAttribute('aria-label'))).toEqual(['Use Photo', 'Use Logo']);
+    expect(fill.querySelector('.paint-popover img')?.getAttribute('src')).toBe('blob:logo');
+    choices[1]?.click();
+    expect(calls.at(-1)).toBe('imageFill ["selection",{"asset":"as_logo"},0]');
+    // + Add ▾ › Image…: the chooser popover beside the menu; Upload… asks for a file.
+    select(fill, 'Add fill', 'image');
+    await el.updateComplete;
+    const picker = fill.querySelector('sf-popover.image-picker') as HTMLElement & { open: boolean };
+    expect(picker.open).toBe(true);
+    (picker.querySelector('sf-button.upload-image') as HTMLElement).click();
+    expect(calls.at(-1)).toBe('imageFill ["selection",{"upload":true}]');
+    expectNoA11yIssues(root.host as HTMLElement);
+    // An image row: thumbnail, Fit (Fill · Fit · Stretch · Tile) and the numeric crop through instaflow/image-crop.
+    el.model = { ...el.model, appearance: appearance({ fills: [{ paint: { kind: 'image', asset: { asset: 'as_logo' }, fit: 'cover' } }] }) };
+    await el.updateComplete;
+    expect(fill.querySelector('.summary')?.textContent).toContain('Image');
+    (fill.querySelector('button.summary') as HTMLElement).click();
+    await el.updateComplete;
+    select(fill, 'Fill fit', 'tile');
+    expect(calls.at(-1)).toBe('appearance [{"op":"update","stack":"fills","index":0,"patch":{"paint":{"kind":"image","asset":{"asset":"as_logo"},"fit":"tile"}}}]');
+    change(field(fill, 'Fill scale'), { value: 150 });
+    expect(calls.at(-1)).toBe('invoke ["instaflow/image-crop",{"crop":{"scale":1.5}}]');
+    expectNoA11yIssues(root.host as HTMLElement);
+  });
+
+  it('B11c audit: the pivot picker (Transform › More, Pro open): nine points, the current one checked; the current again resets', async () => {
+    const { el, root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance(), pivot: [0, 0] }, 'pro');
+    await el.updateComplete;
+    const points = [...root.querySelectorAll<HTMLButtonElement>('section[data-section="transform"] .pivot-point')];
+    expect(points.map((p) => p.getAttribute('aria-label'))).toEqual(['Top left', 'Top centre', 'Top right', 'Middle left', 'Centre', 'Middle right', 'Bottom left', 'Bottom centre', 'Bottom right']);
+    expect(points.filter((p) => p.getAttribute('aria-checked') === 'true').map((p) => p.getAttribute('aria-label'))).toEqual(['Top left']);
+    points[8]?.click();
+    points[0]?.click();
+    expect(calls.slice(-2)).toEqual(['setPivot [[1,1]]', 'setPivot [null]']);
+    expectNoA11yIssues(root.host as HTMLElement);
+  });
+
+  it('B11c the page Background takes an image too (Add ▾ › Image…, the Image tab)', async () => {
+    const { el, root, calls } = await mount({ ...MODEL, images: [{ asset: 'as_photo', title: 'Photo' }] });
+    const page = root.querySelector('section[data-section="page"]') as HTMLElement;
+    change(page.querySelector('sf-segmented.paint-tabs') as HTMLElement, { value: 'image' });
+    await el.updateComplete;
+    (page.querySelector('.paint-popover button.image-choice') as HTMLElement).click();
+    expect(calls.at(-1)).toBe('imageFill ["page",{"asset":"as_photo"},0]');
+    // Page › More: Apply background to all pages (several pages).
+    (page.querySelector('sf-button.background-all') as HTMLElement).click();
+    expect(calls.at(-1)).toBe('backgroundToAllPages []');
+    const menu = [...page.querySelectorAll('sf-menu')].find((m) => m.getAttribute('label') === 'Add background');
+    expect([...(menu?.querySelectorAll(':scope > sf-menu-item') ?? [])].map((i) => i.getAttribute('value'))).toEqual(['colour', 'gradient', 'image']);
   });
 
   it('a rectangle: Transform, Fill, Stroke, Corners ▸, Effects ▸, Layer ▸; the stack rows edit through the port', async () => {
@@ -195,6 +264,7 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     select(text, 'Style', 'Body');
     select(text, 'Weight', '500');
     change(field(text, 'Size'), { value: 32 });
+    select(text, 'Size presets', '24'); // B11c audit: the presets ▾ beside Size
     button(text, 'Strikethrough').click();
     button(text, 'Centre').click();
     change(field(text, 'Line height'), { value: 1.4 });
@@ -209,6 +279,7 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
       'text.applyPreset ["Body"]',
       'text.setWeight [500]',
       'text.setSize [32]',
+      'text.setSize [24]',
       'text.toggle ["strike"]',
       'text.setAlign ["center"]',
       'text.setLineHeight [1.4]',

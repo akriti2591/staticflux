@@ -53,4 +53,31 @@ describe('<sf-card>', () => {
     expect(cssText).toContain('forced-colors');
     expect(cssText).toContain('prefers-reduced-motion');
   });
+
+  it('puts actions and a leading control beside the link, never inside it; states reflect (R13.49)', async () => {
+    const { element } = await fixture<SfCardElement>(
+      html`<sf-card href="/s/as_1"><span>Flyer</span><button slot="actions" aria-label="More for Flyer">⋯</button><input slot="leading" type="checkbox" aria-label="Select Flyer" /></sf-card>`,
+    );
+    const link = shadow<HTMLAnchorElement>(element, 'a.card');
+    const actions = shadow(element, '.actions slot[name="actions"]') as HTMLSlotElement;
+    const leading = shadow(element, '.leading slot[name="leading"]') as HTMLSlotElement;
+    expect(link.contains(actions)).toBe(false);
+    expect(link.contains(leading)).toBe(false);
+    expect(actions.assignedElements().map((e) => e.localName)).toEqual(['button']);
+    expect(leading.assignedElements().map((e) => e.localName)).toEqual(['input']);
+    element.selected = true;
+    element.dropTarget = true;
+    element.actionsShown = true;
+    await element.updateComplete;
+    expect(['selected', 'drop-target', 'actions-shown'].every((a) => element.hasAttribute(a))).toBe(true);
+    expect(auditA11y(element.parentElement as HTMLElement)).toEqual([]);
+    const cssText = SfCardElement.styles.map((s) => String(s)).join('\n');
+    expect(cssText).toContain(':host(:focus-within) .actions');
+    expect(cssText).toContain(':host([selected]) .card');
+  });
+
+  it('keeps the slots on a plain card too', async () => {
+    const { element } = await fixture<SfCardElement>(html`<sf-card><span>Spring</span><button slot="actions">Rename</button></sf-card>`);
+    expect((shadow(element, 'slot[name="actions"]') as HTMLSlotElement).assignedElements()).toHaveLength(1);
+  });
 });

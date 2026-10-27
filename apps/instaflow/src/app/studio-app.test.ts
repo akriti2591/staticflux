@@ -15,7 +15,8 @@ import { StudioIds } from '../spec/studio-ids.js';
 import { AppearanceMirror, SceneMirror, StoryMirror } from '../workers/mirrors.js';
 import { dragEvents, inProcessWorkers, inputWriter, until } from '../workers/test-helpers.js';
 import { openStudioWorkspace } from './document.js';
-import { createStudioApp } from './studio-app.js';
+import { createDeviceSettings } from '../settings/device-settings.js';
+import { createStudioApp, type StudioHistory } from './studio-app.js';
 import { authoringBuilt, lendDom, manualTimers, person, scriptedTextInput, unwrap } from './test-helpers.js';
 
 describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Studio app over its workers (B8, B9): %s', (topology) => {
@@ -32,10 +33,26 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     // C1: an in-process export worker over the Node toolchain (real composition and writers; rasters recorded).
     const exportEnv = exportBuilt ? (await createExportFixture()).env : undefined;
     const delivered: ExportFile[][] = [];
+    // B11c: a memory history (routable dialogs, links) and this "device"'s settings.
+    const asset = `as_app_${topology}`;
+    let at = `/s/${asset}?topology=${topology}`;
+    const moves: string[] = [];
+    const history: StudioHistory = {
+      current: () => at,
+      origin: () => 'https://instaflow.test',
+      push: (href) => void moves.push(`push ${(at = href)}`),
+      replace: (href) => void moves.push(`replace ${(at = href)}`),
+      back: () => void moves.push('back'),
+      onPop: () => () => undefined,
+    };
+    const settings = createDeviceSettings({ storage: null, window: null });
     const app = unwrap(
       await createStudioApp({
         workspace,
-        document: { asset: `as_app_${topology}`, title: 'Flyer', create: { pages: 2 } },
+        document: { asset, title: 'Flyer', create: { pages: 2 } },
+        history,
+        settings,
+        storage: null,
         person,
         workers: { settings: { ...DEFAULT_SEQUENCING_SETTINGS, topology }, spawn: () => workers.spawn(), assets: { manifest: 'memory://manifest', fonts: [] } },
         ...(exportEnv === undefined
@@ -99,11 +116,11 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     expect(app.studio.port.groups()['panel@inspector']).toEqual(['panel:instaflow/inspector']);
     await until(() => app.mirrors.view(AppearanceMirror).read('model')?.node === rect, 'appearance model mirrored');
     unwrap(await app.mirrors.view(AppearanceMirror).call('apply', { op: 'set', path: 'spatial.opacity', value: 0.5 }));
-    // B11b: the inspector's Page section edits the page through the scene mirror: size (16–8192 px) and Background.
+    // B11b: the inspector's Page section edits the page through the scene mirror: size (B11c: 1–16 384 px, New design's range) and Background.
     const sceneView = app.mirrors.view(SceneMirror);
     unwrap(await sceneView.call('resizePage', 1200, 1500));
     await until(() => sceneView.read('page')?.width === 1200 && sceneView.read('page')?.height === 1500, 'page resized');
-    const tooSmall = await sceneView.call('resizePage', 4, 4);
+    const tooSmall = await sceneView.call('resizePage', 0, 4);
     expect(!tooSmall.ok && tooSmall.error.code).toBe('IF-POL-050');
     unwrap(await sceneView.call('applyPage', { op: 'update', stack: 'fills', index: 0, patch: { paint: '#FFF4E0' } }));
     await until(() => sceneView.read('pageFill')?.fills[0]?.paint === '#FFF4E0', 'page background');
@@ -144,6 +161,47 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     unwrap(await app.createMilestone('First draft'));
     expect(app.spoken.at(-1)).toBe('Milestone created: First draft');
 
+    // B11c: Pro's undo label reads the person's next undo step; density is the device's setting and the spec's at once.
+    await until(() => typeof app.scene.undo === 'string', 'undo label mirrored');
+    expect(app.studio.density).toBe('standard');
+    app.chrome.cycleDensity();
+    await until(() => app.studio.density === 'pro', 'Mod+. cycles to Pro');
+    expect(settings.current.density).toBe('pro');
+    expect(app.toasted.at(-1)).toBe('Pro · Everything, with numbers.');
+    settings.set({ density: 'focus' }); // another tab, or Settings › General
+    await until(() => app.studio.density === 'focus', 'the setting reaches the spec');
+    settings.set({ density: 'standard' });
+    await until(() => app.studio.density === 'standard', 'back to Standard');
+    // B11c slice 3: the find bar's port runs `instaflow/find` / `instaflow/replace` in the editor (one undo step, toasted).
+    const found = await app.chrome.find({ kind: 'text', query: 'hi' });
+    expect(found?.matches.map((m) => [m.page, m.where, m.from])).toEqual([['p1', 'text', 0]]);
+    const swapped = await app.chrome.replace({ kind: 'text', query: 'hi' }, 'Hey', {});
+    expect(swapped).toMatchObject({ replaced: 1, label: "Replace 'hi' with 'Hey'" });
+    expect(app.toasted.at(-1)).toBe("Replace 'hi' with 'Hey' · 1 match");
+    await until(() => app.scene.undo === "Replace 'hi' with 'Hey'", 'one undo step');
+    app.chrome.invoke('instaflow/undo', {}, []);
+    await until(async () => ((await app.chrome.find({ kind: 'text', query: 'hi' }))?.matches.length ?? 0) === 1, 'undo restores the text');
+    // "Copy link to this": the design, the open page, the selection on its page (NAVIGATION §5).
+    expect(app.linkTo('design')).toBe(`/s/${asset}`);
+    expect(app.linkTo('page')).toBe(`/s/${asset}?lens=pages&page=p1`);
+    unwrap(await app.workers.editor.request('select', { nodes: [rect] }));
+    await until(() => app.tab?.view.selection.length === 1, 'rect selected again');
+    expect(app.linkTo('selection')).toBe(`/s/${asset}?page=p1&el=${encodeURIComponent(rect)}`);
+    // Routable dialogs: in-app opens push `/d/<key>` (boot settings kept); Settings' section is in the query.
+    unwrap(await app.openDialog('settings', 'shortcuts'));
+    expect(moves.at(-1)).toBe(`push /s/${asset}/d/settings?section=shortcuts&topology=${topology}`);
+    // A link: the known element is selected and framed, the unknown one is named once; intents leave the URL.
+    unwrap(await app.workers.editor.request('select', { nodes: [] }));
+    at = `/s/${asset}?page=p1&el=${rect},e_gone&topology=${topology}`;
+    await app.applyLink({ page: 'p1', el: [rect, 'e_gone'] });
+    expect(app.tab?.view.selection).toEqual([rect]);
+    expect(app.spoken.at(-1)).toBe('1 element selected');
+    expect(app.toasted.at(-1)).toBe('1 of 2 linked elements are no longer in this design');
+    expect(moves.at(-1)).toBe(`replace /s/${asset}?page=p1&topology=${topology}`);
+    await app.applyLink({ page: 'p9' });
+    expect(app.toasted.at(-1)).toBe('That page is no longer in this design');
+    expect(moves.at(-1)).toBe(`replace /s/${asset}?topology=${topology}`);
+
     // Place: the library (main, store side) asks the editor; the editor reads the blob through the store port.
     const content = unwrap(await workspace.blobs.put(new Uint8Array([1, 2, 3]), { mime: 'image/png' }));
     const entry = { asset: 'as_photo', kind: 'image', title: 'Photo', createdAt: '', folder: '', favorite: false, tags: [], content, mime: 'image/png', renditions: {} } as unknown as LibraryEntry;
@@ -151,6 +209,29 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     await until(() => app.tab?.view.selection.length === 1, 'image selected');
     const image = await app.element(app.tab?.view.selection[0] as string);
     expect([image?.kind, image?.w, image?.h]).toEqual(['image', 40, 20]);
+    // B11c: image fills — the selection (a new top row), the page's Background, and a drop on the rectangle / on nothing.
+    unwrap(await app.workers.editor.request('select', { nodes: [rect] }));
+    const filled = unwrap(await app.workers.editor.request('imageFill', { entry, target: { to: 'selection' } }));
+    expect(filled).toEqual({ filled: [rect] });
+    await until(() => app.mirrors.view(AppearanceMirror).read('model')?.fills.at(-1)?.paint !== undefined && (app.mirrors.view(AppearanceMirror).read('model')?.fills.at(-1)?.paint as { kind?: string }).kind === 'image', 'the rectangle shows the image on top');
+    expect(app.scene.undo).toBe('Image fill');
+    unwrap(await app.workers.editor.request('imageFill', { entry, target: { to: 'page' } }));
+    await until(() => (sceneView.read('pageFill')?.fills.at(-1)?.paint as { kind?: string } | undefined)?.kind === 'image', 'the page background is the image');
+    expect(sceneView.read('pageFill')?.fills[0]?.paint).toBe('#FFF4E0'); // the colour row stays under it
+    unwrap(await sceneView.call('backgroundToAllPages')); // B11c audit: Page › More › Apply background to all pages
+    expect(app.scene.undo).toBe('Background to all pages');
+    const away = unwrap(await app.workers.editor.request('imageFill', { entry, target: { to: 'point', x: 5, y: 5 } }));
+    expect('placed' in away).toBe(true);
+    const notFillable = await app.workers.editor.request('imageFill', { entry, target: { to: 'selection', index: 0 } });
+    expect(notFillable.ok).toBe(true); // the placed image is selected: its row 0 becomes the new picture
+    // B11c: Replace keeps the crop when the new picture has the same proportions.
+    unwrap(await app.capabilities.invoke('instaflow/image-crop', { nodes: [...(app.tab?.view.selection ?? [])], crop: { scale: 2 } }, { subject: 'user', signal }));
+    unwrap(await app.workers.editor.request('replaceImage', { entry }));
+    expect(app.scene.selection?.crop?.scale).toBe(2);
+    // Files that are not images, or too large, are refused with a toast and its fix (never a blank screen).
+    const huge = { name: 'huge.png', type: 'image/png', size: 200 * 1024 * 1024, stream: () => new ReadableStream() } as unknown as File;
+    app.chrome.dropFiles([new File(['hi'], 'notes.txt', { type: 'text/plain' }), huge], { x: 5, y: 5 });
+    await until(() => app.toasted.slice(-2).join(' | ') === 'Only images can be placed on the canvas or used as a fill. | This image is larger than 100 MB, more than Studio places or fills with from a file.', 'refusals toasted');
 
     // C1: export from a frozen snapshot in the export worker; the document gains nothing (D10).
     if (exportEnv !== undefined) {
@@ -171,6 +252,7 @@ describe.skipIf(!authoringBuilt).each(['colocated', 'split'] as const)('the Stud
     // The Pages panel's lens controller moves the canvas to page 2.
     unwrap(app.lens.goTo('p2'));
     await until(() => app.tab?.page === 'p2', 'page 2 shown');
+    await until(() => (sceneView.read('pageFill')?.fills.at(-1)?.paint as { kind?: string } | undefined)?.kind === 'image', 'page 2 has page 1’s background');
     expect((await inspect())?.elements.length).toBe(0);
 
     // B11b: Pages › Add / Duplicate / Rename / Delete page, each one undo step across the root and page parts.

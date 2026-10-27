@@ -22,8 +22,7 @@ import { flipVertical2Icon } from '@staticflux/kit/icons/flip-vertical-2';
 import { linkIcon } from '@staticflux/kit/icons/link';
 import { lockIcon } from '@staticflux/kit/icons/lock';
 import { lockOpenIcon } from '@staticflux/kit/icons/lock-open';
-import { rectangleHorizontalIcon } from '@staticflux/kit/icons/rectangle-horizontal';
-import { rectangleVerticalIcon } from '@staticflux/kit/icons/rectangle-vertical';
+import { defineSizeField } from '@staticflux/kit/size-field';
 import { unlinkIcon } from '@staticflux/kit/icons/unlink';
 import { defineInlineEdit } from '@staticflux/kit/inline-edit';
 import { defineMenu } from '@staticflux/kit/menu';
@@ -58,7 +57,7 @@ import {
   pagePresetOf,
   pageSizePresets,
 } from './inspector-model.js';
-import { cornersSection, effectPresetMenu, effectStack, fillStack, layerSection, type PaintHost, paintMessages, sharedPaintRow, strokeStack } from './inspector-paint.js';
+import { cornersSection, effectPresetMenu, effectStack, fillStack, type ImageSource, layerSection, type LibraryImage, type PaintHost, paintMessages, sharedPaintRow, strokeStack } from './inspector-paint.js';
 import { type TextCommands, type TextHost, textSection } from './inspector-text.js';
 
 export const inspectorMessages = Object.freeze({
@@ -71,9 +70,9 @@ export const inspectorMessages = Object.freeze({
   customSize: 'Custom',
   width: 'W',
   height: 'H',
-  orientation: 'Orientation',
-  portrait: 'Portrait',
-  landscape: 'Landscape',
+  pageSize: 'Page size',
+  pivot: 'Pivot',
+  backgroundAll: 'Apply background to all pages',
   background: 'Background',
   document: 'Document',
   title: 'Title',
@@ -167,6 +166,10 @@ export interface InspectorModel {
   readonly colors: readonly DocumentColor[];
   /** The selected image's library name. */
   readonly imageName: string | undefined;
+  /** B11c: the workspace's images (the fill popover's Image tab). */
+  readonly images?: readonly LibraryImage[];
+  /** B11c: the selection's pivot (frame fractions; undefined = the centre). */
+  readonly pivot?: readonly [number, number] | undefined;
 }
 
 export const EMPTY_INSPECTOR: InspectorModel = Object.freeze({
@@ -196,7 +199,18 @@ export interface InspectorPort extends HudPort {
   resizePage(width: number, height: number): void;
   renameTitle(title: string): void;
   replaceImage(): void;
+  /** B11c: an image on the selection's or the page's fills (a new top row, or `index`'s row turned into it). */
+  imageFill(to: 'selection' | 'page', source: ImageSource, index?: number): void;
+  /** B11c audit: every page's Background becomes this page's (one step). */
+  backgroundToAllPages(): void;
+  /** B11c audit: the pivot picker (APPEARANCE §3.3): rotations, flips and scales turn about it; null = the centre. */
+  setPivot(fraction: readonly [number, number] | null): void;
 }
+
+/** The pivot picker's nine points (frame fractions) and their names. */
+const PIVOT_POINTS: readonly (readonly [readonly [number, number], string])[] = Object.freeze(
+  ([0, 0.5, 1] as const).flatMap((y) => ([0, 0.5, 1] as const).map((x) => [[x, y] as const, `${y === 0 ? 'Top' : y === 1 ? 'Bottom' : 'Middle'} ${x === 0 ? 'left' : x === 1 ? 'right' : 'centre'}`.replace('Middle centre', 'Centre')] as const)),
+);
 
 const spec = component({ tag: 'if-inspector', placeholder: () => nothing, description: 'Instaflow inspector: the selection kind’s sections, the page and document with nothing selected (B11b).' });
 
@@ -292,6 +306,31 @@ export class IfInspectorElement extends SfElement<typeof spec> {
       align-items: center;
       gap: ${t.space.xs.css};
       flex-wrap: wrap;
+    }
+    .pivot {
+      display: grid;
+      grid-template-columns: repeat(3, 14px);
+      gap: 4px;
+    }
+    .pivot-point {
+      inline-size: 14px;
+      block-size: 14px;
+      padding: 0;
+      border: 1px solid ${t.color.controlEdge.css};
+      border-radius: 50%;
+      background: ${t.color.surface1.css};
+      cursor: pointer;
+    }
+    .pivot-point[aria-checked='true'] {
+      background: ${t.color.accent.css};
+      border-color: ${t.color.accent.css};
+    }
+    .pivot-point:focus-visible {
+      outline: 2px solid ${t.color.focusRing.css};
+      outline-offset: 1px;
+    }
+    sf-size-field.page-size {
+      --sf-size-field-input: 5.75rem;
     }
     .grid2 {
       display: grid;
@@ -462,6 +501,14 @@ export class IfInspectorElement extends SfElement<typeof spec> {
     writeOpen(this.opened);
   }
 
+  /** The page's top visible solid Background as `#rrggbb` (the contrast tag's "behind"); undefined for an image or gradient. */
+  private pageBackground(): string | undefined {
+    const top = [...(this.model.pageFill?.fills ?? [])].reverse().find((f) => (f as { visible?: boolean }).visible !== false) as { paint?: unknown } | undefined;
+    const paint = top?.paint;
+    const hex = typeof paint === 'string' ? (paint.startsWith('@') ? this.resolve(paint) : paint) : undefined;
+    return hex !== undefined && /^#[0-9a-f]{6}/i.test(hex) ? hex.slice(0, 7) : undefined;
+  }
+
   private host(): PaintHost & TextHost {
     const self = this;
     return {
@@ -488,6 +535,9 @@ export class IfInspectorElement extends SfElement<typeof spec> {
         this.rows = next;
       },
       resolve: (token) => this.resolve(token),
+      images: this.model.images ?? [],
+      ...(this.pageBackground() === undefined ? {} : { background: this.pageBackground() as string }),
+      imageFill: (to, source, index) => this.port?.imageFill(to, source, index),
       isMoreOpen: (key) => this.more.has(key),
       toggleMore: (key) => {
         const next = new Set(this.more);
@@ -541,7 +591,6 @@ export class IfInspectorElement extends SfElement<typeof spec> {
     const page = this.model.page;
     if (page === undefined) return nothing;
     const preset = pagePresetOf(page.width, page.height);
-    const portrait = page.height >= page.width;
     const fill = this.model.pageFill;
     return html`<div class="rows">
       <sf-text-field label=${inspectorMessages.pageName} .value=${page.name} @sf-change=${(e: CustomEvent<{ value: string }>) => port.renamePage(e.detail.value)}></sf-text-field>
@@ -552,21 +601,27 @@ export class IfInspectorElement extends SfElement<typeof spec> {
         <sf-button slot="trigger" size="sm" variant="ghost" class="wide" aria-label=${`${inspectorMessages.sizePreset}: ${preset?.label ?? inspectorMessages.customSize}`}>${preset?.label ?? inspectorMessages.customSize} <sf-icon .icon=${chevronDownIcon} size="14"></sf-icon></sf-button>
         ${pageSizePresets().map((p) => html`<sf-menu-item type="radio" value=${p.id} ?checked=${p.id === preset?.id}>${p.label}</sf-menu-item>`)}
       </sf-menu>
-      <div class="grid2">
-        ${numberField(inspectorMessages.width, page.width, (n) => port.resizePage(n, page.height), { min: PAGE_SIZE_RANGE.min, max: PAGE_SIZE_RANGE.max, unit: 'px' })}
-        ${numberField(inspectorMessages.height, page.height, (n) => port.resizePage(page.width, n), { min: PAGE_SIZE_RANGE.min, max: PAGE_SIZE_RANGE.max, unit: 'px' })}
-      </div>
-      <div class="row" role="group" aria-label=${inspectorMessages.orientation}>
-        <span class="label">${inspectorMessages.orientation}</span>
-        <sf-icon-button size="sm" variant="ghost" label=${inspectorMessages.portrait} .pressed=${portrait} @click=${() => (portrait ? undefined : port.resizePage(page.height, page.width))}><sf-icon .icon=${rectangleVerticalIcon} size="16"></sf-icon></sf-icon-button>
-        <sf-icon-button size="sm" variant="ghost" label=${inspectorMessages.landscape} .pressed=${!portrait} @click=${() => (portrait ? port.resizePage(page.height, page.width) : undefined)}><sf-icon .icon=${rectangleHorizontalIcon} size="16"></sf-icon></sf-icon-button>
-      </div>
+      <!-- B11c: the kit's size field (units, keep proportions, orientation), the same range as New design. -->
+      <sf-size-field
+        class="page-size"
+        label=${inspectorMessages.pageSize}
+        .width=${page.width}
+        .height=${page.height}
+        .min=${PAGE_SIZE_RANGE.min}
+        .max=${PAGE_SIZE_RANGE.max}
+        @sf-change=${(e: CustomEvent<{ width: number; height: number }>) => (e.detail.width === page.width && e.detail.height === page.height ? undefined : port.resizePage(e.detail.width, e.detail.height))}
+      ></sf-size-field>
       ${fill === undefined
         ? nothing
         : html`<div class="stack" role="group" aria-label=${inspectorMessages.background}>
             <span class="label">${inspectorMessages.background}</span>
             ${fillStack(this.host(), fill, (edit) => port.pageAppearance(edit), { name: inspectorMessages.background, page: true })}
           </div>`}
+      ${this.model.pages > 1
+        ? html`<sf-disclosure variant="more" key="inspector/page-more" ?open=${this.pro || this.more.has('page')} ?pinned=${this.pro} @sf-toggle=${() => this.toggleMore('page')}>
+            <sf-button class="background-all" size="sm" variant="ghost" @click=${() => port.backgroundToAllPages()}>${inspectorMessages.backgroundAll}</sf-button>
+          </sf-disclosure>`
+        : nothing}
     </div>`;
   }
 
@@ -600,6 +655,7 @@ export class IfInspectorElement extends SfElement<typeof spec> {
           <sf-icon-button size="sm" variant="ghost" label=${inspectorMessages.flipH} shortcut="Shift+H" .pressed=${m.flipX} @click=${() => port.transform({ flip: 'horizontal' })}><sf-icon .icon=${flipHorizontal2Icon} size="16"></sf-icon></sf-icon-button>
           <sf-icon-button size="sm" variant="ghost" label=${inspectorMessages.flipV} shortcut="Shift+V" .pressed=${m.flipY} @click=${() => port.transform({ flip: 'vertical' })}><sf-icon .icon=${flipVertical2Icon} size="16"></sf-icon></sf-icon-button>
         </div>
+        ${this.pivotPicker(port)}
       </sf-disclosure>
       ${m.locked > 0 ? html`<p class="muted">${inspectorMessages.lockedStay(m.locked)}</p>` : nothing}
       ${m.transforming
@@ -608,6 +664,28 @@ export class IfInspectorElement extends SfElement<typeof spec> {
             <sf-button size="sm" variant="ghost" @click=${() => port.transformSession('cancel')}>${inspectorMessages.cancel}</sf-button>
           </div>`
         : nothing}
+    </div>`;
+  }
+
+  /** The pivot picker (APPEARANCE §3.6, Transform · more, Pro always): nine reference points; the current one again (or Alt-click) resets to the centre. */
+  private pivotPicker(port: InspectorPort): TemplateResult {
+    const at = this.model.pivot ?? [0.5, 0.5];
+    const same = (f: readonly [number, number]): boolean => Math.abs(f[0] - at[0]) < 1e-6 && Math.abs(f[1] - at[1]) < 1e-6;
+    return html`<div class="row">
+      <span class="label" id="pivot-label">${inspectorMessages.pivot}</span>
+      <div class="pivot" role="radiogroup" aria-labelledby="pivot-label">
+        ${PIVOT_POINTS.map(
+          ([f, name]) => html`<button
+            type="button"
+            role="radio"
+            class="pivot-point"
+            aria-checked=${same(f) ? 'true' : 'false'}
+            aria-label=${name}
+            title=${name}
+            @click=${(e: MouseEvent) => port.setPivot(e.altKey || (same(f) && !(f[0] === 0.5 && f[1] === 0.5)) ? null : f)}
+          ></button>`,
+        )}
+      </div>
     </div>`;
   }
 
@@ -722,7 +800,7 @@ export class IfInspectorElement extends SfElement<typeof spec> {
 
   private fillSection(s: SelectionSummary, port: InspectorPort): TemplateResult | typeof nothing {
     const a = this.single(s);
-    if (a !== undefined) return fillStack(this.host(), a, (edit) => port.appearance(edit));
+    if (a !== undefined) return fillStack(this.host(), a, (edit) => port.appearance(edit), { crop: (crop) => port.invoke('instaflow/image-crop', { crop }) });
     if (s.fill === undefined) return nothing;
     return sharedPaintRow(this.host(), paintMessages.fill, paintMessages.mixedFills, s.fill, (paint) => port.setPaint('fills', paint, 'Fill'));
   }
@@ -815,6 +893,7 @@ export function defineInspectorElement(registry: CustomElementRegistry = customE
   defineNumberField(registry);
   definePopover(registry);
   defineSegmented(registry);
+  defineSizeField(registry);
   defineSlider(registry);
   defineSwatch(registry);
   defineTag(registry);

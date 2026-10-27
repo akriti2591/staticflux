@@ -1,6 +1,6 @@
 import type { DocumentHead } from '@staticflux/document/v2';
 import { describe, expect, it } from 'vitest';
-import { byEdited, EMPTY_HOME_INDEX, HOME_INDEX_APP_KEY, HOME_INDEX_SCHEMA, type HomeEntry, type HomeIndex, readHomeEntry, readHomeIndex, recentDesigns, sameHomeIndex, withHomeIndex, workspaceFiles, workspaceTemplates } from './index-record.js';
+import { byEdited, EMPTY_HOME_INDEX, HOME_INDEX_APP_KEY, HOME_INDEX_SCHEMA, type HomeEntry, type HomeIndex, readHomeEntry, readHomeIndex, readHomeProjects, recentDesigns, sameHomeIndex, trashedFiles, withHomeIndex, workspaceFiles, workspaceProjects, workspaceTemplates } from './index-record.js';
 
 const entry = (asset: string, kind: HomeEntry['kind'], editedAt: string, extra: Partial<HomeEntry> = {}): HomeEntry => ({
   asset,
@@ -68,5 +68,35 @@ describe('Home index record', () => {
     expect([b, a].sort(byEdited).map((e) => e.asset)).toEqual(['as_a', 'as_b']);
     const newer = { ...b, createdAt: '2026-10-02T00:00:00Z' };
     expect([a, newer].sort(byEdited)[0]?.asset).toBe('as_b');
+  });
+
+  it('B11c: carries project, favourite, trash time, pages, digest and the projects made on Home', () => {
+    const head: DocumentHead = { asset: 'library', generation: 1, engine: 'loro/1', treeSchema: 1, parts: {}, logFrom: 1, undoHorizon: 200 };
+    const full = entry('as_f', 'composition', '2026-10-02T00:00:00.000Z', { folder: 'Spring', favorite: true, trashedAt: '2026-10-03T00:00:00.000Z', pages: 3, digest: 'sha256:x' });
+    const index: HomeIndex = { schema: HOME_INDEX_SCHEMA, entries: [full], projects: [{ name: 'Empty', createdAt: '2026-10-01T00:00:00.000Z' }] };
+    const read = readHomeIndex(withHomeIndex(head, index));
+    expect(read).toEqual(index);
+    expect(sameHomeIndex(read, { ...index, projects: [] })).toBe(false);
+    expect(readHomeEntry({ ...full, folder: ' ', favorite: 'yes', trashedAt: 'soon', pages: 1.5, digest: '' })).toEqual(entry('as_f', 'composition', '2026-10-02T00:00:00.000Z'));
+    expect(readHomeProjects([{ name: 'A', createdAt: '2026-10-01T00:00:00Z' }, { name: 'A', createdAt: '2026-10-01T00:00:00Z' }, { name: ' ', createdAt: '2026-10-01T00:00:00Z' }, { name: 'B' }, 3])).toEqual([{ name: 'A', createdAt: '2026-10-01T00:00:00Z' }]);
+    expect(readHomeProjects('x')).toEqual([]);
+  });
+
+  it('B11c: the trash and projects are derived; trashed entries are nowhere else', () => {
+    const all = index(
+      entry('as_a', 'composition', '2026-10-05T00:00:00Z', { folder: 'Spring' }),
+      entry('as_b', 'composition', '2026-10-03T00:00:00Z', { folder: 'Spring' }),
+      entry('as_t', 'template', '2026-10-04T00:00:00Z', { trashedAt: '2026-10-06T00:00:00Z', folder: 'Old' }),
+      entry('as_c', 'composition', '2026-10-02T00:00:00Z', { trashedAt: '2026-10-07T00:00:00Z' }),
+    );
+    const withEmpty: HomeIndex = { ...all, projects: [{ name: 'Brand', createdAt: '2026-10-08T00:00:00Z' }] };
+    expect(recentDesigns(all).map((e) => e.asset)).toEqual(['as_a', 'as_b']);
+    expect(workspaceFiles(all).map((e) => e.asset)).toEqual(['as_a', 'as_b']);
+    expect(workspaceTemplates(all)).toEqual([]);
+    expect(trashedFiles(all).map((e) => e.asset)).toEqual(['as_c', 'as_t']);
+    expect(workspaceProjects(withEmpty)).toEqual([
+      { name: 'Brand', count: 0, editedAt: '2026-10-08T00:00:00Z' },
+      { name: 'Spring', count: 2, editedAt: '2026-10-05T00:00:00Z' },
+    ]);
   });
 });

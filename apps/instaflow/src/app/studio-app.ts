@@ -18,6 +18,11 @@
  * - **Glue**: Studio's scope follows the canvas selection (the view projection); HUD clicks run their capability on the
  *   selection; the Milestone button; zoom buttons and readout; the library's Place; results and problems are
  *   announced politely.
+ * - **B11c**: this device's settings (density both ways with the spec, `Mod+.`, the root's appearance attributes),
+ *   Settings and Export as routable dialogs (`/d/settings`, `/d/export`: pushed in-app, Back closes, Escape on a
+ *   deep-linked one replaces), the link a URL points at applied on a cold boot (`lens`, `page`, `dock`, `el`,
+ *   `inspect`, the dialog last; intents stripped), "Copy link to this" (design, page, selection, dialog), first-use
+ *   hints (two per session, suppressed on deep links) and the shortcut snapshot Home's Settings lists.
  */
 import { type Announcer, createAnnouncer, createShortcutRegistry, defineShortcut, type ShortcutRegistry, type Timers } from '@staticflux/a11y';
 import { alwaysActivePort, allowAllDecidePort, type AnyCapability, type CapabilityRegistry, createCapabilityRegistry, failClosedConfirmPort, implementCapability, unmeteredPort } from '@staticflux/capabilities';
@@ -29,8 +34,9 @@ import type { TextInputFactory } from '@staticflux/surface/text-input';
 import { allowAllDecideUnit, defineUiElements, gateResource, provideScope, visibilityObserverUnit } from '@staticflux/ui';
 import { defineDialogSurface } from '@staticflux/kit/surface-defs';
 import { defineShortcutSheet } from '@staticflux/kit/shortcut-sheet';
+import { defineHint } from '@staticflux/kit/hint';
 import { defineSurfaces } from '@staticflux/kit/surfaces';
-import { ownerOf, SurfaceManagerToken, type SurfaceManager } from '@staticflux/messaging';
+import { ownerOf, RoutableDialogBridgeToken, routableDialogBridgeUnit, routableSurface, SeenStoreToken, strictSurfaceManagerUnit, SurfaceManagerToken, type SurfaceManager } from '@staticflux/messaging';
 import { fromWireError, type Spawner } from '@staticflux/worker';
 import { html, render } from 'lit';
 import { ref } from 'lit/directives/ref.js';
@@ -63,10 +69,17 @@ import type { ScopeRef } from '../spec/schema.js';
 import { createStudio, type Studio, StudioShortcutScope } from '../studio/studio.js';
 import type { IfLayersPanelElement, LayersModel, LayersPort } from '../studio/layers-panel.js';
 import { type IfInspectorElement, type InspectorModel, type InspectorPort } from '../studio/inspector.js';
-import { type CameraAction, defineStudio, EMPTY_CHROME, type IfStudioElement, type StudioChromeModel, type StudioChromePort } from '../studio/studio-element.js';
+import { type CameraAction, type CopyLinkTarget, defineStudio, EMPTY_CHROME, type IfStudioElement, type StudioChromeModel, type StudioChromePort } from '../studio/studio-element.js';
 import type { HudAction } from '../studio/hud.js';
 import type { LayerRow } from './scene-summary.js';
-import { createToasts, INSTAFLOW_SURFACE_UNITS, type Toasts } from './feedback.js';
+import { createToasts, type Toasts } from './feedback.js';
+import { bindTextKeys, TextEditingShortcutScope } from './text-keys.js';
+import { FindCapability, type FindMatch, type FindResult, ReplaceCapability, type ReplaceResult } from './find-replace.js';
+import { homeViewHref, keepForeignParams, readStudioIntent, STUDIO_DIALOGS, type StudioDialog, type StudioDockTab, type StudioLink, studioLinkHref, withoutIntents } from '../home/routes.js';
+import { createDeviceSettings, DENSITY_LINES, type DeviceSettings, nextDensity } from '../settings/device-settings.js';
+import { defineSettings, diagnosticsText, SETTINGS_SECTIONS, type SettingsSection, type SettingsStorage } from '../settings/settings-element.js';
+import { HINT_STORAGE_PREFIXES, resetHintsOnDevice, writeShortcutsSnapshot } from '../settings/shortcuts-snapshot.js';
+import { createHintSession, type HintSession, localSeenStore, STUDIO_HINTS } from '../studio/hints.js';
 import { CopyStyleCapability, DeleteCapability, LockCapability, STUDIO_KEY_COMMANDS, UndoCapability } from './studio-commands.js';
 import { ClipboardShortcuts, createClipboardController } from './clipboard-controller.js';
 import { shortcutSheet, type ShortcutGroupName, shortcutsSheetSurface } from '../studio/shortcuts-sheet.js';
@@ -86,10 +99,12 @@ import { LatestServiceToken, MilestonesPanelModelToken } from '../versioning/tok
 import { type BootStudioWorkersOptions, bootStudioWorkers, type StudioWorkers } from '../workers/boot.js';
 import { createMirrorHub, type MirrorHub } from '../workers/mirror.js';
 import { AppearanceMirror, LatestMirror, MilestonesMirror, RepeatMirror, SceneMirror, StoryMirror, TransformMirror, TypographyMirror } from '../workers/mirrors.js';
-import type { InspectedElement, StudioDocumentRef, StudioInspection, StudioMetrics, ViewProjection } from '../workers/protocol.js';
+import type { ImageFillTarget, InspectedElement, StudioDocumentRef, StudioInspection, StudioMetrics, ViewProjection } from '../workers/protocol.js';
+import type { ImageSource } from '../studio/inspector-paint.js';
 import { fromWire } from '../workers/wire.js';
 import type { StudioWorkspace } from './document.js';
 import { NoOpenPageError } from './errors.js';
+import { ImageTooLargeError, MAX_IMAGE_BYTES, NotAnImageError } from '../studio/errors.js';
 import { appearanceSource, latestFromMirror, milestonesFromMirror, repeatSource, storyFromMirror, structureFromMirror, transformSource, typographyFromMirror } from './panel-mirrors.js';
 import { studioAppRegistries } from './registries.js';
 import { type CanvasHandoffFactory, type StudioCanvas, studioCanvas } from './studio-canvas.js';
@@ -121,8 +136,74 @@ export interface StudioAppOptions {
   readonly exporter?: { readonly spawn: () => Spawner; readonly deliver?: (files: readonly ExportFile[], signal: AbortSignal) => Promise<Result<void>> };
   /** "Save as template" (C0): make a template from a milestone of the open design. Without it the action says so. */
   readonly templates?: { save(request: { readonly milestone: MilestoneId; readonly title: string }, signal: AbortSignal): Promise<Result<{ readonly asset: string }>> };
+  /** B11c: this device's settings (default: `localStorage`). */
+  readonly settings?: DeviceSettings;
+  /** B11c: where the URL points within the design (NAVIGATION §6), applied once the canvas shows. */
+  readonly link?: StudioLink;
+  /** B11c: the browser history routable dialogs and links use (default: the window's). */
+  readonly history?: StudioHistory;
+  /** B11c: per-device storage for hints and the shortcut snapshot (default `localStorage`; null: this tab only). */
+  readonly storage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'> | null;
+  /** B11c: storage facts for Settings › Storage (default `navigator.storage`). */
+  readonly storageFacts?: SettingsStorage;
   readonly scope: Scope;
 }
+
+/** The history Studio's routable dialogs and links write (NAVIGATION §3). */
+export interface StudioHistory {
+  /** `pathname + search` now. */
+  current(): string;
+  /** The origin links are copied with. */
+  origin(): string;
+  push(href: string): void;
+  replace(href: string): void;
+  back(): void;
+  /** Back / forward (`popstate`); returns the unsubscribe. */
+  onPop(listener: () => void): () => void;
+}
+
+/** The window's history (no-ops without one, e.g. in workers or tests without a DOM). */
+export function browserStudioHistory(): StudioHistory {
+  const g = globalThis as { history?: History; location?: Location; addEventListener?: Window['addEventListener']; removeEventListener?: Window['removeEventListener'] };
+  return {
+    current: () => (g.location === undefined ? '/' : `${g.location.pathname}${g.location.search}`),
+    origin: () => g.location?.origin ?? '',
+    push: (href) => g.history?.pushState(null, '', href),
+    replace: (href) => g.history?.replaceState(null, '', href),
+    back: () => g.history?.back(),
+    onPop(listener) {
+      g.addEventListener?.('popstate', listener);
+      return () => g.removeEventListener?.('popstate', listener);
+    },
+  };
+}
+
+/** Whether page-space `frame` shows in the viewport at `camera` (pure). */
+export function onScreen(frame: { readonly x: number; readonly y: number; readonly w: number; readonly h: number }, camera: { readonly tx: number; readonly ty: number; readonly zoom: number }, viewport: { readonly width: number; readonly height: number }): boolean {
+  const x = frame.x * camera.zoom + camera.tx;
+  const y = frame.y * camera.zoom + camera.ty;
+  return x >= 0 && y >= 0 && x + frame.w * camera.zoom <= viewport.width && y + frame.h * camera.zoom <= viewport.height;
+}
+
+/** The dock tab a link names → the panel it shows. */
+const DOCK_PANELS: Readonly<Record<StudioDockTab, string>> = Object.freeze({
+  layers: StudioIds.panel.layers,
+  pages: StudioIds.panel.pages,
+  assets: StudioIds.panel.assets,
+  milestones: StudioIds.panel.milestones,
+});
+
+/** NAVIGATION §4's fallback toasts. */
+export const linkMessages = Object.freeze({
+  page: 'That page is no longer in this design',
+  elements: 'That element is no longer in this design',
+  someElements: (missing: number, of: number) => `${missing} of ${of} linked elements are no longer in this design`,
+  selected: (n: number) => (n === 1 ? '1 element selected' : `${n} elements selected`),
+  copied: 'Link copied',
+  blocked: 'Clipboard blocked by the browser · Allow in site settings',
+  copyLink: 'Copy link',
+  settings: 'Settings',
+});
 
 /** The open tab as main sees it (the editor's view projection). */
 export interface StudioTabView {
@@ -181,6 +262,18 @@ export interface StudioApp {
   readonly chrome: StudioChromePort;
   /** B11b: what the chrome shows (the selection summary, layers, page; tests and the smoke check read it). */
   readonly scene: StudioChromeModel & { readonly layers: readonly LayerRow[] };
+  /** B11c: this device's settings. */
+  readonly settings: DeviceSettings;
+  /** B11c: first-use hints this session. */
+  readonly hints: HintSession;
+  /** B11c: open a routable dialog in-app (pushes `/d/<key>`; Back closes it). */
+  openDialog(key: StudioDialog, section?: SettingsSection): Promise<Result<unknown>>;
+  /** B11c: the href "Copy link to this" copies for a target (path and query, no origin). */
+  linkTo(target: CopyLinkTarget): string;
+  /** B11c: apply a link (NAVIGATION §6); `mount` applies the one the app was opened with. */
+  applyLink(link: StudioLink): Promise<void>;
+  /** B11c: resolves once the link the app was opened with is applied (cold boot). */
+  readonly linked: Promise<void>;
 }
 
 /** HUD action → capability input from the selection (data; the default is `{ nodes }`). */
@@ -326,12 +419,96 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   }
   const milestonesPanel = milestonesFromMirror(hub.view(MilestonesMirror));
   const latest = latestFromMirror(hub.view(LatestMirror));
+  // ---------------------------------------------------------------- B11c: settings, history, routable dialogs
+  const settings = options.settings ?? createDeviceSettings();
+  const history = options.history ?? browserStudioHistory();
+  const storage = options.storage === null ? undefined : (options.storage ?? (globalThis as { localStorage?: Storage }).localStorage);
+  const seen = localSeenStore(storage);
+  const asset = options.document.asset as string;
+  /** The URL now, read as a Studio link (the view params a dialog's href keeps). */
+  const linkNow = (): StudioLink => {
+    const read = readStudioIntent(history.current());
+    return read.kind === 'open' ? read.link ?? {} : {};
+  };
+  const hrefOf = (link: StudioLink): string => {
+    const built = studioLinkHref(asset, link);
+    return keepForeignParams(built.ok ? built.value : history.current(), history.current());
+  };
+  /** The design's href with the dialog's key (and section) on top of today's view params. */
+  const dialogHref = (key: StudioDialog | undefined, section?: SettingsSection): string => {
+    const { dialog: _d, section: _s, ...view } = withoutIntents(linkNow());
+    return hrefOf({ ...view, ...(key === undefined ? {} : { dialog: key }), ...(key === 'settings' && section !== undefined && section !== 'general' ? { section } : {}) });
+  };
+  let settingsSection: SettingsSection = 'general';
+  const writeClipboard = (href: string): void => {
+    const clip = globalThis.navigator?.clipboard;
+    const blockedToast = (): void => void toasts.show({ message: linkMessages.blocked, tone: 'warning' });
+    if (clip === undefined) return blockedToast();
+    void clip.writeText(`${history.origin()}${href}`).then(() => void toasts.show({ message: linkMessages.copied, dedupe: 'link-copied', durationMs: 1500 }), blockedToast);
+  };
+  const copyLinkButton = (key: StudioDialog) =>
+    html`<sf-button slot="header-actions" class="copy-dialog-link" size="sm" variant="ghost" @click=${() => writeClipboard(dialogHref(key, key === 'settings' ? settingsSection : undefined))}>${linkMessages.copyLink}</sf-button>`;
+  // The Export dialog (OVERLAYS-FEEDBACK §2.3): C1's panel in a form dialog over Studio, bound once per element (the
+  // dialog re-renders its body; binding again on every render ran each export as many times).
+  let exportBound: { readonly element: Element; readonly unbind: () => void } | undefined;
+  const bindExportOnce = (el: Element | undefined): void => {
+    if (el === exportBound?.element) return;
+    exportBound?.unbind();
+    exportBound = el === undefined ? undefined : { element: el, unbind: bindExportPanel(el as IfExportPanelElement, exportPort) };
+  };
+  const exportDialog = defineDialogSurface<void>({
+    id: 'instaflow/export-dialog',
+    scope: 'app',
+    title: () => 'Export',
+    size: 'form',
+    routable: { key: 'export' },
+    body: () => html`${copyLinkButton('export')}<if-export-panel ${ref(bindExportOnce)}></if-export-panel>`,
+  });
+  // B11c: Settings over Studio (STUDIO §2.4): the same `<if-settings>` Home shows as a page.
+  const sheetGroups = () => shortcutSheet(shortcuts.list(), { lenses: lensIds, commands: commandGroups });
+  const settingsDialog = defineDialogSurface<{ readonly section: SettingsSection }>({
+    id: 'instaflow/settings-dialog',
+    scope: 'app',
+    title: () => linkMessages.settings,
+    size: 'settings',
+    routable: {
+      key: 'settings',
+      params: (raw) => ok({ section: (SETTINGS_SECTIONS as readonly string[]).includes(raw['section'] ?? '') ? (raw['section'] as SettingsSection) : 'general' }),
+    },
+    body: (context) => {
+      settingsSection = settingsSection === 'general' ? context.props.section : settingsSection;
+      return html`${copyLinkButton('settings')}<if-settings
+          section=${context.props.section}
+          .settings=${settings}
+          .storage=${options.storageFacts ?? (globalThis.navigator as { storage?: SettingsStorage } | undefined)?.storage}
+          .shortcuts=${sheetGroups()}
+          .diagnostics=${() => diagnosticsText({ surface: 'Studio', density: settings.current.density, extra: { Pages: String(scene.read('pages')), Workers: String(workers.workers.length) } })}
+          @if-section=${(e: CustomEvent<{ section: SettingsSection }>) => {
+            settingsSection = e.detail.section;
+            if (dialogs.current === 'settings') history.replace(dialogHref('settings', settingsSection));
+          }}
+          @if-reset-hints=${() => {
+            resetHintsOnDevice(storage, HINT_STORAGE_PREFIXES);
+            void hints.reset();
+          }}
+          @if-open-trash=${() => {
+            const trash = homeViewHref({ kind: 'trash' });
+            void leave(trash.ok ? trash.value : '/');
+          }}
+        ></if-settings>`;
+    },
+  });
   const injector = createInjector({
     units: [
-      // B11b: messaging under the strict overlay policy (toasts, the Export dialog), OVERLAYS-FEEDBACK §1.
+      // B11b: messaging under the strict overlay policy (toasts, the Export dialog), OVERLAYS-FEEDBACK §1. B11c: the
+      // seen store is this device's (`instaflow/ui/hints`), and Export and Settings are routable dialogs.
       visibilityObserverUnit,
       allowAllDecideUnit,
-      ...INSTAFLOW_SURFACE_UNITS,
+      unit({ id: 'instaflow/studio-seen-store', provides: SeenStoreToken, scope: 'app', create: () => seen }),
+      strictSurfaceManagerUnit,
+      routableDialogBridgeUnit,
+      routableSurface(exportDialog),
+      routableSurface(settingsDialog),
       unit({ id: 'instaflow/studio-typography', provides: TypographyServiceToken, scope: 'app', create: () => typography }),
       unit({ id: 'instaflow/studio-lens-controller', provides: LensControllerToken, scope: 'app', create: () => lens }),
       unit({ id: 'instaflow/studio-story-writer', provides: StoryWriterToken, scope: 'app', create: () => story }),
@@ -345,6 +522,9 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   const managed = await injector.get(SurfaceManagerToken);
   if (!managed.ok) return managed;
   const manager: SurfaceManager = managed.value;
+  const bridged = await injector.get(RoutableDialogBridgeToken);
+  if (!bridged.ok) return bridged;
+  const dialogs = bridged.value;
   const toasted: string[] = [];
   const baseToasts = createToasts(manager, ownerOf(injector));
   const record = (message: string): void => {
@@ -419,9 +599,12 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   scope.defer(() => studio.dispose());
   const shortcuts = createShortcutRegistry({ isMac: options.isMac ?? false });
 
+  // B11c: a link's page is the page the canvas opens on (NAVIGATION §6 step 2: before the first content frame).
+  const linkedPage = options.link?.page;
+  const startPage = (): NodeId => (linkedPage !== undefined && pages.includes(linkedPage as NodeId) ? (linkedPage as NodeId) : firstPage());
   const canvas = studioCanvas({
     workers,
-    page: firstPage,
+    page: startPage,
     ...(options.textInput === undefined ? {} : { textInput: (host: HTMLElement, label: string) => (options.textInput as TextInputFactory).create({ host, label }) }),
     shortcuts,
     ...(options.handoff === undefined ? {} : { handoff: options.handoff }),
@@ -668,17 +851,35 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     openExport: () => openExport(),
     createMilestone: (name) => void createMilestone(name === '' ? undefined : name),
     saveAsTemplate: () => void saveAsTemplate(titleBox.get()),
-    copyLink() {
-      const href = globalThis.location?.href ?? '';
-      const clip = globalThis.navigator?.clipboard;
-      if (clip === undefined) {
-        toasts.show({ message: 'Clipboard blocked by the browser · Allow in site settings', tone: 'warning' });
-        return;
+    copyLink: (target) => writeClipboard(linkTo(target ?? 'design')),
+    openSettings: (section) => void openDialog('settings', section),
+    // B11c slice 3 (STUDIO §9.1): the find bar over `instaflow/find` / `instaflow/replace`.
+    async find(query) {
+      const found = await capabilities.invoke(FindCapability, query, { subject: 'user', signal, origin: { channel: 'ui/find' } });
+      if (found.ok) return found.value as FindResult;
+      toasts.error(found.error);
+      return undefined;
+    },
+    async replace(query, replacement, o) {
+      const font = o.font !== undefined && 'font' in o.font ? { font: o.font.font, ...(o.font.family === undefined ? {} : { family: o.font.family }) } : undefined;
+      const input = { ...query, replacement, ...(font === undefined ? {} : { font }), ...(o.only === undefined ? {} : { only: [...o.only] }) };
+      const done = await capabilities.invoke(ReplaceCapability, input, { subject: 'user', signal, origin: { channel: 'ui/find' } });
+      if (!done.ok) {
+        toasts.error(done.error);
+        return undefined;
       }
-      void clip.writeText(href).then(
-        () => toasts.show({ message: 'Link copied', dedupe: 'link-copied' }),
-        () => toasts.show({ message: 'Clipboard blocked by the browser · Allow in site settings', tone: 'warning' }),
-      );
+      const r = done.value as ReplaceResult;
+      const what = `${r.label} · ${r.replaced === 1 ? '1 match' : `${r.replaced} matches`}${r.skipped > 0 ? ` · ${r.skipped} locked, skipped` : ''}`;
+      if (r.replaced > 0) toasts.undoable({ message: what, undo: () => run(UndoCapability.id, {}, []) });
+      else if (r.skipped > 0) toasts.show({ message: `${r.skipped} locked, skipped`, tone: 'warning' });
+      say(what);
+      return r;
+    },
+    reveal: (match) => void revealMatch(match),
+    cycleDensity() {
+      const next = nextDensity(studio.density);
+      void studio.setDensity(next, signal);
+      toasts.show({ message: `${DENSITY_LINES[next].name} · ${DENSITY_LINES[next].line}`, dedupe: 'density', durationMs: 1500 });
     },
     navigate: (href) => void leave(href),
     selectPage(rename) {
@@ -721,8 +922,11 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       });
     },
     pageAction: (action, arg) => void pageAction(action, arg),
+    placeImage: () => void placeImage(),
+    dropFiles: (files, at) => void dropFiles(files, at),
     saveHint: () => toasts.show({ message: 'Instaflow saves as you work', dedupe: 'save-hint', action: { label: 'Create milestone', run: () => void createMilestone() } }),
     openShortcuts() {
+      writeShortcutsSnapshot(storage, sheetGroups());
       if (sheet !== undefined && sheet.state !== 'dismissed') {
         sheet.dismiss();
         sheet = undefined;
@@ -730,6 +934,97 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       }
       sheet = manager.request(sheetDialog, { owner: ownerOf(injector) });
     },
+  };
+  /** A find match: its page shown, it selected (the page itself for a background), the camera on it when off-screen. */
+  async function revealMatch(m: FindMatch): Promise<void> {
+    if (view()?.page !== m.page) {
+      await lens.goTo(m.page as NodeId);
+      await until(() => view()?.page === m.page);
+    }
+    if (m.where === 'background') {
+      chrome.selectPage(false);
+      return;
+    }
+    const picked = await editor.request('select', { nodes: [m.node as NodeId] });
+    if (!picked.ok) return problem(picked.error);
+    await until(() => selection()[0] === m.node && scene.read('frame') !== undefined);
+    const frame = scene.read('frame');
+    const v = view();
+    if (frame !== undefined && v !== undefined && !onScreen(frame, v.camera, v.viewport)) chrome.camera('fit-selection');
+  }
+  /** "Copy link to this" (NAVIGATION §5): the design, the open page (Pages lens) or the selection on its page. */
+  function linkTo(target: CopyLinkTarget): string {
+    const page = canvas.page ?? view()?.page;
+    const LINKS: Readonly<Record<CopyLinkTarget, () => StudioLink>> = {
+      design: () => ({}),
+      page: () => (page === undefined ? {} : { lens: 'pages', page }),
+      selection: () => ({ ...(page === undefined ? {} : { page }), ...(selection().length === 0 ? {} : { el: selection().slice(0, 20) }) }),
+    };
+    const built = studioLinkHref(asset, LINKS[target]());
+    return built.ok ? built.value : history.current();
+  }
+  // ---------------------------------------------------------------- B11c: images from files (HOME-FILES §3.1)
+  /** Import picked or dropped files into the library; refusals toast with their fix (never a blank screen). */
+  const imported = (summary: { readonly imported: readonly LibraryEntry[]; readonly deduplicated: readonly LibraryEntry[]; readonly failed: readonly { readonly error: SfError }[] }): readonly LibraryEntry[] => {
+    for (const failed of summary.failed) toasts.error(failed.error);
+    return [...summary.imported, ...summary.deduplicated].filter((e) => e.kind === 'image');
+  };
+  /** The files Studio takes as images (HOME-FILES §3.1): others are refused, each with one toast and its fix. */
+  const screenImages = <F extends { readonly name: string; readonly type: string; readonly size: number }>(files: readonly F[]): F[] =>
+    files.filter((f) => {
+      if (!f.type.startsWith('image/')) toasts.error(NotAnImageError({ details: { name: f.name, type: f.type } }));
+      else if (f.size > MAX_IMAGE_BYTES) toasts.error(ImageTooLargeError({ details: { name: f.name, size: f.size } }));
+      else return true;
+      return false;
+    });
+  const pickImages = async (): Promise<readonly LibraryEntry[]> => {
+    const picked = await (options.library?.pickFiles ?? ((s: AbortSignal) => browserPickFiles(s)))(signal);
+    if (!picked.ok) {
+      if (picked.error.kind !== 'aborted') toasts.error(picked.error);
+      return [];
+    }
+    const files = screenImages(picked.value);
+    if (files.length === 0) return [];
+    const result = await library.panel.importFiles(files);
+    if (!result.ok) {
+      toasts.error(result.error);
+      return [];
+    }
+    return imported(result.value);
+  };
+  /** `Place image…`: the picked images at the viewport centre (or in the selected frame), the last one selected. */
+  const placeImage = async (): Promise<void> => {
+    for (const entry of await pickImages()) {
+      const placed = await editor.request('place', { entry });
+      if (!placed.ok) toasts.error(placed.error);
+      else say(`Placed ${entry.title}`);
+    }
+  };
+  /** An image on fills: a workspace image or an upload; the editor makes it one undo step. */
+  const imageFill = async (target: ImageFillTarget, source: ImageSource): Promise<void> => {
+    const entries = 'asset' in source ? library.library.entries().filter((e) => e.asset === source.asset) : (await pickImages()).slice(0, 1);
+    const entry = entries[0];
+    if (entry === undefined) return;
+    const done = await editor.request('imageFill', { entry, target });
+    if (!done.ok) toasts.error(done.error);
+    else say(target.to === 'page' ? `Background: ${entry.title}` : `Image fill: ${entry.title}`);
+  };
+  /** Files dropped on the canvas: the first fills the shape under the point (or lands there); the rest are placed. */
+  const dropFiles = async (files: readonly File[], at: { readonly x: number; readonly y: number }): Promise<void> => {
+    const images = screenImages(files);
+    if (images.length === 0) return;
+    const result = await library.panel.importFiles(images);
+    if (!result.ok) return void toasts.error(result.error);
+    const entries = imported(result.value);
+    const [first, ...rest] = entries;
+    if (first === undefined) return;
+    const done = await editor.request('imageFill', { entry: first, target: { to: 'point', x: at.x, y: at.y } });
+    if (!done.ok) toasts.error(done.error);
+    else say('filled' in done.value ? `Image fill: ${first.title}` : `Placed ${first.title}`);
+    for (const entry of rest) {
+      const placed = await editor.request('place', { entry });
+      if (!placed.ok) toasts.error(placed.error);
+    }
   };
   // B11b: the inspector (STUDIO §5): the chrome port plus the editor's appearance, transform, repeat and typography.
   const inspectorPort: InspectorPort = {
@@ -742,6 +1037,9 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     text: typography,
     renamePage: (name) => sceneCall(scene.call('renamePage', name)),
     resizePage: (width, height) => sceneCall(scene.call('resizePage', width, height)),
+    imageFill: (to, source, index) => void imageFill(index === undefined ? { to } : { to, index }, source),
+    backgroundToAllPages: () => sceneCall(scene.call('backgroundToAllPages')),
+    setPivot: (fraction) => sceneCall(transformView.call('pivot', fraction)),
   };
   const appearanceView = hub.view(AppearanceMirror);
   const transformView = hub.view(TransformMirror);
@@ -757,11 +1055,19 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       appearance: appearanceView.read('model'),
       pageFill: scene.read('pageFill'),
       transform: transformView.read('model'),
+      pivot: transformView.read('pivot'),
       typography: typographyView.read('summary'),
       fonts: typographyView.read('fonts'),
       repeat: repeatView.read('model'),
       colors: scene.read('colors'),
       imageName: asset === undefined ? undefined : library.library.entries().find((e) => e.asset === asset)?.title,
+      images: library.library
+        .entries()
+        .filter((e) => e.kind === 'image' && e.trashedAt === undefined && e.content !== undefined)
+        .map((e) => {
+          const thumb = library.panel.thumbnail(e.asset);
+          return { asset: e.asset as string, title: e.title, ...(thumb === undefined ? {} : { thumb }) };
+        }),
     };
   };
   inspectorBinding.bind = (element) => {
@@ -794,24 +1100,37 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     return () => void stop.dispose();
   };
 
-  // The Export dialog (OVERLAYS-FEEDBACK §2.3): C1's panel in a form dialog over Studio, bound once per element (the
-  // dialog re-renders its body; binding again on every render ran each export as many times).
-  let exportBound: { readonly element: Element; readonly unbind: () => void } | undefined;
-  const bindExportOnce = (el: Element | undefined): void => {
-    if (el === exportBound?.element) return;
-    exportBound?.unbind();
-    exportBound = el === undefined ? undefined : { element: el, unbind: bindExportPanel(el as IfExportPanelElement, exportPort) };
+  // B11c: routable dialogs (NAVIGATION §3): opened in-app they push `/d/<key>` (Back closes; `×` / Escape go back);
+  // opened from a link Escape replaces the path with the design's. Back / forward open or close them to match the URL.
+  const openDialog = async (key: StudioDialog, section?: SettingsSection, source: 'in-app' | 'deep-link' = 'in-app'): Promise<Result<unknown>> => {
+    if (key === 'export' && exportsService === undefined) {
+      toasts.show({ message: 'Export is not available here.', tone: 'warning' });
+      return ok(undefined);
+    }
+    if (key === 'settings') settingsSection = section ?? 'general';
+    if (source === 'in-app' && dialogs.current !== key) history.push(dialogHref(key, section));
+    if (source === 'in-app' && dialogs.current === key && key === 'settings') history.replace(dialogHref(key, section));
+    const opened = await dialogs.openDialog(key, key === 'settings' ? { section: section ?? 'general' } : {}, { source });
+    if (!opened.ok) toasts.error(opened.error);
+    return opened;
   };
-  const exportDialog = defineDialogSurface<void>({
-    id: 'instaflow/export-dialog',
-    scope: 'app',
-    title: () => 'Export',
-    size: 'form',
-    body: () => html`<if-export-panel ${ref(bindExportOnce)}></if-export-panel>`,
-  });
-  const openExport = (): void => {
-    manager.request(exportDialog, { owner: ownerOf(injector) });
-  };
+  scope.defer(
+    dialogs.onDismissIntent((intent) => {
+      if (intent.kind === 'back') history.back();
+      else history.replace(dialogHref(undefined));
+    }),
+  );
+  scope.defer(
+    history.onPop(() => {
+      const link = linkNow();
+      if (link.dialog === undefined) {
+        if (dialogs.current !== undefined) dialogs.closeDialog();
+        return;
+      }
+      if (dialogs.current !== link.dialog) void dialogs.openDialog(link.dialog, link.dialog === 'settings' ? { section: link.section ?? 'general' } : {}, { source: 'in-app' });
+    }),
+  );
+  const openExport = (): void => void openDialog('export');
   const chromeModel = (): StudioChromeModel => {
     const v = view();
     return {
@@ -832,10 +1151,119 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       templatesAvailable: templates !== undefined,
       clipboard: { canPaste: clip.held.get() !== undefined, styleCopied: styleCopied.get() },
       pages: scene.read('pages'),
+      undo: scene.read('undo'),
     };
   };
 
+  // ---------------------------------------------------------------- B11c: hints, density, the link
+  // Hints are view-level surfaces (the kit's hint def): their owner is a view scope under the app's.
+  const hintScope = createScope('instaflow/studio-hints');
+  scope.defer(() => hintScope.dispose());
+  const hints = createHintSession({ manager, owner: { scope: hintScope, level: 'view' }, seen, enabled: () => settings.current.hints });
+  const TOOL_HINTS = new Map<string, (typeof STUDIO_HINTS)[keyof typeof STUDIO_HINTS]>([
+    [StudioIds.tool.frame, STUDIO_HINTS.frame],
+    [StudioIds.tool.shape, STUDIO_HINTS.shape],
+    [StudioIds.tool.text, STUDIO_HINTS.text],
+    [StudioIds.tool.hand, STUDIO_HINTS.hand],
+  ]);
+  let hinted: ToolId | undefined;
+  watch(
+    () => studio.activeTool,
+    (tool) => {
+      // The previous tool was used (or left): its hint goes. The newly picked one offers its sentence once.
+      const before = hinted === undefined ? undefined : TOOL_HINTS.get(hinted);
+      if (before !== undefined && hinted !== tool) hints.used(before);
+      hinted = tool;
+      const hint = tool === undefined ? undefined : TOOL_HINTS.get(tool);
+      if (hint !== undefined && element !== undefined) hints.offer(hint);
+    },
+    { scope },
+  );
+  watch(
+    () => [scene.read('layers').length > 0, selection().length > 1] as const,
+    ([some, many]) => {
+      if (element === undefined) return;
+      if (some) hints.offer(STUDIO_HINTS.layers);
+      if (many) hints.offer(STUDIO_HINTS.multiSelection);
+    },
+    { scope },
+  );
+  // Density: this device's setting and the mounted spec stay one value (View menu, Settings, `Mod+.`, other tabs).
+  watch(
+    () => studio.density,
+    (d) => (settings.current.density === d ? undefined : settings.set({ density: d })),
+    { scope },
+  );
+  watch(
+    () => settings.current.density,
+    (d) => (studio.density === d ? undefined : void studio.setDensity(d, signal)),
+    { scope },
+  );
+  /** NAVIGATION §6: lens, dock, the selection intent, the inspector intent, the dialog last; intents stripped after. */
+  const applyLink = async (link: StudioLink): Promise<void> => {
+    if (link.el !== undefined || link.page !== undefined || link.dialog !== undefined) hints.suppress();
+    if (link.lens === 'pages') await studio.switchLens(StudioIds.lens.pages, signal);
+    if (link.dock !== undefined) await element?.showPanel(DOCK_PANELS[link.dock]);
+    await until(() => view()?.page !== undefined);
+    if (link.page !== undefined && !pages.includes(link.page as NodeId)) toasts.show({ message: linkMessages.page, dedupe: 'link-page' });
+    if (link.el !== undefined) {
+      const found = await editor.request('inspect', { nodes: [...link.el] as NodeId[] });
+      const known = found.ok ? found.value.elements.map((e) => e.id).filter((id) => link.el?.includes(id)) : [];
+      const missing = link.el.length - known.length;
+      if (known.length > 0) {
+        const selected = await editor.request('select', { nodes: known });
+        if (selected.ok) {
+          chrome.camera('fit-selection');
+          say(linkMessages.selected(known.length));
+        } else problem(selected.error);
+      } else chrome.camera('fit-page');
+      if (missing > 0) toasts.show({ message: known.length === 0 ? linkMessages.elements : linkMessages.someElements(missing, link.el.length), dedupe: 'link-elements' });
+    } else if (link.page !== undefined) chrome.camera('fit-page');
+    if (link.inspect !== undefined && element !== undefined) {
+      await until(() => inspectorBinding.element !== undefined);
+      await element?.updateComplete;
+      await inspectorBinding.element?.reveal(link.inspect);
+    }
+    // Strip the intents (and a dialog key this build does not have) so a reload does not repeat them.
+    if (link.el !== undefined || link.inspect !== undefined || link.unknownDialog !== undefined || (link.page !== undefined && !pages.includes(link.page as NodeId))) {
+      const { page: _page, ...rest } = withoutIntents(link);
+      history.replace(hrefOf(link.page !== undefined && pages.includes(link.page as NodeId) ? { ...rest, page: link.page } : rest));
+    }
+    if (link.unknownDialog !== undefined) console.info(`[studio] dropped unknown dialog "${link.unknownDialog}" (${STUDIO_DIALOGS.join(', ')} exist)`);
+    if (link.dialog !== undefined) await openDialog(link.dialog, link.section, 'deep-link');
+  };
+  /** Resolves once `test()` holds (reactive), or after `ms` whatever happens (a link or a match never hangs Studio). */
+  function until(test: () => boolean, ms = 5000): Promise<void> {
+    return new Promise((resolve) => {
+      if (test()) return resolve();
+      const stop = createScope('instaflow/until');
+      scope.defer(() => stop.dispose());
+      const late = setTimeout(() => {
+        void stop.dispose();
+        resolve();
+      }, ms);
+      stop.defer(() => clearTimeout(late));
+      watch(
+        test,
+        (held) => {
+          if (!held) return;
+          void stop.dispose();
+          resolve();
+        },
+        { scope: stop },
+      );
+    });
+  }
+  let linkedDone: () => void = () => undefined;
+  const linked = new Promise<void>((resolve) => (linkedDone = resolve));
+
   const app: StudioApp = {
+    settings,
+    hints,
+    openDialog: (key, section) => openDialog(key, section),
+    linkTo,
+    applyLink,
+    linked,
     toasts,
     get toasted() {
       return toasted;
@@ -902,9 +1330,12 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       defineSurfaces();
       defineExportPanel();
       defineShortcutSheet();
+      defineSettings();
+      defineHint();
       const provided = provideScope(container, { injector, name: 'instaflow/studio' });
       scope.defer(() => provided.dispose());
       const doc = container.ownerDocument;
+      settings.apply(doc.documentElement, scope);
       const live = createAnnouncer({ document: doc, timers });
       announcer = live;
       render(
@@ -918,6 +1349,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
           asset-title=${options.document.title}
           home-href=${options.homeHref ?? '/'}
           project-title="Instaflow"
+          @if-announce=${(e: CustomEvent<{ message: string }>) => say(e.detail.message)}
           @if-navigate=${(e: CustomEvent<{ href: string }>) => {
             e.preventDefault();
             void leave(e.detail.href);
@@ -943,6 +1375,23 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
         if (!registered.ok) problem(registered.error);
       }
       clip.attach(doc, (e) => e.composedPath().includes(mounted), scope);
+      // B11c audit: the text formatting keys the inspector and the pill show (⌘B ⌘I ⌘U ⌘⇧X ⌘. ⌘, ⌘⇧L/E/R/J), while editing.
+      const editingText = (): boolean => view()?.editing !== undefined;
+      const textSelected = (): boolean => scene.read('selection').kind === 'text';
+      const textKeys = bindTextKeys({ registry: shortcuts, text: typography, summary: () => typographyView.read('summary'), editing: editingText, textSelected, problem: say, scope });
+      if (textKeys !== undefined && !textKeys.ok) problem(textKeys.error);
+      let textScope: (() => void) | undefined;
+      watch(
+        () => editingText() || textSelected(),
+        (on) => {
+          if (on && textScope === undefined) textScope = shortcuts.activate(TextEditingShortcutScope, scope);
+          if (!on) {
+            textScope?.();
+            textScope = undefined;
+          }
+        },
+        { scope, fireImmediately: true },
+      );
       if (exportsService !== undefined) {
         const registered = shortcuts.register(
           ExportShortcut,
@@ -962,10 +1411,19 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
         { scope, fireImmediately: true },
       );
       scope.defer(() => render(html``, container));
+      writeShortcutsSnapshot(storage, sheetGroups());
+      void applyLink(options.link ?? {}).then(() => linkedDone(), (error: unknown) => {
+        console.warn('[studio] the link could not be applied', error);
+        linkedDone();
+      });
       return mounted;
     },
   };
   const openedSpec = await studio.open(signal);
   if (!openedSpec.ok) return openedSpec;
+  if (settings.current.density !== studio.density) {
+    const dense = await studio.setDensity(settings.current.density, signal);
+    if (!dense.ok) problem(dense.error);
+  }
   return ok(app);
 }

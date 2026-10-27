@@ -1616,6 +1616,122 @@ Lifecycle: LIFECYCLES §38.
   registered here are absent: cards Tools · Selection · Edit · Arrange · Transform · Text · View · Studio (empty cards are
   absent), a focused search that filters and marks rows, and a Mac · Windows switch defaulting to the viewer's platform.
   Escape closes it. Not yet: the Print button, row hover pointing at controls, Settings › Shortcuts.
+- **IF-36.35** **New design** (HOME-FILES §1.3, F-54; B11b slice 5, finished in B11c): `＋ New design`, a format chip, `Custom…`
+  or the header's `▾ › Custom size…` open a 520 px modal: Format chips (a radio group; the last used pre-selected, per device),
+  the kit's size field pair `<sf-size-field>` (W × H in px · mm · in · pt at 96 px/in, keep proportions, orientation, 1…16 384
+  px a side with the inline `Too large for this device (max 16 384 px)`), `Presets ▾` (social, print, screen), `Start from`
+  (Blank, Last design, a workspace template: its size, locked), Name, `More ▾` (pages 1–50, background). Create (Enter in a
+  field, Mod+Enter anywhere) runs `instaflow/new-design` with `format=custom&w=&h=` (or uses the template); Studio makes the
+  page that size and background, and the `/new` keys never survive into `/s/:asset`.
+- **IF-36.36** **Home's header and pages** (HOME-FILES §1.1–§2.4): the logo lockup (the brand mark, a link to Home), the nav
+  switcher `Home · Files · Templates · Trash` (links; `aria-current`), the search field (`/` focuses it; it filters every list
+  live and marks the match; `No results for “…” · Clear`; Enter opens `/files?q=`), and Home's pages as one boot with history:
+  Home (hero and formats row, quick actions, Jump back in, Templates when there are any, Projects with `＋ New project`), Files
+  (`/files`: `All · Designs · Templates · Media · Favourites`, `Project ▾`, `Sort ▾` Last edited / Created / Name A–Z / Kind,
+  Grid / List; the list state is remembered per device and written to the URL by replace), a project (`/p/:name`: back,
+  rename by clicking the name, `⋯` Rename / Delete project with the inline `Keep designs, delete project?`), Templates
+  (`/templates`), Trash (`/trash`: rows by day, `Items are kept for 30 days.`, Restore, Delete forever and Empty trash with
+  inline confirms). Back and Forward move between them.
+- **IF-36.37** **Every file operation in three places that agree** (HOME-FILES §3): the card's `⋯` menu (revealed on hover and
+  focus, beside the link, never inside it), the context menu (right-click, Shift+F10, the Menu key) and the keyboard on a
+  focused card (F2 / Mod+Shift+R rename inline, Mod+D duplicate, Delete / Backspace trash), each a capability agents call:
+  `instaflow/rename-design`, `duplicate-design` (`<title> copy`, same project, first, focused), `move-to-project` (submenu of
+  projects, `New project…` in a popover, `No project`; drag a card onto a project card), `favorite` (the star), `trash-designs`
+  (six or more ask in the bulk bar), `restore-designs`, `delete-forever` (trash only, inline confirm), `new-project`,
+  `rename-project`, `delete-project` (designs go to No project), `search-files`; Open, Open in new tab, Use template, Edit
+  template, Copy link. Files and a project select in bulk (checkbox, Shift range, Mod toggle, Mod+A) with the bar `n selected ·
+  Move to ▾ · Duplicate · Move to trash · ×`. Non-local results toast; reversible ones carry Undo (8 s) and Mod+Z on Home runs
+  the newest toast's Undo.
+- **IF-36.38** **Home's journal** (D17 kept): Home never opens the library (a Loro document). Each file operation appends one op
+  to the journal head `home-journal` (compare-and-swap; IF-POL-055 after six lost races) and shows at once (the op is applied
+  to the Home index it reads); Studio's store side drains the journal into the library when it opens (before it plans the
+  document), when Home pings `instaflow/home-journal` and when its tab becomes visible: rename, move, favourite, trash,
+  restore, purge, duplicate (a fresh snapshot of the source's Latest as a new document, no history), import (listed unless the
+  same content is live), project rename / remove; the index is rewritten first, then the applied ops leave the journal. The
+  index writer applies pending ops too, so a Studio write never undoes what Home shows. The Home index now carries the
+  project, favourite, trash time, page count, content digest and the projects made on Home.
+- **IF-36.39** **Import on Home** (HOME-FILES §3.1): Files' `Import`, Mod+I, dropping files anywhere on the page column (the
+  tangerine outline, `Drop files to import` announced) and pasting files import images, SVG and fonts into the project on
+  screen: the bytes and the `instaflow.asset/1` record go to the workspace blob store (OPFS; the store loads on first import),
+  the listing is a journal op; the same content is never imported twice (`… is already in this workspace`); video and audio
+  are refused (`Video arrives with the Timeline lens`), anything else with `Images, SVG and fonts are supported`; several files
+  show an inline progress row with Cancel; `Imported …` toasts carry Undo (to the trash). Images show their own preview on
+  cards and rows.
+- **IF-36.40** **First run and storage** (HOME-FILES §1.4, §4): the first visit shows one welcome card `Your designs live on this
+  device` whose `Keep my designs on this device` asks `navigator.storage.persist()` on the click (then `Saved on this device`,
+  or `Chrome may clear this workspace under storage pressure. Pin this site to keep it.`), dismissable, seen per device
+  (`instaflow/ui/first-run`); the formats row says `Pick a size to start. You can change it later.` once. The footer reads
+  `1.2 GB used on this device`; a write that fails for lack of space shows the banner `Storage is full…` with `Open Trash`.
+- **IF-36.41** **Settings** (STUDIO §2.4, DENSITY §7, §8.3; B11c slice 2): one `<if-settings>` with the M1 sections General ·
+  Keyboard shortcuts · Storage · About, a page in Home's shell (`/settings`, `/settings/:section`; the header's gear and the
+  footer's `Settings`) and a dialog over Studio (`/s/:asset/d/settings?section=`; `⋯ › Settings…`, `Mod+,`; `⋯ › About`).
+  General: the density radio cards with their one-liners and preview drawings; `More ▾` holds Units (New design's default),
+  Reduced motion (follow the system, reduce, full) and `Show first-use hints` with `Reset hints`. Shortcuts: the cheat sheet
+  (Studio's registry; on Home the last Studio snapshot plus Home's own card). Storage: space used with a bar, persistence and
+  `Keep my designs on this device`, `Open Trash`. About: version, `Copy diagnostics`, licences (with the fonts you added).
+  Every change is saved per device at once (`instaflow/ui/settings`), never in a document or a URL.
+- **IF-36.42** **Density modes** (DENSITY §1, §3.1, §4, §6, §7.1): Focus · Standard (default, first run) · Pro, chosen in
+  `View ▾ › Density`, Settings › General or `Mod+.` (cycles, a 1.5 s toast `Standard · Your work, with the panels that explain
+  it.`), remembered per device and followed by other tabs; the device setting and the mounted spec are one value. The root
+  carries `data-sf-density` (the theme's §6 token sets) and `data-sf-motion`. Focus hides the lens switcher while only Canvas
+  and Pages exist (`1` / `5` still switch) and folds `Milestone` into `⋯ › Create milestone`; Pro adds the undo label
+  (`Undo: Resize headline`) and the zoom as text in the top bar; Home in Pro is the file manager (compact hero, 12 recents,
+  compact project and template rows, Files as a list by default with sortable headers and a Pages column, the bulk bar docked).
+- **IF-36.43** **Deep links and routable dialogs** (NAVIGATION §2–§6): Export and Settings are routable dialogs (`/d/export`,
+  `/d/settings`): opened in-app they push (Back closes; `×` / Escape go back), opened from a link Escape replaces the path with
+  the design's; the Settings section is replaced in the query; each has a `Copy link` in its header. A cold boot applies the
+  link in order: the canvas opens on `page=`, then `lens=`, `dock=`, `el=` (select the ids that exist, zoom to them, announce
+  `2 elements selected`), `inspect=` (expand and scroll that inspector section, focus stays on the canvas), the dialog last;
+  `el` / `inspect` (and an unknown dialog key) are stripped by replace. Query keys Studio does not own survive every rewrite.
+  Hints are suppressed on arrivals with `el=`, `page=` or a dialog. Home's card `⋯ › Export…` opens `/s/:asset/d/export`
+  (`instaflow/open-design` with `dialog: 'export'`).
+- **IF-36.44** **Copy link to this** (NAVIGATION §5): `⋯ › Copy link` and `Mod+Alt+L` copy `/s/:asset`; the page label's menu
+  `Copy link to page` copies `/s/:asset?lens=pages&page=`; the selection's context menu `Copy link to selection` copies
+  `/s/:asset?page=&el=`; a routable dialog's `Copy link` copies its path with its section; `Link copied` (1.5 s, deduped).
+- **IF-36.45** **Missing targets** (NAVIGATION §4): an unknown page id opens the first page with `That page is no longer in
+  this design`; unknown element ids select the rest with `That element…` / `2 of 3 linked elements are no longer in this
+  design`; a design not on this device shows `<if-missing-design>` at the same URL (`This design isn't on this device`, the
+  sentence, `Go to Home`); a design in the trash shows `This design is in the trash` with `Restore` (a Home journal op, then
+  the page reloads into Studio) — M1 has no read-only Studio, so the trash case departs from "opens read-only" (handoff).
+- **IF-36.46** **First-use hints** (OVERLAYS §5): the M1 set (Frame, Shape, Text, Hand under the tool picker; Layers' first
+  element; the first multi-selection) shown at the first use, one at a time, at most two per session, seen once per device
+  (`instaflow/ui/hints`, the surface manager's seen store), retired when the tool is used; `Show first-use hints` turns them
+  off and `Reset hints` brings them (and Home's welcome card) back.
+- **IF-36.48** **Find and replace** (STUDIO §9.1; B11c slice 3): `Mod+F` (also `⋯ › Find…`, the command bar's `Find…`;
+  `Mod+Alt+F` with Replace open) shows the find bar at the canvas's top-right, non-modal: `Kind ▾` (Text · Font · Colour), the
+  field, the count `3 of 12` (polite), `↑ ↓` (Enter / Shift+Enter; `Mod+G` / `Mod+Shift+G` while the bar has focus), `Aa`,
+  `Replace ▾` (the replacement — text, a font from the document's fonts, a colour — `Replace` and `Replace all`), `Scope ▾`
+  (All pages · This page · Selection) and `×`; Escape closes it and keeps the selection; Kind and Scope are remembered per
+  device. Matches come from every page: text case-insensitive by default (marks kept on replace), fonts by family (runs with
+  no font mark are the default face), colours by resolved hex in solid fills, strokes, text colour and page backgrounds. The
+  current match is selected, its page shown, the camera zoomed to it when it is off-screen, and announced (`Match 3 of 12:
+  Headline on Page 2`). `Replace all` is one undo step `Replace '<a>' with '<b>'` toasted with Undo; locked elements are
+  matched, skipped and counted (`2 locked, skipped`). Capabilities `instaflow/find` and `instaflow/replace` (agents too).
+- **IF-36.49** **Image fills and page background images** (APPEARANCE §2.1–§2.2, Q5; B11c slice 4): a fill row's swatch opens
+  one popover with the tabs `Solid · Gradient · Image` (switching converts the paint; `Image` lists the workspace's images and
+  `Upload…`, then `Fit ▾` Fill · Fit · Stretch · Tile and the numeric crop X · Y · Scale on the top image row of an element);
+  `+ Add ▾ › Image…` and the `Add image to fill` button add an image row on top; the page's Background is the same stack and
+  takes colours, gradients and images (A-1). Each is one undo step (`Image fill`, `Fill kind`, `Background image`,
+  `Background kind`); the editor uploads the picture to the render module first (`imageFill`).
+- **IF-36.50** **Images from files** (HOME-FILES §3.1): `Place image…` in the tool picker, the command bar and the empty canvas's
+  context menu opens a file picker; the images land at the viewport centre, or centred in the one selected frame (sized to
+  fit it). Image files dropped from the OS on the canvas (tangerine outline while dragging) fill the shape or frame under the
+  point (an image there shows the new picture), else land at the point; further files are placed. A file that is not an
+  image (IF-POL-060) or is over 100 MB (IF-POL-059) is refused with a toast and its fix; nothing blanks the screen. No key is
+  bound: HOME-FILES §3.1's `Mod+I` is Italic in Studio (TEXT §7); `Mod+Shift+K` (Figma's Place image) is proposed.
+- **IF-36.51** **Leftovers closed in B11c slice 4**: Page › Size is the kit's size field (1…16 384 px, New design's range,
+  IF-POL-050); the menus' Paste reads the system clipboard (Studio's payload, an image, text; the memory copy when refused);
+  `Alt+Shift+]` / `Alt+Shift+[` rotate 1° (R15.7); the cheat sheet's `Print` prints the cards with both platforms' keys; the
+  colour popover's contrast tag (`AA 4.9 : 1 on #FFFFFF`) against the page's solid Background on fill and text colours
+  (R13.52); `Replace…` keeps an image's crop when the new picture has the same proportions.
+- **IF-36.52** **Final audit fixes** (B11c slice 5; STUDIO Appendix A, TEXT-FONTS §4.2, APPEARANCE §2.10 / §3.6 / §4.10): the
+  text formatting keys the inspector and the pill show work — `⌘B ⌘I ⌘U ⌘⇧X` on an edited or selected text, `⌘.` / `⌘,`
+  (super / subscript), `⌘⇧L/E/R/J` (alignment) and `⌘\` (clear formatting) while editing, in their own scope over Studio's
+  keys on the same combos; Size has its presets `▾` (12…96); Page › More › `Apply background to all pages` (one step); the
+  Transform section's pivot picker (nine points, More, Pro always; the view state's pivot). Appendix A lists every visible
+  control as working, hidden or not built.
+- **IF-36.47** **The logo in the browser** (brand README): Home's and Studio's pages link `brand/favicon.svg` (white strokes in
+  dark mode), the PNG fallback, the touch icon and `brand/manifest.webmanifest` (name, colours, the 192 / 512 / SVG app icons).
 
 ## 37. Engine gaps for B11b (M1c B12)
 

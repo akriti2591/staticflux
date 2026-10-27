@@ -53,11 +53,27 @@ Main side:
   injector, the capability registry with forwarding implementations, Studio controller, canvas, scope-follows-selection,
   lens controller over the mirrored structure, HUD dispatch, `createMilestone`, `place`, `inspect`, `element`, `metrics`,
   `mount(container)`, `spoken`, `view`, `tab`; C0: `library`, `flush()` (Latest durable), `leave(href)` (the Home link: flush, then
-  `options.leave`), `saveAsTemplate(title?)` (`instaflow/save-as-template` on main over `options.templates`), `homeHref`).
+  `options.leave`), `saveAsTemplate(title?)` (`instaflow/save-as-template` on main over `options.templates`), `homeHref`). B11c slice 2:
+  options `settings` (device settings), `link` (the URL's `StudioLink`), `history` (`StudioHistory`; `browserStudioHistory()`),
+  `storage`, `storageFacts`; app `settings`, `hints`, `openDialog(key, section?)` (routable Export and Settings: push in-app, back on
+  dismissal, replace when deep-linked; Back / Forward follow), `linkTo(target)` (design, page, selection), `applyLink(link)` (cold
+  boot order: page, lens, dock, `el`, `inspect`, the dialog last; intents stripped), `linked`; the chrome port's `copyLink(target)`,
+  `openSettings(section?)`, `cycleDensity()`; the seen store bound to `instaflow/ui/hints`; `linkMessages`.
+- `find-replace.ts` (B11c slice 3, worker side) — `FindCapability` (`instaflow/find`), `ReplaceCapability` (`instaflow/replace`),
+  `FIND_CAPABILITIES`, `FIND_KINDS`, `FIND_SCOPES`, `FindQuery`, `FindMatch`, `FindResult`, `ReplaceResult`, `FindEnv`, `findMatches`
+  (pure), `replacePlan` (ops per part), `runReplace` (one undo step), `replaceLabel`, `resolvedHex`, `implementFindReplace(env)`;
+  `studio-app.ts` exports `onScreen(frame, camera, viewport)` (a match off-screen is zoomed to).
+- B11c slice 4: the chrome port's `placeImage()` and `dropFiles(files, at)`, the inspector port's `imageFill(to, source, index?)`
+  (files screened: not an image IF-POL-060, over 100 MB IF-POL-059); `clipboard-controller.ts` `readSystemClipboard`,
+  `PasteSources` (the menus' Paste reads the system clipboard). Worker: `imageFill` request (`ImageFillTarget`, `ImageFillResult`,
+  `IMAGE_FILLABLE`); `place` puts the image in a selected frame.
+- `text-keys.ts` (B11c slice 5) — `TEXT_EDITING_KEYS`, `TextEditingShortcutScope` (child of Studio's), `bindTextKeys({ registry,
+  text, summary, editing, textSelected?, problem, scope })`; `studio-app.ts` activates the scope while editing or a text is selected.
 - `errors.ts` — `IF-INT-001` pipeline start · `002` scene record · `003` no open page · `004` canvas backend · `005` document.
 - `feedback.ts` (B11a2, main side) — `feedbackFor(error, origin, copy?)` (level by origin refined by `FAMILY_LEVELS`; Instaflow words per error
   definition; never the code), `ToastsToken` / `createToasts(manager, owner)` (`show`, `undoable` → `Restored`, `error`, `undoNewest` for Home's
-  `Mod+Z`), `INSTAFLOW_SURFACE_UNITS` (messaging under `strictSurfacePolicy`). B11b binds the units and the token.
+  `Mod+Z`), `INSTAFLOW_SURFACE_UNITS` (messaging under `strictSurfacePolicy`). B11b binds the units and the token. B11c: `ToastRequest.durationMs`
+  (1.5 s confirmations: `Link copied`, the density name).
 - `test-helpers.ts` (test-only) — `createStudioFixture`, `scriptedTextInput`, `lendDom`, `manualTimers`, `textPortRig` (the
   TextInput port with both queues held by the test).
 

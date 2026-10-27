@@ -14,7 +14,7 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 ## Public API (entry point → exports)
 - `button` — `<sf-button>` (`variant: secondary|primary|agent|agent-soft|ghost|danger`, `size: sm|md|lg`, `disabled`, `pressed`, `type`), `defineButton`.
   `agent` hands work to an agent (`color.agent`/`onAgent`), `agent-soft` is an agent action in a toolbar (`agentSoft`/`agentInk`).
-- `icon` — `<sf-icon .icon=${trash2Icon} size=16|18|24 label>` (inline SVG in `currentColor`, decorative unless `label`; `name` reflects the
+- `icon` — `<sf-icon .icon=${trash2Icon} size=16|18|24 label>` (B11c R13.50: `--sf-icon-fill` fills the shape) (inline SVG in `currentColor`, decorative unless `label`; `name` reflects the
   icon), `defineIcon(name, nodes, source)` (data), `IconDef`, `IconNode`, `iconElement`, `iconProblems`, `iconStrokeWidth`, `ICON_SIZES`,
   `defineIconElement`. *(B11a)*
 - `icons` / `icons/<name>` — the icon set as typed values: `@staticflux/kit/icons/trash-2` → `trash2Icon` (Lucide ISC, see `src/icons/LICENSE`)
@@ -41,6 +41,13 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
   `role="status"` unless set; the words carry the state; `busy` pulses, none under reduced motion), `defineStatus`. *(Instaflow B5 save state)*
 - `card` — `<sf-card href label>` (content card: raised surface, hairline, `radius.lg`; with `href` the whole card is one native link with the
   focus ring, name from its text or `label`; `--kit-card-padding`, `--kit-card-gap`, `::part(card)`), `defineCard`. *(Instaflow C0 Home)*
+  *B11c (R13.49):* an `actions` slot (top-right) and a `leading` slot (top-left) outside the link, shown on hover / focus within (always
+  with `actions-shown`), and the `selected`, `drop-target`, `dragging` states.
+- `color-popover` (B11c) — `contrast-with` and the contrast tag (R13.52), `contrastRatio`, `contrastLevel`.
+- `size-field` — `<sf-size-field label .width .height unit locked min max disabled>` (R13.51: `--sf-size-field-input` sets the field width; R13.48: W and H number fields in `px · mm · in · pt`
+  at 96 px/in, keep proportions, portrait · landscape, units, a `presets` slot; inline error outside `min`…`max`, SF-KIT-005;
+  `sf-change` `{ width, height, unit }`, `sf-submit` on Enter), `sizeInUnit`, `sizeFromUnit`, `validateSide`, `keepRatio`, `orientationOf`,
+  `SIZE_UNITS`, `SIZE_UNIT_IDS`, `SizeOutOfRangeError`, `defineSizeField`. *(B11b / B11c)*
 - `color-field` — `<sf-color-field label value>` (hex + native picker, validates via ui `normalizeHex`), `pickerValue`, `defineColorField`.
 - `overlay` — the overlay model as data (OVERLAYS-FEEDBACK §1): `OVERLAY_LAYERS`, `OVERLAY_NESTING`, `canNest(parent, child)` (SF-KIT-003),
   `OVERLAY_GAP`, `OVERLAY_ATTR` (`data-sf-overlay` on open overlay hosts; HUDs set it on their root), `flatParent`, `flatContains`,
@@ -151,14 +158,15 @@ themes, density (Focus / Standard / Pro), contrast and reduced motion restyle ev
 | @staticflux/kit/inspector (raised 1.85 → 2.65 KB by B11a: the group chevron is <sf-icon>) | 2.65 KB | packages/kit/dist/inspector.js |
 | @staticflux/kit/tree (raised 4.4 → 5.1 KB by B11a: the twisty is <sf-icon>; B11b raised 5.1 → 5.75 KB: inline rename rows, trailing row content, muted and highlighted rows for Layers) | 5.75 KB | packages/kit/dist/tree.js |
 | @staticflux/kit/shortcut-sheet (<sf-shortcut-sheet>: the keyboard cheat sheet over a registry snapshot; B11b) | 2.5 KB | packages/kit/dist/shortcut-sheet.js |
+| @staticflux/kit/size-field (<sf-size-field>: the size field pair of New design; with the number field, segmented, icon button; B11b; B11c measured 9 KB → 12.5 KB: it carries the number field (5 KB), the segmented switch, the icon button with the tooltip core and the lock icons) | 12.5 KB | packages/kit/dist/size-field.js |
 | @staticflux/kit/command-palette | 3.6 KB | packages/kit/dist/command-palette.js |
 | @staticflux/kit/roving | 1.25 KB | packages/kit/dist/roving.js |
 | @staticflux/kit/position (raised 1.5 → 1.7 KB by B11a2: shrink step and the context-menu corner rule) | 1.7 KB | packages/kit/dist/position.js |
-| @staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>) | 43.75 KB | packages/kit/dist/index.js |
+| @staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>; B11c 43.75 KB → 45.5 KB: <sf-size-field> (R13.48), card action and selection slots (R13.49), icon fill) | 45.5 KB | packages/kit/dist/index.js |
 | @staticflux/kit/tag | 1.1 KB | packages/kit/dist/tag.js |
 | @staticflux/kit/status | 1.1 KB | packages/kit/dist/status.js |
-| @staticflux/kit/card | 1.1 KB | packages/kit/dist/card.js |
-| @staticflux/kit/icon (<sf-icon> + icon data helpers; B11a) | 1.65 KB | packages/kit/dist/icon.js |
+| @staticflux/kit/card (B11c 1.1 KB → 1.4 KB: action and leading slots outside the link, selected / drop-target / dragging states (R13.49)) | 1.4 KB | packages/kit/dist/card.js |
+| @staticflux/kit/icon (<sf-icon> + icon data helpers; B11a; B11c 1.65 KB → 1.7 KB: --sf-icon-fill (the favourite star fills)) | 1.7 KB | packages/kit/dist/icon.js |
 | @staticflux/kit/icons (the whole kit icon set: 89 Lucide + 15 custom; well under STUDIO-UX-SPEC §10.2's 20 KB cap for Studio's set; B11a; B11b raised 5 → 5.5 KB: 12 more Lucide icons for the inspector — strikethrough, sub/superscript, justify, case, remove formatting, vertical text alignment, orientation, reverse) | 5.5 KB | packages/kit/dist/icons/index.js |
 | @staticflux/kit/icons/trash-2 (one icon module ≈ 0.2 KB, STUDIO-UX-SPEC §10.2; B11a) | 0.3 KB | packages/kit/dist/icons/trash-2.js |
 | @staticflux/kit/number-field (<sf-number-field>: expressions, units, scrub, mixed; B11a; 5 KB by B11a2: its icon buttons carry the warm-period tooltip) | 5 KB | packages/kit/dist/number-field.js |

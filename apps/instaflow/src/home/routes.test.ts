@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { aspectOf, DEFAULT_DESIGN_FORMAT, DESIGN_FORMAT_IDS, DESIGN_FORMATS, designFormat, designFormats } from './formats.js';
-import { homeHref, instaflowRoutes, newDesignHref, readStudioIntent, studioHref } from './routes.js';
+import { aspectOf, DEFAULT_DESIGN_FORMAT, DESIGN_FORMAT_IDS, DESIGN_FORMATS, designFormat, designFormats, formatOfSize, groupDigits, NEW_DESIGN_CHIPS } from './formats.js';
+import { homeHref, homeViewHref, instaflowRoutes, keepForeignParams, newDesignHref, readElementIds, readHomeView, readStudioIntent, studioHref, studioLinkHref, withoutIntents } from './routes.js';
 
 const value = <T>(r: { ok: true; value: T } | { ok: false }): T => {
   if (!r.ok) throw new Error('not ok');
@@ -14,6 +14,27 @@ describe('surface routes (D17)', () => {
     expect(value(newDesignHref())).toBe('/new');
     expect(value(newDesignHref({ format: 'story' }))).toBe('/new?format=story');
     expect(value(newDesignHref({ template: 'as_tpl' }))).toBe('/new?template=as_tpl');
+    // B11b: the New design dialog's choices (px is the default unit; a blank name is dropped).
+    expect(value(newDesignHref({ format: 'custom', size: { width: 1500, height: 500 }, unit: 'mm', pages: 3, name: ' Spring ', background: '#ffeedd' }))).toBe('/new?format=custom&w=1500&h=500&unit=mm&pages=3&name=Spring&bg=%23ffeedd');
+    expect(value(newDesignHref({ format: 'post', unit: 'px', name: '  ' }))).toBe('/new?format=post');
+  });
+
+  it('builds and reads Home’s own pages (B11c): Files with its view params, a project, templates, trash', () => {
+    expect(value(homeViewHref({ kind: 'home' }))).toBe('/');
+    expect(value(homeViewHref({ kind: 'files' }))).toBe('/files');
+    expect(value(homeViewHref({ kind: 'files', query: ' flyer ', filter: 'media', sort: 'name', layout: 'list' }))).toBe('/files?q=flyer&filter=media&sort=name&view=list');
+    expect(value(homeViewHref({ kind: 'files', filter: 'all', sort: 'edited' }))).toBe('/files');
+    expect(value(homeViewHref({ kind: 'project', name: 'Spring campaign' }))).toBe('/p/Spring%20campaign');
+    expect(value(homeViewHref({ kind: 'templates' }))).toBe('/templates');
+    expect(value(homeViewHref({ kind: 'trash' }))).toBe('/trash');
+    expect(readHomeView('/files?q=flyer&filter=media&sort=name&view=list')).toEqual({ kind: 'files', query: 'flyer', filter: 'media', sort: 'name', layout: 'list' });
+    expect(readHomeView('/files?filter=nope')).toEqual({ kind: 'files' });
+    expect(readHomeView('/p/Spring%20campaign')).toEqual({ kind: 'project', name: 'Spring campaign' });
+    expect(readHomeView('/templates')).toEqual({ kind: 'templates' });
+    expect(readHomeView('/trash')).toEqual({ kind: 'trash' });
+    expect(readHomeView('/')).toEqual({ kind: 'home' });
+    expect(readHomeView('/s/as_1')).toEqual({ kind: 'home' });
+    expect(readStudioIntent('/files')).toEqual({ kind: 'demo' });
   });
 
   it('reads what a Studio URL asks for (and keeps unrelated query keys out of it)', () => {
@@ -23,12 +44,56 @@ describe('surface routes (D17)', () => {
     expect(readStudioIntent('/new?template=as_t')).toEqual({ kind: 'new', format: undefined, template: 'as_t' });
     expect(readStudioIntent('/new?format=nope')).toEqual({ kind: 'new', format: undefined, template: undefined });
     expect(readStudioIntent('/new?template=')).toEqual({ kind: 'new', format: undefined, template: undefined });
+    expect(readStudioIntent('/new?format=custom&w=1500&h=500&pages=3&name=Spring&bg=%23FFEEDD')).toEqual({ kind: 'new', format: 'custom', template: undefined, size: { width: 1500, height: 500 }, pages: 3, name: 'Spring', background: '#ffeedd' });
+    // Out of range or malformed values are dropped (a custom size needs both sides).
+    expect(readStudioIntent('/new?format=custom&w=20000&h=500&pages=99&bg=red')).toEqual({ kind: 'new', format: 'custom', template: undefined });
+    expect(readStudioIntent('/new?format=post&w=500&h=500')).toEqual({ kind: 'new', format: 'post', template: undefined });
     expect(readStudioIntent('/dev/studio/?topology=split')).toEqual({ kind: 'demo' });
     expect(readStudioIntent('/')).toEqual({ kind: 'demo' });
   });
 
   it('builds the route table once', () => {
     expect(instaflowRoutes()).toBe(instaflowRoutes());
+  });
+});
+
+describe('deep links (B11c, NAVIGATION §2, §5, §6)', () => {
+  it('builds a place in a design in the spec’s order: path, lens, page, dock, el, inspect, then the dialog', () => {
+    const href = (link: Parameters<typeof studioLinkHref>[1]) => {
+      const r = studioLinkHref('as_1', link);
+      return r.ok ? r.value : r.error.code;
+    };
+    expect(href({})).toBe('/s/as_1');
+    expect(href({ lens: 'canvas', page: 'p2' })).toBe('/s/as_1?page=p2');
+    expect(href({ lens: 'pages', page: 'p2', dock: 'layers', el: ['e1', 'e2'], inspect: 'fill' })).toBe('/s/as_1?lens=pages&page=p2&dock=layers&el=e1%2Ce2&inspect=fill');
+    expect(href({ dialog: 'export' })).toBe('/s/as_1/d/export');
+    expect(href({ dialog: 'settings', section: 'shortcuts' })).toBe('/s/as_1/d/settings?section=shortcuts');
+    expect(href({ dialog: 'export', section: 'shortcuts' })).toBe('/s/as_1/d/export');
+  });
+
+  it('reads links back: view params, intents (≤ 20 ids, no repeats), a dialog, an unknown dialog key', () => {
+    expect(readStudioIntent('/s/as_1?lens=pages&page=p2&dock=assets&el=e1,e1,,e2&inspect=stroke')).toEqual({ kind: 'open', asset: 'as_1', link: { lens: 'pages', page: 'p2', dock: 'assets', el: ['e1', 'e2'], inspect: 'stroke' } });
+    expect(readStudioIntent('/s/as_1/d/settings?section=about')).toEqual({ kind: 'open', asset: 'as_1', link: { dialog: 'settings', section: 'about' } });
+    expect(readStudioIntent('/s/as_1/d/share')).toEqual({ kind: 'open', asset: 'as_1', link: { unknownDialog: 'share' } });
+    expect(readStudioIntent('/s/as_1?lens=timeline&inspect=nope')).toEqual({ kind: 'open', asset: 'as_1' });
+    expect(readElementIds(Array.from({ length: 30 }, (_, i) => `e${i}`).join(','))).toHaveLength(20);
+    expect(readElementIds(' , ')).toBeUndefined();
+    expect(withoutIntents({ page: 'p1', el: ['e1'], inspect: 'fill', unknownDialog: 'x', dialog: 'export' })).toEqual({ page: 'p1', dialog: 'export' });
+  });
+
+  it('keeps query keys Studio links do not own (boot settings, debug flags)', () => {
+    expect(keepForeignParams('/s/as_1/d/export', '/s/as_1?topology=split&el=e1&page=p1')).toBe('/s/as_1/d/export?topology=split');
+    expect(keepForeignParams('/s/as_1?page=p1', '/s/as_1?sf-debug=2')).toBe('/s/as_1?page=p1&sf-debug=2');
+    expect(keepForeignParams('/s/as_1', '/s/as_1?el=e1')).toBe('/s/as_1');
+    expect(keepForeignParams('/s/as_1', '/s/as_1')).toBe('/s/as_1');
+  });
+
+  it('Settings is a Home page: /settings and /settings/:section (unknown sections fall back to General)', () => {
+    expect(readHomeView('/settings')).toEqual({ kind: 'settings' });
+    expect(readHomeView('/settings/storage')).toEqual({ kind: 'settings', section: 'storage' });
+    expect(readHomeView('/settings/nope')).toEqual({ kind: 'settings' });
+    const built = [homeViewHref({ kind: 'settings' }), homeViewHref({ kind: 'settings', section: 'general' }), homeViewHref({ kind: 'settings', section: 'about' })].map((r) => (r.ok ? r.value : r.error.code));
+    expect(built).toEqual(['/settings', '/settings', '/settings/about']);
   });
 });
 
@@ -47,6 +112,14 @@ describe('design formats', () => {
     expect(designFormat(undefined).id).toBe(DEFAULT_DESIGN_FORMAT);
     expect(designFormat('banner').id).toBe(DEFAULT_DESIGN_FORMAT);
     expect(designFormat('story').id).toBe('story');
+  });
+
+  it('matches a size to its chip (Custom otherwise) and groups digits', () => {
+    expect(formatOfSize({ width: 1080, height: 1920 })).toBe('story');
+    expect(formatOfSize({ width: 1080, height: 1350 })).toBe('custom'); // the carousel is not a chip
+    expect(NEW_DESIGN_CHIPS).toEqual(['post', 'story', 'landscape', 'slides', 'poster', 'letter']);
+    expect(groupDigits(16384)).toBe('16 384');
+    expect(groupDigits(794)).toBe('794');
   });
 
   it('gives a CSS aspect ratio for previews', () => {

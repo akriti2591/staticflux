@@ -30,7 +30,7 @@ const ELEMENT_MODULES = sources(SRC).filter((path) => /tag: 'if-|_TAG = 'if-/.te
 describe('chrome audit coverage', () => {
   it('finds every Instaflow panel and the Studio frame', () => {
     expect(ELEMENT_MODULES.map((p) => relative(SRC, p)).sort()).toEqual(
-      ['elements/panel.ts', 'export/panel.ts', 'home/home-element.ts', 'lenses/pages-panel.ts', 'library/library-panel.ts', 'repeat/panel.ts', 'studio/command-bar.ts', 'studio/hud.ts', 'studio/inspector.ts', 'studio/layers-panel.ts', 'studio/studio-element.ts', 'text/typography-panel.ts', 'tools/transform-bar.ts', 'versioning/milestones-panel.ts', 'versioning/save-status.ts'].sort(),
+      ['elements/panel.ts', 'export/panel.ts', 'home/home-element.ts', 'home/missing-design.ts', 'home/new-design.ts', 'lenses/pages-panel.ts', 'library/library-panel.ts', 'repeat/panel.ts', 'settings/settings-element.ts', 'studio/command-bar.ts', 'studio/find-bar.ts', 'studio/hud.ts', 'studio/inspector.ts', 'studio/layers-panel.ts', 'studio/studio-element.ts', 'text/typography-panel.ts', 'tools/transform-bar.ts', 'versioning/milestones-panel.ts', 'versioning/save-status.ts'].sort(),
     );
   });
 
@@ -70,6 +70,9 @@ const FOUNDATION_BLOCKS = [
   'sf-blocking-error',
   // B11b: the keyboard cheat sheet.
   'sf-shortcut-sheet',
+  // B11c: the size field pair (New design, Page › Size) and the card with its action and selection slots.
+  'sf-size-field',
+  'sf-card',
 ] as const;
 
 describe('foundation blocks audit coverage', () => {

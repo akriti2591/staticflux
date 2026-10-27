@@ -10,7 +10,8 @@
  *   `name` attribute is reflected from the icon for styling and tests; it is never looked up.
  * - Paints with `currentColor`, `fill: none`; stroke 2 on the 24 grid, 1.75 at 16 px (the size
  *   menus, rows, the inspector and tags use). Sizes: `16` (default), `18` (icon buttons, tool
- *   picker), `24` (cards, empty states). `--sf-icon-stroke` overrides the stroke.
+ *   picker), `24` (cards, empty states). `--sf-icon-stroke` overrides the stroke; `--sf-icon-fill` fills the shape
+ *   (a favourite's star; default none).
  * - Decorative by default (`aria-hidden="true"`): the control around it carries the name. With
  *   `label` it is an image (`role="img"`, `aria-label`) for the rare icon that stands alone.
  */
@@ -69,6 +70,7 @@ export class SfIconElement extends SfElement<typeof iconSpec> {
         inline-size: 100%;
         block-size: 100%;
         stroke-width: var(--_stroke);
+        fill: var(--sf-icon-fill, none);
         overflow: visible;
       }
       @media (forced-colors: active) {

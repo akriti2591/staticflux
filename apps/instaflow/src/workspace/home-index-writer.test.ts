@@ -2,6 +2,7 @@ import { box, createScope, ok } from '@staticflux/core';
 import { createMemoryDocumentStore, type DocumentHead, HeadConflictError } from '@staticflux/document/v2';
 import { describe, expect, it } from 'vitest';
 import { HOME_INDEX_SCHEMA, type HomeIndex, readHomeIndex, withHomeIndex } from '../home/index-record.js';
+import { appendHomeOps, homeOp } from '../home/journal.js';
 import type { LibraryEntry } from '../library/library-doc.js';
 import { createHomeIndexWriter, observeStoreWrites, projectHomeIndex, writeHomeIndex } from './home-index-writer.js';
 
@@ -39,7 +40,7 @@ function timers() {
 }
 
 describe('projectHomeIndex', () => {
-  it('lists live entries with the kind lens, format and newest edit; trash is hidden', () => {
+  it('lists entries with the kind lens, format and newest edit; trash carries its time (B11c)', () => {
     const entries = [
       libEntry('as_d', 'composition', '2026-10-01T00:00:00.000Z'),
       libEntry('as_img', 'image', '2026-10-02T00:00:00.000Z', { mime: 'image/png', size: 9, media: { width: 40, height: 20 } as never }),
@@ -50,9 +51,24 @@ describe('projectHomeIndex', () => {
     expect(index.entries.map((e) => [e.asset, e.lens, e.editedAt, e.format])).toEqual([
       ['as_img', 'pixel', '2026-10-05T00:00:00.000Z', { width: 40, height: 20 }],
       ['as_d', 'layout', '2026-10-04T00:00:00.000Z', { width: 1080, height: 1920 }],
+      ['as_old', 'layout', '2026-10-01T00:00:00.000Z', undefined],
     ]);
     expect(index.entries[1]?.title).toBe('T as_d'); // the library's title wins over the stored one
     expect(index.entries[0]?.mime).toBe('image/png');
+    expect(index.entries[2]?.trashedAt).toBe('2026-10-03T00:00:00.000Z');
+  });
+
+  it('carries project, favourite, page count, digest and the projects made on Home (B11c)', () => {
+    const content = { digest: `sha256:${'a'.repeat(64)}` as const, size: 3, mime: 'image/png' };
+    const previous: HomeIndex = { schema: HOME_INDEX_SCHEMA, entries: [], projects: [{ name: 'Empty', createdAt: '2026-10-01T00:00:00.000Z' }] };
+    const index = projectHomeIndex(
+      [libEntry('as_d', 'composition', '2026-10-01T00:00:00.000Z', { folder: 'Spring', favorite: true }), libEntry('as_i', 'image', '2026-10-01T00:00:00.000Z', { content })],
+      previous,
+      new Map([['as_d', { pages: 3 }]]),
+    );
+    expect(index.entries.find((e) => e.asset === 'as_d')).toMatchObject({ folder: 'Spring', favorite: true, pages: 3 });
+    expect(index.entries.find((e) => e.asset === 'as_i')?.digest).toBe(content.digest);
+    expect(index.projects).toEqual(previous.projects);
   });
 
   it('never moves an edit time backwards (a stale touch loses to the stored index)', () => {
@@ -76,6 +92,17 @@ describe('writeHomeIndex', () => {
     expect(head.ok && readHomeIndex(head.value).entries.map((e) => e.asset)).toEqual(['as_d']);
     const again = await writeHomeIndex(store, () => next, signal());
     expect(again.ok && again.value.written).toBe(false);
+  });
+
+  it('applies Home’s pending journal ops on top, so a write never undoes what Home shows (B11c)', async () => {
+    const store = createMemoryDocumentStore();
+    expect((await store.writeHead('library', libraryHead(1), null, signal())).ok).toBe(true);
+    const projected: HomeIndex = { schema: HOME_INDEX_SCHEMA, entries: [{ asset: 'as_d', kind: 'composition', title: 'D', createdAt: '2026-10-01T00:00:00.000Z', editedAt: '2026-10-01T00:00:00.000Z', lens: 'layout' }] };
+    expect((await appendHomeOps(store, [homeOp({ kind: 'rename', asset: 'as_d', title: 'Renamed on Home' }), homeOp({ kind: 'project-add', name: 'Spring' })], signal())).ok).toBe(true);
+    const written = await writeHomeIndex(store, () => projected, signal());
+    expect(written.ok && written.value.index.entries[0]?.title).toBe('Renamed on Home');
+    const head = await store.readHead('library', signal());
+    expect(head.ok && readHomeIndex(head.value).projects?.map((p) => p.name)).toEqual(['Spring']);
   });
 
   it('retries a lost race against another writer and gives up with IF-HOME-005', async () => {
@@ -165,7 +192,8 @@ describe('observeStoreWrites', () => {
     expect((await store.readLog('as_1', 0, signal())).ok).toBe(true);
     expect((await store.truncateLog('as_1', 1, signal())).ok).toBe(true);
     expect((await store.readHead('as_2', signal())).ok).toBe(true);
-    expect(seen).toEqual(['as_1', 'as_2']);
+    expect((await store.writeHead('home-journal', { ...libraryHead(1), asset: 'home-journal' }, null, signal())).ok).toBe(true);
+    expect(seen).toEqual(['as_1', 'as_2']); // the library and Home's journal are not designs
   });
 });
 

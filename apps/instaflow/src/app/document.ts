@@ -18,6 +18,7 @@ import { type Actor, createPartsDocument, createSessionLayer, createStage, creat
 import type { EditTarget } from '../elements/actions.js';
 import { type BrandKitSpec, type BrandKitView, brandKitOps, brandRuleGuard, composeGuards, elementStageRules, readBrandKit, stageRuleContext } from '../elements/brand-kit.js';
 import type { GeometryService } from '../elements/geometry.js';
+import { P } from '../elements/components.js';
 import { type LibraryDocument, openLibraryDocument } from '../library/library-doc.js';
 import { COMPOSITION_KIND, PAGE_KIND, STRUCTURE_PATHS } from '../lenses/structure.js';
 import type { RepeatContext } from '../repeat/actions.js';
@@ -76,6 +77,8 @@ export interface CreateStudioDocumentOptions {
   readonly title: string;
   readonly pages?: number;
   readonly size?: { readonly width: number; readonly height: number };
+  /** The pages' background (`#rrggbb`; default: the page fill's default, white). */
+  readonly background?: string;
   readonly signal: AbortSignal;
 }
 
@@ -98,7 +101,8 @@ export async function createStudioDocument(workspace: Pick<StudioWorkspace, 'rep
     ...pages.map((id, i): PartOp => ({ op: 'create', node: id, kind: PAGE_KIND, parent: 'composition', props: { name: `Page ${i + 1}`, [STRUCTURE_PATHS.pageSize]: { ...size }, [STRUCTURE_PATHS.pageCanvas]: [i * (size.width + gap), 0] } })),
   ];
   const changes: Record<PartId, PartOp[]> = { [ROOT_PART]: root };
-  for (const id of pages) changes[pagePart(id)] = [{ op: 'create', node: id, kind: PAGE_KIND, parent: null, props: { name: '', [STRUCTURE_PATHS.pageSize]: { ...size } } }];
+  const fill = options.background === undefined ? {} : { [P.fills]: [{ paint: options.background }] };
+  for (const id of pages) changes[pagePart(id)] = [{ op: 'create', node: id, kind: PAGE_KIND, parent: null, props: { name: '', [STRUCTURE_PATHS.pageSize]: { ...size }, ...fill } }];
   const seeded = await doc.transact(SEED, changes, options.signal);
   if (!seeded.ok) return failed('seed document', seeded.error);
   return ok(doc);

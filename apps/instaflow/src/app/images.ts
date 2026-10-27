@@ -22,6 +22,8 @@ export interface ImageUploads {
   images(asset: string, variant: 'rgba' | 'luma'): number | undefined;
   /** Decode and queue an asset's pixels (idempotent). */
   upload(entry: LibraryEntry, signal: AbortSignal): Promise<Result<{ readonly width: number; readonly height: number }>>;
+  /** B11c: the pixel size of an uploaded asset (undefined: not uploaded in this editor). */
+  size(asset: string): { readonly width: number; readonly height: number } | undefined;
   /** The pipeline's asset section and the image table (`SceneIrSource`). */
   changes(full: boolean): { readonly assets?: Uint8Array; readonly images?: readonly ImageBinding[] } | undefined;
 }
@@ -42,6 +44,10 @@ export function createImageUploads(options: { readonly blobs: Pick<BlobStore, 'g
     return w.finish();
   };
   return {
+    size(asset) {
+      const u = uploaded.get(asset);
+      return u === undefined ? undefined : { width: u.width, height: u.height };
+    },
     images(asset, variant) {
       const u = uploaded.get(asset);
       return u === undefined ? undefined : variant === 'luma' ? u.luma : u.id;

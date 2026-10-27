@@ -20,6 +20,7 @@ import { defineInlineEdit } from '@staticflux/kit/inline-edit';
 import { chevronDownIcon } from '@staticflux/kit/icons/chevron-down';
 import { downloadIcon } from '@staticflux/kit/icons/download';
 import { ellipsisIcon } from '@staticflux/kit/icons/ellipsis';
+import { imageIcon } from '@staticflux/kit/icons/image';
 import { minusIcon } from '@staticflux/kit/icons/minus';
 import { plusIcon } from '@staticflux/kit/icons/plus';
 import { defineMenu, type SfMenuElement } from '@staticflux/kit/menu';
@@ -48,6 +49,10 @@ import type { DocumentColor } from '@staticflux/kit/color-popover';
 import type { CanvasPort, CanvasSession } from './canvas.js';
 import { defineInspectorElement } from './inspector.js';
 import { defineLayersPanel, type LayerContextDetail } from './layers-panel.js';
+import type { SettingsSection } from '../settings/settings-element.js';
+import { coachTarget, type CoachTarget } from '@staticflux/messaging';
+import { HintTargets } from './hints.js';
+import { defineFindBar, type FindBarPort, type IfFindBarElement } from './find-bar.js';
 import { type CommandEntry, defineCommandBar, type IfCommandBarElement } from './command-bar.js';
 import { defineHud, type HudAction, type HudPort, type IfHudElement } from './hud.js';
 import { type Studio, StudioShortcutScope } from './studio.js';
@@ -91,6 +96,19 @@ export const studioMessages = Object.freeze({
   dismiss: 'Dismiss',
   canvasFailed: 'The canvas could not start. The rest of Studio still works.',
   contextMenu: 'Context menu',
+  // B11c: the overflow's Settings, Shortcuts and About (DENSITY §8.2), Focus's folded Milestone, Pro's undo label.
+  settings: 'Settings…',
+  shortcuts: 'Keyboard shortcuts',
+  about: 'About Instaflow',
+  createMilestone: 'Create milestone',
+  undo: (label: string) => `Undo: ${label}`,
+  zoomValue: 'Zoom level',
+  // B11c slice 3 (STUDIO §9.1).
+  findItem: 'Find…',
+  // B11c: placing images from files (HOME-FILES §3.1).
+  placeImage: 'Place image…',
+  dropHint: 'Drop images to place them, or onto a shape to fill it',
+  findReplace: 'Find and replace…',
 });
 
 /** The chrome's own keys (STUDIO-UX-SPEC §7, B11b slice 4); the cheat sheet lists them with every other shortcut. */
@@ -103,6 +121,12 @@ export const ChromeShortcuts = Object.freeze({
   save: defineShortcut({ id: 'instaflow/save-key', keys: ['Mod+S'], scope: StudioShortcutScope, description: 'Instaflow saves as you work' }),
   help: defineShortcut({ id: 'instaflow/shortcuts-help', keys: ['Shift+?'], scope: StudioShortcutScope, description: 'Keyboard shortcuts' }),
   contextMenu: defineShortcut({ id: 'instaflow/context-menu-key', keys: ['Shift+F10'], scope: StudioShortcutScope, description: 'Open the context menu' }),
+  // B11c (DENSITY §7.1, STUDIO §2.4).
+  cycleDensity: defineShortcut({ id: 'instaflow/cycle-density', keys: ['Mod+.'], scope: StudioShortcutScope, description: 'Next density (Focus, Standard, Pro)' }),
+  settings: defineShortcut({ id: 'instaflow/settings-key', keys: ['Mod+,'], scope: StudioShortcutScope, description: 'Settings' }),
+  // B11c slice 3 (STUDIO §9.1): the find bar (`Mod+G` / `Mod+Shift+G` step while it has focus).
+  find: defineShortcut({ id: 'instaflow/find-key', keys: ['Mod+F'], scope: StudioShortcutScope, description: 'Find', allowInInputs: true }),
+  findReplace: defineShortcut({ id: 'instaflow/find-replace-key', keys: ['Mod+Alt+F'], scope: StudioShortcutScope, description: 'Find and replace', allowInInputs: true }),
 });
 
 /** The camera commands of the View menu and the zoom pill (the editor runs them). */
@@ -133,16 +157,26 @@ export interface StudioChromeModel {
   readonly clipboard: { readonly canPaste: boolean; readonly styleCopied: boolean };
   /** Pages in the design (Delete page needs two). */
   readonly pages: number;
+  /** B11c: the label of the next undo step (Pro shows `Undo: …` in the top bar). */
+  readonly undo?: string | undefined;
 }
 
+/** What "Copy link to this" links to (NAVIGATION §5). */
+export type CopyLinkTarget = 'design' | 'page' | 'selection';
+
 /** What the chrome runs (the app implements it over capabilities and mirrors). */
-export interface StudioChromePort extends HudPort {
+export interface StudioChromePort extends HudPort, FindBarPort {
   renameTitle(title: string): void;
   camera(action: CameraAction): void;
   openExport(): void;
   createMilestone(name: string): void;
   saveAsTemplate(): void;
-  copyLink(): void;
+  /** Copy a link to the design (default), the open page or the selection (NAVIGATION §5). */
+  copyLink(target?: CopyLinkTarget): void;
+  /** B11c: Settings in a dialog over Studio (`/d/settings`), at a section. */
+  openSettings(section?: SettingsSection): void;
+  /** B11c: `Mod+.` — the next density, named in a short toast. */
+  cycleDensity(): void;
   /** Leave Studio for `href` after saving (the Home link). */
   navigate(href: string): void;
   /** The page label (STUDIO §1): select the page (nothing selected: the inspector shows Page); `rename` focuses its name. */
@@ -163,6 +197,10 @@ export interface StudioChromePort extends HudPort {
   saveHint(): void;
   /** `?`: the keyboard cheat sheet. */
   openShortcuts(): void;
+  /** B11c: `Place image…` (tool picker, command bar, canvas menu): a file picker; the images land at the viewport centre or in a selected frame. */
+  placeImage(): void;
+  /** B11c: image files dropped on the canvas at a canvas-region point (a shape there is filled, else placed there). */
+  dropFiles(files: readonly File[], at: { readonly x: number; readonly y: number }): void;
 }
 
 export const EMPTY_CHROME: StudioChromeModel = Object.freeze({
@@ -196,6 +234,14 @@ const TOOL_ICONS: Readonly<Record<string, IconDef>> = {
   [StudioIds.tool.polygon]: pentagonIcon,
   [StudioIds.tool.star]: starIcon,
   [StudioIds.tool.line]: minusIcon,
+};
+
+/** B11c: where each first-use hint points (OVERLAYS §5): the tool buttons. */
+const TOOL_HINT_TARGETS: Readonly<Record<string, CoachTarget>> = {
+  [StudioIds.tool.frame]: HintTargets.frameTool,
+  [StudioIds.tool.shape]: HintTargets.shapeTool,
+  [StudioIds.tool.text]: HintTargets.textTool,
+  [StudioIds.tool.hand]: HintTargets.handTool,
 };
 
 /** Lenses shown in M1 (STUDIO-UX-SPEC §2.1: the layout lenses that exist). */
@@ -260,6 +306,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     hudHidden: { state: true },
     closed: { state: true },
     contextGroups: { state: true },
+    findOpen: { state: true },
+    dropping: { state: true },
   };
   static override styles = [
     css`
@@ -395,6 +443,22 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         inset-inline-start: 50%;
         transform: translateX(-50%);
       }
+      main[data-drop] {
+        outline: 2px solid ${t.color.accent.css};
+        outline-offset: -2px;
+      }
+      .tools .sep {
+        inline-size: 1px;
+        align-self: stretch;
+        margin-inline: 2px;
+        background: ${t.color.border.css};
+      }
+      .find-bar {
+        position: absolute;
+        z-index: 3;
+        inset-block-start: 16px;
+        inset-inline-end: 16px;
+      }
       if-hud[data-hidden] {
         visibility: hidden;
       }
@@ -424,6 +488,17 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       }
       .muted {
         color: ${t.color.textMuted.css};
+      }
+      .mono {
+        font-family: ${t.font.familyMono.css};
+        font-size: 12px;
+        color: ${t.color.textMuted.css};
+        white-space: nowrap;
+      }
+      .undo-label {
+        max-inline-size: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       [role='alert'] {
         position: absolute;
@@ -481,6 +556,10 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
   declare closed: ReadonlySet<PanelPlacementId>;
   /** The open context menu's items (STUDIO §8.2). */
   declare contextGroups: readonly ContextGroup[];
+  /** B11c: the find bar shows. */
+  declare findOpen: boolean;
+  /** B11c: files are dragged over the canvas (the tangerine outline). */
+  declare dropping: boolean;
   private wired: Scope | undefined;
   private canvasSession: CanvasSession | undefined;
   private hudFrozen = false;
@@ -506,6 +585,40 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     this.hudHidden = false;
     this.closed = new Set();
     this.contextGroups = [];
+    this.findOpen = false;
+    this.dropping = false;
+  }
+
+  private onDragOver(e: DragEvent): void {
+    if (!(e.dataTransfer?.types ?? []).includes('Files')) return;
+    e.preventDefault();
+    if (e.dataTransfer !== null) e.dataTransfer.dropEffect = 'copy';
+    this.dropping = true;
+  }
+
+  private onDrop(e: DragEvent): void {
+    this.dropping = false;
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (files.length === 0) return;
+    e.preventDefault();
+    const rect = this.query<HTMLElement>('.surface')?.getBoundingClientRect();
+    this.port?.dropFiles(files, { x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) });
+  }
+
+  /** `Mod+F` (and `⋯ › Find…`): open the find bar, or focus its field; `replace` opens the Replace row too. */
+  async openFind(replace = false): Promise<void> {
+    this.findOpen = true;
+    await this.updateComplete;
+    const bar = this.query<IfFindBarElement>('if-find-bar');
+    if (bar === null) return;
+    if (replace) bar.replacing = true;
+    await bar.focusField();
+  }
+
+  /** Close the find bar (Escape, `×`); the selection stays, the focus goes back to the canvas. */
+  closeFind(): void {
+    this.findOpen = false;
+    this.focusCanvas();
   }
 
   override disconnectedCallback(): void {
@@ -600,6 +713,10 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
         [ChromeShortcuts.save, () => this.port?.saveHint()],
         [ChromeShortcuts.help, () => this.port?.openShortcuts()],
         [ChromeShortcuts.contextMenu, () => void this.openContextMenuFromKeyboard()],
+        [ChromeShortcuts.cycleDensity, () => this.port?.cycleDensity()],
+        [ChromeShortcuts.settings, () => this.port?.openSettings()],
+        [ChromeShortcuts.find, () => void this.openFind()],
+        [ChromeShortcuts.findReplace, () => void this.openFind(true)],
       ];
       for (const [def, run, when] of keys) {
         const registered = this.shortcuts.register(def, run, { scope, ...(when === undefined ? {} : { when }) });
@@ -749,6 +866,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       'copy-as-text': () => port.clipboard('copy-as-text'),
       rename: () => this.rename(),
       'copy-link': () => port.copyLink(),
+      'copy-link-page': () => port.copyLink('page'),
+      'copy-link-selection': () => port.copyLink('selection'),
       'select-all': () => port.selectAll(),
       'zoom-fit': () => port.camera('fit-page'),
       'zoom-100': () => port.camera('zoom-100'),
@@ -757,6 +876,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       'text-style': () => port.textPreset(arg),
       'fit-to-box': () => port.fitToBox(),
       'replace-image': () => port.replaceImage(),
+      'place-image': () => port.placeImage(),
       fit: () => port.setImageFit(arg),
       'page-rename': () => port.selectPage(true),
       'page-duplicate': () => port.pageAction('duplicate'),
@@ -787,12 +907,19 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     return html`${this.renderTopBar(studio, context.density)}
       <div class="body">
         ${this.renderDock(context)}
-        <main aria-label=${studioMessages.canvas} @contextmenu=${(e: MouseEvent) => void this.onCanvasContext(e)}>
+        <main
+          aria-label=${studioMessages.canvas}
+          ?data-drop=${this.dropping}
+          @contextmenu=${(e: MouseEvent) => void this.onCanvasContext(e)}
+          @dragover=${(e: DragEvent) => this.onDragOver(e)}
+          @dragleave=${(e: DragEvent) => (e.relatedTarget === null || !(e.currentTarget as Element).contains(e.relatedTarget as Node) ? (this.dropping = false) : undefined)}
+          @drop=${(e: DragEvent) => this.onDrop(e)}
+        >
           ${this.renderPage()}
           <div class="surface" tabindex="0" role="application" aria-roledescription="canvas" aria-label=${studioMessages.canvasSurface}></div>
           ${this.renderTools(studio)} ${this.renderHud(context.density)} ${this.renderZoom()} ${this.renderCommandBar(studio)}
           ${this.canvasError === undefined ? nothing : html`<p role="alert">${this.canvasError}</p>`} ${this.renderProposal(studio.proposals.pending)}
-          ${this.renderContextMenu()}
+          ${this.renderContextMenu()} ${this.renderFind()}
         </main>
         ${this.renderPanels('inspector', context)}
       </div>`;
@@ -805,22 +932,30 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       .map((lens) => ({ value: lens.id, label: lens.label, icon: html`<span aria-hidden="true" style=${lensMarkStyle(lensOf(lens.palette))}></span>` }));
     const port = this.port;
     const title = this.model.title || this.assetTitle;
-    return html`<header>
+    // B11c (DENSITY §3.1): Focus hides the lens switcher while only Canvas and Pages exist (`1` / `5` still switch) and
+    // folds Milestone into `⋯`; Pro adds the undo label and the zoom value as text.
+    const focus = density === 'focus';
+    const pro = density === 'pro';
+    return html`<header data-density=${density}>
       <a class="home" href=${this.homeHref} aria-label=${studioMessages.home} @click=${(e: MouseEvent) => this.onHome(e)}>${instaflowMark(26)}</a>
       <sf-inline-edit class="title" trigger="click" label=${studioMessages.title} placeholder=${studioMessages.untitled} .value=${title} @sf-change=${(e: CustomEvent<{ value: string }>) => port?.renameTitle(e.detail.value)}></sf-inline-edit>
-      <sf-segmented
-        class="modes"
-        label=${studioMessages.lens}
-        .options=${options}
-        value=${lensEntry?.slot.id ?? ''}
-        data-slot=${lensEntry?.slot.key ?? nothing}
-        data-group="lens@default"
-        @sf-change=${(e: CustomEvent<{ value: string }>) => void studio.switchLens(e.detail.value as `${string}/${string}`)}
-      ></sf-segmented>
+      ${focus && options.length <= 2
+        ? html`<span class="modes"></span>`
+        : html`<sf-segmented
+            class="modes"
+            label=${studioMessages.lens}
+            .options=${options}
+            value=${lensEntry?.slot.id ?? ''}
+            data-slot=${lensEntry?.slot.key ?? nothing}
+            data-group="lens@default"
+            @sf-change=${(e: CustomEvent<{ value: string }>) => void studio.switchLens(e.detail.value as `${string}/${string}`)}
+          ></sf-segmented>`}
+      ${pro && this.model.undo !== undefined ? html`<span class="undo-label mono">${studioMessages.undo(this.model.undo)}</span>` : nothing}
+      ${pro ? html`<span class="zoom-text mono" aria-hidden="true" title=${studioMessages.zoomValue}>${Math.round(this.zoom * 100)}%</span>` : nothing}
       <button class="saved" type="button" title=${studioMessages.saveHint} @click=${() => void this.showPanel(StudioIds.panel.milestones)}>
         ${this.status === undefined ? html`<span role="status">${studioMessages.saved}</span>` : this.status}
       </button>
-      ${this.renderViewMenu(studio, density)} ${this.renderMilestone()} ${this.renderOverflow()}
+      ${this.renderViewMenu(studio, density)} ${focus ? nothing : this.renderMilestone()} ${this.renderOverflow(focus)}
       ${this.model.exportAvailable
         ? html`<sf-button variant="primary" @click=${() => port?.openExport()}><sf-icon .icon=${downloadIcon} size="16"></sf-icon> ${studioMessages.export}</sf-button>`
         : nothing}
@@ -873,22 +1008,39 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     </sf-popover>`;
   }
 
-  private renderOverflow(): TemplateResult {
+  private renderOverflow(focus: boolean): TemplateResult {
     const port = this.port;
     const actions: Readonly<Record<string, () => void>> = {
+      milestone: () => port?.createMilestone(''),
       'save-template': () => port?.saveAsTemplate(),
       rename: () => this.focusTitle(),
       'copy-link': () => port?.copyLink(),
+      find: () => void this.openFind(),
+      settings: () => port?.openSettings(),
+      shortcuts: () => port?.openShortcuts(),
+      about: () => port?.openSettings('about'),
     };
-    return html`<sf-menu label=${studioMessages.more} @sf-select=${(e: CustomEvent<{ value: string }>) => actions[e.detail.value]?.()}>
+    return html`<sf-menu class="overflow" label=${studioMessages.more} @sf-select=${(e: CustomEvent<{ value: string }>) => actions[e.detail.value]?.()}>
       <sf-icon-button slot="trigger" variant="ghost" label=${studioMessages.more}><sf-icon .icon=${ellipsisIcon} size="18"></sf-icon></sf-icon-button>
+      ${focus ? html`<sf-menu-item value="milestone" shortcut="Mod+Alt+S">${studioMessages.createMilestone}</sf-menu-item>` : nothing}
       ${this.model.templatesAvailable ? html`<sf-menu-item value="save-template">${studioMessages.saveTemplate}</sf-menu-item>` : nothing}
       <sf-menu-item value="rename">${studioMessages.rename}</sf-menu-item>
       <sf-menu-item value="copy-link" shortcut="Mod+Alt+L">${studioMessages.copyLink}</sf-menu-item>
+      <sf-menu-item value="find" shortcut="Mod+F">${studioMessages.findItem}</sf-menu-item>
+      <div role="separator"></div>
+      <sf-menu-item value="settings" shortcut="Mod+,">${studioMessages.settings}</sf-menu-item>
+      <sf-menu-item value="shortcuts" shortcut="?">${studioMessages.shortcuts}</sf-menu-item>
+      <sf-menu-item value="about">${studioMessages.about}</sf-menu-item>
     </sf-menu>`;
   }
 
   /** The page card (behind the transparent canvas) and its label (STUDIO-UX-SPEC §1). */
+  private renderFind(): TemplateResult | typeof nothing {
+    const port = this.port;
+    if (!this.findOpen || port === undefined) return nothing;
+    return html`<if-find-bar class="find-bar" .port=${port} .fonts=${this.model.fonts} .selection=${this.model.selection?.nodes ?? []} @if-find-close=${() => this.closeFind()}></if-find-bar>`;
+  }
+
   private renderPage(): TemplateResult | typeof nothing {
     const page = this.model.page;
     if (page === undefined) return nothing;
@@ -916,7 +1068,9 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const shape = family.find((e) => e.slot.id === this.shapeTool) ?? family[0];
     const button = (entry: SpecLayoutEntry): TemplateResult => {
       const tool = studio.registries.tool(entry.slot.id);
+      const hint = TOOL_HINT_TARGETS[entry.slot.id];
       return html`<sf-icon-button
+        ${hint === undefined ? nothing : coachTarget(hint)}
         label=${entry.slot.contribution.label}
         shortcut=${tool?.shortcut ?? nothing}
         variant="ghost"
@@ -946,6 +1100,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
               </sf-menu>`
             : nothing}`;
       })}
+      <span class="sep" aria-hidden="true"></span>
+      <sf-icon-button class="place-image" label=${studioMessages.placeImage} variant="ghost" @click=${() => this.port?.placeImage()}><sf-icon .icon=${imageIcon} size="18"></sf-icon></sf-icon-button>
     </div>`;
   }
 
@@ -953,6 +1109,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
     const port = this.port;
     if (port === undefined) return nothing;
     return html`<if-hud
+      ${coachTarget(HintTargets.multiSelection)}
       ?data-hidden=${this.hudHidden}
       .summary=${this.model.selection}
       .typography=${this.model.typography}
@@ -1000,6 +1157,9 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       { value: 'camera:zoom-100', title: studioMessages.zoom100, shortcut: 'Shift+0' },
       { value: 'camera:zoom-in', title: studioMessages.zoomIn, shortcut: 'Mod+=' },
       { value: 'camera:zoom-out', title: studioMessages.zoomOut, shortcut: 'Mod+-' },
+      { value: 'find:open', title: studioMessages.findItem, shortcut: 'Mod+F' },
+      { value: 'place:image', title: studioMessages.placeImage },
+      { value: 'find:replace', title: studioMessages.findReplace, shortcut: 'Mod+Alt+F' },
     ];
     const sources = { selection: this.model.selection, actions: this.model.actions, globalActions: this.model.globalActions, tools, camera, recent: [] };
     return html`<if-command-bar class="command-bar" .sources=${sources} @if-command=${(e: CustomEvent<{ value: string }>) => this.runCommand(studio, e.detail.value)}></if-command-bar>`;
@@ -1013,6 +1173,8 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
       cap: () => (this.model.globalActions.includes(id) ? this.port?.invoke(id, {}, []) : this.port?.invoke(id)),
       tool: () => void studio.selectTool(id as ToolId),
       camera: () => this.port?.camera(id as CameraAction),
+      find: () => void this.openFind(id === 'replace'),
+      place: () => this.port?.placeImage(),
     };
     run[kind ?? '']?.();
   }
@@ -1059,7 +1221,7 @@ export class IfStudioElement extends SfElement<typeof studioComponent> {
           @sf-change=${(e: CustomEvent<{ value: SpecSlotKey }>) => this.pickDockTab(e)}
           @if-layer-context=${(e: CustomEvent<LayerContextDetail>) => void this.onLayerContext(e.detail)}
         >
-          ${present.map((entry) => html`<sf-tab value=${entry.slot.key} data-slot=${entry.slot.key} data-group="panel@dock" data-phase=${entry.phase} style=${motionStyle(entry)}>${entry.slot.contribution.label}</sf-tab>`)}
+          ${present.map((entry) => html`<sf-tab ${entry.slot.id === StudioIds.panel.layers ? coachTarget(HintTargets.layers) : nothing} value=${entry.slot.key} data-slot=${entry.slot.key} data-group="panel@dock" data-phase=${entry.phase} style=${motionStyle(entry)}>${entry.slot.contribution.label}</sf-tab>`)}
           ${present.map((entry) => {
             const panel = studio.registries.panel(entry.slot.id);
             return html`<sf-tab-panel value=${entry.slot.key}>${panel?.render(context) ?? nothing}</sf-tab-panel>`;
@@ -1113,6 +1275,7 @@ export function defineStudio(registry: CustomElementRegistry = customElements): 
   defineCommandBar(registry);
   defineInspectorElement(registry);
   defineLayersPanel(registry);
+  defineFindBar(registry);
   if (registry.get(studioComponent.tag) === undefined) defineComponent(IfStudioElement, registry);
 }
 
