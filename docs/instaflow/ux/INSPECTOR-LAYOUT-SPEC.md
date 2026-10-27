@@ -146,6 +146,8 @@ and row highlights; `scrollWidth === clientWidth` on every popover; exactly one 
 
 ## 9. Owner questions (recommendation first)
 
+> **Decided 2026-10-27: the owner accepted the recommendation (yes) on all five, Q1–Q5.** Builders follow them as written.
+
 **Q1 — Geist, not Geist Mono, in editable fields.** Recommendation **yes** (CA §4.2): tabular figures keep alignment;
 mono stays for tokens, hex, summaries, tags, kbd. The design README's "Geist Mono for values" is read as *displayed*
 values. If no, CA §4.2 changes one line and nothing moves.
