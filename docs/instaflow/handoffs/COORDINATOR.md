@@ -63,6 +63,9 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
   bug and fixes them **one at a time**: failing test first, root cause with evidence, smallest fix, its own small PR
   that closes the issue, owner verifies before the next. No big multi-feature agents for bug work; one bug per brief
   if an agent is used at all. The owner felt big batches lowered quality (inert controls, misreported budgets).
+- **Check it exists first (owner):** for a "missing" UI report, first look for the feature and any other path to it
+  (collapsed sections, More folds, menus, shortcuts). If it exists, tell the owner where, and narrow the issue to
+  discoverability or close it; never force a fix. Example: #47 polygon sides existed in the HUD as "Points".
 - Fable's job is open-ended UX research that finds gaps itself (market analysis, shortcuts, every flow end to end).
   Never brief it as "write X and Y"; give it the baseline (spec + design + code) and ask it to discover what's missing.
   Briefing only named items is how the Export flow stayed frame-only.
