@@ -41,12 +41,24 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
    to PR activity. After the owner merges: `git checkout -B claude/affectionate-ramanujan-wbyz2g origin/main` and
    force-with-lease push.
 
-## Where things are (2026-10-26)
-- `main`: M1a, M1b, B8–B10a, C0, C1, B11a, B11a2, and the full UX spec set (FOUNDATIONS, OVERLAYS-FEEDBACK, NAVIGATION,
-  DENSITY-DISCLOSURE, GAP-AUDIT, TEXT-FONTS, APPEARANCE-TRANSFORM, STUDIO, HOME-FILES, CHAT, DEVTOOLS, FLOWS; all owner
-  questions answered).
-- B12, B12b (PR #35), drag-stutter and text fixes done. B11b slices 1–4 merged (#36). **B11c agent running** on `claude/wip-b11c` (slice 5 finish, slice 6,
-  find & replace, leftovers, final audit). Then: split input-lag look, C2 Import, C3, C4 (drag layer, perf pass, e2e CI).
+## Where things are (2026-10-27, bug phase)
+- `main`: everything through B11c (Studio + Home rebuild), B12/B12b, drag-stutter and text fixes, all UX specs
+  (FOUNDATIONS, OVERLAYS-FEEDBACK, NAVIGATION, DENSITY-DISCLOSURE, GAP-AUDIT, TEXT-FONTS, APPEARANCE-TRANSFORM,
+  MOTION-TIMELINE, STUDIO, HOME-FILES, CHAT, DEVTOOLS, FLOWS). Open PR: #38 (issue form, config only).
+- **Bug phase (owner rules above: one bug at a time, failing test first, root cause, smallest fix, own PR "Fixes #n",
+  owner verifies before the next; check a "missing" thing exists **on the running UI** first).**
+  Issues #39–#55. Order: **#41 focus (running, `claude/fix-41-focus`)** → #53 Shift multi-select reverts → #42
+  section collapses on popover use (then re-check #44 Page › Background `+ Add ▾`) → #48 top element hit (then
+  re-check #49 group/mask, #50 union, #52 radial repeat) → #51 subtract blanks (intermittent; image suspected) →
+  #54 paths don't resize (flatten bounds) → #39 Finder paste white screen → #43 page bg image not on canvas →
+  #45 colour popover cropped → #46 page W/H truncated → #47 polygon Sides (control defined, never rendered: add to
+  inspector + HUD, label Sides) → #55 inspector layout + #40 dock padding (**Fable spec running**,
+  `claude/ux-inspector-layout` → INSPECTOR-LAYOUT-SPEC.md; then one implementation pass, owner reviews).
+- **After the bugs:** fonts package (owner approved): Google Fonts catalogue (download on pick, cached in the
+  workspace), small curated offline set, fonts on this computer in Studio, picker rows previewed in their own face
+  (lazy, visible rows). Lists stay M2 (T-10). Then split input-lag look, C2 Import, C3 Modes/identity, C4 (e2e in CI,
+  perf pass: drag layer, Home boot split 117 KB, per-route JS), M2 (agent layer, B10b, lists), M3 timeline, M4 motion.
+- Open owner questions: 12 motion questions (MOTION-TIMELINE §18), not needed until M3.
 - **Next work, in order:** B12 engine gaps → B11b (Studio and Home surfaces per the UX docs, logo wiring, nothing inert) → C2 Import →
   C3 Modes and identity → C4 Hardening (end-to-end checkpoint in CI, performance and loading pass, exit criteria).
   B10b (distort, perspective, warp) is early M2.

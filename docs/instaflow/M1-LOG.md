@@ -72,6 +72,10 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-27** Owner reports added: #53 Shift multi-select reverts, #54 paths don't resize (flatten bounds wrong),
+  #55 inspector layout. #47 corrected (coordinator wrongly claimed it existed; control defined but never rendered).
+  Fable inspector/panel layout spec started (`claude/ux-inspector-layout`). Fonts package after bugs; lists stay M2.
+  Coordinator handoff refreshed for compaction.
 - **2026-10-27** Owner: after the bug batch, a focused **fonts work package** (Google Fonts catalogue, on-demand download
   cached in the workspace; small curated offline set; fonts on this computer in Studio), pulled forward from M2. Font
   picker rows preview each family in its own face (lazy, visible rows only, Google `text=` subsets). Owner confirmed text
