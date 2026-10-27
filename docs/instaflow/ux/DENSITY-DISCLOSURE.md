@@ -135,7 +135,9 @@ Q-D). Pro turns Home into a working file manager.
 
 ## 6. Spacing and type per mode
 
-One token set per mode on `data-sf-density`; components read tokens, never the mode.
+One token set per mode on `data-sf-density`; components read tokens, never the mode. The panel tokens that implement
+this table (`--if-panel-pad`, `--if-row`, `--if-row-gap`, `--if-col-gap`, `--if-label-col`, `--if-gutter`, `--if-field`)
+and every block's per-density sizes are `COMPONENT-ANATOMY.md` §0–§3.
 
 | Token | Focus | Standard | Pro |
 |---|---|---|---|
