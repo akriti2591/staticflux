@@ -56,7 +56,9 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
   (spec merged in #59: COMPONENT-ANATOMY.md + INSPECTOR-LAYOUT-SPEC.md; owner said yes to all five §9 questions
   on 2026-10-27; one implementation pass, owner reviews).
 - Merged and owner verified: #57 (#41), #61 (#58), #63 (#42; #44 narrowed to Background `+ Add ▾` items opening their editors).
-  Running: #53 (`claude/fix-53-shift-select`). Proposed next: #43 (bg image shows now, lost on reload: persistence;
+  #65 (#53 Shift-select; cause: a press focused the a11y node, which re-selected it) merged, owner verified.
+  PAUSED by owner 2026-10-27 after #65. On resume: owner re-tests #48/#49/#66 (may be fixed by #65); owner
+  decides #62 placement; then #43. New: #66 combined shapes/groups don't resize (with #54), #67 combine HUD crammed. Proposed next: #43 (bg image shows now, lost on reload: persistence;
   check placed images too), then the canvas selection bugs. New: #64 Home/Files previews blank (after the canvas bugs).
 - **#62 Studio blank until Wasm loads** (owner): mount the shell first with placeholders, preload the Wasm. Proposed
   right after #42; with it in C4: split `studio-element.ts` (1,290 lines: shortcuts/menus/commands into modules),
