@@ -72,6 +72,9 @@ main-rAF tick fix); folder mirror flush policy; SVG parity rule (C1, next free D
   draw nothing instead of a .notdef box: ship or load CJK fallback fonts and draw .notdef (IME check); `IF-*` error codes are not in `docs/errors.json`.
 
 ## Journal
+- **2026-10-27** #37 (B11c) merged. Bug phase, one at a time (owner rule). Issues #39–#52 filed. Order: #41 focus → #42
+  section collapse → #48 top-element hit (re-check #49/#50/#52 after) → #51 subtract blank → #39 paste white → #43, #44,
+  #45, #46, #47, #40. #38 (issue form) open. Started #41 on `claude/fix-41-focus`.
 - **2026-10-27** B11c PR #37. Coordinator full check: tests green (4819) but 5 budgets over (agent measured before its
   last slices): a11y full, kit full, colour popover, Home boot 111 → 117 KB and Home code 34 → 40.5 KB. Raised with reasons;
   **C4: split Home's boot so the file manager loads on demand.** Place image bound to `Mod+Shift+K` (owner).
