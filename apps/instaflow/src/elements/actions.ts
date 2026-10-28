@@ -24,8 +24,8 @@ import type { Actor, Stage, UndoService } from '@staticflux/stage';
 import { type BooleanOpName, CORNER_PATHS, type MaskModeName, P } from './components.js';
 import { checkToken, type TokenType } from './brand-kit.js';
 import { ActionNotApplicableError, EmptyNameError, UnknownTokenError } from './errors.js';
-import { type ElementBounds, type ElementContext, elementBounds, isElement, localOutline, pageTransform, strokeRing, unionBox } from './layout.js';
-import type { PathData } from './geometry.js';
+import { derivedContent, type ElementBounds, type ElementContext, elementBounds, isElement, localOutline, pageTransform, strokeRing, unionBox } from './layout.js';
+import type { BooleanOperand, PathData } from './geometry.js';
 import { type Affine, applyAffine, type ElementBox, fitBox, IDENTITY, invert, multiply as multiplyAffine, type ResolvedElement, resolveElement } from './resolve.js';
 import { type ImageRotation, rgbaToHex, validateElementOps } from './values.js';
 
@@ -333,17 +333,98 @@ function vectorBox(ctx: Pick<ElementContext, 'geometry'>, box: ElementBox, path:
   return ok({ props: { [P.x]: next.x, [P.y]: next.y, [P.w]: next.w, [P.h]: next.h }, path: moved.value });
 }
 
-/** Flatten: replace an element (a boolean group, a shape) with a vector of its outline (same place, style, key). */
+/**
+ * What a container draws, as operands in the space `outer` maps into (#69): its visible children in paint order (a
+ * repeat's wrappers and copies too, each with its placement: the view shows them as children), nested containers
+ * recursively; a mask keeps only the masked area of the later siblings (mask ∩ their union; inverted: their union −
+ * the mask) and draws nothing itself; anything else (a shape, a vector, a boolean, a frame's box) is its outline.
+ */
+function visibleOperands(ctx: ElementContext, container: NodeId, outer: Affine): Result<BooleanOperand[]> {
+  const out: BooleanOperand[] = [];
+  let mask: ResolvedElement | undefined;
+  let masked: BooleanOperand[] = [];
+  const closeMask = (): Result<void> => {
+    if (mask === undefined || masked.length === 0) return ok();
+    const content = ctx.geometry.boolean('union', masked);
+    if (!content.ok) return content;
+    const m = localOutline(ctx, mask);
+    if (!m.ok) return m;
+    const area = ctx.geometry.boolean(mask.mask?.invert === true ? 'subtract' : 'intersect', [
+      { path: content.value, transform: IDENTITY },
+      { path: m.value, transform: multiplyAffine(outer, mask.transform) },
+    ]);
+    if (!area.ok) return area;
+    out.push({ path: area.value, transform: IDENTITY });
+    return ok();
+  };
+  for (const child of ctx.stage.children(container)) {
+    const c = resolveElement(ctx.stage, child, ctx.kit);
+    if (c === undefined || !isElement(c.kind) || c.hidden === true) continue;
+    if (c.mask !== undefined) {
+      const closed = closeMask();
+      if (!closed.ok) return closed;
+      mask = c;
+      masked = [];
+      continue;
+    }
+    const t = multiplyAffine(outer, c.transform);
+    const into = mask === undefined ? out : masked;
+    if (c.geometry.kind === 'group') {
+      const inner = visibleOperands(ctx, child, t);
+      if (!inner.ok) return inner;
+      into.push(...inner.value);
+      continue;
+    }
+    const path = localOutline(ctx, c);
+    if (!path.ok) return path;
+    into.push({ path: path.value, transform: t, evenOdd: c.geometry.kind === 'path' && c.geometry.evenOdd });
+  }
+  const closed = closeMask();
+  return closed.ok ? ok(out) : closed;
+}
+
+/**
+ * The element whose appearance a flattened container keeps (#69, decided by the owner): the topmost visible child in
+ * paint order that draws (masks do not), descending into groups; for a repeat, its source's (its document children).
+ */
+function topmostDrawn(ctx: ElementContext, el: ResolvedElement): ResolvedElement | undefined {
+  if (el.geometry.kind !== 'group') return el;
+  const children = derivedContent(ctx, el.id)?.children ?? ctx.stage.children(el.id);
+  for (let i = children.length - 1; i >= 0; i--) {
+    const c = resolveElement(ctx.stage, children[i] as NodeId, ctx.kit);
+    if (c === undefined || !isElement(c.kind) || c.hidden === true || c.mask !== undefined) continue;
+    const found = topmostDrawn(ctx, c);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+/** Fill and stroke stacks, corners, effects, opacity and blend: what a flattened container takes from `topmostDrawn`. */
+const APPEARANCE_PATHS = [...STYLE_PATHS, P.opacity, P.blend] as const;
+/** What it keeps of its own: the place (position, size, rotation, scale, flips, skew, anchor). */
+const PLACE_PATHS = SPATIAL_PATHS.filter((path) => path !== P.opacity && path !== P.blend);
+
+/**
+ * Flatten (APPEARANCE §4.1, #69): replace an element with one vector of what it draws, in the same place, with its
+ * key. A shape or a boolean bakes its outline. A container (a group, a repeat with every copy, a mask group, nested
+ * ones) bakes the union of its visible children (`visibleOperands`) and takes the appearance of its topmost drawn
+ * child (`topmostDrawn`); the container and its children (a repeat's source) go.
+ */
 export function flatten(ctx: ActionContext, node: NodeId): Result<PartOp[]> {
   const el = resolveElement(ctx.stage, node, ctx.kit);
-  if (el === undefined || !isElement(el.kind) || el.geometry.kind === 'group') return notApplicable('Flatten needs a shape, a vector or a boolean.', 'a shape');
-  const outline = localOutline(ctx, el);
+  if (el === undefined || !isElement(el.kind)) return notApplicable('Flatten needs a shape, a vector, a boolean or a group.', 'a shape');
+  const look = topmostDrawn(ctx, el);
+  if (look === undefined) return notApplicable('Nothing visible to flatten.', 'visible elements', { node });
+  const operands = el.geometry.kind === 'group' ? visibleOperands(ctx, node, IDENTITY) : undefined;
+  if (operands?.ok === false) return operands;
+  if (operands?.value.length === 0) return notApplicable('Nothing visible to flatten.', 'visible elements', { node });
+  const outline = operands === undefined ? localOutline(ctx, el) : ctx.geometry.boolean('union', operands.value);
   if (!outline.ok) return outline;
   const placed = vectorBox(ctx, el.box, outline.value);
   if (!placed.ok) return placed;
   const local = localValues(ctx.stage, node);
   const id = ctx.newId();
-  const props: Record<PropertyPath, JsonValue> = { ...pick(local, SPATIAL_PATHS), ...pick(local, STYLE_PATHS), ...placed.value.props };
+  const props: Record<PropertyPath, JsonValue> = { ...pick(local, PLACE_PATHS), ...pick(localValues(ctx.stage, look.id), APPEARANCE_PATHS), ...placed.value.props };
   const fillRule = el.geometry.kind === 'path' && el.geometry.evenOdd ? { [P.fillRule]: 'evenodd' } : {};
   const identity = pick(local, ['name', 'role', P.matchKey, P.maskMode, P.maskInvert, P.lockScope]);
   return ok([
