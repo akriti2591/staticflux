@@ -71,6 +71,23 @@ describe('media previews', () => {
     expect(await source({ ...image, digest: 'sha256:cc' })).toBeUndefined();
   });
 
+  it('#64: a design shows its cover (by the cover digest, as an image), a newer cover is read again', async () => {
+    const reads: string[] = [];
+    const types: string[] = [];
+    const source = createPreviewSource({
+      open: async () => ({ get: async (d: unknown) => (reads.push(String(d)), { ok: true as const, value: new Uint8Array([137, 80, 78, 71]) }) }) as never,
+      urls: { create: (b) => (types.push(b.type), `blob:${reads.length}`), revoke: () => undefined },
+      signal: new AbortController().signal,
+    });
+    const design: HomeEntry = { asset: 'as_d', kind: 'composition', title: 'Flyer', createdAt: '2026-10-01T00:00:00.000Z', editedAt: '2026-10-01T00:00:00.000Z', lens: 'layout', cover: 'sha256:c1' };
+    expect(await source(design)).toBe('blob:1');
+    expect(await source({ ...design, cover: 'sha256:c2' })).toBe('blob:2');
+    expect(reads).toEqual(['sha256:c1', 'sha256:c2']);
+    expect(types).toEqual(['image/png', 'image/png']);
+    const { cover: _cover, ...plain } = design;
+    expect(await source(plain)).toBeUndefined();
+  });
+
   it('a failed read shows no preview', async () => {
     const source = createPreviewSource({ open: async () => ({ get: async () => ({ ok: false, error: new Error('gone') }) }) as never, signal: new AbortController().signal });
     expect(await source({ ...image, digest: 'sha256:dd' })).toBeUndefined();

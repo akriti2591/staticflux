@@ -31,8 +31,8 @@ export const LIBRARY_PART = 'root';
 /** Node kind of a library entry. */
 export const LIBRARY_ENTRY_KIND = 'asset';
 
-/** Derived, regenerable blobs (IF-3.9). */
-export const RENDITION_ROLES = ['thumbnail', 'poster', 'proxy', 'waveform', 'filmstrip'] as const;
+/** Derived, regenerable blobs (IF-3.9). `cover`: a design's first page, rendered by Studio for Home's cards (#64). */
+export const RENDITION_ROLES = ['thumbnail', 'poster', 'proxy', 'waveform', 'filmstrip', 'cover'] as const;
 export type RenditionRole = (typeof RENDITION_ROLES)[number];
 
 export const LibraryComponent = /* @__PURE__ */ defineComponent(

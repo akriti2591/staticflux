@@ -246,6 +246,10 @@ export const homeStyles = css`
     block-size: 100%;
     object-fit: cover;
   }
+  /* #64: a design's cover shows the whole first page, like the placeholder it replaces. */
+  .preview.cover {
+    object-fit: contain;
+  }
   .thumb sf-tag {
     position: absolute;
     inset-block-start: 10px;

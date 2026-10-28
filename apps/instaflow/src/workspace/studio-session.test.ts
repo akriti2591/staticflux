@@ -3,10 +3,18 @@
 // memory AsyncStore) with the editor in in-process "workers", and Home's model reading the same store. New design → draw
 // → the Home index lists it → "reload" (a fresh adapter and session) → the shape is there; Save as template → Use
 // template copies it. Heavy: Wasm, fonts, several sessions (4 shared cores).
-import { createScope, ok, type Scope } from '@staticflux/core';
+import { createMemoryBlobStore, type Digest } from '@staticflux/blob';
+import { createScope, ok, type Result, type Scope } from '@staticflux/core';
 import { createMemoryStore } from '@staticflux/storage';
+import type { RasterImage } from '@staticflux/surface/image';
+import { inMemorySpawner } from '@staticflux/worker';
+import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { authoringBuilt, lendDom, manualTimers, person, scriptedTextInput, unwrap } from '../app/test-helpers.js';
+import { COVER_EDGE } from '../export/cover.js';
+import { hostExportWorker } from '../export/host.js';
+import type { ExportRaster } from '../export/job.js';
+import { createExportFixture, exportBuilt } from '../export/testing/test-helpers.js';
 import { createHomeModel, storeIndexSource } from '../home/model.js';
 import { readStudioIntent } from '../home/routes.js';
 import { DEFAULT_SEQUENCING_SETTINGS } from '../sequencing/topology.js';
@@ -125,5 +133,127 @@ describe.skipIf(!authoringBuilt)('Studio session over the persistent workspace (
     const notTemplate = await openStudioSession({ ...base, intent: readStudioIntent(`/new?template=${asset}`) });
     expect(!notTemplate.ok && notTemplate.error.code).toBe('IF-HOME-003');
     fourth.dispose();
+  });
+
+  /** Straight RGBA of an 8-bit RGBA PNG without filters (what `encodePng` writes). */
+  const decodePng = (png: Uint8Array): RasterImage => {
+    const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+    const width = view.getUint32(16);
+    const height = view.getUint32(20);
+    const idat: Uint8Array[] = [];
+    for (let at = 8; at < png.length; ) {
+      const length = view.getUint32(at);
+      const type = String.fromCharCode(...png.subarray(at + 4, at + 8));
+      if (type === 'IDAT') idat.push(png.subarray(at + 8, at + 8 + length));
+      at += 12 + length;
+    }
+    const raw = inflateSync(Buffer.concat(idat));
+    const data = new Uint8Array(width * height * 4);
+    for (let y = 0; y < height; y++) {
+      expect(raw[y * (width * 4 + 1)]).toBe(0);
+      data.set(raw.subarray(y * (width * 4 + 1) + 1, (y + 1) * (width * 4 + 1)), y * width * 4);
+    }
+    return { width, height, data };
+  };
+  /** Node has no WebGPU: a raster that paints the page white and a block that grows with the scene it was given. */
+  const sceneRaster = (): ExportRaster => {
+    let bytes = 0;
+    return {
+      id: 'scene-sized',
+      maxRegionSize: 4096,
+      apply: (batch) => ((bytes += batch.length), ok([])),
+      renderRegion: async (region): Promise<Result<RasterImage>> => {
+        const data = new Uint8Array(region.width * region.height * 4).fill(255);
+        const ink = Math.min(region.width * region.height, Math.round(bytes / 8));
+        for (let i = 0; i < ink; i++) data.set([40, 90, 230, 255], i * 4);
+        return ok({ width: region.width, height: region.height, data });
+      },
+      dispose: () => undefined,
+    };
+  };
+
+  it.skipIf(!exportBuilt)('#64: an edit, then leaving Studio, leaves a cover in the Home index (a small PNG of the first page, from the export worker); a later edit refreshes it', { timeout: 120_000 }, async () => {
+    const backing = createMemoryStore();
+    const blobs = createMemoryBlobStore();
+    const dom = lendDom();
+    const fixture = await createExportFixture();
+    const env = { ...fixture.env, raster: async () => ok(sceneRaster()) };
+    let spawned = 0;
+    const scope = createScope('session-cover');
+    const workers = inProcessWorkers();
+    const session = unwrap(
+      await openStudioSession({
+        intent: readStudioIntent('/new?format=story'),
+        documents: documentStoreFromAsyncStore(backing, { locks: null }),
+        blobs,
+        person,
+        workers: { settings: DEFAULT_SEQUENCING_SETTINGS, spawn: () => workers.spawn(), assets: { manifest: 'memory://manifest', fonts: [] } },
+        exporter: {
+          spawn: () => {
+            spawned += 1;
+            return inMemorySpawner((port) => hostExportWorker({ port, env: { load: async () => ok(env) } }), { clone: false });
+          },
+        },
+        textInput: { kind: 'hidden-textarea', create: () => ok(scriptedTextInput()) },
+        handoff: () => ok({ canvas: { width: 0, height: 0 }, transfer: [] }),
+        timers: manualTimers(),
+        newAssetId: () => 'as_cover1' as never,
+        replaceUrl: () => undefined,
+        navigate: () => undefined,
+        index: { debounceMs: 0 },
+        cover: { timers: manualTimers(), leaveWaitMs: 60_000 },
+        scope,
+      }),
+    );
+    const asset = session.plan.ref.asset;
+    const homeEntry = async () => {
+      const read = unwrap(await storeIndexSource(documentStoreFromAsyncStore(backing, { locks: null })).read(new AbortController().signal));
+      return read.entries.find((e) => e.asset === asset);
+    };
+    const coverOf = async (digest: string | undefined): Promise<RasterImage> => {
+      expect(digest).toMatch(/^sha256:/);
+      return decodePng(unwrap(await blobs.get(digest as Digest, { signal: scope.signal })));
+    };
+    const ink = (image: RasterImage): number => {
+      let n = 0;
+      for (let i = 0; i < image.data.length; i += 4) if (image.data[i] !== 255 || image.data[i + 1] !== 255 || image.data[i + 2] !== 255) n += 1;
+      return n;
+    };
+    const surface = dom.document.createElement('div');
+    dom.document.body.append(surface);
+    unwrap(await session.app.canvas.start(surface as never, scope.signal));
+    await until(() => session.app.tab?.page === 'p1', 'page open');
+    const draw = async (from: [number, number], to: [number, number]): Promise<void> => {
+      const before = session.app.tab?.view.selection[0];
+      unwrap(session.app.studio.selectTool(StudioIds.tool.shape));
+      await until(() => session.app.view?.tool === StudioIds.tool.shape, 'shape tool');
+      inputWriter(session.app.workers.input)(dragEvents(from, to));
+      await until(() => session.app.tab?.view.selection.length === 1 && session.app.tab.view.selection[0] !== before, 'shape drawn');
+    };
+
+    await draw([100, 100], [220, 200]);
+    await session.app.leave('/');
+    const first = await homeEntry();
+    expect(first?.cover).toBeDefined();
+    const image = await coverOf(first?.cover);
+    expect([image.width, image.height]).toEqual([180, COVER_EDGE]); // 1080 × 1920 fitted in 320
+    expect(ink(image)).toBeGreaterThan(0);
+    expect(session.app.library.entry(asset as never)?.renditions.cover?.blob.mime).toBe('image/png');
+    expect(spawned).toBeGreaterThan(0); // rendered in an export worker, never on main
+
+    // Home's model (no engine) carries the cover to the card.
+    const home = createHomeModel({ source: storeIndexSource(documentStoreFromAsyncStore(backing, { locks: null })), host: { navigate: () => undefined }, signal: scope.signal });
+    await settle();
+    await settle();
+    expect(home.entry(asset)?.cover).toBe(first?.cover);
+
+    // A later edit: leaving again refreshes the cover.
+    await draw([400, 600], [700, 1000]);
+    await session.app.leave('/');
+    const second = await homeEntry();
+    expect(second?.cover).toBeDefined();
+    expect(second?.cover).not.toBe(first?.cover);
+    expect(ink(await coverOf(second?.cover))).toBeGreaterThan(ink(image));
+    await scope.dispose();
   });
 });

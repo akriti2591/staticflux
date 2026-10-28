@@ -71,6 +71,18 @@ describe('projectHomeIndex', () => {
     expect(index.projects).toEqual(previous.projects);
   });
 
+  it('#64: a design’s cover rendition is its preview in the index (and only a cover is)', () => {
+    const blob = { digest: `sha256:${'c'.repeat(64)}` as const, size: 40, mime: 'image/png' };
+    const thumb = { digest: `sha256:${'t'.repeat(64)}` as const, size: 40, mime: 'image/png' };
+    const params = { renderer: 'test', edge: 320, source: 's' };
+    const index = projectHomeIndex(
+      [libEntry('as_d', 'composition', '2026-10-01T00:00:00.000Z', { renditions: { cover: { blob, params } } }), libEntry('as_n', 'composition', '2026-10-01T00:00:00.000Z', { renditions: { thumbnail: { blob: thumb, params } } })],
+      EMPTY,
+    );
+    expect(index.entries.find((e) => e.asset === 'as_d')?.cover).toBe(blob.digest);
+    expect(index.entries.find((e) => e.asset === 'as_n')?.cover).toBeUndefined();
+  });
+
   it('never moves an edit time backwards (a stale touch loses to the stored index)', () => {
     const previous: HomeIndex = { schema: HOME_INDEX_SCHEMA, entries: [{ asset: 'as_d', kind: 'composition', title: 'x', createdAt: '2026-10-01T00:00:00.000Z', editedAt: '2026-10-09T00:00:00.000Z', lens: 'layout' }] };
     const index = projectHomeIndex([libEntry('as_d', 'composition', '2026-10-01T00:00:00.000Z')], previous, new Map([['as_d', { editedAt: '2026-10-02T00:00:00.000Z' }]]));

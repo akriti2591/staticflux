@@ -44,6 +44,7 @@ import { APPEARANCE_PANEL_ID } from '../elements/contributions.js';
 import { ExportCapability, ExportShortcut, implementExport } from '../export/capability.js';
 import { DEFAULT_EXPORT_OPTIONS, type ExportFile, type ExportOptions } from '../export/formats.js';
 import { bindExportPanel, defineExportPanel, EXPORT_PANEL_ID, type IfExportPanelElement } from '../export/panel.js';
+import { type CoverRenderer, createCoverRenderer } from '../export/cover.js';
 import { browserDownload, createExportService, type ExportService } from '../export/service.js';
 import { bindPaintInspector, definePaintInspector, type IfPaintInspectorElement } from '../elements/panel.js';
 import { canvasLensFeature } from '../lenses/canvas-lens.js';
@@ -232,6 +233,8 @@ export interface StudioApp {
   saveAsTemplate(title?: string): Promise<Result<unknown>>;
   /** C1: the export service (undefined without an exporter). */
   readonly exports: ExportService | undefined;
+  /** #64: render the design's cover (first page, in an export worker of its own; undefined without an exporter). */
+  readonly cover: CoverRenderer | undefined;
   /** C1: export through the `instaflow/export` capability (what the Export panel's button does). */
   exportDesign(options: ExportOptions): Promise<Result<unknown>>;
   /** The mirrors the panels read (tests, devtools). */
@@ -338,6 +341,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   const transformBar = transformSource(hub.view(TransformMirror), problem);
   // C1: the export service exists once the library does (below); the panel reads it through this port.
   let exportsService: ExportService | undefined;
+  let coverRenderer: CoverRenderer | undefined;
   let lastExport: ExportOptions | undefined;
   const exportPort = {
     status: () => exportsService?.status ?? { kind: 'failed' as const, options: { format: 'png' as const, scale: 2 as const, transparent: false, scope: 'page' as const }, message: 'Export is not available here.', code: 'IF-EXP-007' },
@@ -423,6 +427,20 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
       deliver: exporter.deliver ?? ((files) => browserDownload(files)),
     });
     scope.defer(() => exportsService?.dispose());
+    // #64: Home's card preview, rendered like a PNG export but by its own service (never busy with the person's export).
+    const covers = createCoverRenderer({
+      spawn: exporter.spawn,
+      assets,
+      store: { store: workspace.store, blobs: workspace.blobs },
+      target: async (s) => {
+        const t = await editor.request('exportTarget', undefined, { signal: s });
+        return t.ok ? ok(t.value) : t;
+      },
+      title: () => options.document.title,
+      images: () => library.library.entries().filter((e) => e.kind === 'image' && e.content !== undefined && e.trashedAt === undefined),
+    });
+    coverRenderer = covers.render;
+    scope.defer(() => covers.dispose());
   }
   const milestonesPanel = milestonesFromMirror(hub.view(MilestonesMirror));
   const latest = latestFromMirror(hub.view(LatestMirror));
@@ -1292,6 +1310,9 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     leave,
     flush: () => latest.flush(signal),
     saveAsTemplate,
+    get cover() {
+      return coverRenderer;
+    },
     get exports() {
       return exportsService;
     },
