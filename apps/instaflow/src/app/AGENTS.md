@@ -33,7 +33,8 @@ Editor side (imported by the worker; DOM-free, Lit-free):
 - `text-editing.ts` — `startTextEditing` over a **`TextHostPort`** (`open`, `place`, `close`; rects in surface px),
   `textToSurface`, `TextExitReason`.
 - `creation.ts` — `CREATION_TOOLS`, `createCreationController`, `dragBox`, machine `CreateGestureLifecycle`.
-- `images.ts` — `createImageUploads` (asset section + image table), `placeImageOps`.
+- `images.ts` — `createImageUploads` (asset section + image table), `placeImageOps`; `imageAssetKeys` and
+  `uploadImageKeys` (#43: an opened page's images are uploaded before it is drawn).
 - `canvas-tab.ts` — **`openCanvasTab`** (per tab and page, in the editor: B3 view/index/tool session/controller/commands,
   shortcuts on the editor's registry, the overlay as the record's overlay section, creation, text layer and editing over
   the host port, B6's editor side with snapshots out, labels out; Undo/Redo/Delete/Duplicate; B10a: the tab's transform

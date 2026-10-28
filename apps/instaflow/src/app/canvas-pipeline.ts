@@ -117,7 +117,8 @@ const utf8 = { encoder: new TextEncoder(), decoder: new TextDecoder() };
 function decodeImages(section: Uint8Array): ImageBinding[] | undefined {
   if (section.length === 0) return [];
   try {
-    const rows = JSON.parse(utf8.decoder.decode(section)) as unknown;
+    // #43: a copy — over the `shared` medium the section views a SharedArrayBuffer, which browsers' TextDecoder refuses.
+    const rows = JSON.parse(utf8.decoder.decode(section.slice())) as unknown;
     if (!Array.isArray(rows)) return undefined;
     const out: ImageBinding[] = [];
     for (const row of rows) {

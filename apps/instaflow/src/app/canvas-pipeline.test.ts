@@ -30,6 +30,25 @@ describe('scene records', () => {
     const truncated = decodeSceneRecord(record.subarray(0, record.length - 1));
     expect(!truncated.ok && truncated.error.code).toBe('IF-INT-002');
   });
+
+  it('#43: reads the image table of a record in shared memory (the split topology’s `shared` medium)', () => {
+    const record = encodeSceneRecord({ images: [{ asset: 'as_photo', rgba: 1, luma: 2 }], projection: new Uint8Array(4).fill(3) });
+    const shared = new Uint8Array(new SharedArrayBuffer(record.length + 16)).subarray(8, 8 + record.length);
+    shared.set(record);
+    // Browsers' TextDecoder refuses views of a SharedArrayBuffer (Node's accepts them): hold Node to the web's rule.
+    const decode = TextDecoder.prototype.decode;
+    TextDecoder.prototype.decode = function (this: TextDecoder, input?: AllowSharedBufferSource, options?: TextDecodeOptions): string {
+      if (ArrayBuffer.isView(input) && input.buffer instanceof SharedArrayBuffer) throw new TypeError('The provided ArrayBufferView value must not be shared.');
+      return decode.call(this, input, options);
+    };
+    try {
+      const back = unwrap(decodeSceneRecord(shared));
+      expect(back.images).toEqual([{ asset: 'as_photo', rgba: 1, luma: 2 }]);
+      expect([...back.projection]).toEqual([3, 3, 3, 3]);
+    } finally {
+      TextDecoder.prototype.decode = decode;
+    }
+  });
 });
 
 describe('render side', () => {

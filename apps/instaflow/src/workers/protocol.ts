@@ -46,6 +46,8 @@ export interface StudioEditorStart {
   readonly isMac: boolean;
   /** The platform TextInput main binds (text editing is off without one). */
   readonly textInput?: TextInputKind;
+  /** #43: the workspace's image entries at start (a page opened from the store uploads the images it names). */
+  readonly images?: readonly LibraryEntry[];
   /** main → editor input ring endpoint (A5). */
   readonly input: RegionEndpoint;
   /** The store port: a `MessagePort` in the browser (an in-memory `Port` in tests). */
