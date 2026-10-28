@@ -20,7 +20,7 @@ import type { Box } from '@staticflux/document/spatial-index';
 import type { JsonValue, NodeId, PartOp, PropertyPath } from '@staticflux/document/v2';
 import type { Stage } from '@staticflux/stage';
 import { P } from '../elements/components.js';
-import { boundsIn, type ElementContext, elementBounds, isElement, pageTransform } from '../elements/layout.js';
+import { boundsIn, type DerivedContent, derivedContent, type ElementContext, elementBounds, isElement, pageTransform } from '../elements/layout.js';
 import { type Affine, applyAffine, boxTransform, type ElementBox, fitBox, IDENTITY, invert, multiply, type ResolvedElement, resolveElement } from '../elements/resolve.js';
 import { NothingToTransformError } from './errors.js';
 
@@ -217,7 +217,13 @@ export function pickHandle(handles: readonly TransformHandle[], x: number, y: nu
  */
 export type ElementContent =
   | { readonly kind: 'path'; readonly d: string; readonly scaled: (kx: number, ky: number) => string }
-  | { readonly kind: 'children'; readonly box: ElementBox; readonly children: readonly ElementStart[] };
+  | {
+      readonly kind: 'children';
+      readonly box: ElementBox;
+      readonly children: readonly ElementStart[];
+      /** #76: a repeat's spacing, which scales with its source (its children are then the source, not the instances). */
+      readonly layout?: DerivedContent['scaled'];
+    };
 
 export interface ElementStart {
   readonly node: NodeId;
@@ -261,15 +267,18 @@ function startOf(ctx: ElementContext, el: ResolvedElement, parent: Affine, bound
   }
   if (!CHILD_SIZED.has(g.kind) || box.value === el.box) return ok(start);
   const children: ElementStart[] = [];
+  // A repeat's view children are derived instances (writes to them are refused, IF-REP-004): its source takes the
+  // scale and its spacing scales with it (#76).
+  const derived = derivedContent(ctx, el.id);
   // Hidden children scale too (they come back the right size); the frame box only hugs the visible ones.
-  for (const child of ctx.stage.children(el.id)) {
+  for (const child of derived?.children ?? ctx.stage.children(el.id)) {
     const c = resolveElement(ctx.stage, child, ctx.kit);
     if (c === undefined || !isElement(c.kind)) continue;
     const s = startOf(ctx, c, IDENTITY);
     if (!s.ok) return s;
     children.push(s.value);
   }
-  return ok({ ...start, content: { kind: 'children', box: el.box, children } });
+  return ok({ ...start, content: { kind: 'children', box: el.box, children, ...(derived === undefined ? {} : { layout: derived.scaled }) } });
 }
 
 /** Snapshot the movable elements of `nodes` (IF-TOOL-002 when none can move). */
@@ -624,6 +633,12 @@ function followValues(e: ElementStart, v: Partial<SpatialValues>, keys: readonly
   const at = scaled ? { x: content.box.x, y: content.box.y } : { x: held.x, y: held.y };
   const kept: ElementBox = { ...content.box, ...at, ...(held.rotation === undefined ? {} : { rotation: held.rotation }), ...(held.skewX === undefined ? {} : { skewX: held.skewX }), ...(held.flipX === undefined ? {} : { flipX: held.flipX }), ...(held.flipY === undefined ? {} : { flipY: held.flipY }) };
   spatialWrites(e.node, content.box, kept, ['x', 'y', 'rotation', 'skewX', 'flipX', 'flipY'], mode, out);
+  if (content.layout !== undefined && (scaled || mode === 'shown')) {
+    const was = content.layout(1, 1);
+    content.layout(kx, ky).forEach((w, i) => {
+      if (mode === 'shown' || w.value !== was[i]?.value) out.push({ node: e.node, path: w.path, value: w.value });
+    });
+  }
   // What the stored box could not hold, in the group's own space: applied to every child.
   const rest = multiply(invert(boxTransform(kept)) ?? IDENTITY, next);
   const identity = rest.every((n, i) => Math.abs(n - (IDENTITY[i] as number)) < 1e-9);

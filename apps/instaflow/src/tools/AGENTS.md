@@ -69,7 +69,8 @@ No screen layout: Studio places the tools from the spec.
   boolean's children (starts in its local space); `transformWrites(start, values, mode)` (`TransformWrite`, `WriteMode`
   `changed` for commits, `shown` for previews) turns values into writes: a vector's path scales with its box, a group
   keeps move, rotation, flips and skew on its own box and passes the scale to its children (sizes, not scale factors:
-  strokes and corners keep their widths), recursively; `valuesToOps` and `createPreview` both use it.
+  strokes and corners keep their widths), recursively; `valuesToOps` and `createPreview` both use it. #76: a repeat's
+  children are its source (B1's `derivedContent`; its instances refuse writes) and its spacing scales with it.
 - `free-transform.ts` — `frameBasis`, `inFrame`, `pivotPoint`, `pivotFraction`, `snapPivot`, `REFERENCE_POINTS`,
   `CENTER_PIVOT`, `isCenterPivot`; `flipValues(start, axis, pivot?)`; `skewValues(start, handle, ldx, ldy, { snap,
   aboutPivot, pivot })`, `skewByValues(start, x, y, pivot?)`, `SKEW_STEP` (15°), `SKEW_LIMIT` (80°); the numeric bar's

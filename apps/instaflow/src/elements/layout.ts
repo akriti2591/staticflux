@@ -12,7 +12,7 @@
  */
 import { err, ok, type Result } from '@staticflux/core';
 import type { Box } from '@staticflux/document/spatial-index';
-import type { JsonValue, NodeId } from '@staticflux/document/v2';
+import type { JsonValue, NodeId, PropertyPath } from '@staticflux/document/v2';
 import type { Stage } from '@staticflux/stage';
 import type { BrandKitView } from './brand-kit.js';
 import { CONTAINER_KINDS, ELEMENT_KINDS, P } from './components.js';
@@ -25,6 +25,26 @@ export interface ElementContext {
   readonly stage: Pick<Stage, 'read' | 'children' | 'value'>;
   readonly geometry: GeometryService;
   readonly kit?: BrandKitView;
+}
+
+/**
+ * Content a stage view derives from an element's parameters (B7's repeat view, #76): the document children that hold
+ * its source (its view children are derived and refuse writes), and the parameter writes that scale its layout by
+ * `kx, ky` along the element's own axes, so a resize scales it like a group.
+ */
+export interface DerivedContent {
+  readonly children: readonly NodeId[];
+  scaled(kx: number, ky: number): readonly { readonly path: PropertyPath; readonly value: JsonValue }[];
+}
+
+/** A stage view that can report derived content (undefined for an element whose children are its content). */
+export interface DerivedContentStage {
+  derivedContent(node: NodeId): DerivedContent | undefined;
+}
+
+/** The derived content of `node` when the context's stage is a view that has any (#76). */
+export function derivedContent(ctx: Pick<ElementContext, 'stage'>, node: NodeId): DerivedContent | undefined {
+  return (ctx.stage as Partial<DerivedContentStage>).derivedContent?.(node);
 }
 
 export interface ElementBounds {

@@ -16,7 +16,7 @@
  */
 import type { Box } from '@staticflux/document/spatial-index';
 import { type Affine, applyAffine, boxTransform } from '../elements/resolve.js';
-import type { BrickAxis, MirrorAxis, RepeatKind } from './components.js';
+import type { BrickAxis, MirrorAxis, RepeatKind, RepeatParamName } from './components.js';
 import type { GridParams, MirrorParams, RadialParams, RepeatParams } from './params.js';
 
 export interface Placement {
@@ -110,7 +110,32 @@ function mirror(p: MirrorParams, content: Box): Placement[] {
   return [IDENTITY_PLACEMENT, about(2 * axis.angle, true, axis.point, axis.point)];
 }
 
-const GENERATORS: { readonly [K in RepeatKind]: (p: Extract<RepeatParams, { kind: K }>, content: Box) => Placement[] } = { radial, grid, mirror };
+/**
+ * Parameters scaled with their content by `kx, ky` along the repeat's axes (#76: a resize scales a repeat like a
+ * group; counts, angles and the brick shift, a fraction of the cell, stay). Grid gaps and offsets scale per axis; the
+ * mirror offset scales along the axis normal; the radial radius along the start direction, so the circle's centre
+ * lands where the scaled one would (exact for a uniform scale; a non-uniform one keeps a circle, not an ellipse).
+ */
+export function scaledParams(params: RepeatParams, kx: number, ky: number): RepeatParams {
+  return (SCALERS[params.kind] as (p: RepeatParams, kx: number, ky: number) => RepeatParams)(params, Math.abs(kx), Math.abs(ky));
+}
+
+/** The parameters `scaledParams` changes, per generator (what a resize writes). */
+export const SCALED_PARAMS: Readonly<Record<RepeatKind, readonly RepeatParamName[]>> = { radial: ['radius'], grid: ['gapX', 'gapY', 'rowOffset', 'columnOffset'], mirror: ['offset'] };
+
+/** How far a unit vector reaches after the scale. */
+const reach = (v: readonly [number, number], kx: number, ky: number): number => Math.hypot(v[0] * kx, v[1] * ky);
+
+const SCALERS: { readonly [K in RepeatKind]: (p: Extract<RepeatParams, { kind: K }>, kx: number, ky: number) => Extract<RepeatParams, { kind: K }> } = {
+  radial: (p, kx, ky) => ({ ...p, radius: p.radius * reach(direction(p.startAngle), kx, ky) }),
+  grid: (p, kx, ky) => ({ ...p, gapX: p.gapX * kx, gapY: p.gapY * ky, rowOffset: p.rowOffset * kx, columnOffset: p.columnOffset * ky }),
+  mirror: (p, kx, ky) => {
+    const angle = MIRROR_ANGLES[p.axis](p);
+    return { ...p, offset: p.offset * reach([Math.sin(angle * RAD), -Math.cos(angle * RAD)], kx, ky) };
+  },
+};
+
+const GENERATORS:{ readonly [K in RepeatKind]: (p: Extract<RepeatParams, { kind: K }>, content: Box) => Placement[] } = { radial, grid, mirror };
 
 /** Every instance placement (instance 0 first, always the identity); `content` is the source's local bounds. */
 export function instancePlacements(params: RepeatParams, content: Box): Placement[] {

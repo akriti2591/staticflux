@@ -1165,7 +1165,7 @@
     "limit": "3.5 KB"
   },
   {
-    "name": "@instaflow/app/tools (hit testing, selection, transforms, snapping and guides, view state, keyboard, contributions; B10a raised 24 → 27.5 KB for flip, skew, pivot, transform mode and their capabilities; incl. the B1 element modules it uses, shared with /elements in the app chunk; excl. framework and lit; B12 raised 27.5 → 28 KB: hidden elements leave hit tests, and the larger shared B1 modules; B11b raised 28 → 28.5 KB: the visible rotate handle on a stem; #54/#66 raised 28.5 → 29 KB: resize scales paths, booleans and groups (their content follows the box))",
+    "name": "@instaflow/app/tools (hit testing, selection, transforms, snapping and guides, view state, keyboard, contributions; B10a raised 24 → 27.5 KB for flip, skew, pivot, transform mode and their capabilities; incl. the B1 element modules it uses, shared with /elements in the app chunk; excl. framework and lit; B12 raised 27.5 → 28 KB: hidden elements leave hit tests, and the larger shared B1 modules; B11b raised 28 → 28.5 KB: the visible rotate handle on a stem; #54/#66 raised 28.5 → 29 KB: resize scales paths, booleans and groups (their content follows the box); #76 raised 29 → 29.5 KB: resize scales a repeat's source and spacing instead of writing its derived instances)",
     "path": "apps/instaflow/dist/tools/index.js",
     "ignore": [
       "mobx",
@@ -1185,7 +1185,7 @@
       "@staticflux/shell/spec",
       "@staticflux/gate"
     ],
-    "limit": "29 KB"
+    "limit": "29.5 KB"
   },
   {
     "name": "@instaflow/app/tools/transform-bar (B10a numeric transform bar; excl. lit, kit and framework)",

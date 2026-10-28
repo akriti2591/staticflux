@@ -37,7 +37,8 @@ Effects inspector.
   IF-EL-005), `strokeSpec`, `effectSpec`, `GEOMETRY_VERSION`. #68: `outline`, `boolean` and `outlineStroke` are memoized by
   their inputs (`GEOMETRY_MEMO_LIMIT` entries each, least recently used out; numbers keyed by `keyNumber`; operand paths by
   identity), so transform-only changes (drag, rotate) never re-run them. Paths are values: never mutate one.
-- `layout.ts` — `ElementContext`; `elementBounds` (geometry, ink, centre, transform), `pageTransform`, `localOutline`
+- `layout.ts` — `ElementContext`; `DerivedContent` / `DerivedContentStage` / `derivedContent(ctx, node)` (#76: a view's
+  derived content, B7's repeats: the source children and the scaled spacing a resize writes); `elementBounds` (geometry, ink, centre, transform), `pageTransform`, `localOutline`
   (booleans derived; a plain group is the union of its children, so groups and B7 repeat instances can be boolean operands
   and clip masks), `strokeRing`, `maskOf`, `containerBounds` / `containerOf`, `siblingBounds`, `hitElement` (fills, images, frames,
   booleans and text are hit across their area — text since B9, so a double click inside text edits it),
