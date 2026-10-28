@@ -1022,7 +1022,7 @@
     "limit": "6 KB"
   },
   {
-    "name": "@instaflow/app/elements (components, brand kits, geometry service, actions, projection, scene encoder, contributions; excl. framework; B12 raised 24.5 → 27 KB for the structure actions (group, ungroup, frame selection, reorder, rename, hide), image crop, the page fill projection and their twelve capabilities; #54/#66 raised 27 → 27.5 KB: Flatten and Outline stroke fit the path's box (fitBox, boundsIn))",
+    "name": "@instaflow/app/elements (components, brand kits, geometry service, actions, projection, scene encoder, contributions; excl. framework; B12 raised 24.5 → 27 KB for the structure actions (group, ungroup, frame selection, reorder, rename, hide), image crop, the page fill projection and their twelve capabilities; #54/#66 raised 27 → 27.5 KB: Flatten and Outline stroke fit the path's box (fitBox, boundsIn); #69 raised 27.5 → 28 KB: Flatten bakes groups, repeats and masks (visible children, masks clip, the topmost child's appearance))",
     "path": "apps/instaflow/dist/elements/index.js",
     "ignore": [
       "mobx",
@@ -1041,7 +1041,7 @@
       "@staticflux/shell/spec",
       "@staticflux/gate"
     ],
-    "limit": "27.5 KB"
+    "limit": "28 KB"
   },
   {
     "name": "@instaflow/app/elements/panel (Fill, stroke and effects inspector; excl. lit, kit and framework; B12 raised 6.25 → 6.35 KB for the page background model and image crop value checks)",

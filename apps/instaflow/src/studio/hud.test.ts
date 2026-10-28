@@ -171,4 +171,12 @@ describe('pill helpers', () => {
       ['Repeat', ['instaflow/repeat-radial']],
     ]);
   });
+
+  it('moreMenuGroups: Flatten is in More for a group, a repeat and a mask when it applies (#69)', () => {
+    const actions = new Map([['instaflow/flatten', { id: 'instaflow/flatten', title: 'Flatten' }]]);
+    for (const kind of ['group', 'repeat', 'mask'] as const) {
+      const pill = pillCapabilities(hudControls(CONTROL_SETS[kind]));
+      expect(moreMenuGroups(base(kind, { actions: ['instaflow/flatten'] }), pill, actions).map(([g, list]) => [g, list.map((a) => a.id)]), kind).toEqual([['Combine', ['instaflow/flatten']]]);
+    }
+  });
 });

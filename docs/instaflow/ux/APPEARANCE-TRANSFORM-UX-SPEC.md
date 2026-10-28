@@ -526,7 +526,7 @@ built: `Relative to` (b, Pro), swap W/H as its own button (orientation lives in 
 | **Auto layout** | §3.2 Layout (c) A-15 M2 | (c) |
 | **Layers** | Groups and frames are tree rows with chevrons; `Alt+click` the chevron expands all (F-11); a frame's row shows its size as a mono tag in Pro | (b) |
 | **Rename** | Inline in Layers (F-11), `Mod+Shift+R`, inspector header click | (b) |
-| **Flatten** | A group → one vector path (destructive, confirm row); booleans too | (a) |
+| **Flatten** | A group → one vector path (destructive, confirm row); booleans too. Decided in #69: the path is the union of the visible children (hidden ones left out; a repeat's source and every copy, each in its place; a mask group gives the masked area, mask ∩ the union of what it masks, inverted: minus) and takes the fills, strokes, effects, opacity and blend of the topmost visible child in paint order (a repeat: its source's), as Figma keeps one child's; the container, a repeat's source included, goes; one undo step | (a) |
 
 ### 4.2 Components and instances (decision: M2)
 

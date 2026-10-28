@@ -52,6 +52,7 @@ export interface SelectionFacts {
   readonly booleans: number;
   readonly masks: number;
   readonly withStroke: number;
+  /** Elements Flatten bakes: shapes, vectors, booleans and (#69) groups, repeats and masks. */
   readonly flattenable: number;
   /** Groups and frames (B12: ungroup / unframe). */
   readonly containers: number;
@@ -70,7 +71,7 @@ export function selectionFacts(ctx: Pick<ActionContext, 'stage' | 'kit'>, nodes:
     booleans: elements.filter((e) => e?.geometry.kind === 'boolean').length,
     masks: elements.filter((e) => e?.mask !== undefined).length,
     withStroke: elements.filter((e) => (e?.strokes.length ?? 0) > 0).length,
-    flattenable: elements.filter((e) => e !== undefined && e.geometry.kind !== 'group').length,
+    flattenable: elements.length,
     containers: elements.filter((e) => e?.kind === 'group' || e?.kind === 'frame').length,
     images,
   };
@@ -169,7 +170,7 @@ export const ELEMENT_ACTIONS: readonly ActionSpec[] = [
     }),
   ),
   { name: 'boolean-release', title: 'Release boolean', description: 'Put the operands back; nothing else changes.', tone: 'more', applies: (f) => f.booleans >= 1, run: (ctx, i) => each(ctx, i.nodes, releaseBoolean) },
-  { name: 'flatten', title: 'Flatten', description: 'Bake a boolean or shape into one vector path.', shortcut: 'Ctrl+E', destructive: true, tone: 'more', applies: (f) => f.flattenable >= 1, run: (ctx, i) => each(ctx, i.nodes, flatten) },
+  { name: 'flatten', title: 'Flatten', description: 'Bake a shape, a boolean, a group, a repeat or a mask into one vector path (visible children only; the topmost one’s fill and stroke).', shortcut: 'Ctrl+E', destructive: true, tone: 'more', applies: (f) => f.flattenable >= 1, run: (ctx, i) => each(ctx, i.nodes, flatten) },
   { name: 'outline-stroke', title: 'Outline stroke', description: 'Turn strokes into filled vector paths.', shortcut: 'Ctrl+Alt+O', destructive: true, tone: 'more', applies: (f) => f.withStroke >= 1, run: (ctx, i) => each(ctx, i.nodes, outlineStroke) },
   ...(['clip', 'alpha', 'luminance'] as const).map(
     (mode): ActionSpec => ({

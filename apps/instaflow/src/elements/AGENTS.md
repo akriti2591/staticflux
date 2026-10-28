@@ -46,7 +46,8 @@ Effects inspector.
   local box of content, #66).
 - `actions.ts` — `align` (edges × selection | container | page | key), `centerInContainer`, `distribute` (spacing |
   centers), `tidyUp`, `booleanGroup`, `setBooleanOp`, `releaseBoolean`, `flatten` and `outlineStroke` (the vector's box
-  hugs its path, nothing moves, #54), `useAsMask`, `setMask`,
+  hugs its path, nothing moves, #54; `flatten` also bakes a group, a repeat or a mask group into the union of its
+  visible children with the topmost one's appearance, #69), `useAsMask`, `setMask`,
   `releaseMask`, `applyToken` (`TOKEN_TARGETS`), `duplicate` (match keys; copies rich texts when `ActionContext.texts` is
   given, B8), `localValues`, **`commitEdit`** (one change set).
 - `projection.ts` — `ElementProjection`, `createElementRenderSource` (stage-backed `RenderProjectionSource`), resources

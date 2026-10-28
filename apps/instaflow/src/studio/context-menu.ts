@@ -201,11 +201,11 @@ function selectionGroups(s: SelectionSummary, env: ContextEnv): ContextGroup[] {
       ),
       ...cap('instaflow/mask-clip', m.useAsMask, 'Ctrl+Alt+M'),
     ],
-    group: () => [...cap('instaflow/tidy-up', m.tidyUp, 'Ctrl+Alt+Shift+T')],
+    group: () => [...cap('instaflow/tidy-up', m.tidyUp, 'Ctrl+Alt+Shift+T'), ...cap('instaflow/flatten', m.flatten, 'Mod+E')],
     frame: () => [...cap('instaflow/tidy-up', m.tidyUp, 'Ctrl+Alt+Shift+T')],
     repeat: () => [...cap('instaflow/repeat-expand', m.expand), ...cap('instaflow/repeat-release', m.release), ...cap('instaflow/flatten', m.flatten, 'Mod+E')],
     boolean: () => [...cap('instaflow/boolean-release', m.release), ...cap('instaflow/flatten', m.flatten, 'Mod+E')],
-    mask: () => (s.mask === undefined ? [] : [entry(`cap:instaflow/mask-release?node=${s.mask.node}`, m.release)]),
+    mask: () => [...(s.mask === undefined ? [] : [entry(`cap:instaflow/mask-release?node=${s.mask.node}`, m.release)]), ...cap('instaflow/flatten', m.flatten, 'Mod+E')],
     multi: () => multiItems(),
     mixed: () => multiItems(),
   };
