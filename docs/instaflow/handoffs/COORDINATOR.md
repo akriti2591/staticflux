@@ -58,6 +58,10 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
 - Merged and owner verified: #57 (#41), #61 (#58), #63 (#42; #44 narrowed to Background `+ Add ▾` items opening their editors).
   #65 (#53 Shift-select; cause: a press focused the a11y node, which re-selected it) merged, owner verified.
   Owner re-tested after #65: #48 #49 #50 #52 fixed (closed); #66 not fixed.
+  Done 2026-10-28: #43 (#70), #62 (#73; frame inert while loading, owner OK), #54+#66 (#75), #68 (#78; rest in #77).
+  Open: #79 (#76 repeat resize reverts). Running: #69 Flatten for groups/repeats/masks on `claude/fix-69-flatten-containers`
+  (owner: result takes the topmost visible child's appearance). Filed: #71 cross-design image paste, #72 split drops
+  failed updates silently, #74 session-open perf (Loro sync XHR, fonts, manifest ×3), #77 per-frame a11y projection.
   **Order agreed 2026-10-28:** #43 (running, `claude/fix-43-image-persist`) → #62 Studio shell-first loading →
   #54+#66 path/boolean/group bounds and resize → #69 Flatten for repeats/groups → #68 drag lag on boolean+repeat →
   #64 blank Home previews → #51 → #39 → #45 → #46 → #47 → #44 → #56 → #55+#40+#67 layout pass.
