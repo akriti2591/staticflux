@@ -26,7 +26,8 @@ Editor side (imported by the worker; DOM-free, Lit-free):
   `OffscreenCanvas`; worker rAF frames), `rasterCamera`.
 - `document.ts` — `openStudioWorkspace` (store side: repo, Loro with `TEXT_MARK_EXPAND`, blobs, library document),
   `createStudioDocument`, **`openStudioDocument`** (one stage, session layer, undo service and B7 repeat view over every page
-  part), `freshPeer`, `STUDIO_BRAND`.
+  part), `freshPeer`, `STUDIO_BRAND`; re-exports `parts.ts`.
+- `parts.ts` (#62) — `ROOT_PART`, `pagePart(page)` (Loro-free: what names parts, e.g. find and replace, does not load the engine).
 - `fonts.ts` — `createStudioFonts`, `STUDIO_SCRIPT_FALLBACKS`, `STUDIO_TEXT_DEFAULTS`.
 - `text-layer.ts` — `createTextLayer` (B12b: `sceneParent` required), `projectedSceneId(projector)`, `textBoxOps`,
   `textBlockTransform`, `textLocalOffset`, `StudioFonts`.
@@ -50,6 +51,14 @@ Main side:
 - `panel-mirrors.ts` — panel models over the editor's mirrors: `appearanceSource`, `repeatSource`, `transformSource` (B10a), `typographyFromMirror`,
   `milestonesFromMirror`, `latestFromMirror`, `structureFromMirror`, `storyFromMirror`.
 - `registries.ts` — `replaceById`, `studioContributions(bindPanel)`, `studioAppRegistries`.
+- `studio-frame.ts` (#62) — `mountStudioFrame(container, { settings?, homeHref? })` → `StudioFrame { element, studio, opened, dispose }`:
+  `<if-studio>` from the Studio spec at the device density (no entering motion) before the session exists, `inert`, the container
+  `aria-busy`, in its own scope element; panels render `<sf-skeleton>` (the panel binder), the save state is a skeleton, no chrome
+  port, no shortcut registry. `placeholderCanvas()` (a `CanvasPort`: a page-shaped skeleton in the surface, no input, no engine),
+  `CANVAS_PLACEHOLDER_ATTR`. Loro-free graph (the page renders it before the session chunk loads).
+- `studio-preload.ts` (#62, pure) — `STUDIO_BOOT_CRATES`, `manifestPreloads(manifest, href)` → `{ links, missing }`,
+  `bundlePreloads(fileNames, base?)` (the built worker chunk), `PreloadLink`; `dev/studio/preload-plugin.ts` writes them into the Studio
+  page's `<head>` (dev server and production build).
 - `studio-app.ts` — **`createStudioApp`** (boots the workers, store side on main, mirrors and panel services in the UI
   injector, the capability registry with forwarding implementations, Studio controller, canvas, scope-follows-selection,
   lens controller over the mirrored structure, HUD dispatch, `createMilestone`, `place`, `inspect`, `element`, `metrics`,

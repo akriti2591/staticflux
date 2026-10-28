@@ -25,6 +25,7 @@ import type { RepeatContext } from '../repeat/actions.js';
 import { createRepeatStage, type RepeatStage } from '../repeat/stage.js';
 import { TEXT_MARK_EXPAND } from '../text/model.js';
 import { DocumentOpenError } from './errors.js';
+import { pagePart, ROOT_PART } from './parts.js';
 
 export interface StudioWorkspace {
   readonly store: DocumentStore;
@@ -64,8 +65,7 @@ export const STUDIO_BRAND: BrandKitSpec = Object.freeze({
 });
 
 export const KIT_ASSET = 'as_brand';
-export const ROOT_PART: PartId = 'root';
-export const pagePart = (page: NodeId): PartId => `page:${page}`;
+export { pagePart, ROOT_PART };
 
 export interface StudioPageRef {
   readonly id: NodeId;

@@ -6,6 +6,7 @@
  */
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+import { studioPreloadPlugin } from '../dev/studio/preload-plugin.js';
 
 const packagesDir = fileURLToPath(new URL('../../../packages', import.meta.url));
 
@@ -20,6 +21,8 @@ export default defineConfig({
     ],
   },
   worker: { format: 'es' },
+  // #62: the Studio page preloads the boot Wasm and the worker chunk by their hashed names.
+  plugins: [studioPreloadPlugin()],
   build: {
     outDir: fileURLToPath(new URL('../dist-prod', import.meta.url)),
     emptyOutDir: true,
