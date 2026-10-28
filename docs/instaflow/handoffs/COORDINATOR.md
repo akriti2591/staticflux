@@ -59,8 +59,11 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
   #65 (#53 Shift-select; cause: a press focused the a11y node, which re-selected it) merged, owner verified.
   Owner re-tested after #65: #48 #49 #50 #52 fixed (closed); #66 not fixed.
   Done 2026-10-28: #43 (#70), #62 (#73; frame inert while loading, owner OK), #54+#66 (#75), #68 (#78; rest in #77).
-  Open: #79 (#76 repeat resize reverts). Running: #69 Flatten for groups/repeats/masks on `claude/fix-69-flatten-containers`
-  (owner: result takes the topmost visible child's appearance). Filed: #71 cross-design image paste, #72 split drops
+  Also merged: #79 (#76), #80 (#69 Flatten containers; no confirm row, owner OK), #82 (#64 previews).
+  PAUSED by owner 2026-10-28 after #45 (running, `claude/fix-45-popover-crop`): open its PR, watch CI, start nothing.
+  On resume: owner re-tests #51 (subtract blank) and #39 (Finder paste), may be fixed by #70; then #46 → #47 → #44 → #56
+  → #55+#40+#67. New: #81 deleted container children still in view, #83 duplicate/template lose cover; #77 has the
+  owner's heavy repro (Subtract → Radial → Grid). Filed: #71 cross-design image paste, #72 split drops
   failed updates silently, #74 session-open perf (Loro sync XHR, fonts, manifest ×3), #77 per-frame a11y projection.
   **Order agreed 2026-10-28:** #43 (running, `claude/fix-43-image-persist`) → #62 Studio shell-first loading →
   #54+#66 path/boolean/group bounds and resize → #69 Flatten for repeats/groups → #68 drag lag on boolean+repeat →
