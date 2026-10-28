@@ -712,6 +712,35 @@ async function scenario(page) {
   await page.waitForFunction(() => window.__studio.tab?.view.selection.length === 0, null, { timeout: 10_000 }).catch(() => fail('Escape did not clear the selection'));
   const pageSection = page.locator('if-inspector section[data-section="page"]');
   await pageSection.getByRole('button', { name: 'Background', exact: true }).first().click();
+  // #45: the colour popover fits its 264 px (+ 1 px border each side), in the top layer, inside the viewport, and neither
+  // it nor the inspector's scroll container gains a horizontal scrollbar.
+  await page.waitForTimeout(200);
+  const fit = await page.evaluate(() => {
+    const open = [];
+    const walk = (root) => {
+      for (const el of root.querySelectorAll('*')) {
+        if (el.tagName === 'SF-POPOVER' && el.open) open.push(el);
+        if (el.shadowRoot) walk(el.shadowRoot);
+      }
+    };
+    walk(document);
+    const pop = open.find((p) => p.querySelector('sf-color-popover') !== null);
+    if (pop === undefined) return { error: `no open colour popover (${open.map((p) => p.label).join(', ')})` };
+    const panel = pop.shadowRoot.querySelector('.panel');
+    const r = panel.getBoundingClientRect();
+    const scrollers = [];
+    for (let n = pop; n !== null; n = n.assignedSlot ?? n.parentElement ?? (n.getRootNode() instanceof ShadowRoot ? n.getRootNode().host : null)) {
+      if (/(auto|scroll)/.test(getComputedStyle(n).overflowX) && n.scrollWidth > n.clientWidth) scrollers.push(`${n.tagName.toLowerCase()}.${n.className} ${n.scrollWidth}>${n.clientWidth}`);
+    }
+    return { width: r.width, left: r.left, top: r.top, right: r.right, bottom: r.bottom, scrollWidth: panel.scrollWidth, clientWidth: panel.clientWidth, topLayer: panel.matches(':popover-open'), vw: innerWidth, vh: innerHeight, scrollers };
+  });
+  if (fit.error !== undefined) fail(fit.error);
+  if (fit.width > 266.5) fail(`#45: the colour popover is ${fit.width} px wide (spec 264 + border)`);
+  if (fit.scrollWidth > fit.clientWidth) fail(`#45: the colour popover scrolls sideways: scrollWidth ${fit.scrollWidth} > clientWidth ${fit.clientWidth}`);
+  if (fit.scrollers.length > 0) fail(`#45: opening the colour popover overflowed ${fit.scrollers.join(', ')}`);
+  if (!fit.topLayer) fail('#45: the colour popover is not in the top layer');
+  if (fit.left < 0 || fit.top < 0 || fit.right > fit.vw || fit.bottom > fit.vh) fail(`#45: the colour popover leaves the viewport: ${JSON.stringify(fit)}`);
+  log(`page background: the colour popover fits (${fit.width} px, no sideways scroll, top layer, inside the viewport)`);
   await page.getByRole('radio', { name: 'Image' }).first().click();
   await page.getByRole('button', { name: 'Use smoke-mint' }).first().click();
   await page.waitForFunction(() => window.__studio.scene.undo === 'Background kind', null, { timeout: 20_000 }).catch(async () => fail(`the Background did not take the image: ${await page.evaluate(() => window.__studio.scene.undo)}`));
