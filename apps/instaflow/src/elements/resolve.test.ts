@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { P } from './components.js';
-import { applyAffine, boxTransform, fitRadii, invert, multiply, readBox, resolveElement } from './resolve.js';
+import { applyAffine, boxTransform, fitBox, fitRadii, invert, multiply, readBox, resolveElement } from './resolve.js';
 import { createFixture, KIT, shape } from './testing/fixtures.js';
 
 const close = (a: readonly number[], b: readonly number[]): void => {
@@ -20,6 +20,21 @@ describe('transforms', () => {
     const t = boxTransform({ ...box, rotation: 30, scaleX: 2 });
     close(multiply(t, invert(t) ?? [0, 0, 0, 0, 0, 0]), [1, 0, 0, 1, 0, 0]);
     expect(invert([0, 0, 0, 0, 1, 1])).toBeUndefined();
+  });
+
+  it('fitBox hugs a local rectangle without moving it: rotation, scale, flips, skew and the anchor kept (#54, #66)', () => {
+    const box = readBox({ [P.x]: 40, [P.y]: 30, [P.w]: 0, [P.h]: 0, [P.rotation]: 30, [P.scaleX]: 2, [P.flipY]: true, [P.skewX]: 12 });
+    const local = { minX: -10, minY: 5, maxX: 90, maxY: 55 };
+    const fitted = fitBox(box, local);
+    expect([fitted.w, fitted.h, fitted.rotation, fitted.scaleX, fitted.flipY, fitted.skewX]).toEqual([100, 50, 30, 2, true, 12]);
+    const before = boxTransform(box);
+    const after = boxTransform(fitted);
+    for (const [u, v] of [[0, 0], [1, 0], [1, 1], [0, 1], [0.3, 0.7]] as const) {
+      const p = applyAffine(after, u * 100, v * 50);
+      const q = applyAffine(before, local.minX + u * 100, local.minY + v * 50);
+      expect(p[0]).toBeCloseTo(q[0], 9);
+      expect(p[1]).toBeCloseTo(q[1], 9);
+    }
   });
 
   it('fits radii like CSS and never above half the shortest side', () => {

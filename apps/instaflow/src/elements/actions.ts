@@ -25,7 +25,8 @@ import { type BooleanOpName, CORNER_PATHS, type MaskModeName, P } from './compon
 import { checkToken, type TokenType } from './brand-kit.js';
 import { ActionNotApplicableError, EmptyNameError, UnknownTokenError } from './errors.js';
 import { type ElementBounds, type ElementContext, elementBounds, isElement, localOutline, pageTransform, strokeRing, unionBox } from './layout.js';
-import { type Affine, applyAffine, invert, multiply as multiplyAffine, type ResolvedElement, resolveElement } from './resolve.js';
+import type { PathData } from './geometry.js';
+import { type Affine, applyAffine, type ElementBox, fitBox, IDENTITY, invert, multiply as multiplyAffine, type ResolvedElement, resolveElement } from './resolve.js';
 import { type ImageRotation, rgbaToHex, validateElementOps } from './values.js';
 
 export interface ActionContext extends ElementContext {
@@ -317,33 +318,36 @@ export function releaseBoolean(ctx: ActionContext, group: NodeId): Result<PartOp
   return ungroupOps(ctx, group);
 }
 
+/**
+ * A vector's box and path for an outline in an element's local space (#54): the path moves so its bounds start at
+ * 0, 0, the box takes the bounds' size, and `x, y` change so nothing moves on the page (rotation, flips, skew and the
+ * anchor included: the anchor is a fraction of the new size).
+ */
+function vectorBox(ctx: Pick<ElementContext, 'geometry'>, box: ElementBox, path: PathData): Result<{ readonly props: Record<PropertyPath, JsonValue>; readonly path: PathData }> {
+  if (path.verbs.length === 0) return ok({ props: { [P.x]: box.x, [P.y]: box.y, [P.w]: box.w, [P.h]: box.h }, path });
+  const b = ctx.geometry.bounds(path, IDENTITY);
+  if (!b.ok) return b;
+  const moved = ctx.geometry.transform(path, [1, 0, 0, 1, -b.value.minX, -b.value.minY]);
+  if (!moved.ok) return moved;
+  const next = fitBox(box, b.value);
+  return ok({ props: { [P.x]: next.x, [P.y]: next.y, [P.w]: next.w, [P.h]: next.h }, path: moved.value });
+}
+
 /** Flatten: replace an element (a boolean group, a shape) with a vector of its outline (same place, style, key). */
 export function flatten(ctx: ActionContext, node: NodeId): Result<PartOp[]> {
   const el = resolveElement(ctx.stage, node, ctx.kit);
   if (el === undefined || !isElement(el.kind) || el.geometry.kind === 'group') return notApplicable('Flatten needs a shape, a vector or a boolean.', 'a shape');
   const outline = localOutline(ctx, el);
   if (!outline.ok) return outline;
+  const placed = vectorBox(ctx, el.box, outline.value);
+  if (!placed.ok) return placed;
   const local = localValues(ctx.stage, node);
   const id = ctx.newId();
-  let props: Record<PropertyPath, JsonValue> = { ...pick(local, SPATIAL_PATHS), ...pick(local, STYLE_PATHS) };
-  let path = outline.value;
-  if (el.geometry.kind === 'boolean') {
-    const b = ctx.geometry.bounds(outline.value, [1, 0, 0, 1, 0, 0]);
-    if (!b.ok) return b;
-    const plain = el.box.rotation === 0 && el.box.scaleX === 1 && el.box.scaleY === 1 && !el.box.flipX && !el.box.flipY && el.box.skewX === 0;
-    if (plain) {
-      const moved = ctx.geometry.transform(outline.value, [1, 0, 0, 1, -b.value.minX, -b.value.minY]);
-      if (!moved.ok) return moved;
-      path = moved.value;
-      props = { ...props, [P.x]: el.box.x + b.value.minX, [P.y]: el.box.y + b.value.minY, [P.w]: b.value.maxX - b.value.minX, [P.h]: b.value.maxY - b.value.minY };
-    } else {
-      props = { ...props, [P.w]: b.value.maxX, [P.h]: b.value.maxY };
-    }
-  }
+  const props: Record<PropertyPath, JsonValue> = { ...pick(local, SPATIAL_PATHS), ...pick(local, STYLE_PATHS), ...placed.value.props };
   const fillRule = el.geometry.kind === 'path' && el.geometry.evenOdd ? { [P.fillRule]: 'evenodd' } : {};
   const identity = pick(local, ['name', 'role', P.matchKey, P.maskMode, P.maskInvert, P.lockScope]);
   return ok([
-    { op: 'create', node: id, kind: 'vector', parent: el.parent, position: { before: node }, props: { ...props, ...identity, ...fillRule, [P.path]: ctx.geometry.toSvg(path) } },
+    { op: 'create', node: id, kind: 'vector', parent: el.parent, position: { before: node }, props: { ...props, ...identity, ...fillRule, [P.path]: ctx.geometry.toSvg(placed.value.path) } },
     { op: 'delete', node },
   ]);
 }
@@ -375,6 +379,8 @@ export function outlineStroke(ctx: ActionContext, node: NodeId): Result<PartOp[]
       return r.ok ? r.value : undefined;
     })();
     if (path === undefined) return err(ActionNotApplicableError({ message: 'The stroke could not be outlined.', details: { node, needs: 'a closed outline' } }));
+    const placed = vectorBox(ctx, el.box, path);
+    if (!placed.ok) return placed;
     const item = raw.length === el.strokes.length ? raw[i] : undefined;
     const paint: JsonValue = (item?.['paint'] as JsonValue | undefined) ?? (stroke.paint.kind === 'solid' ? rgbaToHex(stroke.paint.color) : '#000000');
     const id = ctx.newId();
@@ -386,9 +392,10 @@ export function outlineStroke(ctx: ActionContext, node: NodeId): Result<PartOp[]
       position: { after: previous },
       props: {
         ...pick(local, SPATIAL_PATHS),
+        ...placed.value.props,
         name: `${typeof local['name'] === 'string' ? local['name'] : 'Shape'} stroke`,
         [P.fills]: [{ paint, opacity: stroke.opacity, blend: stroke.blend }],
-        [P.path]: ctx.geometry.toSvg(path),
+        [P.path]: ctx.geometry.toSvg(placed.value.path),
         [P.matchKey]: keepsFill || i > 0 ? `${key}/stroke${i === 0 ? '' : `-${i}`}` : key,
       },
     });

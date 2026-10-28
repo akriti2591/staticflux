@@ -17,11 +17,11 @@
  */
 import { err, ok, type Result } from '@staticflux/core';
 import type { Box } from '@staticflux/document/spatial-index';
-import type { NodeId, PartOp } from '@staticflux/document/v2';
+import type { JsonValue, NodeId, PartOp, PropertyPath } from '@staticflux/document/v2';
 import type { Stage } from '@staticflux/stage';
 import { P } from '../elements/components.js';
-import { type ElementContext, elementBounds, pageTransform } from '../elements/layout.js';
-import { type Affine, applyAffine, boxTransform, type ElementBox, IDENTITY, invert, multiply, resolveElement } from '../elements/resolve.js';
+import { boundsIn, type ElementContext, elementBounds, isElement, pageTransform } from '../elements/layout.js';
+import { type Affine, applyAffine, boxTransform, type ElementBox, fitBox, IDENTITY, invert, multiply, type ResolvedElement, resolveElement } from '../elements/resolve.js';
 import { NothingToTransformError } from './errors.js';
 
 export type Point = readonly [number, number];
@@ -52,13 +52,33 @@ const boundsOf = (points: readonly Point[]): Box => ({
   maxY: Math.max(...points.map((p) => p[1])),
 });
 
+/** Geometry kinds whose outline comes from their children, not from their box (#66). */
+const CHILD_SIZED: ReadonlySet<string> = new Set(['group', 'boolean']);
+
+/**
+ * The box a selection frame and every transform of one element work on: its own, or for a group or a boolean the box
+ * that hugs its visible children in its own axes (#66: their stored `w, h` are 0 and draw nothing). An empty group
+ * keeps its own box.
+ */
+export function frameBox(ctx: ElementContext, el: ResolvedElement): Result<ElementBox> {
+  if (!CHILD_SIZED.has(el.geometry.kind)) return ok(el.box);
+  const local = boundsIn(ctx, el.id, IDENTITY);
+  if (!local.ok) return local;
+  return ok(local.value === undefined ? el.box : fitBox(el.box, local.value));
+}
+
+/** Parent → page of an element (identity under a page). */
+const parentToPage = (ctx: ElementContext, el: ResolvedElement): Affine => (el.parent === null ? IDENTITY : pageTransform(ctx, el.parent));
+
 /** The frame the handles sit on (see the module header); undefined for an empty selection. */
 export function selectionFrame(ctx: ElementContext, nodes: readonly NodeId[]): Result<SelectionFrame | undefined> {
   if (nodes.length === 0) return ok(undefined);
   const single = nodes.length === 1 ? resolveElement(ctx.stage, nodes[0] as NodeId, ctx.kit) : undefined;
-  if (single !== undefined && single.geometry.kind !== 'group' && single.box.w > 0 && single.box.h > 0) {
-    const t = pageTransform(ctx, single.id);
-    const corners = boxCorners({ minX: 0, minY: 0, maxX: single.box.w, maxY: single.box.h }).map(([x, y]) => applyAffine(t, x, y)) as unknown as [Point, Point, Point, Point];
+  const box = single === undefined ? undefined : frameBox(ctx, single);
+  if (box !== undefined && !box.ok) return box;
+  if (single !== undefined && box?.ok === true && (single.geometry.kind !== 'group' || box.value !== single.box) && box.value.w > 0 && box.value.h > 0) {
+    const t = multiply(parentToPage(ctx, single), boxTransform(box.value));
+    const corners = boxCorners({ minX: 0, minY: 0, maxX: box.value.w, maxY: box.value.h }).map(([x, y]) => applyAffine(t, x, y)) as unknown as [Point, Point, Point, Point];
     const rotation = (Math.atan2(t[1], t[0]) * 180) / Math.PI;
     const bounds = boundsOf(corners);
     const [a, , c] = corners;
@@ -190,15 +210,26 @@ export function pickHandle(handles: readonly TransformHandle[], x: number, y: nu
 
 // ---------------------------------------------------------------- start snapshot
 
+/**
+ * What follows an element's box when it changes (#54, #66), because the box alone draws nothing of it: a vector's
+ * path (scaled by the box's size change) or the children of a group or a boolean (`box` is then the element's stored
+ * box, while `ElementStart.box` is the frame box that hugs the children; the children's starts are in its local space).
+ */
+export type ElementContent =
+  | { readonly kind: 'path'; readonly d: string; readonly scaled: (kx: number, ky: number) => string }
+  | { readonly kind: 'children'; readonly box: ElementBox; readonly children: readonly ElementStart[] };
+
 export interface ElementStart {
   readonly node: NodeId;
+  /** The box transforms work on: the element's own, or the frame box of a group or a boolean (`frameBox`). */
   readonly box: ElementBox;
-  /** Local → page. */
+  /** Local (of `box`) → page. */
   readonly transform: Affine;
   /** Parent → page (identity under a page). */
   readonly parent: Affine;
   /** Page geometry bounds. */
   readonly bounds: Box;
+  readonly content?: ElementContent;
 }
 
 export interface TransformStart {
@@ -206,6 +237,39 @@ export interface TransformStart {
   /** Position-locked elements left out (they stay put). */
   readonly locked: readonly NodeId[];
   readonly frame: SelectionFrame;
+}
+
+/**
+ * One element's start under `parent` (parent → page, or → the group a child is in), with what follows its box.
+ * `bounds` defaults to the box's corners in the parent's space (children: never read by the transforms).
+ */
+function startOf(ctx: ElementContext, el: ResolvedElement, parent: Affine, bounds?: Box): Result<ElementStart> {
+  const box = frameBox(ctx, el);
+  if (!box.ok) return box;
+  const transform = multiply(parent, boxTransform(box.value));
+  const corners = boxCorners({ minX: 0, minY: 0, maxX: box.value.w, maxY: box.value.h }).map(([x, y]) => applyAffine(transform, x, y));
+  const start = { node: el.id, box: box.value, transform, parent, bounds: bounds ?? boundsOf(corners) };
+  const g = el.geometry;
+  if (g.kind === 'path') {
+    const path = ctx.geometry.parsePath(g.d);
+    if (!path.ok) return ok(start);
+    const scaled = (kx: number, ky: number): string => {
+      const t = ctx.geometry.transform(path.value, [kx, 0, 0, ky, 0, 0]);
+      return t.ok ? ctx.geometry.toSvg(t.value) : g.d;
+    };
+    return ok({ ...start, content: { kind: 'path', d: g.d, scaled } });
+  }
+  if (!CHILD_SIZED.has(g.kind) || box.value === el.box) return ok(start);
+  const children: ElementStart[] = [];
+  // Hidden children scale too (they come back the right size); the frame box only hugs the visible ones.
+  for (const child of ctx.stage.children(el.id)) {
+    const c = resolveElement(ctx.stage, child, ctx.kit);
+    if (c === undefined || !isElement(c.kind)) continue;
+    const s = startOf(ctx, c, IDENTITY);
+    if (!s.ok) return s;
+    children.push(s.value);
+  }
+  return ok({ ...start, content: { kind: 'children', box: el.box, children } });
 }
 
 /** Snapshot the movable elements of `nodes` (IF-TOOL-002 when none can move). */
@@ -221,7 +285,9 @@ export function captureTransform(ctx: ElementContext & { readonly stage: Pick<St
     if (el === undefined) continue;
     const b = elementBounds(ctx, node);
     if (!b.ok) return b;
-    elements.push({ node, box: el.box, transform: b.value.transform, parent: el.parent === null ? IDENTITY : pageTransform(ctx, el.parent), bounds: b.value.geometry });
+    const e = startOf(ctx, el, parentToPage(ctx, el), b.value.geometry);
+    if (!e.ok) return e;
+    elements.push(e.value);
   }
   if (elements.length === 0) return err(NothingToTransformError({ message: nodes.length === 0 ? 'Nothing is selected.' : 'Every selected element is position-locked.', details: { locked } }));
   const frame = selectionFrame(ctx, elements.map((e) => e.node));
@@ -512,19 +578,75 @@ export function snapRotation(start: TransformStart, degrees: number, step = ROTA
 
 const same = (a: number | boolean, b: number | boolean): boolean => (typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) < 1e-9 : a === b);
 
-/** One batch of `set` ops for new spatial values (unchanged fields are skipped). */
-export function valuesToOps(start: TransformStart, values: readonly SpatialValues[]): PartOp[] {
-  const before = new Map(start.elements.map((e) => [e.node, e.box]));
-  const ops: PartOp[] = [];
-  for (const v of values) {
-    const b = before.get(v.node);
-    for (const key of SPATIAL_VALUE_KEYS) {
-      const value = v[key];
-      if (value === undefined || (b !== undefined && same(b[key], value))) continue;
-      ops.push({ op: 'set', node: v.node, path: SPATIAL_VALUE_PATHS[key], value });
-    }
+/** One value a transform writes: a spatial value, a vector's path, or a value of a group's or a boolean's child. */
+export interface TransformWrite {
+  readonly node: NodeId;
+  readonly path: PropertyPath;
+  readonly value: JsonValue;
+}
+
+/**
+ * Which writes a transform makes: `changed` only what differs from the start (commits: one change set of real
+ * changes); `shown` every value of what it reaches, so a preview redrawn on each pointer move never leaves a stale
+ * value behind (a size dragged back to the start still rewrites the path and the children).
+ */
+export type WriteMode = 'changed' | 'shown';
+
+const SCALE_EPS = 1e-12;
+
+/** The spatial values of `after` against `before` (only the keys `keys` names, all of them when shown). */
+function spatialWrites(node: NodeId, before: ElementBox, after: ElementBox, keys: readonly SpatialValueKey[], mode: WriteMode, out: TransformWrite[]): void {
+  for (const key of keys) if (mode === 'shown' || !same(before[key], after[key])) out.push({ node, path: SPATIAL_VALUE_PATHS[key], value: after[key] });
+}
+
+/**
+ * Writes for new values `v` of the box a start works on. A vector's path scales with its box (#54); a group or a
+ * boolean takes what its stored box can hold (move, rotation, flips, skew) and its children take the rest, the scale
+ * (#66), recursively; any other element writes its values as they are.
+ */
+function followValues(e: ElementStart, v: Partial<SpatialValues>, keys: readonly SpatialValueKey[], mode: WriteMode, out: TransformWrite[]): void {
+  const defined = Object.fromEntries(SPATIAL_VALUE_KEYS.filter((k) => v[k] !== undefined).map((k) => [k, v[k]])) as Partial<ElementBox>;
+  const box: ElementBox = { ...e.box, ...defined };
+  const kx = e.box.w > 0 ? box.w / e.box.w : 1;
+  const ky = e.box.h > 0 ? box.h / e.box.h : 1;
+  const content = e.content;
+  const scaled = Math.abs(kx - 1) > SCALE_EPS || Math.abs(ky - 1) > SCALE_EPS;
+  if (content?.kind !== 'children') {
+    spatialWrites(e.node, e.box, box, keys, mode, out);
+    if (content?.kind === 'path' && (scaled || mode === 'shown')) out.push({ node: e.node, path: P.path, value: scaled ? content.scaled(kx, ky) : content.d });
+    return;
   }
-  return ops;
+  // The stored box's local space → parent after the change (the frame box's local axes stretch by kx, ky).
+  const next = multiply(boxTransform(box), multiply([kx, 0, 0, ky, 0, 0], multiply(invert(boxTransform(e.box)) ?? IDENTITY, boxTransform(content.box))));
+  const own: ElementStart = { node: e.node, box: content.box, transform: boxTransform(content.box), parent: IDENTITY, bounds: e.bounds };
+  const held = valuesForTransform(own, next);
+  // A resize keeps the group's own origin (its children take the move with the scale); anything else moves the group.
+  const at = scaled ? { x: content.box.x, y: content.box.y } : { x: held.x, y: held.y };
+  const kept: ElementBox = { ...content.box, ...at, ...(held.rotation === undefined ? {} : { rotation: held.rotation }), ...(held.skewX === undefined ? {} : { skewX: held.skewX }), ...(held.flipX === undefined ? {} : { flipX: held.flipX }), ...(held.flipY === undefined ? {} : { flipY: held.flipY }) };
+  spatialWrites(e.node, content.box, kept, ['x', 'y', 'rotation', 'skewX', 'flipX', 'flipY'], mode, out);
+  // What the stored box could not hold, in the group's own space: applied to every child.
+  const rest = multiply(invert(boxTransform(kept)) ?? IDENTITY, next);
+  const identity = rest.every((n, i) => Math.abs(n - (IDENTITY[i] as number)) < 1e-9);
+  if (identity && mode === 'changed') return;
+  for (const c of content.children) followValues(c, valuesForTransform(c, multiply(rest, c.transform)), SPATIAL_VALUE_KEYS, mode, out);
+}
+
+/** The writes of new spatial values (see `WriteMode`); values of nodes outside the start are written as given. */
+export function transformWrites(start: TransformStart, values: readonly SpatialValues[], mode: WriteMode = 'changed'): TransformWrite[] {
+  const starts = new Map(start.elements.map((e) => [e.node, e]));
+  const out: TransformWrite[] = [];
+  for (const v of values) {
+    const keys = SPATIAL_VALUE_KEYS.filter((k) => v[k] !== undefined);
+    const e = starts.get(v.node);
+    if (e === undefined) for (const key of keys) out.push({ node: v.node, path: SPATIAL_VALUE_PATHS[key], value: v[key] as JsonValue });
+    else followValues(e, v, keys, mode, out);
+  }
+  return out;
+}
+
+/** One batch of `set` ops for new spatial values (unchanged fields are skipped; paths and children follow, #54 #66). */
+export function valuesToOps(start: TransformStart, values: readonly SpatialValues[]): PartOp[] {
+  return transformWrites(start, values).map((w) => ({ op: 'set', node: w.node, path: w.path, value: w.value }));
 }
 
 /** The page bounds of a start element after new values (preview of snapping and overlays). */

@@ -63,11 +63,18 @@ No screen layout: Studio places the tools from the spec.
   skew; a flip stays a flip); `resizedSize` is signed: a resize past the fixed point flips; `ResizeOptions.pivot`;
   `framePoint`, `aboutPoint`, `startAfter`; the pivot handle (`PIVOT_HANDLE`, `transformHandles(frame, zoom, pivot)`,
   `pickHandle(…, prefer)`).
+- `transform.ts` (#54, #66: what is not its box follows the box) — `frameBox(ctx, el)`: a group's or a boolean's
+  frame box hugs its visible children in its own axes (their stored `w, h` are 0), and `selectionFrame`, every
+  transform and the numeric bar work on it; `ElementStart.content` (`ElementContent`): a vector's path, a group's or a
+  boolean's children (starts in its local space); `transformWrites(start, values, mode)` (`TransformWrite`, `WriteMode`
+  `changed` for commits, `shown` for previews) turns values into writes: a vector's path scales with its box, a group
+  keeps move, rotation, flips and skew on its own box and passes the scale to its children (sizes, not scale factors:
+  strokes and corners keep their widths), recursively; `valuesToOps` and `createPreview` both use it.
 - `free-transform.ts` — `frameBasis`, `inFrame`, `pivotPoint`, `pivotFraction`, `snapPivot`, `REFERENCE_POINTS`,
   `CENTER_PIVOT`, `isCenterPivot`; `flipValues(start, axis, pivot?)`; `skewValues(start, handle, ldx, ldy, { snap,
   aboutPivot, pivot })`, `skewByValues(start, x, y, pivot?)`, `SKEW_STEP` (15°), `SKEW_LIMIT` (80°); the numeric bar's
   `transformModel(start)`, `numericValues(start, edit, pivot?)` (`TransformEdit`, `NUMERIC_FIELDS`).
-- `transform-mode.ts` — `createPreview(session)` (session-layer previews, also B3's), machine `TransformSessionLifecycle`
+- `transform-mode.ts` — `createPreview(session)` (session-layer previews, also B3's; `show(start, values)`), machine `TransformSessionLifecycle`
   (`instaflow/transform-session`), `createTransformMode(host, scope?)` (`enter`, `stage`, `restore`, `commit`, `cancel`,
   reactive `state`; commits on a new selected set, cancels with its scope), `applyTransform(host, label, compute)` (commit
   now, or stage into the session: `APPLY` table).

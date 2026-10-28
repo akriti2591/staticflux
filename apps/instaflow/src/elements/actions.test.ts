@@ -128,6 +128,66 @@ describe.skipIf(!authoringBuilt)('element actions', () => {
     expect(setBooleanOp(ctx, 'nope', 'union').ok).toBe(false);
   });
 
+  it('flatten keeps the page bounds and gives a box that hugs the path (rotated, in an offset parent, booleans) (#54)', async () => {
+    const g = await loadGeometry();
+    // The owner's pentagon (807 × 918 at 145, 352).
+    const poly = (id: string, parent: string, extra: Record<string, unknown> = {}) => rect(id, 145, 352, 807, 918, { [P.shape]: 'polygon', [P.sides]: 5, ...extra }, parent);
+    const cases: { readonly name: string; readonly ops: Parameters<typeof createFixture>[0]; readonly node: string; readonly boolean?: 'union' | 'subtract' | 'intersect' | 'exclude' }[] = [
+      { name: 'polygon', ops: [poly('s', 'p1')], node: 's' },
+      { name: 'rotated polygon', ops: [poly('s', 'p1', { [P.rotation]: 30 })], node: 's' },
+      { name: 'flipped, skewed polygon', ops: [poly('s', 'p1', { [P.flipX]: true, [P.skewX]: 10, [P.rotation]: -20 })], node: 's' },
+      {
+        name: 'polygon in a rotated, offset frame',
+        ops: [shape('fr', { [P.x]: 120, [P.y]: 80, [P.w]: 2000, [P.h]: 2000, [P.rotation]: 15 }, 'p1', 'frame'), poly('s', 'fr', { [P.rotation]: 10 })],
+        node: 's',
+      },
+      ...(['union', 'subtract', 'intersect', 'exclude'] as const).map((op) => ({ name: `${op}`, ops: [rect('a', 0, 0, 100, 100), rect('b', 50, 50, 100, 100)], node: '', boolean: op })),
+      { name: 'rotated union', ops: [rect('a', 0, 0, 100, 100), rect('b', 50, 50, 100, 100)], node: '', boolean: 'union' as const },
+      {
+        name: 'union in an offset frame',
+        ops: [shape('fr', { [P.x]: 300, [P.y]: 200, [P.w]: 500, [P.h]: 500 }, 'p1', 'frame'), rect('a', 10, 20, 100, 100, {}, 'fr'), rect('b', 60, 70, 100, 100, {}, 'fr')],
+        node: '',
+        boolean: 'union' as const,
+      },
+    ];
+    for (const c of cases) {
+      const f = await createFixture(c.ops);
+      const ctx = f.ctx(g);
+      let node = c.node;
+      if (c.boolean !== undefined) {
+        f.seed(unwrap(booleanGroup(ctx, ['a', 'b'], c.boolean)));
+        node = f.stage.read('a')?.parent as string;
+        if (c.name === 'rotated union') f.seed([{ op: 'set', node, path: P.rotation, value: 30 }, { op: 'set', node, path: P.x, value: 400 }]);
+      }
+      const parent = f.stage.read(node)?.parent as string;
+      const before = unwrap(elementBounds(ctx, node)).geometry;
+      f.seed(unwrap(flatten(ctx, node)));
+      const vector = f.stage.children(parent).find((n) => f.stage.read(n)?.kind === 'vector') as string;
+      const after = unwrap(elementBounds(ctx, vector)).geometry;
+      for (const k of ['minX', 'minY', 'maxX', 'maxY'] as const) expect(after[k], `${c.name}: ${k}`).toBeCloseTo(before[k], 6);
+      // The box hugs the path: its local bounds are exactly 0…w × 0…h.
+      const local = unwrap(g.bounds(unwrap(g.parsePath(f.stage.value(vector, P.path) as string)), [1, 0, 0, 1, 0, 0]));
+      expect(local.minX, c.name).toBeCloseTo(0, 6);
+      expect(local.minY, c.name).toBeCloseTo(0, 6);
+      expect(local.maxX, c.name).toBeCloseTo(f.stage.value(vector, P.w) as number, 6);
+      expect(local.maxY, c.name).toBeCloseTo(f.stage.value(vector, P.h) as number, 6);
+    }
+  });
+
+  it('outline stroke gives vectors whose box hugs the ring, in place (#54)', async () => {
+    const g = await loadGeometry();
+    const f = await createFixture([rect('a', 40, 30, 100, 60, { [P.rotation]: 20, [P.strokes]: [{ paint: '#000', width: 10 }] })]);
+    const ctx = f.ctx(g);
+    const ink = unwrap(elementBounds(ctx, 'a')).ink;
+    f.seed(unwrap(outlineStroke(ctx, 'a')));
+    const ring = f.stage.children('p1').find((n) => f.stage.read(n)?.kind === 'vector') as string;
+    const after = unwrap(elementBounds(ctx, ring)).geometry;
+    for (const k of ['minX', 'minY', 'maxX', 'maxY'] as const) expect(after[k]).toBeCloseTo(ink[k], 3);
+    const local = unwrap(g.bounds(unwrap(g.parsePath(f.stage.value(ring, P.path) as string)), [1, 0, 0, 1, 0, 0]));
+    expect([local.minX, local.minY]).toEqual([expect.closeTo(0, 6), expect.closeTo(0, 6)]);
+    expect([local.maxX, local.maxY]).toEqual([expect.closeTo(f.stage.value(ring, P.w) as number, 6), expect.closeTo(f.stage.value(ring, P.h) as number, 6)]);
+  });
+
   it('outline stroke turns each stroke into a filled vector; the element keeps its fills or goes', async () => {
     const g = await loadGeometry();
     const f = await createFixture([

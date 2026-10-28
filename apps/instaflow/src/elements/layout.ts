@@ -190,6 +190,29 @@ export function elementBounds(ctx: ElementContext, node: NodeId): Result<Element
   return ok({ node, geometry, ink, center: boxCenter(geometry), transform });
 }
 
+/**
+ * Exact outline bounds of an element under `transform` (its local space → any space; no stroke): groups are the
+ * union of their visible children, booleans their derived outline. Undefined for a group with nothing visible. With
+ * `pageTransform(ctx, node)` it is `elementBounds(…).geometry`; with the identity it is the element's own local box
+ * of content (#66: what a group's or a boolean's selection frame hugs).
+ */
+export function boundsIn(ctx: ElementContext, node: NodeId, transform: Affine): Result<Box | undefined> {
+  const el = resolveElement(ctx.stage, node, ctx.kit);
+  if (el === undefined || !isElement(el.kind)) return err(ActionNotApplicableError({ message: `"${node}" is not an element.`, details: { node, needs: 'an element' } }));
+  if (el.geometry.kind !== 'group') {
+    const outline = localOutline(ctx, el);
+    return outline.ok ? ctx.geometry.bounds(outline.value, transform) : outline;
+  }
+  let box: Box | undefined;
+  for (const child of ctx.stage.children(node)) {
+    const c = resolveElement(ctx.stage, child, ctx.kit);
+    if (c === undefined || !isElement(c.kind) || c.hidden === true) continue;
+    const b = boundsIn(ctx, child, multiply(transform, c.transform));
+    if (b.ok && b.value !== undefined) box = unionBox(box, b.value);
+  }
+  return ok(box);
+}
+
 export interface ContainerInfo {
   readonly node: NodeId;
   readonly kind: string;
