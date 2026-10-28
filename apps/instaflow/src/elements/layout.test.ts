@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { P } from './components.js';
-import { boxCenter, containerBounds, containerGrids, containerOf, elementBounds, gridLines, hitBox, hitElement, intersectBox, isElement, localOutline, maskOf, pageTransform, siblingBounds, unionBox } from './layout.js';
+import { boundsIn, boxCenter, containerBounds, containerGrids, containerOf, elementBounds, gridLines, hitBox, hitElement, intersectBox, isElement, localOutline, maskOf, pageTransform, siblingBounds, unionBox } from './layout.js';
 import { resolveElement } from './resolve.js';
 import { authoringBuilt, createFixture, loadGeometry, shape, unwrap } from './testing/fixtures.js';
 
@@ -131,5 +131,27 @@ describe.skipIf(!authoringBuilt)('page-space geometry queries', () => {
     expect(unwrap(hitElement(ctx, 'u', 35, 5))).toBe('none'); // between the two operands of the inner group
     const empty = resolveElement(f.stage, 'empty');
     expect(unwrap(localOutline(ctx, empty!)).verbs).toHaveLength(0);
+  });
+
+  it('boundsIn: the outline bounds of an element in any space; groups skip hidden children; empty groups have none (#66)', async () => {
+    const g = await loadGeometry();
+    const f = await createFixture([
+      shape('fr', { [P.x]: 100, [P.y]: 50, [P.w]: 400, [P.h]: 400, [P.rotation]: 90 }, 'p1', 'frame'),
+      shape('k', { [P.x]: 10, [P.y]: 20 }, 'fr', 'group'),
+      shape('a', { [P.x]: 0, [P.y]: 0, [P.w]: 40, [P.h]: 20, [P.fills]: [{ paint: '#000' }] }, 'k'),
+      shape('b', { [P.x]: 60, [P.y]: 30, [P.w]: 40, [P.h]: 20, [P.rotation]: 90 }, 'k'),
+      shape('hid', { [P.x]: 500, [P.y]: 500, [P.w]: 10, [P.h]: 10, [P.hidden]: true }, 'k'),
+      shape('empty', {}, 'p1', 'group'),
+    ]);
+    const ctx = f.ctx(g);
+    // In the group's own space: a ∪ b turned about its centre (80, 40) → 70…90 × 20…60.
+    expect(unwrap(boundsIn(ctx, 'k', [1, 0, 0, 1, 0, 0]))).toEqual({ minX: 0, minY: 0, maxX: 90, maxY: 60 });
+    for (const n of ['k', 'a', 'b', 'fr']) {
+      const page = unwrap(boundsIn(ctx, n, pageTransform(ctx, n)));
+      const expected = unwrap(elementBounds(ctx, n)).geometry;
+      for (const key of ['minX', 'minY', 'maxX', 'maxY'] as const) expect(page?.[key]).toBeCloseTo(expected[key], 9);
+    }
+    expect(unwrap(boundsIn(ctx, 'empty', [1, 0, 0, 1, 0, 0]))).toBeUndefined();
+    expect(boundsIn(ctx, 'p1', [1, 0, 0, 1, 0, 0]).ok).toBe(false);
   });
 });

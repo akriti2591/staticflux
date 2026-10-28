@@ -26,7 +26,7 @@ import { checkToken, type TokenType } from './brand-kit.js';
 import { ActionNotApplicableError, EmptyNameError, UnknownTokenError } from './errors.js';
 import { type ElementBounds, type ElementContext, elementBounds, isElement, localOutline, pageTransform, strokeRing, unionBox } from './layout.js';
 import type { PathData } from './geometry.js';
-import { type Affine, applyAffine, boxTransform, type ElementBox, IDENTITY, invert, multiply as multiplyAffine, type ResolvedElement, resolveElement } from './resolve.js';
+import { type Affine, applyAffine, type ElementBox, fitBox, IDENTITY, invert, multiply as multiplyAffine, type ResolvedElement, resolveElement } from './resolve.js';
 import { type ImageRotation, rgbaToHex, validateElementOps } from './values.js';
 
 export interface ActionContext extends ElementContext {
@@ -329,11 +329,8 @@ function vectorBox(ctx: Pick<ElementContext, 'geometry'>, box: ElementBox, path:
   if (!b.ok) return b;
   const moved = ctx.geometry.transform(path, [1, 0, 0, 1, -b.value.minX, -b.value.minY]);
   if (!moved.ok) return moved;
-  const next: ElementBox = { ...box, x: 0, y: 0, w: b.value.maxX - b.value.minX, h: b.value.maxY - b.value.minY };
-  // Same linear part, so local (0, 0) of the new box must land where (minX, minY) of the old one was.
-  const [tx, ty] = applyAffine(boxTransform(box), b.value.minX, b.value.minY);
-  const [qx, qy] = applyAffine(boxTransform(next), 0, 0);
-  return ok({ props: { [P.x]: tx - qx, [P.y]: ty - qy, [P.w]: next.w, [P.h]: next.h }, path: moved.value });
+  const next = fitBox(box, b.value);
+  return ok({ props: { [P.x]: next.x, [P.y]: next.y, [P.w]: next.w, [P.h]: next.h }, path: moved.value });
 }
 
 /** Flatten: replace an element (a boolean group, a shape) with a vector of its outline (same place, style, key). */

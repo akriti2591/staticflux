@@ -180,6 +180,19 @@ export function boxTransform(box: ElementBox): Affine {
   return [linear[0], linear[1], linear[2], linear[3], box.x + ax + ox, box.y + ay + oy];
 }
 
+/**
+ * The box with `box`'s rotation, scale, flips and skew whose `0…w × 0…h` is `local` (a rectangle in `box`'s local
+ * space), placed so that nothing moves in the parent: the box that hugs content not starting at the local origin
+ * (#54: a flattened path; #66: a group's or a boolean's children). Only `x, y, w, h` change (the anchor is a fraction
+ * of the size, so `x, y` absorb its move).
+ */
+export function fitBox(box: ElementBox, local: { readonly minX: number; readonly minY: number; readonly maxX: number; readonly maxY: number }): ElementBox {
+  const next: ElementBox = { ...box, x: 0, y: 0, w: Math.max(0, local.maxX - local.minX), h: Math.max(0, local.maxY - local.minY) };
+  const [tx, ty] = applyAffine(boxTransform(box), local.minX, local.minY);
+  const [qx, qy] = applyAffine(boxTransform(next), 0, 0);
+  return { ...next, x: tx - qx, y: ty - qy };
+}
+
 export function readBox(values: Readonly<Record<string, JsonValue>>): ElementBox {
   return {
     x: num(values[P.x], 0),

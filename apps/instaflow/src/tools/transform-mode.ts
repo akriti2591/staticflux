@@ -15,36 +15,35 @@
  * Machine: `TransformSessionLifecycle` (`instaflow/transform-session`).
  */
 import { createMachine, defineMachine, err, ok, type Result, type Scope, watch } from '@staticflux/core';
-import type { JsonValue, NodeId } from '@staticflux/document/v2';
+import type { NodeId, PropertyPath } from '@staticflux/document/v2';
 import type { Actor, SessionLayer, Stage } from '@staticflux/stage';
 import { commitEdit, type EditTarget } from '../elements/actions.js';
 import type { ElementContext } from '../elements/layout.js';
 import { TargetGoneError, TransformModeStateError } from './errors.js';
 import type { ToolOutcome } from './gesture.js';
-import { captureTransform, SPATIAL_VALUE_KEYS, SPATIAL_VALUE_PATHS, type SpatialValues, type TransformStart, valuesToOps } from './transform.js';
+import { captureTransform, SPATIAL_VALUE_KEYS, type SpatialValues, type TransformStart, transformWrites, valuesToOps } from './transform.js';
 import type { ViewState } from './view-state.js';
 
-/** Session-layer previews of spatial values. */
+/** Session-layer previews of spatial values (with the paths and children that follow them, #54 #66). */
 export interface Preview {
-  show(values: readonly SpatialValues[]): void;
+  /** Show new values of a start's elements (what `valuesToOps(start, values)` would commit). */
+  show(start: TransformStart, values: readonly SpatialValues[]): void;
   clear(): void;
 }
 
 /** Previews in the stage's session layer (never persisted; drawn like any composed value). */
 export function createPreview(session: Pick<SessionLayer, 'set' | 'clear'>): Preview {
-  const touched = new Set<NodeId>();
+  const touched = new Map<NodeId, Set<PropertyPath>>();
   return {
-    show(values) {
-      for (const v of values) {
-        touched.add(v.node);
-        for (const key of SPATIAL_VALUE_KEYS) {
-          const value = v[key];
-          if (value !== undefined) session.set(v.node, SPATIAL_VALUE_PATHS[key], value as JsonValue);
-        }
+    show(start, values) {
+      for (const w of transformWrites(start, values, 'shown')) {
+        const paths = touched.get(w.node) ?? new Set<PropertyPath>();
+        touched.set(w.node, paths.add(w.path));
+        session.set(w.node, w.path, w.value);
       }
     },
     clear() {
-      for (const node of touched) for (const key of SPATIAL_VALUE_KEYS) session.clear(node, SPATIAL_VALUE_PATHS[key]);
+      for (const [node, paths] of touched) for (const path of paths) session.clear(node, path);
       touched.clear();
     },
   };
@@ -113,8 +112,8 @@ export function createTransformMode(host: Omit<TransformHost, 'mode'>, scope?: S
     labels = new Set();
   };
   const preview: Preview = {
-    show(values) {
-      if (machine.is('active')) shown.show(values);
+    show(start, values) {
+      if (machine.is('active')) shown.show(start, values);
     },
     clear() {
       shown.clear();
@@ -154,7 +153,7 @@ export function createTransformMode(host: Omit<TransformHost, 'mode'>, scope?: S
     },
     restore() {
       shown.clear();
-      if (machine.is('active')) shown.show([...staged.values()]);
+      if (machine.is('active') && base !== undefined) shown.show(base, [...staged.values()]);
     },
     commit() {
       if (!machine.is('active') || base === undefined) return err(TransformModeStateError({ details: { state: machine.state } }));
@@ -202,9 +201,9 @@ const APPLY: Readonly<Record<TransformModeState, (host: TransformHost, start: Tr
     const committed = commitEdit(host.target, host.actor(), label, ok(ops));
     return committed.ok ? ok({ kind: 'committed', label, ops: ops.length }) : committed;
   },
-  active(host, _start, values, label) {
+  active(host, start, values, label) {
     const mode = host.mode as TransformMode;
-    mode.preview.show(values);
+    mode.preview.show(start, values);
     mode.stage(values, label);
     return ok({ kind: 'staged', label });
   },

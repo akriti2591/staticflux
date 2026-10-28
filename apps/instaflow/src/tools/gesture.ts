@@ -227,7 +227,7 @@ function transformRun(g: GestureContext, start: TransformStart, label: string, c
     update(page, _screen, mods) {
       const r = compute(page, mods);
       last = r.values;
-      g.sink.preview.show(r.values);
+      g.sink.preview.show(start, r.values);
       refreshOverlay(g.s, { guides: r.guides, labels: r.labels });
     },
     end() {

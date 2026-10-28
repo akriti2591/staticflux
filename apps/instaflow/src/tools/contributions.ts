@@ -227,7 +227,7 @@ export function runTransformSteps(
     for (const step of steps) {
       const values = step(start);
       if (!values.ok) return values;
-      preview.show(values.value);
+      preview.show(start, values.value);
       for (const v of values.value) merged.set(v.node, { ...merged.get(v.node), ...v });
       const next = captureTransform(session.ctx, targets);
       if (!next.ok) return next;

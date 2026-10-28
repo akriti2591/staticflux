@@ -167,7 +167,8 @@ describe.skipIf(!authoringBuilt)('transform mode (LIFECYCLES §36)', () => {
     const mode = createTransformMode(f.tools, scope);
     f.view.select(['a']);
     unwrap(mode.enter());
-    mode.preview.show(moveValues(unwrap((await import('./transform.js')).captureTransform(f.ctx, ['a'])), 5, 0));
+    const shownStart = unwrap((await import('./transform.js')).captureTransform(f.ctx, ['a']));
+    mode.preview.show(shownStart, moveValues(shownStart, 5, 0));
     await scope.dispose();
     expect(mode.state).toBe('idle');
     expect(f.session.opinions('a')).toBeUndefined();
@@ -184,7 +185,7 @@ describe.skipIf(!authoringBuilt)('transform mode (LIFECYCLES §36)', () => {
     const bad = applyTransform(host, 'Move', () => ({ ok: false, error: { code: 'IF-XF-001' } }) as never);
     expect(!bad.ok && bad.error.code).toBe('IF-XF-001');
     const preview = createPreview(f.session);
-    preview.show([{ node: 'a', x: 9, y: 9, skewX: 10, flipX: true }]);
+    preview.show(unwrap((await import('./transform.js')).captureTransform(f.ctx, ['a'])), [{ node: 'a', x: 9, y: 9, skewX: 10, flipX: true }]);
     expect([f.stage.value('a', P.skewX), f.stage.value('a', P.flipX)]).toEqual([10, true]);
     preview.clear();
     expect(f.session.opinions('a')).toBeUndefined();

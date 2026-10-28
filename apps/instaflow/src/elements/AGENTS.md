@@ -30,7 +30,8 @@ Effects inspector.
 - `styles.ts` — `applyClassOps`, `overridesOf` (local vs class, from provenance), `resetOverrideOps`, `detachClassOps`,
   `styleSource`.
 - `resolve.ts` — `resolveElement` / `resolveComposed` → `ResolvedElement` (box, transform, geometry, fill/stroke stacks,
-  effects with glows as shadows, mask, match key, issues), `boxTransform`, `readBox`, `fitRadii`, affine helpers.
+  effects with glows as shadows, mask, match key, issues), `boxTransform`, `readBox`, `fitRadii`, `fitBox` (the box that
+  hugs a local rectangle without moving it, #54 #66), affine helpers.
 - `geometry.ts` — `GeometryWasm` (ABI), `loadAuthoringModule` (manifest; IF-EL-006), `createGeometry` → `GeometryService`
   (`outline`, `boolean`, `outlineStroke`, `bounds`, `inkBounds`, `hit`, `intersects`, `transform`, `parsePath`, `toSvg`;
   IF-EL-005), `strokeSpec`, `effectSpec`, `GEOMETRY_VERSION`.
@@ -38,9 +39,11 @@ Effects inspector.
   (booleans derived; a plain group is the union of its children, so groups and B7 repeat instances can be boolean operands
   and clip masks), `strokeRing`, `maskOf`, `containerBounds` / `containerOf`, `siblingBounds`, `hitElement` (fills, images, frames,
   booleans and text are hit across their area — text since B9, so a double click inside text edits it),
-  `gridLines`, `containerGrids`, box helpers.
+  `gridLines`, `containerGrids`, box helpers; `boundsIn(ctx, node, transform)` (outline bounds in any space; a group's
+  local box of content, #66).
 - `actions.ts` — `align` (edges × selection | container | page | key), `centerInContainer`, `distribute` (spacing |
-  centers), `tidyUp`, `booleanGroup`, `setBooleanOp`, `releaseBoolean`, `flatten`, `outlineStroke`, `useAsMask`, `setMask`,
+  centers), `tidyUp`, `booleanGroup`, `setBooleanOp`, `releaseBoolean`, `flatten` and `outlineStroke` (the vector's box
+  hugs its path, nothing moves, #54), `useAsMask`, `setMask`,
   `releaseMask`, `applyToken` (`TOKEN_TARGETS`), `duplicate` (match keys; copies rich texts when `ActionContext.texts` is
   given, B8), `localValues`, **`commitEdit`** (one change set).
 - `projection.ts` — `ElementProjection`, `createElementRenderSource` (stage-backed `RenderProjectionSource`), resources
