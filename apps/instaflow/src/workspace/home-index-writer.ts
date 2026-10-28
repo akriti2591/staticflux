@@ -4,7 +4,8 @@
  * when each design was last edited. Home reads that projection with no engine (D17).
  *
  * - **Projection** (`projectHomeIndex`, pure): every entry (B11c: trashed ones carry `trashedAt` for Home's Trash page),
- *   the lens of each kind, the design's format and page count, its project and favourite; `editedAt` = the newest of: a
+ *   the lens of each kind, the design's format and page count, its project and favourite, its cover (#64: the `cover`
+ *   rendition Studio renders, `design-cover.ts`); `editedAt` = the newest of: a
  *   touch in this session, the stored index, the entry's creation. Projects made on Home are kept.
  * - **Home's journal** (B11c, `../home/journal.ts`): ops Home appended and Studio has not drained yet are applied on top,
  *   so a write from here never undoes a change Home already shows.
@@ -55,6 +56,7 @@ export function projectHomeIndex(entries: readonly LibraryEntry[], previous: Hom
       ...(entry.trashedAt === undefined ? {} : { trashedAt: entry.trashedAt }),
       ...(pages === undefined ? {} : { pages }),
       ...(entry.content === undefined ? {} : { digest: entry.content.digest }),
+      ...(entry.renditions.cover === undefined ? {} : { cover: entry.renditions.cover.blob.digest }),
     };
   });
   return { schema: HOME_INDEX_SCHEMA, entries: out.sort(byEdited), ...(previous.projects === undefined || previous.projects.length === 0 ? {} : { projects: previous.projects }) };

@@ -17,7 +17,10 @@ kept in step with the library and with edits, Studio's document chosen from the 
   layout `DOCUMENT_STORE_KEYS`), `WorkspaceLocks` (structurally `navigator.locks`). Home-safe.
 - `browser.ts` — `LOCAL_WORKSPACE`, `openWorkspaceDocuments({ indexedDB?, keyRange?, locks? })` (SF-STORE-002 without IndexedDB). Home-safe.
 - `blobs.ts` — `openWorkspaceBlobs()` → `{ blobs, persistent }` (OPFS, else memory). Studio, and Home's importer and previews (lazy).
-- `home-index-writer.ts` — `projectHomeIndex` (pure; B11c: trashed entries with `trashedAt`, project, favourite, pages, digest, Home's
+- `design-cover.ts` — #64: `createDesignCover({ asset, render, blobs, library, scope, idleMs?, leaveWaitMs?, timers?, onProblem? })` →
+  `touch`, `flush`, `renders`: the open design's `cover` rendition (when missing, `COVER_IDLE_MS` after edits, and on leaving, bounded by
+  `COVER_LEAVE_WAIT_MS`); the session runs it, the index writer projects it as `HomeEntry.cover`.
+- `home-index-writer.ts` — `projectHomeIndex` (pure; B11c: trashed entries with `trashedAt`, project, favourite, pages, digest, cover, Home's
   projects kept), `writeHomeIndex` (CAS + retries, IF-HOME-005; Home's pending journal applied on top), `createHomeIndexWriter({ store,
   library, scope, now?, debounceMs?, timers?, onProblem?, onWritten? })` → `touch`, `describe` (`format`, `pages`), `flush`, `writes`;
   `observeStoreWrites(store, onWrite)` (the library and the journal are not designs).

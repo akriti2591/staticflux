@@ -57,6 +57,7 @@ import { type FilesPrefs, filesList, type ProjectFilter, readFilesPrefs, selectR
 import { browserStorage, formatBytes, markFirstRunSeen, readFirstRun, readStorageFacts, requestPersistence, type StorageFacts, type StoragePort } from './first-run.js';
 import { aspectOf, CUSTOM_FORMAT, DESIGN_FORMATS, type DesignFormatId, groupDigits, NEW_DESIGN_CHIPS } from './formats.js';
 import type { HomeEntry, ProjectSummary } from './index-record.js';
+import { previewBlob } from './previews.js';
 import { homeStyles } from './home-styles.js';
 import { homeMessages as m, homeText, relativeTime } from './messages.js';
 import type { HomeModel, ImportSummary } from './model.js';
@@ -161,7 +162,7 @@ type Confirming =
   | { readonly kind: 'bulk-trash' }
   | { readonly kind: 'delete-project'; readonly name: string };
 
-/** Makes an object URL for a media entry's preview (lazy; undefined when it cannot). */
+/** Makes an object URL for an entry's preview: a design's cover or a small image (lazy; undefined when it cannot). */
 export type PreviewSource = (entry: HomeEntry) => Promise<string | undefined>;
 
 export class IfHomeElement extends SfElement<typeof homeSpec> {
@@ -214,7 +215,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
   declare facts: StorageFacts | undefined;
   /** A write failed for lack of space (the banner). */
   declare full: boolean;
-  /** Preview URLs by asset. */
+  /** Preview URLs by previewed blob (a newer cover is a new key, so the card updates). */
   declare shown: ReadonlyMap<string, string>;
   /** An import in progress (the inline progress row; Cancel aborts the rest). */
   declare importing: { readonly done: number; readonly total: number; readonly controller: AbortController } | undefined;
@@ -688,21 +689,29 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
 
   private thumb(entry: HomeEntry): TemplateResult {
     const tag = lensTag(lensOf(entry.lens));
-    const preview = this.shown.get(entry.asset);
+    const preview = this.preview(entry);
     const icon = KIND_ICONS[entry.kind];
-    if (preview === undefined && icon !== undefined) this.requestPreview(entry);
     return html`<span class="thumb" aria-hidden="true">
-      ${preview !== undefined ? html`<img class="preview" alt="" src=${preview} />` : icon !== undefined ? html`<sf-icon .icon=${icon} size="24"></sf-icon>` : html`<span class="page" style=${pageStyle(entry.format)}></span>`}
+      ${preview !== undefined ? html`<img class=${entry.cover === undefined ? 'preview' : 'preview cover'} alt="" src=${preview} />` : icon !== undefined ? html`<sf-icon .icon=${icon} size="24"></sf-icon>` : html`<span class="page" style=${pageStyle(entry.format)}></span>`}
       <sf-tag .color=${tag.color} .ink=${tag.ink}>${this.kindLabel(entry.kind)}</sf-tag>
       ${entry.favorite === true ? html`<sf-icon class="star-mark" .icon=${starIcon} size="16" style="--sf-icon-fill:currentColor"></sf-icon>` : nothing}
     </span>`;
   }
 
-  private requestPreview(entry: HomeEntry): void {
-    if (this.previews === undefined || this.previewing.has(entry.asset) || entry.mime?.startsWith('image/') !== true) return;
-    this.previewing.add(entry.asset);
+  /** The entry's preview URL once loaded; asks for it the first time (#64: designs show their cover). */
+  private preview(entry: HomeEntry): string | undefined {
+    const key = previewBlob(entry)?.digest;
+    if (key === undefined) return undefined;
+    const url = this.shown.get(key);
+    if (url === undefined) this.requestPreview(entry, key);
+    return url;
+  }
+
+  private requestPreview(entry: HomeEntry, key: string): void {
+    if (this.previews === undefined || this.previewing.has(key)) return;
+    this.previewing.add(key);
     void this.previews(entry).then((url) => {
-      if (url !== undefined) this.shown = new Map([...this.shown, [entry.asset, url]]);
+      if (url !== undefined) this.shown = new Map([...this.shown, [key, url]]);
     });
   }
 
@@ -1207,8 +1216,7 @@ export class IfHomeElement extends SfElement<typeof homeSpec> {
     const when = relativeTime(entry.editedAt, this.now ?? Date.now(), this.locale());
     const size = entry.format === undefined ? '' : this.text(m.size, { width: entry.format.width, height: entry.format.height });
     const icon = KIND_ICONS[entry.kind];
-    const preview = this.shown.get(entry.asset);
-    if (preview === undefined && icon !== undefined) this.requestPreview(entry);
+    const preview = this.preview(entry);
     return html`<li
       class="row"
       data-asset=${entry.asset}

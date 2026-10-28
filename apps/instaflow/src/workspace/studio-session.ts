@@ -9,6 +9,8 @@
  *    template" (`saveAsTemplate` + a library entry).
  * 4. The design is listed in the library once the editor has it (`listDesign`), the Home index writer starts, and a
  *    new design's URL becomes `/s/:asset`.
+ * 5. #64: the design's cover (Home's card preview, `design-cover.ts`) is rendered when missing, after edits go quiet
+ *    and on leaving (before the index is flushed, so Home opens with it).
  *
  * B11c: before step 2, Home's journal is drained into the library (`home-journal-drain.ts`: renames, moves, trash,
  * duplicates and imports made on Home), so a design opens as Home showed it; it drains again whenever Home pings
@@ -25,6 +27,7 @@ import { HOME_JOURNAL_CHANNEL } from '../home/journal.js';
 import { createLibrary } from '../library/library.js';
 import { duplicateDesign } from './duplicate.js';
 import { createHomeIndexWriter, type HomeIndexWriter, type HomeIndexWriterOptions, observeStoreWrites, projectHomeIndex, writeHomeIndex } from './home-index-writer.js';
+import { createDesignCover, type DesignCover, type DesignCoverOptions } from './design-cover.js';
 import { createHomeJournalDrain, type HomeJournalDrain } from './home-journal-drain.js';
 import { listDesign, type PlannedDocument, planStudioDocument } from './studio-document.js';
 import { saveAsTemplate } from './templates.js';
@@ -43,6 +46,8 @@ export interface StudioSessionOptions extends Omit<StudioAppOptions, 'workspace'
   readonly now?: () => number;
   /** Home index writer timing (tests). */
   readonly index?: Pick<HomeIndexWriterOptions, 'debounceMs' | 'timers'>;
+  /** Cover timing (tests). */
+  readonly cover?: Pick<DesignCoverOptions, 'idleMs' | 'leaveWaitMs' | 'timers'>;
   /** Where Home and Studio ping each other (default: a `BroadcastChannel` on `HOME_JOURNAL_CHANNEL` when the platform has one). */
   readonly channel?: HomeChannel | null;
   readonly scope: Scope;
@@ -65,6 +70,8 @@ export interface StudioSession {
   readonly app: StudioApp;
   readonly plan: PlannedDocument;
   readonly index: HomeIndexWriter;
+  /** #64: the design's cover (undefined without an exporter). */
+  readonly cover: DesignCover | undefined;
   readonly workspace: StudioWorkspace;
   /** Home's journal drain (run it to apply what Home wrote; the session runs it on pings and visibility). */
   readonly drain: HomeJournalDrain;
@@ -85,6 +92,7 @@ export async function openStudioSession(options: StudioSessionOptions): Promise<
   const workspace = await openStudioWorkspace({ signal, store, ...(options.blobs === undefined ? {} : { blobs: options.blobs }) });
   if (!workspace.ok) return workspace;
   let index: HomeIndexWriter | undefined;
+  let cover: DesignCover | undefined;
   // B11c: what Home changed while Studio was closed reaches the library first (one library over the same document).
   const lib = workspace.value.library;
   const homeLibrary = createLibrary({ source: { part: lib.part, commit: (meta, changes) => lib.doc.commit(meta, changes) }, actor: () => person, now });
@@ -110,7 +118,7 @@ export async function openStudioSession(options: StudioSessionOptions): Promise<
 
   let app: StudioApp | undefined;
   const home = homeHref();
-  const { intent: _intent, documents: _documents, blobs: _blobs, navigate, replaceUrl, newAssetId: _newAssetId, now: _now, index: indexTiming, channel: _channel, ...appOptions } = options;
+  const { intent: _intent, documents: _documents, blobs: _blobs, navigate, replaceUrl, newAssetId: _newAssetId, now: _now, index: indexTiming, cover: coverTiming, channel: _channel, ...appOptions } = options;
   const created = await createStudioApp({
     ...appOptions,
     // B11c: where the URL points within the design (applied once the canvas shows, NAVIGATION §6).
@@ -119,6 +127,11 @@ export async function openStudioSession(options: StudioSessionOptions): Promise<
     document: plan.value.ref,
     homeHref: home.ok ? home.value : '/',
     leave: async (href) => {
+      // #64: the cover lands in the library (durably) before the index Home opens with.
+      if (cover !== undefined) {
+        const covered = await cover.flush();
+        if (covered.ok) await lib.doc.flush(signal);
+      }
       await index?.flush();
       (navigate ?? ((h: string) => globalThis.location.assign(h)))(href);
     },
@@ -153,7 +166,16 @@ export async function openStudioSession(options: StudioSessionOptions): Promise<
   });
   if (plan.value.format !== undefined) index.describe(plan.value.ref.asset, { format: plan.value.format });
   const writer = index;
-  edited = (asset) => writer.touch(asset);
+  const design = plan.value.ref.asset;
+  const render = app.cover;
+  if (render !== undefined) {
+    cover = createDesignCover({ asset: design as AssetId, render, blobs: workspace.value.blobs, library: app.library, scope, ...(coverTiming ?? {}), onProblem: (error) => console.warn(`[cover] ${error.code} ${error.message}`) });
+  }
+  const covering = cover;
+  edited = (asset) => {
+    writer.touch(asset);
+    if (asset === design) covering?.touch();
+  };
   // B11c: Home's meta line shows the page count (`Edited 2 min ago · 3 pages`).
   const shown = app;
   watch(
@@ -172,5 +194,5 @@ export async function openStudioSession(options: StudioSessionOptions): Promise<
   channel?.addEventListener('message', again);
   const doc = (globalThis as { document?: Document }).document;
   doc?.addEventListener('visibilitychange', () => (doc.visibilityState === 'visible' ? again() : undefined), { signal });
-  return ok({ app, plan: plan.value, index, workspace: workspace.value, drain });
+  return ok({ app, plan: plan.value, index, cover, workspace: workspace.value, drain });
 }

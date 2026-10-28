@@ -21,7 +21,9 @@ design (D10). One capability (`instaflow/export`) serves the panel, `Mod+Shift+E
 - `formats.ts` — `EXPORT_FORMATS` (data: label, MIME, extension, raster/vector, wire, multi-page, scales), `EXPORT_SCALES`,
   `EXPORT_SCOPES`, `ExportOptions`, `DEFAULT_EXPORT_OPTIONS`, `validateExportOptions` (IF-EXP-001), `exportFileName`, `PATCH_SCALE`,
   `PAGE_BACKGROUND`, `MAX_EXPORT_PIXELS`, `ExportFile`.
-- `service.ts` — `createExportService({ spawn, assets, store, target, title, images, deliver? })` → `ExportService` (`status`,
+- `cover.ts` — #64: `createCoverRenderer(serviceOptions)` → `{ render, dispose }` (the first page as a PNG within `COVER_EDGE` = 320 px, in
+  an export worker of its own), `COVER_EXPORT_OPTIONS`, `CoverImage`, `CoverRenderer`. The job's `edge` request field fits PNG output.
+- `service.ts` — `createExportService({ spawn, assets, store, target, title, images, deliver?, edge? })` → `ExportService` (`status`,
   `onChange`, `run`, `cancel`, `dispose`); `ExportTarget`, `ExportStatus`, `browserDownload`, `formatOf`.
 - `capability.ts` — `ExportCapability` (`instaflow/export`), `ExportShortcut` (`Mod+Shift+E`), `implementExport(service)`.
 - `panel.ts` — `<if-export-panel>` (`defineExportPanel`), `exportPanel` (B0 dock contribution), `bindExportPanel`, `ExportPanelPort`,
