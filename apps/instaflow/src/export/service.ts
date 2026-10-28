@@ -66,6 +66,8 @@ export interface ExportServiceOptions {
   readonly images: () => readonly LibraryEntry[];
   /** Hand files to the person (default none: the outcome carries the bytes). */
   readonly deliver?: (files: readonly ExportFile[], signal: AbortSignal) => Promise<Result<void>>;
+  /** PNG fitted within this many px on its longest side (#64: covers, `cover.ts`). */
+  readonly edge?: number;
 }
 
 export interface ExportService {
@@ -142,6 +144,7 @@ export function createExportService(options: ExportServiceOptions): ExportServic
         pages: opts.scope === 'pages' ? t.pages : [page],
         selection: opts.scope === 'selection' ? t.selection : [],
         images: options.images(),
+        ...(options.edge === undefined ? {} : { edge: options.edge }),
       };
       const done = await Promise.race([client.request('run', request, { signal }), crashed]);
       if (!done.ok) return done;

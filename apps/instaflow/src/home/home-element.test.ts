@@ -10,7 +10,7 @@ import { cleanPopTheme } from '../theme/clean-pop.js';
 import { bootHome } from './boot.js';
 import { HOME_QUICK_ACTIONS } from './capabilities.js';
 import { FIRST_RUN_KEY, type StoragePort } from './first-run.js';
-import { ASSETS_DRAG_TYPE, defineHome, fileActions, type IfHomeElement, isPlainActivation } from './home-element.js';
+import { ASSETS_DRAG_TYPE, defineHome, fileActions, type IfHomeElement, isPlainActivation, type PreviewSource } from './home-element.js';
 import { HOME_INDEX_SCHEMA, type HomeEntry, type HomeIndex, withHomeIndex } from './index-record.js';
 import { relativeTime } from './messages.js';
 import { createHomeModel, type HomeImporter, type HomeIndexSource, type HomeModel, storeIndexSource, storeJournalWriter } from './model.js';
@@ -100,7 +100,7 @@ describe('<if-home>', () => {
     readonly root: ReturnType<typeof mountTestRoot>;
   }
 
-  async function mount(options: { index?: HomeIndex; source?: HomeIndexSource; storage?: StoragePort | null; importer?: HomeImporter; view?: HomeView; settings?: DeviceSettings } = {}): Promise<Mounted> {
+  async function mount(options: { index?: HomeIndex; source?: HomeIndexSource; storage?: StoragePort | null; importer?: HomeImporter; view?: HomeView; settings?: DeviceSettings; previews?: PreviewSource } = {}): Promise<Mounted> {
     const style = document.createElement('style');
     style.textContent = compileTheme(cleanPopTheme);
     document.head.append(style);
@@ -129,7 +129,7 @@ describe('<if-home>', () => {
       controller.abort();
       await root.dispose();
     };
-    render(html`<if-home .now=${NOW} .storage=${options.storage === undefined ? null : options.storage} .settings=${options.settings}></if-home>`, root.container);
+    render(html`<if-home .now=${NOW} .storage=${options.storage === undefined ? null : options.storage} .settings=${options.settings} .previews=${options.previews}></if-home>`, root.container);
     await settle(3);
     const host = root.container.querySelector('if-home') as IfHomeElement;
     await host.updateComplete;
@@ -151,6 +151,32 @@ describe('<if-home>', () => {
     (card(host.shadowRoot as ShadowRoot, asset).querySelector('sf-icon-button.more') as HTMLElement).click();
     await again(host);
   };
+
+  it('#64: a design card shows its cover once it loads, in Jump back in and in Files, and a newer cover replaces it', async () => {
+    let current: HomeIndex = { ...INDEX, entries: INDEX.entries.map((e) => (e.asset === 'as_flyer' ? { ...e, cover: 'sha256:c1' } : e)) };
+    const asked: string[] = [];
+    const previews: PreviewSource = async (e) => {
+      asked.push(`${e.asset} ${e.cover ?? e.digest ?? ''}`);
+      return e.cover === undefined ? undefined : `blob:cover-${e.cover}`;
+    };
+    const { host, shadow, model } = await mount({ source: { read: async () => ok(current) }, previews });
+    await again(host);
+    const img = (): string | null | undefined => card(host.shadowRoot as ShadowRoot, 'as_flyer')?.querySelector('.thumb img')?.getAttribute('src');
+    expect(img()).toBe('blob:cover-sha256:c1');
+    expect(asked).toContain('as_flyer sha256:c1');
+    // A design without a cover keeps the page placeholder.
+    expect(card(shadow, 'as_menu').querySelector('.thumb img')).toBeNull();
+    expect(card(shadow, 'as_menu').querySelector('.thumb .page')).not.toBeNull();
+    // Studio rendered a newer cover after an edit: the refreshed index shows it.
+    current = { ...current, entries: current.entries.map((e) => (e.asset === 'as_flyer' ? { ...e, cover: 'sha256:c2' } : e)) };
+    await model.refresh();
+    await again(host);
+    expect(img()).toBe('blob:cover-sha256:c2');
+    // Files (grid and list) show the same cover.
+    model.go({ kind: 'files' });
+    await again(host);
+    expect(card(host.shadowRoot as ShadowRoot, 'as_flyer')?.querySelector('img.preview')?.getAttribute('src')).toBe('blob:cover-sha256:c2');
+  });
 
   it('renders Home: header (logo, nav, search, New design), hero, quick actions, recents, templates and projects, with no a11y issues', async () => {
     const { shadow, root } = await mount({ storage: persistence(true) });

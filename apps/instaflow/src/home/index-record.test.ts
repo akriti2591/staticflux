@@ -82,6 +82,16 @@ describe('Home index record', () => {
     expect(readHomeProjects('x')).toEqual([]);
   });
 
+  it('#64: carries a design’s cover (its preview blob) and changes when the cover does', () => {
+    const head: DocumentHead = { asset: 'library', generation: 1, engine: 'loro/1', treeSchema: 1, parts: {}, logFrom: 1, undoHorizon: 200 };
+    const design = entry('as_d', 'composition', '2026-10-02T00:00:00.000Z', { cover: 'sha256:c1' });
+    const read = readHomeIndex(withHomeIndex(head, index(design)));
+    expect(read.entries[0]?.cover).toBe('sha256:c1');
+    expect(sameHomeIndex(read, index({ ...design, cover: 'sha256:c2' }))).toBe(false);
+    expect(readHomeEntry({ ...design, cover: '' })?.cover).toBeUndefined();
+    expect(readHomeEntry({ ...design, cover: 7 })?.cover).toBeUndefined();
+  });
+
   it('B11c: the trash and projects are derived; trashed entries are nowhere else', () => {
     const all = index(
       entry('as_a', 'composition', '2026-10-05T00:00:00Z', { folder: 'Spring' }),

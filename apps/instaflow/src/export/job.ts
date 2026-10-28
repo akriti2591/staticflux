@@ -19,7 +19,7 @@
 import type { BlobStore } from '@staticflux/blob';
 import { AbortedError, createMachine, createScope, defineMachine, err, ok, type Result, type SfError } from '@staticflux/core';
 import type { CrdtEngine, DocumentStore, NodeId } from '@staticflux/document/v2';
-import { encodePng, type RasterImage } from '@staticflux/surface/image';
+import { encodePng, fitWithin, type RasterImage } from '@staticflux/surface/image';
 import { createHeadlessSurface, type RasterBackend } from '@staticflux/surface/raster';
 import type { StudioFonts } from '../app/text-layer.js';
 import type { BrandKitSpec } from '../elements/brand-kit.js';
@@ -59,6 +59,8 @@ export interface ExportJobRequest {
   readonly selection: readonly NodeId[];
   /** Library entries of the workspace's image assets (the page's image paints are resolved from these). */
   readonly images: readonly LibraryEntry[];
+  /** PNG only: fit the output within this many px on its longest side, never upscaling (#64: a design's cover). */
+  readonly edge?: number;
 }
 
 export interface ExportProgress {
@@ -221,8 +223,8 @@ export async function runExportJob(request: ExportJobRequest, env: ExportJobEnv,
     move('render');
     if (format.kind === 'raster') {
       const scale = request.options.scale;
-      const width = Math.max(1, Math.round((region.x1 - region.x0) * scale));
-      const height = Math.max(1, Math.round((region.y1 - region.y0) * scale));
+      const scaled = { width: Math.max(1, Math.round((region.x1 - region.x0) * scale)), height: Math.max(1, Math.round((region.y1 - region.y0) * scale)) };
+      const { width, height } = request.edge === undefined ? scaled : fitWithin(scaled.width, scaled.height, request.edge);
       const r = await getRaster();
       if (!r.ok) return finish(r);
       for (const batch of batches) {

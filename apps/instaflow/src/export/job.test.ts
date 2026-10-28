@@ -52,6 +52,19 @@ describe.skipIf(!authoringBuilt || !exportBuilt)('export job (Node: real composi
     expect(progress.at(-1)?.fraction).toBe(1);
   });
 
+  it('#64: a cover fits the page within `edge` px (no upscaling), drawn the same way', { timeout: 60_000 }, async () => {
+    const { f, request, io } = await setup({ format: 'png', scale: 1 }, { edge: 320 });
+    const out = await runExportJob(request, f.env, io, { signal: f.studio.signal });
+    if (!out.ok) throw out.error;
+    expect(pngSize(out.value.files[0]!.bytes)).toEqual([256, 320]);
+    expect(f.rasters[0]!.regions[0]).toMatchObject({ world: { x0: 0, y0: 0, x1: 1080, y1: 1350 }, width: 256, height: 320 });
+    expect(f.rasters[0]!.batches.length).toBe(3); // the whole scene, not a placeholder
+    const tiny = await setup({ format: 'png', scale: 1 }, { edge: 4096 });
+    const big = await runExportJob(tiny.request, tiny.f.env, tiny.io, { signal: tiny.f.studio.signal });
+    if (!big.ok) throw big.error;
+    expect(pngSize(big.value.files[0]!.bytes)).toEqual([1080, 1350]);
+  });
+
   it('PNG transparent, every page: one file per page, transparent background', { timeout: 60_000 }, async () => {
     const { f, request, io } = await setup({ format: 'png', scale: 1, transparent: true, scope: 'pages' });
     const out = await runExportJob(request, f.env, io, { signal: f.studio.signal });

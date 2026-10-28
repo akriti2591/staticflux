@@ -42,7 +42,12 @@ export interface HomeEntry {
   readonly pages?: number;
   /** Media: the content digest (Home's import dedupe). */
   readonly digest?: string;
+  /** Designs and templates (#64): the blob digest of the cover Studio rendered (`DESIGN_COVER_MIME`, first page). */
+  readonly cover?: string;
 }
+
+/** What a design's cover blob is (the export worker's PNG encoder). */
+export const DESIGN_COVER_MIME = 'image/png';
 
 /** A project made on Home before it holds a design (HOME-FILES §2.1: kept in the index until it gets one). */
 export interface HomeProject {
@@ -94,6 +99,7 @@ export function readHomeEntry(raw: unknown): HomeEntry | undefined {
     ...(isIso(v['trashedAt']) ? { trashedAt: v['trashedAt'] } : {}),
     ...(positive(v['pages']) && Number.isInteger(v['pages']) ? { pages: v['pages'] } : {}),
     ...(typeof v['digest'] === 'string' && v['digest'].length > 0 ? { digest: v['digest'] } : {}),
+    ...(typeof v['cover'] === 'string' && v['cover'].length > 0 ? { cover: v['cover'] } : {}),
   };
 }
 
@@ -147,6 +153,7 @@ function entryJson(entry: HomeEntry): JsonObject {
     ...(entry.trashedAt === undefined ? {} : { trashedAt: entry.trashedAt }),
     ...(entry.pages === undefined ? {} : { pages: entry.pages }),
     ...(entry.digest === undefined ? {} : { digest: entry.digest }),
+    ...(entry.cover === undefined ? {} : { cover: entry.cover }),
   };
 }
 

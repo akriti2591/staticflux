@@ -54,7 +54,8 @@ capability, so agents can do it too.
 - `first-run.ts` — `readFirstRun` / `markFirstRunSeen` / `resetFirstRun` (`instaflow/ui/first-run`), `StoragePort`, `readStorageFacts`,
   `requestPersistence`, `formatBytes`, `browserStorage`.
 - `importer.ts` — `createHomeImporter({ blobs, actor, probe?, now? })`, `openBrowserImporter()` (OPFS), `browserImageProbe`, `GUEST_ACTOR`.
-- `previews.ts` — `createPreviewSource({ open, urls?, signal })` (object URLs for image entries, read once by digest), `PREVIEW_MAX_BYTES`.
+- `previews.ts` — `createPreviewSource({ open, urls?, signal })` (object URLs for image entries and design covers, read once by digest),
+  `previewBlob(entry)` (#64: a design's `cover`, else a small image's own bytes), `PREVIEW_MAX_BYTES`.
 - `new-design.ts` — `<if-new-design>` (the New design dialog: chips, `<sf-size-field>`, presets, start from, name, more), the draft as pure
   functions (`initialDraft`, `chooseFormat`, `setDraftSize`, `setStartFrom`, `draftRequest`), `readNewDesignMemory` / `writeNewDesignMemory`.
 - `home-element.ts` — `<if-home>` (`defineHome`, render dep `HomeModelToken`, lazy `I18nToken` and `ToastsToken`; `.previews`, `.storage`),
