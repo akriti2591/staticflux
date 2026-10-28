@@ -5,10 +5,13 @@
  *
  * Uploads are per asset key (`as_…`, or `as_…@ms_…` pinned); a snapshot re-sends every upload. B1's encoder asks
  * `images(asset)` for the scene image id and draws nothing until it is known.
+ *
+ * #43: a page opened from the store names images nobody added in this editor; `imageAssetKeys` lists them and
+ * `uploadImageKeys` uploads them before the page's first snapshot (the editor's `open`).
  */
-import { err, ok, type Result } from '@staticflux/core';
+import { err, ok, type Result, type SfError } from '@staticflux/core';
 import type { BlobStore } from '@staticflux/blob';
-import type { JsonValue, NodeId, PartOp } from '@staticflux/document/v2';
+import type { DocumentCRDTv2, JsonValue, NodeId, PartOp } from '@staticflux/document/v2';
 import { P } from '../elements/components.js';
 import type { LibraryEntry } from '../library/library-doc.js';
 import type { ImageDecoder } from '../library/renditions.js';
@@ -77,6 +80,51 @@ export function createImageUploads(options: { readonly blobs: Pick<BlobStore, 'g
       return assets === undefined ? undefined : { assets, images };
     },
   };
+}
+
+/** An image asset reference's upload key (`as_…`, or `as_…@ms_…` pinned; B1's `readPaint` makes the same key). */
+const refKey = (ref: JsonValue | undefined): string | undefined => {
+  if (typeof ref !== 'object' || ref === null || Array.isArray(ref)) return undefined;
+  const { asset, at } = ref as Readonly<Record<string, JsonValue>>;
+  if (typeof asset !== 'string') return undefined;
+  return typeof at === 'string' && at !== 'latest' ? `${asset}@${at}` : asset;
+};
+
+/**
+ * #43: the image assets a page part names (image paints in fills and strokes, mask mattes), as upload keys. What an
+ * opened document needs uploaded before its page is drawn: uploads are otherwise made only when an image is added.
+ */
+export function imageAssetKeys(part: Pick<DocumentCRDTv2, 'forEachNode' | 'prop'>): string[] {
+  const keys = new Set<string>();
+  part.forEachNode((node) => {
+    for (const path of [P.fills, P.strokes]) {
+      const list = part.prop(node.id, path);
+      if (!Array.isArray(list)) continue;
+      for (const item of list) {
+        const paint = typeof item === 'object' && item !== null && !Array.isArray(item) ? item['paint'] : undefined;
+        if (typeof paint !== 'object' || paint === null || Array.isArray(paint) || paint['kind'] !== 'image') continue;
+        const key = refKey(paint['asset']);
+        if (key !== undefined) keys.add(key);
+      }
+    }
+    const matte = refKey(part.prop(node.id, P.maskAsset));
+    if (matte !== undefined) keys.add(matte);
+  });
+  return [...keys];
+}
+
+/**
+ * #43: upload every key whose library entry is known (a pinned key `as_…@ms_…` falls back to its asset's entry, as
+ * export does). Keys without an entry are skipped; each failed upload is returned (errors are values), none stops the rest.
+ */
+export async function uploadImageKeys(uploads: Pick<ImageUploads, 'upload'>, keys: readonly string[], entry: (asset: string) => LibraryEntry | undefined, signal: AbortSignal): Promise<readonly SfError[]> {
+  const results = await Promise.all(
+    keys.map((key) => {
+      const found = entry(key) ?? entry(key.split('@')[0] as string);
+      return found === undefined ? undefined : uploads.upload({ ...found, asset: key as LibraryEntry['asset'] }, signal);
+    }),
+  );
+  return results.flatMap((r) => (r === undefined || r.ok ? [] : [r.error]));
 }
 
 /** The create op of a placed image: fitted into `max` (page units), centred on `center`. */

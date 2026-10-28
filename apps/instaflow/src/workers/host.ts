@@ -168,6 +168,7 @@ export function hostStudioWorker(options: { readonly port: Port; readonly env: S
       person: start.person,
       isMac: start.isMac,
       ...(start.textInput === undefined ? {} : { textInput: start.textInput }),
+      ...(start.images === undefined ? {} : { images: start.images }),
       publisher: made.value.publisher,
       events: {
         view: (projection) => void server.emit('view', projection),

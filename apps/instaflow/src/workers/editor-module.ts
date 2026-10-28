@@ -30,7 +30,7 @@ import type { CanvasPublisher } from '../app/canvas-pipeline.js';
 import { type CanvasTab, openCanvasTab } from '../app/canvas-tab.js';
 import { createStudioDocument, freshPeer, openStudioDocument, type StudioDocument } from '../app/document.js';
 import { NoOpenPageError } from '../app/errors.js';
-import { createImageUploads, placeImageOps } from '../app/images.js';
+import { createImageUploads, imageAssetKeys, placeImageOps, uploadImageKeys } from '../app/images.js';
 import { textBoxOps, type StudioFonts } from '../app/text-layer.js';
 import { commitEdit, duplicate, imageFillIndex } from '../elements/actions.js';
 import { pageFills } from '../elements/values.js';
@@ -111,6 +111,8 @@ export interface StudioEditorOptions {
   readonly person: Actor;
   readonly isMac: boolean;
   readonly textInput?: TextInputKind;
+  /** #43: the workspace's image entries (the images an opened page names are uploaded before it is drawn). */
+  readonly images?: readonly LibraryEntry[];
   readonly publisher: CanvasPublisher;
   readonly events: EditorEvents;
   readonly timers?: Timers;
@@ -288,6 +290,7 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
   const structure = structureFeed(document.root);
   const story = createStoryWriter({ doc, structure: () => structure.read(), actor });
   const uploads = createImageUploads({ blobs: options.blobs, decoder: env.decoder });
+  const imageEntries = new Map((options.images ?? []).map((e) => [e.asset as string, e]));
 
   // ---------------------------------------------------------------- capabilities
   const elementEnv = { context: () => document.context(), target: () => document.target(page()), actorFor };
@@ -716,6 +719,10 @@ export async function createStudioEditor(options: StudioEditorOptions): Promise<
     const next = createScope(`instaflow/editor-tab:${target}`);
     tabScope = next;
     scope.defer(() => next.dispose());
+    // #43: the images this page names, uploaded before its first snapshot (the store kept the references, not pixels).
+    const part = document.part(target);
+    const failedUploads = part === undefined ? [] : await uploadImageKeys(uploads, imageAssetKeys(part), (a) => imageEntries.get(a), next.signal);
+    if (!next.signal.aborted) for (const error of failedUploads) problem(error);
     const opened = await openCanvasTab({
       tab: 'main',
       document,

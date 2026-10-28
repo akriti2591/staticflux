@@ -52,7 +52,7 @@ import { createLensFeatureRegistry } from '../lenses/lens-features.js';
 import { pagesLensFeature } from '../lenses/pages-lens.js';
 import { LensControllerToken, StoryWriterToken } from '../lenses/tokens.js';
 import type { Library } from '../library/library.js';
-import type { LibraryEntry } from '../library/library-doc.js';
+import { type LibraryEntry, readLibraryEntries } from '../library/library-doc.js';
 import { browserObjectUrls, browserPickFiles, type LibraryHost } from '../library/panel-model.js';
 import type { ImageDecoder, ImageEncoder, ThumbnailRenderer } from '../library/renditions.js';
 import { browserImageDecoder, pngImageEncoder, scaleThumbnailRenderer } from '../library/thumbnails.js';
@@ -304,7 +304,14 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   // ---------------------------------------------------------------- workers
   const booted = await bootStudioWorkers({
     ...options.workers,
-    editor: { document: options.document, person, isMac: options.isMac ?? false, ...(options.textInput === undefined ? {} : { textInput: options.textInput.kind }) },
+    editor: {
+      document: options.document,
+      person,
+      isMac: options.isMac ?? false,
+      ...(options.textInput === undefined ? {} : { textInput: options.textInput.kind }),
+      // #43: the design's images resolve to their blobs when a page opens (trashed ones too: a design still shows them).
+      images: readLibraryEntries(workspace.library.part).filter((e) => e.kind === 'image' && e.content !== undefined),
+    },
     store: { store: workspace.store, blobs: workspace.blobs },
     signal,
   });
