@@ -8,6 +8,10 @@
  * - `boolean(op, operands)` — union / subtract / intersect / exclude (derived, non-destructive geometry).
  * - `outlineStroke`, `bounds`, `inkBounds`, `hit`, `intersects` — flatten and outline-stroke actions, exact bounds
  *   for align/distribute/snapping, ink bounds for the spatial index, precise hit tests and marquee tests for tools.
+ *
+ * Derived geometry (`outline`, `boolean`, `outlineStroke`) is memoized by its inputs (#68): the same inputs return the
+ * same path object, so a drag or rotation (a transform change) never re-runs a boolean, and a repeat's copies share
+ * their source's outline. Paths are values: callers never mutate one.
  */
 import { err, ok, type Result, toSfError } from '@staticflux/core';
 import type { Box } from '@staticflux/document/spatial-index';
@@ -102,6 +106,37 @@ export function effectSpec(effects: readonly ResolvedEffect[]): Float64Array {
   return f64(out);
 }
 
+/** Entries each derived-geometry memo keeps (least recently used first out; #68). */
+export const GEOMETRY_MEMO_LIMIT = 1024;
+
+/**
+ * A number as a memo key: 12 significant digits, and 0 below 1e-9, so the rounding noise of a value recomputed from
+ * transforms (a group's children re-placed during a rotation preview: 100.00000000000006 for 100, 1e-15 for 0) keys
+ * the same as the value itself.
+ */
+export function keyNumber(n: number): number {
+  if (!Number.isFinite(n)) return n;
+  return Math.abs(n) < 1e-9 ? 0 : Number(n.toPrecision(12));
+}
+
+/** A bounded memo of successful results by key, least recently used evicted first. */
+function createMemo<T>(limit: number): (key: string, make: () => Result<T>) => Result<T> {
+  const entries = new Map<string, T>();
+  return (key, make) => {
+    const hit = entries.get(key);
+    if (hit !== undefined) {
+      entries.delete(key);
+      entries.set(key, hit);
+      return ok(hit);
+    }
+    const made = make();
+    if (!made.ok) return made;
+    entries.set(key, made.value);
+    if (entries.size > limit) entries.delete(entries.keys().next().value as string);
+    return made;
+  };
+}
+
 /** Wrap the Wasm exports (see the module header). */
 export function createGeometry(wasm: GeometryWasm): GeometryService {
   const call = <T>(what: string, run: () => T): Result<T> => {
@@ -111,6 +146,20 @@ export function createGeometry(wasm: GeometryWasm): GeometryService {
       return err(GeometryError({ message: `${what}: ${typeof cause === 'string' ? cause : String((cause as Error)?.message ?? cause)}`, details: { op: what } }));
     }
   };
+  // #68: derived geometry is memoized by its inputs, so a change that moves or rotates an element (its transform
+  // only) never re-derives an outline, a boolean or a stroke outline. Paths are immutable values: a memoized result is
+  // returned as the same object, and a path's identity (`pathKey`) stands for its content in the keys of the
+  // operations that take it, so a boolean of memoized outlines (a repeat's copies, nested booleans) hits too.
+  const pathIds = new WeakMap<PathData, number>();
+  let nextPathId = 1;
+  const pathKey = (path: PathData): number => {
+    let id = pathIds.get(path);
+    if (id === undefined) pathIds.set(path, (id = nextPathId++));
+    return id;
+  };
+  const outlines = createMemo<PathData>(GEOMETRY_MEMO_LIMIT);
+  const booleans = createMemo<PathData>(GEOMETRY_MEMO_LIMIT);
+  const strokeOutlines = createMemo<PathData>(GEOMETRY_MEMO_LIMIT);
   const take = (path: WasmPath): PathData => {
     try {
       return { verbs: path.verbs, points: path.points };
@@ -132,52 +181,17 @@ export function createGeometry(wasm: GeometryWasm): GeometryService {
       });
       return r.ok ? r.value : '';
     },
-    outline({ geometry: g, box }) {
-      const shape = (kind: number, a = 0, b = 0, radii: readonly number[] = [], smoothing = 0): Result<PathData> =>
-        call('outline', () => take(wasm.shape_outline(kind, box.w, box.h, a, b, f64(radii), smoothing)));
-      switch (g.kind) {
-        case 'rect':
-        case 'frame':
-        case 'image':
-          return shape(SHAPE_CODES.rect, 0, 0, g.radii, g.smoothing);
-        case 'ellipse':
-          return shape(SHAPE_CODES.ellipse);
-        case 'polygon':
-          return shape(SHAPE_CODES.polygon, g.sides, 0, [g.radius], g.smoothing);
-        case 'star':
-          return shape(SHAPE_CODES.star, g.points, g.ratio, [g.radius, g.inner], g.smoothing);
-        case 'line':
-          return shape(SHAPE_CODES.line);
-        case 'path': {
-          const parsed = geometry.parsePath(g.d);
-          if (!parsed.ok || !g.radii.some((r) => r > 0)) return parsed;
-          return call('round corners', () => take(wasm.round_path(parsed.value.verbs, parsed.value.points, f64(g.radii), g.smoothing)));
-        }
-        case 'boolean':
-        case 'group':
-          return ok(EMPTY_PATH);
-      }
+    outline(element) {
+      const { geometry: g, box } = element;
+      if (g.kind === 'boolean' || g.kind === 'group') return ok(EMPTY_PATH);
+      return outlines(JSON.stringify([g, box.w, box.h], (_, v: unknown) => (typeof v === 'number' ? keyNumber(v) : v)), () => deriveOutline(element));
     },
     transform: (path, t) => call('transform', () => take(wasm.transform_path(path.verbs, path.points, f64(t)))),
     boolean(op, operands) {
-      return call('boolean', () => {
-        const placed: PathData[] = operands.map((o) => take(wasm.transform_path(o.path.verbs, o.path.points, f64(o.transform))));
-        const verbs = new Uint8Array(placed.reduce((n, p) => n + p.verbs.length, 0));
-        const points = new Float64Array(placed.reduce((n, p) => n + p.points.length, 0));
-        let v = 0;
-        let q = 0;
-        for (const p of placed) {
-          verbs.set(p.verbs, v);
-          points.set(p.points, q);
-          v += p.verbs.length;
-          q += p.points.length;
-        }
-        const counts = Uint32Array.from(placed.map((p) => p.verbs.length));
-        const rules = Uint8Array.from(operands.map((o) => (o.evenOdd === true ? 1 : 0)));
-        return take(wasm.boolean_op(BOOLEAN_CODES[op], verbs, points, counts, rules));
-      });
+      const key = `${op}|${operands.map((o) => `${pathKey(o.path)}:${o.transform.map(keyNumber).join(',')}:${o.evenOdd === true ? 1 : 0}`).join(';')}`;
+      return booleans(key, () => deriveBoolean(op, operands));
     },
-    outlineStroke: (path, stroke) => call('outline stroke', () => take(wasm.outline_stroke(path.verbs, path.points, strokeSpec(stroke)))),
+    outlineStroke: (path, stroke) => strokeOutlines(`${pathKey(path)}|${[...strokeSpec(stroke)].map(keyNumber).join(',')}`, () => call('outline stroke', () => take(wasm.outline_stroke(path.verbs, path.points, strokeSpec(stroke))))),
     bounds: (path, t) => call('bounds', () => boxOf(wasm.path_bounds(path.verbs, path.points, f64(t)))),
     inkBounds: (path, t, strokes, effects) =>
       call('ink bounds', () => {
@@ -195,6 +209,52 @@ export function createGeometry(wasm: GeometryWasm): GeometryService {
     intersects: (path, t, rect, options = {}) =>
       call('intersects', () => wasm.intersects(path.verbs, path.points, f64(t), f64([rect.minX, rect.minY, rect.maxX, rect.maxY]), options.contain === true, options.filled !== false)),
   };
+  /** An element's outline from the Wasm module (memoized by `outline`). */
+  function deriveOutline({ geometry: g, box }: Pick<ResolvedElement, 'geometry' | 'box'>): Result<PathData> {
+    const shape = (kind: number, a = 0, b = 0, radii: readonly number[] = [], smoothing = 0): Result<PathData> =>
+      call('outline', () => take(wasm.shape_outline(kind, box.w, box.h, a, b, f64(radii), smoothing)));
+    switch (g.kind) {
+      case 'rect':
+      case 'frame':
+      case 'image':
+        return shape(SHAPE_CODES.rect, 0, 0, g.radii, g.smoothing);
+      case 'ellipse':
+        return shape(SHAPE_CODES.ellipse);
+      case 'polygon':
+        return shape(SHAPE_CODES.polygon, g.sides, 0, [g.radius], g.smoothing);
+      case 'star':
+        return shape(SHAPE_CODES.star, g.points, g.ratio, [g.radius, g.inner], g.smoothing);
+      case 'line':
+        return shape(SHAPE_CODES.line);
+      case 'path': {
+        const parsed = geometry.parsePath(g.d);
+        if (!parsed.ok || !g.radii.some((r) => r > 0)) return parsed;
+        return call('round corners', () => take(wasm.round_path(parsed.value.verbs, parsed.value.points, f64(g.radii), g.smoothing)));
+      }
+      case 'boolean':
+      case 'group':
+        return ok(EMPTY_PATH);
+    }
+  }
+  /** A boolean of placed operands from the Wasm module (memoized by `boolean`). */
+  function deriveBoolean(op: keyof typeof BOOLEAN_CODES, operands: readonly BooleanOperand[]): Result<PathData> {
+    return call('boolean', () => {
+      const placed: PathData[] = operands.map((o) => take(wasm.transform_path(o.path.verbs, o.path.points, f64(o.transform))));
+      const verbs = new Uint8Array(placed.reduce((n, p) => n + p.verbs.length, 0));
+      const points = new Float64Array(placed.reduce((n, p) => n + p.points.length, 0));
+      let v = 0;
+      let q = 0;
+      for (const p of placed) {
+        verbs.set(p.verbs, v);
+        points.set(p.points, q);
+        v += p.verbs.length;
+        q += p.points.length;
+      }
+      const counts = Uint32Array.from(placed.map((p) => p.verbs.length));
+      const rules = Uint8Array.from(operands.map((o) => (o.evenOdd === true ? 1 : 0)));
+      return take(wasm.boolean_op(BOOLEAN_CODES[op], verbs, points, counts, rules));
+    });
+  }
   return geometry;
 }
 
