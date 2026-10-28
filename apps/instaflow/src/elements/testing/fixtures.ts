@@ -21,7 +21,7 @@ import {
 } from '@staticflux/stage';
 import type { ActionContext } from '../actions.js';
 import { type BrandKitSpec, type BrandKitView, brandKitOps, brandRuleGuard, composeGuards, elementStageRules, readBrandKit, stageRuleContext } from '../brand-kit.js';
-import { createGeometry, type GeometryService, loadAuthoringModule } from '../geometry.js';
+import { createGeometry, type GeometryService, type GeometryWasm, loadAuthoringModule } from '../geometry.js';
 
 export const engine = createLoroEngine();
 export const signal = new AbortController().signal;
@@ -109,12 +109,13 @@ const manifestPath = `${root}engine/dist/sf-wasm-manifest.json`;
 /** True when the authoring Wasm is built (`pnpm build`). */
 export const authoringBuilt = existsSync(manifestPath);
 
+let cachedWasm: Promise<GeometryWasm> | undefined;
 let cached: Promise<GeometryService> | undefined;
 
-/** The real geometry service in Node (the loader with file-system fetch). */
-export function loadGeometry(): Promise<GeometryService> {
-  cached ??= (async () => {
-    const wasm = unwrap(
+/** The authoring module's geometry exports in Node (the loader with file-system fetch). */
+export function loadAuthoringWasm(): Promise<GeometryWasm> {
+  cachedWasm ??= (async () =>
+    unwrap(
       await loadAuthoringModule({
         manifestUrl: pathToFileURL(manifestPath),
         fetch: async (url) => {
@@ -123,10 +124,41 @@ export function loadGeometry(): Promise<GeometryService> {
         },
         wasmBytes: async (url) => new Uint8Array(readFileSync(fileURLToPath(url))),
       }),
-    );
-    return createGeometry(wasm);
-  })();
+    ))();
+  return cachedWasm;
+}
+
+/** The real geometry service in Node (the loader with file-system fetch). */
+export function loadGeometry(): Promise<GeometryService> {
+  cached ??= loadAuthoringWasm().then(createGeometry);
   return cached;
+}
+
+/** Geometry exports that count their calls by export name (`calls.boolean_op`): what reaches the Wasm module (#68). */
+export interface CountingWasm {
+  readonly wasm: GeometryWasm;
+  readonly calls: Readonly<Record<string, number>>;
+  reset(): void;
+}
+
+export function countingWasm(wasm: GeometryWasm): CountingWasm {
+  const calls: Record<string, number> = {};
+  const counted: Record<string, unknown> = {};
+  for (const name of Object.keys(wasm)) {
+    const fn = (wasm as unknown as Record<string, unknown>)[name];
+    if (typeof fn !== 'function') continue;
+    counted[name] = (...args: unknown[]): unknown => {
+      calls[name] = (calls[name] ?? 0) + 1;
+      return (fn as (...a: unknown[]) => unknown)(...args);
+    };
+  }
+  return {
+    wasm: counted as unknown as GeometryWasm,
+    calls,
+    reset() {
+      for (const k of Object.keys(calls)) delete calls[k];
+    },
+  };
 }
 
 /** A shape node's create op. */

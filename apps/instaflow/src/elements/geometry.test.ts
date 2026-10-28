@@ -1,7 +1,8 @@
 // @vitest-environment node
+import type { Result } from '@staticflux/core';
 import { describe, expect, it } from 'vitest';
-import { createGeometry, effectSpec, type GeometryWasm, loadAuthoringModule, strokeSpec } from './geometry.js';
-import type { ResolvedStroke } from './resolve.js';
+import { createGeometry, effectSpec, GEOMETRY_MEMO_LIMIT, type GeometryWasm, keyNumber, loadAuthoringModule, type PathData, strokeSpec, type WasmPath } from './geometry.js';
+import type { Affine, ResolvedStroke } from './resolve.js';
 import { authoringBuilt, loadGeometry } from './testing/fixtures.js';
 
 const box = { x: 0, y: 0, w: 100, h: 50, rotation: 0, scaleX: 1, scaleY: 1, anchorX: 0.5, anchorY: 0.5, flipX: false, flipY: false, skewX: 0 };
@@ -35,6 +36,104 @@ describe('geometry specs (no Wasm)', () => {
       importModule: async () => ({ default: async () => undefined, geometry_version: () => 99 }),
     });
     expect(!old.ok && old.error.message).toContain('99');
+  });
+});
+
+describe('derived geometry is memoized by its inputs (#68, no Wasm)', () => {
+  /** A fake module: every export returns a fresh path and counts its calls. */
+  const fakeWasm = () => {
+    const calls: Record<string, number> = {};
+    const path = (n: number): WasmPath => ({ verbs: Uint8Array.of(0, 1, 4), points: Float64Array.of(0, 0, n, n), svg: () => '', free: () => undefined });
+    const count = (name: string, n = 1): WasmPath => {
+      calls[name] = (calls[name] ?? 0) + 1;
+      return path(n);
+    };
+    const wasm = {
+      shape_outline: (_k: number, w: number) => count('shape_outline', w),
+      parse_path: () => count('parse_path'),
+      round_path: () => count('round_path'),
+      transform_path: () => count('transform_path'),
+      boolean_op: () => count('boolean_op'),
+      outline_stroke: () => count('outline_stroke'),
+    } as unknown as GeometryWasm;
+    return { wasm, calls };
+  };
+  const ellipse = { geometry: { kind: 'ellipse' as const }, box };
+  const unwrapPath = (r: Result<PathData>): PathData => {
+    if (!r.ok) throw r.error;
+    return r.value;
+  };
+
+  it('the same outline inputs return the same path without calling the module; other inputs derive', () => {
+    const { wasm, calls } = fakeWasm();
+    const g = createGeometry(wasm);
+    const a = unwrapPath(g.outline(ellipse));
+    expect(unwrapPath(g.outline({ geometry: { kind: 'ellipse' }, box: { ...box, x: 300, rotation: 45 } }))).toBe(a); // transform only
+    expect(calls['shape_outline']).toBe(1);
+    expect(unwrapPath(g.outline({ ...ellipse, box: { ...box, w: 120 } }))).not.toBe(a); // the size is an input
+    expect(unwrapPath(g.outline({ geometry: { kind: 'rect', radii: [0, 0, 0, 0], smoothing: 0 }, box }))).not.toBe(a);
+    expect(calls['shape_outline']).toBe(3);
+    const d = { kind: 'path' as const, d: 'M0 0 L1 1', evenOdd: false, radii: [2], smoothing: 0 };
+    unwrapPath(g.outline({ geometry: d, box }));
+    unwrapPath(g.outline({ geometry: d, box }));
+    unwrapPath(g.outline({ geometry: { ...d, d: 'M0 0 L2 2' }, box }));
+    expect([calls['parse_path'], calls['round_path']]).toEqual([2, 2]);
+  });
+
+  it('a boolean is keyed by its op, its operand paths, their transforms and fill rules', () => {
+    const { wasm, calls } = fakeWasm();
+    const g = createGeometry(wasm);
+    const a = unwrapPath(g.outline(ellipse));
+    const b = unwrapPath(g.outline({ ...ellipse, box: { ...box, w: 50 } }));
+    const operands = (t: Affine = I, evenOdd = false) => [{ path: a, transform: I }, { path: b, transform: t, evenOdd }];
+    const first = unwrapPath(g.boolean('intersect', operands()));
+    expect(unwrapPath(g.boolean('intersect', operands()))).toBe(first);
+    expect(calls['boolean_op']).toBe(1);
+    // A nested boolean of a memoized result hits as well (a repeat's copies, booleans of booleans).
+    const nested = unwrapPath(g.boolean('union', [{ path: first, transform: I }, { path: a, transform: [1, 0, 0, 1, 5, 0] }]));
+    expect(unwrapPath(g.boolean('union', [{ path: first, transform: I }, { path: a, transform: [1, 0, 0, 1, 5, 0] }]))).toBe(nested);
+    expect(calls['boolean_op']).toBe(2);
+    g.boolean('union', operands());
+    g.boolean('intersect', operands([1, 0, 0, 1, 10, 0]));
+    g.boolean('intersect', operands(I, true));
+    // An operand with other content is another path object (an edited operand): derived again.
+    g.boolean('intersect', [{ path: a, transform: I }, { path: unwrapPath(g.outline({ ...ellipse, box: { ...box, w: 60 } })), transform: I }]);
+    expect(calls['boolean_op']).toBe(6);
+  });
+
+  it('keys ignore rounding noise below 12 significant digits (a rotation preview re-places operands)', () => {
+    expect([keyNumber(100.00000000000006), keyNumber(149.99999999999997), keyNumber(-0), keyNumber(0.1 + 0.2)]).toEqual([100, 150, 0, 0.3]);
+    expect([keyNumber(100.001), keyNumber(1e-15), keyNumber(2e-9)]).toEqual([100.001, 0, 2e-9]);
+    expect(keyNumber(Number.NaN)).toBeNaN();
+    const { wasm, calls } = fakeWasm();
+    const g = createGeometry(wasm);
+    const a = unwrapPath(g.outline(ellipse));
+    const first = unwrapPath(g.boolean('subtract', [{ path: a, transform: I }, { path: a, transform: [1, 0, 0, 1, 100, 150] }]));
+    expect(unwrapPath(g.boolean('subtract', [{ path: a, transform: [1, 0, 0, 1, 1e-15, 0] }, { path: a, transform: [1, 0, 0, 1, 100.00000000000006, 149.99999999999997] }]))).toBe(first);
+    expect(unwrapPath(g.outline({ ...ellipse, box: { ...box, w: 100.00000000000001 } }))).toBe(a);
+    g.boolean('subtract', [{ path: a, transform: I }, { path: a, transform: [1, 0, 0, 1, 100.5, 150] }]);
+    expect(calls['boolean_op']).toBe(2);
+  });
+
+  it('stroke outlines are keyed by path and stroke; failures are not cached; the memo is bounded', () => {
+    const { wasm, calls } = fakeWasm();
+    const g = createGeometry(wasm);
+    const a = unwrapPath(g.outline(ellipse));
+    const inside = stroke({ align: 'inside' });
+    expect(unwrapPath(g.outlineStroke(a, inside))).toBe(unwrapPath(g.outlineStroke(a, { ...inside })));
+    g.outlineStroke(a, stroke({ align: 'inside', width: 9 }));
+    expect(calls['outline_stroke']).toBe(2);
+
+    let throws = 0;
+    const failing = createGeometry({ ...wasm, shape_outline: () => { throws += 1; throw 'bad shape'; } } as GeometryWasm);
+    expect(failing.outline(ellipse).ok).toBe(false);
+    expect(failing.outline(ellipse).ok).toBe(false);
+    expect(throws).toBe(2);
+
+    for (let w = 1; w <= GEOMETRY_MEMO_LIMIT; w++) g.outline({ ...ellipse, box: { ...box, w: 1000 + w } });
+    const before = calls['shape_outline'];
+    g.outline(ellipse); // the oldest entry was evicted
+    expect(calls['shape_outline']).toBe((before ?? 0) + 1);
   });
 });
 

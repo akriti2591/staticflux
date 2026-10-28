@@ -9,6 +9,7 @@ import type { Actor } from '@staticflux/stage';
 import { createEditContextTextInput, type ClientRect, type EditContextConstructor, type TextInput, type TextInputState, type TextIntent, type TextRange } from '@staticflux/surface/text-input';
 import { FakeEditContext } from '@staticflux/testkit';
 import { Window } from 'happy-dom';
+import type { GeometryService } from '../elements/geometry.js';
 import { authoringBuilt as geometryBuilt, loadGeometry } from '../elements/testing/fixtures.js';
 import { placeTextOps } from '../text/commands.js';
 import { readTextBlock } from '../text/rich-text.js';
@@ -38,12 +39,12 @@ export interface StudioFixture {
 let assets = 0;
 
 /** A new Studio document with `pages` pages (1080 × 1350) and Noto Sans as the default face. */
-export async function createStudioFixture(options: { readonly pages?: number } = {}): Promise<StudioFixture> {
+export async function createStudioFixture(options: { readonly pages?: number; readonly geometry?: GeometryService } = {}): Promise<StudioFixture> {
   const scope = createScope('studio-test');
   const signal = scope.signal;
   const workspace = unwrap(await openStudioWorkspace({ signal }));
   const doc = unwrap(await createStudioDocument(workspace, { asset: `as_test${(assets += 1)}`, title: 'Flyer', pages: options.pages ?? 1, signal }));
-  const geometry = await loadGeometry();
+  const geometry = options.geometry ?? (await loadGeometry());
   const document = unwrap(await openStudioDocument({ workspace, doc, geometry, signal, scope }));
   const fonts = unwrap(createStudioFonts({ wasm: await loadAuthoringInNode('base'), fonts: [testFont('NotoSans-Latin.wght.ttf'), testFont('NotoSansArabic.wght.ttf')] }));
   return { workspace, document, fonts, scope, signal };

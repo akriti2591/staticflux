@@ -34,7 +34,9 @@ Effects inspector.
   hugs a local rectangle without moving it, #54 #66), affine helpers.
 - `geometry.ts` — `GeometryWasm` (ABI), `loadAuthoringModule` (manifest; IF-EL-006), `createGeometry` → `GeometryService`
   (`outline`, `boolean`, `outlineStroke`, `bounds`, `inkBounds`, `hit`, `intersects`, `transform`, `parsePath`, `toSvg`;
-  IF-EL-005), `strokeSpec`, `effectSpec`, `GEOMETRY_VERSION`.
+  IF-EL-005), `strokeSpec`, `effectSpec`, `GEOMETRY_VERSION`. #68: `outline`, `boolean` and `outlineStroke` are memoized by
+  their inputs (`GEOMETRY_MEMO_LIMIT` entries each, least recently used out; numbers keyed by `keyNumber`; operand paths by
+  identity), so transform-only changes (drag, rotate) never re-run them. Paths are values: never mutate one.
 - `layout.ts` — `ElementContext`; `elementBounds` (geometry, ink, centre, transform), `pageTransform`, `localOutline`
   (booleans derived; a plain group is the union of its children, so groups and B7 repeat instances can be boolean operands
   and clip masks), `strokeRing`, `maskOf`, `containerBounds` / `containerOf`, `siblingBounds`, `hitElement` (fills, images, frames,
@@ -58,7 +60,8 @@ Effects inspector.
 - `panel.ts` (entry `elements/panel`) — `<if-paint-inspector>` (`IfPaintInspectorElement`), `definePaintInspector`,
   `bindPaintInspector(element, source)`, `APPEARANCE_EDIT_EVENT`.
 - `errors.ts` — `IF-EL-001` … `IF-EL-007`.
-- `testing/` (test-only) — `fixtures.ts` (page + brand kit + stage + undo service, real Wasm in Node), `scene-fixture.ts`.
+- `testing/` (test-only) — `fixtures.ts` (page + brand kit + stage + undo service, real Wasm in Node; `loadAuthoringWasm`,
+  `countingWasm` counts calls per Wasm export), `scene-fixture.ts`.
 
 ## Wiring (editor worker)
 ```ts
