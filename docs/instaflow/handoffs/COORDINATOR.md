@@ -57,8 +57,10 @@ watches CI, and keeps the log. Agents build. This file is the coordinator's memo
   on 2026-10-27; one implementation pass, owner reviews).
 - Merged and owner verified: #57 (#41), #61 (#58), #63 (#42; #44 narrowed to Background `+ Add ▾` items opening their editors).
   #65 (#53 Shift-select; cause: a press focused the a11y node, which re-selected it) merged, owner verified.
-  PAUSED by owner 2026-10-27 after #65. On resume: owner re-tests #48/#49/#66 (may be fixed by #65); owner
-  decides #62 placement; then #43. New: #66 combined shapes/groups don't resize (with #54), #67 combine HUD crammed. Proposed next: #43 (bg image shows now, lost on reload: persistence;
+  Owner re-tested after #65: #48 #49 #50 #52 fixed (closed); #66 not fixed.
+  **Order agreed 2026-10-28:** #43 (running, `claude/fix-43-image-persist`) → #62 Studio shell-first loading →
+  #54+#66 path/boolean/group bounds and resize → #69 Flatten for repeats/groups → #68 drag lag on boolean+repeat →
+  #64 blank Home previews → #51 → #39 → #45 → #46 → #47 → #44 → #56 → #55+#40+#67 layout pass.
   check placed images too), then the canvas selection bugs. New: #64 Home/Files previews blank (after the canvas bugs).
 - **#62 Studio blank until Wasm loads** (owner): mount the shell first with placeholders, preload the Wasm. Proposed
   right after #42; with it in C4: split `studio-element.ts` (1,290 lines: shortcuts/menus/commands into modules),
