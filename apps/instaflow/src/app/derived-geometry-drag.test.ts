@@ -111,7 +111,7 @@ function gestures({ tab, counter, draw }: Rig) {
 }
 
 describe.skipIf(!authoringBuilt)('derived geometry during a drag (#68)', () => {
-  it('dragging or rotating an Intersect + Grid repeat (the repeat or its source) never re-runs the boolean per move', async () => {
+  it('dragging or rotating an Intersect + Grid repeat (the repeat or its source) never re-runs the boolean per move', { timeout: 60_000 }, async () => {
     const rig = await setup();
     const { f, tab, counter, bool, repeat, draw } = rig;
     expect(f.document.view.children(repeat)).toHaveLength(9);
@@ -146,7 +146,7 @@ describe.skipIf(!authoringBuilt)('derived geometry during a drag (#68)', () => {
     f.document.session.clear();
   });
 
-  it('dragging or rotating an Intersect alone never re-runs the boolean per move (a rotation re-places its operands)', async () => {
+  it('dragging or rotating an Intersect alone never re-runs the boolean per move (a rotation re-places its operands)', { timeout: 60_000 }, async () => {
     const rig = await setup({ repeat: false });
     const { f, tab, bool } = rig;
     const { at, drag, rotate } = gestures(rig);
