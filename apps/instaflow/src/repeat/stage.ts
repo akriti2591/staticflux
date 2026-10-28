@@ -29,11 +29,11 @@ import type { ComposedNode, EffectiveLock, Explanation, Stage, StageNodeId } fro
 import type { BrandKitView } from '../elements/brand-kit.js';
 import { P } from '../elements/components.js';
 import type { GeometryService } from '../elements/geometry.js';
-import { type ElementContext, isElement, localOutline, unionBox } from '../elements/layout.js';
+import { type DerivedContent, type DerivedContentStage, type ElementContext, isElement, localOutline, unionBox } from '../elements/layout.js';
 import { type Affine, IDENTITY, multiply, resolveElement } from '../elements/resolve.js';
-import { COPY_SEPARATOR, INSTANCE_SEPARATOR } from './components.js';
+import { COPY_SEPARATOR, INSTANCE_SEPARATOR, RP } from './components.js';
 import { DerivedInstanceError } from './errors.js';
-import { instancePlacements, type Placement } from './instances.js';
+import { instancePlacements, type Placement, SCALED_PARAMS, scaledParams } from './instances.js';
 import { readRepeat, type RepeatParams } from './params.js';
 
 /** What the view needs from the composed stage. */
@@ -74,7 +74,7 @@ export interface RepeatLayout {
   readonly placements: readonly Placement[];
 }
 
-export interface RepeatStage extends RepeatBaseStage {
+export interface RepeatStage extends RepeatBaseStage, DerivedContentStage {
   readonly base: RepeatBaseStage;
   /** The repeat parameters of a view node (undefined: not a repeat). */
   params(node: StageNodeId): RepeatParams | undefined;
@@ -84,6 +84,11 @@ export interface RepeatStage extends RepeatBaseStage {
   resolveInstance(node: StageNodeId): InstanceRef | undefined;
   /** The document children of a real node (a repeat's source, without wrappers). */
   sourceChildren(node: NodeId): readonly NodeId[];
+  /**
+   * A real repeat's source children and its scaled spacing (#76: what a resize writes instead of the derived
+   * wrappers and copies); undefined for anything else.
+   */
+  derivedContent(node: StageNodeId): DerivedContent | undefined;
   dispose(): void;
 }
 
@@ -393,6 +398,17 @@ export function createRepeatStage(options: RepeatStageOptions): RepeatStage {
     isDerived,
     resolveInstance,
     sourceChildren: (node) => base.children(node),
+    derivedContent(node) {
+      const params = base.read(node) === undefined ? undefined : realRepeat(node);
+      if (params === undefined) return undefined;
+      return {
+        children: base.children(node),
+        scaled(kx, ky) {
+          const next = scaledParams(params, kx, ky) as unknown as Readonly<Record<string, JsonValue>>;
+          return SCALED_PARAMS[params.kind].map((name) => ({ path: RP[name], value: next[name] as JsonValue }));
+        },
+      };
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

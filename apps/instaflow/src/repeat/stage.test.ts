@@ -3,6 +3,7 @@ import { createScope } from '@staticflux/core';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { P } from '../elements/components.js';
+import { derivedContent } from '../elements/layout.js';
 import { authoringBuilt, human, loadGeometry, shape, unwrap } from '../elements/testing/fixtures.js';
 import { RP } from './components.js';
 import { instanceCount, type RepeatParams, repeatOps } from './params.js';
@@ -173,5 +174,17 @@ describe.skipIf(!authoringBuilt)('repeat view', () => {
       }),
       { numRuns: 60 },
     );
+  });
+});
+
+describe.skipIf(!authoringBuilt)('derived content (#76)', () => {
+  it('a real repeat reports its source children and its scaled spacing; anything else has none', async () => {
+    const f = await createRepeatFixture(await loadGeometry(), scene());
+    const content = f.view.derivedContent('r');
+    expect(content?.children).toEqual(['a', 'g']);
+    expect(content?.scaled(2, 3)).toEqual([{ path: RP.radius, value: 150 }]); // start at 12 o'clock: along y
+    expect(derivedContent({ stage: f.view }, 'r')).toBeDefined();
+    for (const node of ['a', 'g', 'plain', 'r~1', 'r~1^g', 'nope']) expect(f.view.derivedContent(node), node).toBeUndefined();
+    expect(derivedContent({ stage: f.view.base }, 'r')).toBeUndefined();
   });
 });

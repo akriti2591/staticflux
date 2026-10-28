@@ -2,7 +2,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { applyAffine } from '../elements/resolve.js';
-import { IDENTITY_PLACEMENT, instancePlacements, mirrorAxis, placementTransform, radialCenter, radialStep } from './instances.js';
+import { IDENTITY_PLACEMENT, instancePlacements, mirrorAxis, placementTransform, radialCenter, radialStep, SCALED_PARAMS, scaledParams } from './instances.js';
 import { defaultParams, instanceCount, type RepeatParams } from './params.js';
 
 const content = { minX: 100, minY: 100, maxX: 140, maxY: 120 }; // centre (120, 110)
@@ -90,5 +90,44 @@ describe('instance placements', () => {
       }),
       { numRuns: 300 },
     );
+  });
+});
+
+describe('scaled parameters (#76: a resize scales a repeat like a group)', () => {
+  const scale = (b: typeof content, kx: number, ky: number) => ({ minX: b.minX * kx, minY: b.minY * ky, maxX: b.maxX * kx, maxY: b.maxY * ky });
+  const centres = (p: RepeatParams, b: typeof content): (readonly [number, number])[] =>
+    instancePlacements(p, b).map((q) => applyAffine(placementTransform(q), (b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2));
+
+  it('grid gaps and offsets scale per axis; counts and the brick shift stay; every instance is the scaled one', () => {
+    const p = { kind: 'grid', rows: 2, columns: 3, gapX: 10, gapY: 5, rowOffset: 4, columnOffset: 2, brick: 'rows', brickShift: 0.5 } as const;
+    const q = scaledParams(p, 2, 3);
+    expect(q).toEqual({ ...p, gapX: 20, gapY: 15, rowOffset: 8, columnOffset: 6 });
+    const before = centres(p, content);
+    centres(q, scale(content, 2, 3)).forEach((c, i) => close(c, [(before[i] as readonly number[])[0]! * 2, (before[i] as readonly number[])[1]! * 3]));
+  });
+
+  it('the mirror offset scales along the axis normal; the radial radius along the start direction (exact when uniform)', () => {
+    expect(scaledParams({ kind: 'mirror', axis: 'vertical', angle: 0, offset: 10 }, 2, 5)).toMatchObject({ offset: 20 });
+    expect(scaledParams({ kind: 'mirror', axis: 'horizontal', angle: 0, offset: 10 }, 2, 5)).toMatchObject({ offset: 50 });
+    const r = { kind: 'radial', count: 6, radius: 50, startAngle: 90, sweep: 360, rotate: true } as const;
+    expect(scaledParams(r, 2, 5)).toEqual({ ...r, radius: 100 });
+    expect(scaledParams({ ...r, startAngle: 0 }, 2, 5)).toMatchObject({ radius: expect.closeTo(250, 9) });
+    fc.assert(
+      fc.property(fc.double({ min: 0.1, max: 10, noNaN: true }), fc.integer({ min: 0, max: 359 }), (k, startAngle) => {
+        const p = { ...r, startAngle };
+        const before = centres(p, content);
+        centres(scaledParams(p, k, k), scale(content, k, k)).forEach((c, i) => close(c, [(before[i] as readonly number[])[0]! * k, (before[i] as readonly number[])[1]! * k]));
+      }),
+    );
+  });
+
+  it('names what it changes per generator; a scale of 1 changes nothing', () => {
+    for (const kind of ['radial', 'grid', 'mirror'] as const) {
+      const p = defaultParams(kind);
+      expect(scaledParams(p, 1, 1)).toEqual(p);
+      const q = scaledParams(p, 3, 7) as unknown as Record<string, unknown>;
+      const changed = Object.keys(q).filter((name) => q[name] !== (p as unknown as Record<string, unknown>)[name]);
+      expect(SCALED_PARAMS[kind]).toEqual(expect.arrayContaining(changed));
+    }
   });
 });

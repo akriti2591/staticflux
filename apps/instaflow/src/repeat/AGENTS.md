@@ -26,10 +26,12 @@ handle overlay (it uses `hitInstance`, `instanceBounds`, `repeatHandles`, `begin
   `defaultParams`, `instanceCount`, `repeatOps`, `patchOps`, `clearRepeatOps`, `applyPatch`, `checkRepeatValue` /
   `validateRepeatOps` (IF-REP-001, IF-REP-002).
 - `instances.ts` — `Placement` (wrapper spatial values), `instancePlacements(params, content)`, `placementTransform`,
-  `radialCenter`, `radialStep`, `mirrorAxis`, `IDENTITY_PLACEMENT`.
+  `radialCenter`, `radialStep`, `mirrorAxis`, `IDENTITY_PLACEMENT`; `scaledParams(params, kx, ky)` / `SCALED_PARAMS` (#76: the
+  spacing a resize scales with the source).
 - `stage.ts` — **`createRepeatStage({ stage, geometry, kit, scope })`** → `RepeatStage` (a `Pick<Stage, read children value explain
   lockOf checkWrite onInvalidate>` plus `params`, `layout`, `isDerived`, `resolveInstance` → `InstanceRef { source, index, path,
-  derived, wrapper }`, `sourceChildren`, `base`, `dispose`); `wrapperId`, `copyId`, `instanceKey`, `wrapperProps`.
+  derived, wrapper }`, `sourceChildren`, `derivedContent` (B1's `DerivedContentStage`, #76: what a resize scales), `base`,
+  `dispose`); `wrapperId`, `copyId`, `instanceKey`, `wrapperProps`.
 - `actions.ts` — `RepeatContext` (B1's `ActionContext` over the view), `makeRepeat`, `setRepeat`, `releaseRepeat`,
   **`expandRepeat`** (`{ ops, instances }`), `liveRepeat`, `newRepeatParams`, **`commitRepeatEdit`** (one change set).
 - `hit.ts` — `hitInstance(ctx, node, x, y, tolerance)` → `InstanceHit` (source + instance index + path), `instanceBounds`.
