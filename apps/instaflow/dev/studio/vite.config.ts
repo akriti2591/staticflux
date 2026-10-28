@@ -5,6 +5,7 @@
  */
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+import { studioPreloadPlugin } from './preload-plugin.js';
 
 const packagesDir = fileURLToPath(new URL('../../../../packages', import.meta.url));
 
@@ -31,6 +32,8 @@ export default defineConfig({
   worker: { format: 'es' },
   // C0: the surfaces' routes (src/home/routes.ts) served by the two pages — Home at `/`, Studio at `/s/:asset` and `/new`.
   plugins: [
+    // #62: the Studio page preloads the Wasm (and, built, the worker chunk) the workers fetch at boot.
+    studioPreloadPlugin(),
     {
       name: 'instaflow-surface-routes',
       configureServer(server) {

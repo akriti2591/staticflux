@@ -16,6 +16,27 @@
         margin: 0;
         height: 100%;
       }
+      /* #62: the loading line (then the failure) floats over the frame, centred low in the canvas room. */
+      #boot {
+        position: fixed;
+        z-index: 10;
+        inset-inline: 0;
+        inset-block-end: 88px;
+        inline-size: fit-content;
+        margin: 0 auto;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font: 500 13px/1.4 system-ui, sans-serif;
+        color: #ffffff;
+        background: rgba(22, 21, 26, 0.86);
+      }
+      #boot[role='alert'] {
+        inset-block-end: auto;
+        inset-block-start: 40%;
+        max-inline-size: min(560px, calc(100% - 32px));
+        border-radius: 12px;
+        background: #b3261e;
+      }
     </style>
   </head>
   <body>

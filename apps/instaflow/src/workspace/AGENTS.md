@@ -4,7 +4,7 @@
 **Layer:** app (not a package export: the dev entries import it from source).
 **Depends on:** `@staticflux/storage` (`AsyncStore`, IndexedDB), `@staticflux/document/v2`, `@staticflux/blob` (OPFS; `blobs.ts` only),
 `@staticflux/capabilities`, `../home` (index format, routes, formats, errors), `../library`, `../versioning` (templates), `../app`
-(`openStudioWorkspace`, `createStudioApp`; `studio-session.ts` only). Home may import **only** `browser.ts`, `document-store.ts` and
+(`openStudioWorkspace`, `createStudioApp`; `studio-session.ts` only; `mountStudioFrame`: `studio-page.ts` only). Home may import **only** `browser.ts`, `document-store.ts` and
 (B11c, lazily, for import and previews) `blobs.ts` (Loro-free; `../home/home-imports.test.ts`).
 **Budget:** none of its own (`document-store.ts` and `browser.ts` count in Home's budget).
 
@@ -33,6 +33,9 @@ kept in step with the library and with edits, Studio's document chosen from the 
   → `{ app, plan, index, workspace, drain }` (the Studio page's boot over the workspace; B11c: drains Home's journal before planning, on
   `HOME_JOURNAL_CHANNEL` pings and on visibility; pings Home after each index write; describes the page count), `freshAssetId`,
   `browserHomeChannel`, `HomeChannel`.
+- `studio-page.ts` (#62) — `bootStudioPage({ container, status, open, missing, frame? })`: the frame first (`mountStudioFrame`),
+  `open()` once it is laid out, then the app mounts in its place, or `missing(details)` (`UnknownDesignError`), or the status line says
+  `bootFailureText(failure)` as `role="alert"` (an error result or a throw); never leaves the frame behind.
 
 ## Semantics (do not regress)
 - The index lives in the library head (`app.home`) and changes only by CAS; unchanged → no write; `editedAt` never goes back.

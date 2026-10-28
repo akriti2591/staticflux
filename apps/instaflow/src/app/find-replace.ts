@@ -24,7 +24,7 @@ import { colorToRgba, pageFills, rgbaToHex, tokenName } from '../elements/values
 import { type CharStyle, type FontRef, isTokenRef, TEXT_KIND } from '../text/model.js';
 import { readTextBlock, replaceTextOps, setCharMarkOps, type TextBlockModel } from '../text/rich-text.js';
 import type { StudioDocument } from './document.js';
-import { pagePart } from './document.js';
+import { pagePart } from './parts.js';
 
 export const FIND_KINDS = ['text', 'font', 'colour'] as const;
 export type FindKind = (typeof FIND_KINDS)[number];
