@@ -330,7 +330,7 @@ export class IfInspectorElement extends SfElement<typeof spec> {
       outline-offset: 1px;
     }
     sf-size-field.page-size {
-      --sf-size-field-input: 5.75rem;
+      --sf-size-field-input: calc((100% - 2 * ${t.space.sm.css} - ${t.size.control.css}) / 2);
     }
     .grid2 {
       display: grid;
@@ -589,6 +589,8 @@ export class IfInspectorElement extends SfElement<typeof spec> {
 
   // ---------------------------------------------------------------- sections
 
+  // #46: Page › Size is a paired row (COMPONENT-ANATOMY §3): `.page-size` gives W and H the two 1fr cells of the content
+  // width and leaves one control's width for the lock in the gutter.
   private pageSection(port: InspectorPort): TemplateResult | typeof nothing {
     const page = this.model.page;
     if (page === undefined) return nothing;

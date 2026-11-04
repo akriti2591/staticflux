@@ -1,7 +1,8 @@
 import { expectNoA11yIssues } from '@staticflux/testkit/a11y';
 import { html } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { defineSizeField, keepRatio, orientationOf, type SfSizeFieldElement, type SizeChangeDetail, sizeFromUnit, sizeInUnit, validateSide } from './size-field.js';
+import { SfNumberFieldElement } from './number-field.js';
+import { defineSizeField, keepRatio, orientationOf, SfSizeFieldElement, type SizeChangeDetail, sizeFromUnit, sizeInUnit, validateSide } from './size-field.js';
 import { cleanup, events, fixture, shadowAll } from './test-helpers.js';
 
 beforeAll(() => defineSizeField());
@@ -75,5 +76,18 @@ describe('<sf-size-field>', () => {
     change(field(element, 'width'), 2000);
     field(element, 'width').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, composed: true }));
     expect(submits).toHaveLength(1);
+  });
+
+  // #46 (COMPONENT-ANATOMY §4.1–4.2, owner Q1): editable fields use the UI face (Geist) with tabular figures, not mono;
+  // a word label sits above its field (like `Units`), so the value gets the field's whole width.
+  it('uses the UI face with tabular figures for the W and H labels, values and units, and puts the word labels above the fields', () => {
+    const sizeCss = SfSizeFieldElement.styles.map((s) => String(s)).join('\n');
+    const numberField = /sf-number-field \{([^}]*)\}/.exec(sizeCss)?.[1] ?? '';
+    expect(sizeCss).not.toContain('--sf-font-family-mono');
+    expect(numberField).toContain('--sf-number-field-font: var(--sf-font-family)');
+    expect(numberField).toContain('grid-template-columns: minmax(0, 1fr)');
+    const numberCss = SfNumberFieldElement.styles.map((s) => String(s)).join('\n');
+    expect(numberCss).toMatch(/input \{[^}]*font-family: var\(--sf-number-field-font, var\(--sf-font-family-mono\)\);[^}]*font-variant-numeric: tabular-nums/);
+    expect(numberCss).toMatch(/\.unit \{[^}]*font-family: var\(--sf-number-field-font, var\(--sf-font-family-mono\)\)/);
   });
 });

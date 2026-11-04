@@ -15,6 +15,9 @@
  *   every value (`{ value }`); scrubbing and ↑/↓ add the same delta to each (`{ value: undefined, delta }`).
  * - **Clamp:** `min` / `max`, and `wrap="angle"` normalises to (−180, 180].
  *
+ * Styling: `--sf-number-field-font` sets the value's and unit's face (default mono; tabular figures either way;
+ * the size field uses the UI face, #46).
+ *
  * The input is an APG spinbutton (`aria-valuenow`, `aria-valuetext` with the unit, or "Mixed").
  */
 import { createMachine, defineMachine, err, ok, type Result } from '@staticflux/core';
@@ -272,11 +275,11 @@ export class SfNumberFieldElement extends SfElement<typeof numberFieldSpec> {
         min-block-size: var(--kit-height);
       }
       input {
-        font-family: ${t.font.familyMono.css};
+        font-family: var(--sf-number-field-font, ${t.font.familyMono.css});
         font-variant-numeric: tabular-nums;
       }
       .unit {
-        font-family: ${t.font.familyMono.css};
+        font-family: var(--sf-number-field-font, ${t.font.familyMono.css});
         font-size: ${t.type.sizeSm.css};
         color: ${t.color.textMuted.css};
       }
