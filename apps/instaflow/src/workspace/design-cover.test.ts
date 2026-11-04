@@ -59,11 +59,10 @@ async function setup(options: { cover?: boolean } = {}) {
 
 describe('createDesignCover (#64: the design card preview)', () => {
   it('a design without a cover gets one soon after Studio opens it; nothing renders on the main thread here, only the port', async () => {
-    const { f, asset, t, calls } = await setup();
+    const { f, asset, cover: service, t, calls } = await setup();
     expect(t.pending).toBe(1);
     t.run();
-    await settle();
-    await settle();
+    unwrap(await service.flush()); // waits for the running render to land in the library (no fixed tick count)
     expect(calls).toHaveLength(1);
     const cover = f.library.entry(asset)?.renditions.cover;
     expect(cover?.blob.mime).toBe('image/png');
@@ -81,8 +80,7 @@ describe('createDesignCover (#64: the design card preview)', () => {
     cover.touch();
     expect(calls).toHaveLength(0);
     t.run();
-    await settle();
-    await settle();
+    unwrap(await cover.flush());
     expect(calls).toHaveLength(1);
     const after = f.library.entry(asset)?.renditions.cover?.blob.digest;
     expect(after).toBeDefined();

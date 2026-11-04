@@ -3,9 +3,9 @@ import { deepFocused, expectNoA11yIssues, press } from '@staticflux/testkit/a11y
 import { html } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { alignTarget, defineAlignPopover, distributeActions, type SfAlignPopoverElement } from './align-popover.js';
-import { completeHex, contrastLevel, contrastRatio, defineColorPopover, gridNextIndex, hexToHsv, hsvToHex, pushRecentColor, rankDocumentColors, type SfColorPopoverElement } from './color-popover.js';
+import { completeHex, contrastLevel, contrastRatio, defineColorPopover, gridNextIndex, hexToHsv, hsvToHex, pushRecentColor, rankDocumentColors, SfColorPopoverElement } from './color-popover.js';
 import { defineFontPicker, fontFaceCss, fontRows, fontWindow, type SfFontPickerElement } from './font-picker.js';
-import { definePopover, type SfPopoverElement } from './popover.js';
+import { definePopover, SfPopoverElement } from './popover.js';
 import { cleanup, events, fixture, settle, shadow, shadowAll } from './test-helpers.js';
 
 beforeAll(() => {
@@ -52,6 +52,20 @@ describe('<sf-color-popover>', () => {
     await settle();
     return element;
   }
+
+  it('#45: fits its 264 px spec width: a 236 px host in a 14 px-padded panel, one column that never grows past it', () => {
+    // happy-dom has no layout, so the rules that size it are pinned; the Studio smoke measures the real thing.
+    // The element's own sheet is the last one (the first is the shared base, which has its own `:host` rule).
+    const own = (styles: readonly unknown[]): string => String(styles.at(-1));
+    const host = /:host \{([^}]*)\}/.exec(own(SfColorPopoverElement.styles))?.[1] ?? '';
+    const panel = /\.panel \{([^}]*)\}/.exec(own(SfPopoverElement.styles))?.[1] ?? '';
+    const width = Number(/inline-size: (\d+)px/.exec(host)?.[1]);
+    const padding = Number(/padding: (\d+)px/.exec(panel)?.[1]);
+    expect(width + 2 * padding).toBe(264);
+    // An `auto` grid column grows to its widest row's min-content (the hex `<input>`'s intrinsic size made the value
+    // row 330 px): the single column is `minmax(0, 1fr)`, so every row shrinks to the host instead.
+    expect(host).toMatch(/grid-template-columns: minmax\(0, 1fr\);/);
+  });
 
   it('R13.52: the contrast tag against the solid behind (AAA, AA, AA large, ×), outlined below AA, absent without one', async () => {
     expect(contrastRatio('#000000', '#FFFFFF')).toBeCloseTo(21, 5);

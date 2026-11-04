@@ -32,6 +32,18 @@ describe('computePosition', () => {
     expect(computePosition({ anchor: { x: 950, y: 100, width: 40, height: 20 }, floating, viewport, side: 'block-end' }).x).toBe(792);
     expect(computePosition({ anchor: { x: 0, y: 0, width: 10, height: 10 }, floating: { width: 2000, height: 50 }, viewport, side: 'block-end' }).x).toBe(8);
   });
+
+  it('#45: the 266 px colour popover from a swatch at the right edge, the bottom edge and the corner stays inside the viewport (8 px)', () => {
+    const colour = { width: 266, height: 300 };
+    const inside = (r: { x: number; y: number }): boolean => r.x >= 8 && r.y >= 8 && r.x + colour.width <= viewport.width - 8 && r.y + colour.height <= viewport.height - 8;
+    const right = computePosition({ anchor: { x: 970, y: 100, width: 24, height: 24 }, floating: colour, viewport, side: 'block-end', offset: 8 });
+    expect(right).toMatchObject({ side: 'block-end', x: 726, y: 132 });
+    const bottom = computePosition({ anchor: { x: 300, y: 770, width: 24, height: 24 }, floating: colour, viewport, side: 'block-end', offset: 8 });
+    expect(bottom).toMatchObject({ side: 'block-start', x: 300, y: 462 });
+    const corner = computePosition({ anchor: { x: 970, y: 770, width: 24, height: 24 }, floating: colour, viewport, side: 'block-end', offset: 8 });
+    expect(corner).toMatchObject({ side: 'block-start', x: 726, y: 462 });
+    for (const r of [right, bottom, corner]) expect(inside(r)).toBe(true);
+  });
 });
 
 describe('anchor positioning', () => {

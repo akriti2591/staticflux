@@ -177,6 +177,9 @@ export class SfColorPopoverElement extends SfElement<typeof colorPopoverSpec> {
     css`
       :host {
         display: grid;
+        /* One column the host's width (#45): an auto column grew to the value row's min-content (the hex input's
+           intrinsic size), 330 px, and the 264 px popover scrolled sideways. */
+        grid-template-columns: minmax(0, 1fr);
         gap: ${t.space.md.css};
         inline-size: 236px;
       }
