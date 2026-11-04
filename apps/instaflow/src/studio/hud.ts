@@ -34,7 +34,8 @@ import { P } from '../elements/components.js';
 import { hudControls, MORE_GROUPS, type ControlDecl, type MoreGroup } from '../spec/controls.js';
 import { MIXED, type FontChoice, type TypographySummary } from '../text/typography.js';
 import { CLEAN_POP_COLOR_PALETTE } from '../theme/palette.js';
-import { CONTROL, CONTROL_SETS, MORE_EXCLUDED, MORE_GROUP_OF, SECTIONS } from './studio-controls.js';
+import { clampShapeCount, SHAPE_COUNT_RANGE, SHAPE_COUNTS } from './inspector-model.js';
+import { CONTROL, CONTROL_SETS, HUD_SLOT_SHARES, MORE_EXCLUDED, MORE_GROUP_OF, SECTIONS } from './studio-controls.js';
 
 export const hudMessages = Object.freeze({
   hud: 'Selection actions',
@@ -311,7 +312,12 @@ export class IfHudElement extends SfElement<typeof spec> {
     [CONTROL.fill]: (c, s, port) => (s.fill === undefined ? nothing : this.swatch(c.label, s.fill, (paint) => port.setPaint('fills', paint, 'Fill'))),
     [CONTROL.stroke]: (c, s, port) => (s.stroke === undefined ? nothing : this.swatch(c.label, s.stroke, (paint) => port.setPaint('strokes', paint, 'Stroke'))),
     [CONTROL.radius]: (c, s, port) => (s.common === 'rectangle' || s.common === 'frame' ? this.number(c.label, s.radius, (n) => port.setProp(P.radius, n, 'Radius'), { unit: 'px' }) : nothing),
-    [CONTROL.points]: (c, s, port) => (s.points === undefined ? nothing : this.number(c.label, s.points, (n) => port.setProp(P.sides, Math.round(n), 'Points'), { min: 3, max: 1000 })),
+    // #47: `Sides` on a polygon, `Points` on a star (slot 3, shared with Radius: `HUD_SLOT_SHARES`).
+    [CONTROL.points]: (_c, s, port) => {
+      const count = s.common === undefined ? undefined : SHAPE_COUNTS[s.common];
+      if (count === undefined || s.points === undefined) return nothing;
+      return this.number(count.label, s.points, (n) => port.setProp(P.sides, clampShapeCount(n), count.label), SHAPE_COUNT_RANGE);
+    },
     [CONTROL.strokeWidth]: (c, s, port) => (s.common === 'line' ? this.number(c.label, s.stroke?.width, (n) => port.setProp(P.strokes, [{ paint: s.stroke?.color ?? '#16151A', width: Math.max(0.5, n), align: 'center' }], 'Stroke width'), { unit: 'px' }) : nothing),
     [CONTROL.font]: (c, _s, port) => this.fontPicker(c, port),
     [CONTROL.size]: (c, _s, port) => {
@@ -436,8 +442,13 @@ export class IfHudElement extends SfElement<typeof spec> {
     return html`<div role="toolbar" aria-label=${hudMessages.hud} data-sf-overlay="hud" @keydown=${(e: KeyboardEvent) => this.onKey(e)}>
       ${controls.map((control) => {
         const view = this.VIEWS[control.id];
-        if (view !== undefined) return view(control, s, port);
-        return this.action(control, control.section === SECTIONS.mask && s.mask !== undefined ? [s.mask.node] : undefined);
+        if (view === undefined) return this.action(control, control.section === SECTIONS.mask && s.mask !== undefined ? [s.mask.node] : undefined);
+        // A slot's first control whose value applies (#47: Radius, else the polygon's or star's count).
+        for (const candidate of [control, ...(HUD_SLOT_SHARES[control.id as keyof typeof HUD_SLOT_SHARES] ?? [])]) {
+          const shown = this.VIEWS[candidate.id]?.(candidate, s, port) ?? nothing;
+          if (shown !== nothing) return shown;
+        }
+        return nothing;
       })}
       ${this.more(s, pill, port)}
     </div>`;

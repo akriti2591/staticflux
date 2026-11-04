@@ -5,7 +5,7 @@
  * preset menu, blend mode groups and page size presets. Lit-free and pure, so the inspector element only renders.
  */
 import type { JsonValue } from '@staticflux/document/v2';
-import type { SelectionKind } from '../app/scene-summary.js';
+import type { LayerKindName, SelectionKind } from '../app/scene-summary.js';
 import { type BlendModeName, BLEND_MODE_NAMES } from '../elements/components.js';
 import type { AppearanceModel } from '../elements/inspector.js';
 import type { EffectValue, GradientStopValue, PaintValue, Vec2 } from '../elements/values.js';
@@ -43,11 +43,50 @@ export const INSPECTOR_SECTIONS: Readonly<Record<SelectionKind, readonly Inspect
   mask: [open('transform'), open('mask'), folded('layer')],
 });
 
-/** The sections for a kind (corners only where the selection has corners: rectangles, frames, images). */
+/**
+ * Element kinds with the Corners slot: rectangles, frames and images (`CORNERS`), and polygons and stars, where the
+ * slot is headed `SHAPE` and leads with the shape's own count (#47, INSPECTOR-LAYOUT §2, §9 Q5).
+ */
+const CORNER_KINDS: ReadonlySet<string> = new Set<LayerKindName>(['rectangle', 'frame', 'image', 'polygon', 'star']);
+
+/** The sections for a kind (the Corners slot only where the selection has corners, `CORNER_KINDS`). */
 export function inspectorSections(kind: SelectionKind, common: string | undefined): readonly InspectorSection[] {
   const list = INSPECTOR_SECTIONS[kind];
-  const corners = common === 'rectangle' || common === 'frame' || common === 'image';
+  const corners = common !== undefined && CORNER_KINDS.has(common);
   return list.filter((s) => s.id !== 'corners' || corners);
+}
+
+/** #47: what a polygon's or a star's count is called (the owner: `Sides` for a polygon, `Points` for a star). */
+export interface ShapeCount {
+  readonly label: string;
+  /** The undo step's label and the collapsed summary's unit (`5 sides`). */
+  readonly unit: string;
+  /** The star's inner radius row (`geometry.ratio` as %). */
+  readonly inner: boolean;
+}
+export const SHAPE_COUNTS: Readonly<Partial<Record<LayerKindName, ShapeCount>>> = Object.freeze({
+  polygon: { label: 'Sides', unit: 'sides', inner: false },
+  star: { label: 'Points', unit: 'points', inner: true },
+});
+
+/** The count's range (the model's `geometry.sides` rule, `elements/values.ts`; APPEARANCE §4.5: 3–1 000). */
+export const SHAPE_COUNT_RANGE = Object.freeze({ min: 3, max: 1000 });
+/** The star's inner radius in % of the outer one (`geometry.ratio` is (0, 1]). */
+export const INNER_RATIO_RANGE = Object.freeze({ min: 1, max: 100 });
+
+/** A typed count as the model takes it: a whole number in 3…1 000. */
+export function clampShapeCount(n: number): number {
+  return Math.max(SHAPE_COUNT_RANGE.min, Math.min(SHAPE_COUNT_RANGE.max, Math.round(n)));
+}
+
+/** An inner radius in % as `geometry.ratio` (0.01…1). */
+export function innerRatioFromPercent(percent: number): number {
+  return Math.max(INNER_RATIO_RANGE.min, Math.min(INNER_RATIO_RANGE.max, percent)) / 100;
+}
+
+/** The collapsed Shape section's summary: `5 sides`, `5 points · 38 %`. */
+export function shapeSummary(count: ShapeCount, points: number, ratio: number | undefined): string {
+  return count.inner && ratio !== undefined ? `${points} ${count.unit} · ${Math.round(ratio * 100)} %` : `${points} ${count.unit}`;
 }
 
 // ---------------------------------------------------------------- paints

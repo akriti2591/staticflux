@@ -47,8 +47,11 @@ import type { NumericField, TransformEdit } from '../tools/free-transform.js';
 import type { TransformBarModel } from '../workers/mirrors.js';
 import { type HudPort, paintFromColor } from './hud.js';
 import {
+  clampShapeCount,
   effectsSummary,
   FIT_LABELS,
+  INNER_RATIO_RANGE,
+  innerRatioFromPercent,
   type InspectorSection,
   type InspectorSectionId,
   inspectorSections,
@@ -56,6 +59,10 @@ import {
   PAGE_SIZE_RANGE,
   pagePresetOf,
   pageSizePresets,
+  SHAPE_COUNT_RANGE,
+  SHAPE_COUNTS,
+  type ShapeCount,
+  shapeSummary,
 } from './inspector-model.js';
 import { cornersSection, effectPresetMenu, effectStack, fillStack, type ImageSource, layerSection, type LibraryImage, type PaintHost, paintMessages, sharedPaintRow, strokeStack } from './inspector-paint.js';
 import { type TextCommands, type TextHost, textSection } from './inspector-text.js';
@@ -121,6 +128,8 @@ export const inspectorMessages = Object.freeze({
   stroke: 'Stroke',
   effects: 'Effects',
   corners: 'Corners',
+  shape: 'Shape',
+  innerRadius: 'Inner radius',
   layer: 'Layer',
   locked: 'Locked',
   lockedLine: 'This selection is locked. Unlock it to edit.',
@@ -147,6 +156,15 @@ const SECTION_HEADINGS: Readonly<Record<InspectorSectionId, string>> = {
   effects: inspectorMessages.effects,
   layer: inspectorMessages.layer,
   locked: inspectorMessages.locked,
+};
+
+/**
+ * #47 (INSPECTOR-LAYOUT §9 Q5): one section id, two headings by kind — the Corners slot reads `Shape` on polygons and
+ * stars, so `Sides` sits where a rectangle shows `Radius`. Kinds not listed use `SECTION_HEADINGS`.
+ */
+const SECTION_HEADINGS_BY_KIND: Readonly<Record<string, Partial<Record<InspectorSectionId, string>>>> = {
+  polygon: { corners: inspectorMessages.shape },
+  star: { corners: inspectorMessages.shape },
 };
 
 /** What the inspector shows (the editor's mirrors, set by the app). */
@@ -401,6 +419,17 @@ export class IfInspectorElement extends SfElement<typeof spec> {
     .sides sf-number-field {
       inline-size: 52px;
     }
+    /* #47: the Shape section's rows are labelled rows (COMPONENT-ANATOMY §3: label 72 · gap 8 · field 1fr), values in
+       the UI face with tabular figures (§4.2, owner Q1). */
+    .shape {
+      display: grid;
+      gap: ${t.space.sm.css};
+    }
+    .shape sf-number-field {
+      grid-template-columns: 72px minmax(0, 1fr);
+      column-gap: 8px;
+      --sf-number-field-font: ${t.font.family.css};
+    }
     .thumb,
     .gradient-thumb {
       display: inline-block;
@@ -557,13 +586,14 @@ export class IfInspectorElement extends SfElement<typeof spec> {
     return undefined;
   }
 
-  private section(s: InspectorSection, body: TemplateResult | typeof nothing, summary = ''): TemplateResult | typeof nothing {
+  private section(s: InspectorSection, body: TemplateResult | typeof nothing, summary = '', common?: string): TemplateResult | typeof nothing {
     if (body === nothing) return nothing;
     const open = this.opened[s.id] ?? s.collapsed !== true;
+    const heading = (common === undefined ? undefined : SECTION_HEADINGS_BY_KIND[common]?.[s.id]) ?? SECTION_HEADINGS[s.id];
     // Kit `sf-toggle` events bubble: a menu, popover or More row inside the body fires one too. Only the
     // disclosure's own toggle may open or close it (#42); the More rows below check the same.
-    return html`<section data-section=${s.id} aria-label=${SECTION_HEADINGS[s.id]}>
-      <sf-disclosure heading=${SECTION_HEADINGS[s.id]} summary=${summary} key=${`inspector/${s.id}`} ?open=${open} ?pinned=${this.pro} @sf-toggle=${(e: CustomEvent<{ open: boolean }>) => (e.target === e.currentTarget ? this.setOpen(s.id, e.detail.open) : undefined)}>
+    return html`<section data-section=${s.id} aria-label=${heading}>
+      <sf-disclosure heading=${heading} summary=${summary} key=${`inspector/${s.id}`} ?open=${open} ?pinned=${this.pro} @sf-toggle=${(e: CustomEvent<{ open: boolean }>) => (e.target === e.currentTarget ? this.setOpen(s.id, e.detail.open) : undefined)}>
         ${body}
       </sf-disclosure>
     </section>`;
@@ -833,8 +863,34 @@ export class IfInspectorElement extends SfElement<typeof spec> {
     );
   }
 
+  /**
+   * #47: a polygon's or star's Shape section (INSPECTOR-LAYOUT §2): the count (`Sides` / `Points`, 3–1 000), a star's
+   * `Inner radius` (%), then the linked Radius and Smooth (no per-corner radii on these kinds). One undo step per edit.
+   */
+  private shapeSection(count: ShapeCount, s: SelectionSummary, a: AppearanceModel, port: InspectorPort): TemplateResult {
+    const ratio = s.ratio ?? 0.382;
+    return html`<div class="shape">
+      ${numberField(count.label, s.points, (n) => port.setProp(P.sides, clampShapeCount(n), count.label), { min: SHAPE_COUNT_RANGE.min, max: SHAPE_COUNT_RANGE.max, step: 1 })}
+      ${count.inner
+        ? html`<sf-slider
+            label=${inspectorMessages.innerRadius}
+            min=${INNER_RATIO_RANGE.min}
+            max=${INNER_RATIO_RANGE.max}
+            step="1"
+            unit="%"
+            show-value
+            .value=${Math.round(ratio * 100)}
+            @sf-change=${(e: CustomEvent<{ value: number }>) => port.setProp(P.ratio, innerRatioFromPercent(Number(e.detail.value)), inspectorMessages.innerRadius)}
+          ></sf-slider>`
+        : nothing}
+      ${cornersSection(a, (edit) => port.appearance(edit), { perCorner: false })}
+    </div>`;
+  }
+
   private summaryOf(id: InspectorSectionId, s: SelectionSummary): string {
     const a = this.single(s);
+    const count = s.common === undefined ? undefined : SHAPE_COUNTS[s.common];
+    if (id === 'corners' && count !== undefined && s.points !== undefined) return shapeSummary(count, s.points, s.ratio);
     if (id === 'effects') return a === undefined ? '' : effectsSummary(a);
     if (id === 'layer') return a !== undefined ? layerSummary(a.opacity, a.blend) : s.opacity === 'mixed' || s.blend === 'mixed' ? 'Mixed' : layerSummary(s.opacity ?? 1, (s.blend ?? 'normal') as BlendModeName);
     if (id === 'corners') return a === undefined || typeof a.radius !== 'number' || a.radius === 0 ? '' : `${a.radius} px`;
@@ -860,7 +916,9 @@ export class IfInspectorElement extends SfElement<typeof spec> {
       stroke: () => this.strokeSection(s, port),
       corners: () => {
         const a = this.single(s);
-        return a === undefined ? nothing : cornersSection(a, (edit) => port.appearance(edit));
+        if (a === undefined) return nothing;
+        const count = s.common === undefined ? undefined : SHAPE_COUNTS[s.common];
+        return count === undefined ? cornersSection(a, (edit) => port.appearance(edit)) : this.shapeSection(count, s, a, port);
       },
       effects: () => this.effectsSection(s, port),
       layer: () => this.layerSectionFor(s, port),
@@ -880,7 +938,7 @@ export class IfInspectorElement extends SfElement<typeof spec> {
     const kind = s?.kind ?? 'none';
     const sections = inspectorSections(kind, s?.common);
     return html`${this.header(s, port)}
-      ${sections.map((section) => this.section(section, this.body(section.id, s, port), s === undefined ? '' : this.summaryOf(section.id, s)))}`;
+      ${sections.map((section) => this.section(section, this.body(section.id, s, port), s === undefined ? '' : this.summaryOf(section.id, s), s?.common))}`;
   }
 }
 

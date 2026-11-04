@@ -152,6 +152,15 @@ export const CONTROL_SETS: Readonly<Record<SelectionKind, ControlSet>> = Object.
   mask: define('mask', [ranked(maskMode, 1), ranked(maskInvert, 2), ranked(releaseMask, 3), ranked(duplicate, 4), ranked(del, 5)]),
 });
 
+/**
+ * #47: controls that share a ranked control's pill slot (STUDIO §4.2.4: slot 3 is `Radius` on a rect, the count on a
+ * polygon or star; INSPECTOR-LAYOUT §2: `Sides` / `Points` rank 3). The HUD renders the first of the ranked control
+ * and these whose view applies to the element in front of it; ranks stay unique (`defineControls`).
+ */
+export const HUD_SLOT_SHARES: Readonly<Partial<Record<ControlId, readonly ControlDecl[]>>> = Object.freeze({
+  [CONTROL.radius]: [points],
+});
+
 /** The More menu's groups per capability (STUDIO §4.2.3); capabilities not listed go to `Arrange`. */
 export const MORE_GROUP_OF: Readonly<Record<string, ControlDecl['group']>> = Object.freeze({
   'instaflow/delete': 'Edit',
