@@ -119,6 +119,41 @@ async function scenario(page) {
     if (!r.ok) throw new Error(r.error.message);
     return r.value;
   }, nodes);
+  // #46: the inspector's Page › W and H show the whole value (a 5-digit one too) in the UI face, not mono, and typing a
+  // width then Enter resizes the page as one undo step.
+  {
+    const pageSize = page.getByRole('group', { name: 'Page size' });
+    const widthInput = pageSize.getByRole('spinbutton', { name: 'Width' });
+    const fit = async () =>
+      widthInput.evaluate((input) => {
+        const f = getComputedStyle(input);
+        const label = input.getRootNode().querySelector('label');
+        return { value: input.value, client: input.clientWidth, scroll: input.scrollWidth, font: f.fontFamily, numeric: f.fontVariantNumeric, labelFont: label === null ? '' : getComputedStyle(label).fontFamily };
+      });
+    await widthInput.fill('10800');
+    const wide = await fit();
+    if (wide.scroll > wide.client || /mono/i.test(wide.font) || /mono/i.test(wide.labelFont) || !wide.numeric.includes('tabular-nums')) fail(`page size field: ${JSON.stringify(wide)}`);
+    await widthInput.press('Escape');
+    const original = await page.evaluate(() => window.__studio.scene.page);
+    const flushedUndo = async () => {
+      await page.evaluate(async () => {
+        const r = await window.__studio.flush();
+        if (!r.ok) throw new Error(r.error.message);
+      });
+      return (await inspect()).undo;
+    };
+    const u = await flushedUndo();
+    await widthInput.fill('1200');
+    await widthInput.press('Enter');
+    await page.waitForFunction(() => window.__studio.scene.page?.width === 1200, null, { timeout: 10_000 }).catch(async () => fail(`Width 1200 + Enter did not resize the page: ${JSON.stringify(await page.evaluate(() => window.__studio.scene.page))}`));
+    const resized = await page.evaluate(() => window.__studio.scene.page);
+    if (resized.height !== original.height || (await flushedUndo()) !== u + 1) fail(`page resize: ${JSON.stringify({ original, resized, undo: [u, await flushedUndo()] })}`);
+    await widthInput.fill(String(original.width));
+    await widthInput.press('Enter');
+    await page.waitForFunction((w) => window.__studio.scene.page?.width === w, original.width, { timeout: 10_000 });
+    log(`page size field: "10800" fits (${wide.scroll} ≤ ${wide.client} px, ${wide.font.split(',')[0]} tabular); Width 1200 + Enter resized the page as one undo step`);
+  }
+
   const surface = page.getByRole('application', { name: 'Canvas surface' });
   const box = await surface.boundingBox();
   if (box === null) fail('no canvas surface');

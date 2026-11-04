@@ -158,6 +158,25 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     expectNoA11yIssues(root.host as HTMLElement);
   });
 
+  // #46: W and H are the paired row's two cells (COMPONENT-ANATOMY §3: `1fr 1fr` and the lock in the gutter), so the
+  // page size is readable; the widths come from the grid, never a fixed rem.
+  it('#46 page size: W and H take the paired cells of the content width, and typing 1200 then Enter resizes the page once', async () => {
+    const css = [(customElements.get('if-inspector') as unknown as { styles: unknown }).styles].flat(4).map((s) => String(s)).join('\n');
+    const rule = /sf-size-field\.page-size \{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(rule).toContain('--sf-size-field-input: calc((100% - 2 * var(--sf-space-sm) - var(--sf-size-control)) / 2)');
+    expect(rule).not.toMatch(/--sf-size-field-input: [\d.]+rem/);
+    const { el, root, calls } = await mount(MODEL);
+    const size = root.querySelector('sf-size-field.page-size') as HTMLElement & { updateComplete: Promise<unknown> };
+    const width = size.shadowRoot?.querySelector('sf-number-field[data-side="width"]') as HTMLElement & { updateComplete: Promise<unknown> };
+    const input = width.shadowRoot?.querySelector('input') as HTMLInputElement;
+    input.value = '1200';
+    input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    await width.updateComplete;
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, composed: true }));
+    await el.updateComplete;
+    expect(calls.filter((c) => c.startsWith('resizePage'))).toEqual(['resizePage [1200,1350]']);
+  });
+
   it('B11c image fills: the fill swatch’s tabs Solid · Gradient · Image; Image chooses a workspace image or uploads; `+ Add ▾ › Image…`; image rows have Fit and the crop', async () => {
     const images = [{ asset: 'as_photo', title: 'Photo' }, { asset: 'as_logo', title: 'Logo', thumb: 'blob:logo' }];
     const { el, root, calls } = await mount({ ...MODEL, images, selection: summary('shape', { common: 'rectangle' }), appearance: appearance({ fills: [{ paint: '#FF5C39' }] }) });
