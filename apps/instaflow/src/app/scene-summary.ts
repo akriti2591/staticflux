@@ -73,6 +73,8 @@ export interface SelectionSummary {
   readonly radius?: number | 'mixed';
   /** Polygon sides / star points. */
   readonly points?: number;
+  /** #47: a star's inner radius as a share of the outer one (`geometry.ratio`, 0.382 by default). */
+  readonly ratio?: number;
   /** Image elements: the top image fill's fit and asset (B12 A-3 crop state). */
   readonly fit?: string;
   readonly asset?: string;
@@ -111,6 +113,8 @@ export interface SceneReader {
   applicable(nodes: readonly NodeId[]): readonly string[];
 }
 
+/** A star's inner ratio when the element has none (the geometry component's default). */
+const STAR_RATIO = 0.382;
 const SHAPE_KINDS: Readonly<Record<ShapeName, LayerKindName>> = { rect: 'rectangle', ellipse: 'ellipse', polygon: 'polygon', star: 'star', line: 'line' };
 
 /** Default names per layer kind (UI text, sentence case). */
@@ -343,6 +347,7 @@ export function selectionSummary(r: SceneReader, selection: readonly NodeId[]): 
   const strokeWidth = same(strokes.flatMap((s) => (typeof s?.['width'] === 'number' ? [s['width']] : [])));
   const radius = same(nodes.map((n) => r.stage.value(n, P.radius) ?? 0).map((v) => (typeof v === 'number' ? v : 0)));
   const sides = r.stage.value(first, P.sides);
+  const ratio = r.stage.value(first, P.ratio);
   const image = imagePaintOf(r, first);
   const clip = r.stage.value(first, P.clip);
   const op = r.stage.value(first, P.boolean);
@@ -361,6 +366,7 @@ export function selectionSummary(r: SceneReader, selection: readonly NodeId[]): 
     ...(hasFill ? { stroke: { ...(strokeSame === 'mixed' ? { kind: 'mixed' as const } : (strokeSame ?? { kind: 'none' as const })), ...(strokeWidth === undefined ? {} : { width: strokeWidth }) } } : {}),
     ...(radius === undefined ? {} : { radius }),
     ...(firstKind === 'polygon' || firstKind === 'star' ? { points: typeof sides === 'number' ? sides : firstKind === 'star' ? 5 : 3 } : {}),
+    ...(firstKind === 'star' ? { ratio: typeof ratio === 'number' ? ratio : STAR_RATIO } : {}),
     ...(firstKind === 'image' ? { fit: typeof image?.['fit'] === 'string' ? image['fit'] : 'cover', ...(typeof assetOf(image) === 'string' ? { asset: assetOf(image) as string } : {}), cropped: image?.['offset'] !== undefined || image?.['scale'] !== undefined || image?.['rotation'] !== undefined, crop: cropOf(image) } : {}),
     ...layerValues(r, nodes),
     ...(firstKind === 'frame' ? { clip: clip !== false } : {}),

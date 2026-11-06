@@ -263,6 +263,70 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     expectNoA11yIssues(root.host as HTMLElement);
   });
 
+  describe('#47: the Shape section (INSPECTOR-LAYOUT §2, §9 Q5): polygons and stars on the Corners slot', () => {
+    const heading = (root: ShadowRoot): string | null => root.querySelector('section[data-section="corners"] sf-disclosure')?.getAttribute('heading') ?? null;
+    const labels = (root: ShadowRoot): string[] => [...root.querySelectorAll('section[data-section="corners"] sf-number-field, section[data-section="corners"] sf-slider')].map((f) => f.getAttribute('label') ?? '');
+
+    it('a polygon: SHAPE (not Corners) with Sides, then Radius and Smooth; no per-corner toggle; the summary names the sides', async () => {
+      const { root } = await mount({ ...MODEL, selection: summary('shape', { common: 'polygon', typeLabel: 'Polygon', points: 5 }), appearance: appearance({ radius: 0 }) });
+      expect(sections(root)).toEqual(['transform', 'fill', 'stroke', 'corners', 'effects', 'layer']);
+      expect(heading(root)).toBe('Shape');
+      expect(root.querySelector('section[data-section="corners"]')?.getAttribute('aria-label')).toBe('Shape');
+      expect(root.querySelector('section[data-section="corners"] sf-disclosure')?.getAttribute('summary')).toBe('5 sides');
+      expect(labels(root)).toEqual(['Sides', 'Radius', 'Smooth']);
+      expect((field(root, 'Sides') as HTMLElement & { value: number }).value).toBe(5);
+      expect(field(root, 'Sides').getAttribute('min')).toBe('3');
+      expect(field(root, 'Sides').getAttribute('max')).toBe('1000');
+      expect(root.querySelector('section[data-section="corners"] sf-icon-button')).toBeNull();
+      expectNoA11yIssues(root.host as HTMLElement);
+    });
+
+    it('a polygon: Sides 8 is one setProp of geometry.sides (one undo step `Sides`); out-of-range and fractional values clamp to 3…1000', async () => {
+      const { root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'polygon', points: 5 }), appearance: appearance() });
+      change(field(root, 'Sides'), { value: 8 });
+      change(field(root, 'Sides'), { value: 2 });
+      change(field(root, 'Sides'), { value: 5000 });
+      change(field(root, 'Sides'), { value: 6.6 });
+      expect(calls).toEqual(['setProp ["geometry.sides",8,"Sides"]', 'setProp ["geometry.sides",3,"Sides"]', 'setProp ["geometry.sides",1000,"Sides"]', 'setProp ["geometry.sides",7,"Sides"]']);
+    });
+
+    it('a star: SHAPE with Points and Inner radius (%), then Radius and Smooth; each edit is one setProp, clamped', async () => {
+      const { root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'star', typeLabel: 'Star', points: 5, ratio: 0.382 }), appearance: appearance({ radius: 0 }) });
+      expect(heading(root)).toBe('Shape');
+      expect(root.querySelector('section[data-section="corners"] sf-disclosure')?.getAttribute('summary')).toBe('5 points · 38 %');
+      expect(labels(root)).toEqual(['Points', 'Inner radius', 'Radius', 'Smooth']);
+      const inner = root.querySelector('section[data-section="corners"] sf-slider[label="Inner radius"]') as HTMLElement & { value: number };
+      expect(inner.value).toBe(38);
+      expect(inner.getAttribute('min')).toBe('1');
+      expect(inner.getAttribute('max')).toBe('100');
+      change(field(root, 'Points'), { value: 7 });
+      change(field(root, 'Points'), { value: 1 });
+      change(inner, { value: 50 });
+      change(inner, { value: 0 });
+      change(inner, { value: 140 });
+      expect(calls).toEqual([
+        'setProp ["geometry.sides",7,"Points"]',
+        'setProp ["geometry.sides",3,"Points"]',
+        'setProp ["geometry.ratio",0.5,"Inner radius"]',
+        'setProp ["geometry.ratio",0.01,"Inner radius"]',
+        'setProp ["geometry.ratio",1,"Inner radius"]',
+      ]);
+      expectNoA11yIssues(root.host as HTMLElement);
+    });
+
+    it('a rectangle keeps CORNERS with Radius (and the per-corner toggle), never Sides or Points', async () => {
+      const { root } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance() });
+      expect(heading(root)).toBe('Corners');
+      expect(labels(root)).toEqual(['Radius', 'Smooth']);
+      expect(root.querySelector('section[data-section="corners"] sf-icon-button')).not.toBeNull();
+    });
+
+    it('an ellipse still has no Corners or Shape section', async () => {
+      const { root } = await mount({ ...MODEL, selection: summary('shape', { common: 'ellipse' }), appearance: appearance() });
+      expect(sections(root)).not.toContain('corners');
+    });
+  });
+
   it('#58: Fill › + Add ▾ › Gradient ▸ stays open when the pointer moves away (no click), and nothing is added', async () => {
     const { root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance() });
     const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;

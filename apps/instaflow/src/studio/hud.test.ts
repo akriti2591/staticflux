@@ -70,6 +70,9 @@ const items = (hud: IfHudElement): string[] => [...(hud.shadowRoot?.querySelecto
 describe('<if-hud> per selection kind (§4.2.4)', () => {
   const CASES: readonly [string, SelectionSummary, readonly string[]][] = [
     ['shape (rectangle)', base('shape', { common: 'rectangle', fill: { kind: 'solid', color: '#FF5C39' }, stroke: { kind: 'none' }, radius: 8 }), ['Fill', 'Stroke', 'Radius', 'Duplicate', 'Delete']],
+    // #47: slot 3 is the shape's own count (STUDIO §4.2.4; INSPECTOR-LAYOUT §2: `Sides` / `Points` rank 3).
+    ['shape (polygon: Sides in slot 3)', base('shape', { common: 'polygon', fill: { kind: 'solid', color: '#FF5C39' }, stroke: { kind: 'none' }, radius: 0, points: 5 }), ['Fill', 'Stroke', 'Sides', 'Duplicate', 'Delete']],
+    ['shape (star: Points in slot 3)', base('shape', { common: 'star', fill: { kind: 'solid', color: '#FF5C39' }, stroke: { kind: 'none' }, radius: 0, points: 5, ratio: 0.382 }), ['Fill', 'Stroke', 'Points', 'Duplicate', 'Delete']],
     ['shape (ellipse: no radius)', base('shape', { common: 'ellipse', fill: { kind: 'solid', color: '#FF5C39' }, stroke: { kind: 'none' } }), ['Fill', 'Stroke', 'Duplicate', 'Delete']],
     ['text', base('text', { common: 'text' }), ['Font: Font', 'Size', 'Text colour', 'Bold', 'Align: Align text left', 'Delete']],
     ['image', base('image', { common: 'image', fit: 'contain' }), ['Fit: Fit', 'Duplicate', 'Delete']],
@@ -105,6 +108,30 @@ describe('<if-hud> per selection kind (§4.2.4)', () => {
     expect(hud.shadowRoot?.querySelector('sf-tag')?.textContent).toBe('Locked');
     (hud.shadowRoot?.querySelector('sf-icon-button[label="Unlock"]') as HTMLElement).click();
     expect(calls).toEqual(['invoke ["instaflow/lock",{"locked":false}]']);
+  });
+
+  it('#47: the pill’s Sides (polygon) and Points (star) set geometry.sides once per commit, clamped to 3…1000', async () => {
+    const field = (hud: IfHudElement, label: string): HTMLElement => {
+      const el = hud.shadowRoot?.querySelector(`sf-number-field[label="${label}"]`) as HTMLElement | null;
+      if (el === null) throw new Error(`no field ${label}`);
+      return el;
+    };
+    const change = (el: Element, value: number): boolean => el.dispatchEvent(new CustomEvent('sf-change', { detail: { value }, bubbles: true, composed: true }));
+    const has = (hud: IfHudElement, label: string): boolean => (hud.shadowRoot?.querySelector(`[data-hud-item][label="${label}"]`) ?? null) !== null;
+    const polygon = await mount(base('shape', { common: 'polygon', fill: { kind: 'solid', color: '#FF5C39' }, stroke: { kind: 'none' }, radius: 0, points: 5 }));
+    expect(has(polygon.hud, 'Radius')).toBe(false);
+    change(field(polygon.hud, 'Sides'), 8);
+    change(field(polygon.hud, 'Sides'), 2);
+    change(field(polygon.hud, 'Sides'), 5000);
+    expect(polygon.calls).toEqual(['setProp ["geometry.sides",8,"Sides"]', 'setProp ["geometry.sides",3,"Sides"]', 'setProp ["geometry.sides",1000,"Sides"]']);
+    await dispose?.();
+    const star = await mount(base('shape', { common: 'star', fill: { kind: 'solid', color: '#FF5C39' }, stroke: { kind: 'none' }, radius: 0, points: 5, ratio: 0.382 }));
+    change(field(star.hud, 'Points'), 6.6);
+    expect(star.calls).toEqual(['setProp ["geometry.sides",7,"Points"]']);
+    await dispose?.();
+    const rect = await mount(base('shape', { common: 'rectangle', fill: { kind: 'solid', color: '#FF5C39' }, stroke: { kind: 'none' }, radius: 8 }));
+    expect(has(rect.hud, 'Radius')).toBe(true);
+    expect(has(rect.hud, 'Sides') || has(rect.hud, 'Points')).toBe(false);
   });
 
   it('a mask group’s mode, invert and release act on the mask element', async () => {

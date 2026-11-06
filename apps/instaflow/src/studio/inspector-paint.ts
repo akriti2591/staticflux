@@ -669,16 +669,22 @@ export function effectStack(host: PaintHost, model: AppearanceModel, edit: (e: A
     })}`;
 }
 
-/** Corners (rects, frames, images; APPEARANCE §4.5): linked radius, per-corner toggle and fields, Smooth. */
-export function cornersSection(model: AppearanceModel, edit: (e: AppearanceEdit) => void): TemplateResult {
+/**
+ * Corners (APPEARANCE §4.5): linked radius, per-corner toggle and fields, Smooth. Per-corner radii exist on rects,
+ * frames and images only; polygons and stars (#47) pass `perCorner: false` and get the linked radius and Smooth.
+ */
+export function cornersSection(model: AppearanceModel, edit: (e: AppearanceEdit) => void, options: { readonly perCorner?: boolean } = {}): TemplateResult {
   const radius = typeof model.radius === 'number' ? model.radius : 0;
+  const perCorner = options.perCorner !== false;
   return html`<div class="row">
       ${numberField(paintMessages.radius, radius, (n) => edit({ op: 'set', path: P.radius, value: Math.max(0, n) }), { min: 0, max: 10000, unit: 'px' })}
-      <sf-icon-button size="sm" variant="ghost" label=${model.cornersLinked ? paintMessages.perCorner : paintMessages.linkCorners} .pressed=${!model.cornersLinked} @click=${() => edit({ op: 'link-corners', linked: !model.cornersLinked })}
-        ><sf-icon .icon=${model.cornersLinked ? linkIcon : unlinkIcon} size="14"></sf-icon
-      ></sf-icon-button>
+      ${perCorner
+        ? html`<sf-icon-button size="sm" variant="ghost" label=${model.cornersLinked ? paintMessages.perCorner : paintMessages.linkCorners} .pressed=${!model.cornersLinked} @click=${() => edit({ op: 'link-corners', linked: !model.cornersLinked })}
+            ><sf-icon .icon=${model.cornersLinked ? linkIcon : unlinkIcon} size="14"></sf-icon
+          ></sf-icon-button>`
+        : nothing}
     </div>
-    ${model.cornersLinked
+    ${model.cornersLinked || !perCorner
       ? nothing
       : html`<div class="grid2">
           ${CORNER_PATHS.map((path, i) => {
