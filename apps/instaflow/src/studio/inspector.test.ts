@@ -413,6 +413,127 @@ describe('<if-inspector> sections per kind (§5.1)', () => {
     expect([more.open, section.open]).toEqual([false, true]);
   });
 
+  describe('#44: `+ Add ▾` adds the layer, then opens its editor on the new row (FLOWS F-67 step 3, APPEARANCE §2.1)', () => {
+    type Opener = HTMLElement & { open: boolean; anchor?: Element };
+    /** Open `+ Add ▾` by its trigger and choose `path` (a submenu row, then its item) as a person does. */
+    const choose = async (section: HTMLElement, label: string, path: readonly string[]): Promise<void> => {
+      const menu = [...section.querySelectorAll<Opener>('sf-menu')].find((m) => m.getAttribute('label') === label);
+      if (menu === undefined) throw new Error(`no ${label} menu`);
+      (menu.querySelector(':scope > [slot="trigger"]') as HTMLElement).click();
+      await settle(4);
+      expect(menu.open).toBe(true);
+      const [first, second] = path;
+      if (second === undefined) (menu.querySelector(`:scope > sf-menu-item[value="${first}"]`) as HTMLElement).click();
+      else {
+        (menu.querySelector(`:scope > sf-menu-item[value="${first}"]`) as HTMLElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, composed: true }));
+        await settle(4);
+        (menu.querySelector(`sf-menu[slot="submenu"] sf-menu-item[value="${second}"]`) as HTMLElement).click();
+      }
+      await settle(4);
+      expect(menu.open).toBe(false);
+    };
+    /** The worker's answer: the added item arrives as the new top row of the stack (the model round-trip). */
+    const arrive = async (el: IfInspectorElement, calls: readonly string[], to: 'pageFill' | 'appearance'): Promise<void> => {
+      const add = calls.filter((c) => c.includes('"op":"add"')).at(-1);
+      if (add === undefined) throw new Error('nothing was added');
+      const item = (JSON.parse(add.slice(add.indexOf(' ') + 1)) as [{ item: JsonValue }])[0].item;
+      const current = el.model[to] as AppearanceModel;
+      el.model = { ...el.model, [to]: { ...current, fills: [...current.fills, item] } };
+      await settle(6);
+    };
+    const opened = (section: HTMLElement): Opener[] => [...section.querySelectorAll<Opener>('sf-popover')].filter((p) => p.open);
+    const escape = async (): Promise<void> => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await settle(4);
+    };
+
+    it('Background › Colour adds one solid row (one step) and opens the colour popover on that row; Escape closes it and keeps the row; the section stays open', async () => {
+      const { el, root, calls } = await mount({ ...MODEL, pages: 1 });
+      const page = root.querySelector('section[data-section="page"]') as HTMLElement;
+      const disclosure = page.querySelector(':scope > sf-disclosure') as Opener;
+      await choose(page, 'Add background', ['colour']);
+      expect(calls.filter((c) => c.startsWith('pageAppearance'))).toEqual(['pageAppearance [{"op":"add","stack":"fills","item":{"paint":"#D9D9D9"}}]']);
+      expect(opened(page)).toEqual([]);
+      await arrive(el, calls, 'pageFill');
+      // The new row is the top one, `Background 1`; its paint popover is open on the Solid tab with the colour popover.
+      const popovers = opened(page);
+      expect(popovers.map((p) => p.getAttribute('label'))).toEqual(['Background 1 paint']);
+      const popover = popovers[0] as Opener;
+      expect(popover.closest('.stack-row')?.querySelector('.summary')?.getAttribute('aria-label')).toBe('Background 1: #D9D9D9');
+      expect((popover.querySelector('sf-segmented.paint-tabs') as HTMLElement & { value: string }).value).toBe('solid');
+      expect(popover.querySelector('sf-color-popover')?.getAttribute('label')).toBe('Background 1 colour');
+      expect(disclosure.open).toBe(true);
+      // Opening the editor sends nothing: the add is the only step.
+      expect(calls.filter((c) => c.startsWith('pageAppearance'))).toHaveLength(1);
+      // Escape closes it; the row stays with its default (nothing removed), and the section stays open.
+      await escape();
+      expect(opened(page)).toEqual([]);
+      expect(calls.filter((c) => c.startsWith('pageAppearance'))).toHaveLength(1);
+      expect(disclosure.open).toBe(true);
+      // A later model update (another edit) does not reopen it.
+      el.model = { ...el.model };
+      await settle(4);
+      expect(opened(page)).toEqual([]);
+    });
+
+    it('Background › Gradient ▸ Linear adds one gradient row and opens the gradient editor on that row', async () => {
+      const { el, root, calls } = await mount({ ...MODEL, pages: 1 });
+      const page = root.querySelector('section[data-section="page"]') as HTMLElement;
+      await choose(page, 'Add background', ['gradient', 'linear']);
+      expect(calls.filter((c) => c.startsWith('pageAppearance'))).toHaveLength(1);
+      expect(calls.at(-1)).toMatch(/^pageAppearance \[\{"op":"add","stack":"fills","item":\{"paint":\{"kind":"linear"/);
+      await arrive(el, calls, 'pageFill');
+      const popovers = opened(page);
+      expect(popovers.map((p) => p.getAttribute('label'))).toEqual(['Background 1 paint']);
+      const popover = popovers[0] as Opener;
+      expect((popover.querySelector('sf-segmented.paint-tabs') as HTMLElement & { value: string }).value).toBe('gradient');
+      expect(popover.querySelector('.gradient-editor')).not.toBeNull();
+      expect((page.querySelector(':scope > sf-disclosure') as Opener).open).toBe(true);
+      await escape();
+      expect(opened(page)).toEqual([]);
+      expect(calls.filter((c) => c.startsWith('pageAppearance'))).toHaveLength(1);
+    });
+
+    it('Background › Image… opens the image chooser (workspace images, Upload…) anchored to `+ Add ▾`; nothing is added until a pick', async () => {
+      const { root, calls } = await mount({ ...MODEL, pages: 1, images: [{ asset: 'as_photo', title: 'Photo' }] });
+      const page = root.querySelector('section[data-section="page"]') as HTMLElement;
+      const add = [...page.querySelectorAll('sf-menu')].find((m) => m.getAttribute('label') === 'Add background')?.querySelector(':scope > [slot="trigger"]');
+      await choose(page, 'Add background', ['image']);
+      await settle(4);
+      const popovers = opened(page);
+      expect(popovers.map((p) => p.getAttribute('label'))).toEqual(['Choose an image']);
+      // OVERLAYS §1.2 Menu → popover: anchored to the menu's original trigger.
+      expect(popovers[0]?.anchor).toBe(add);
+      expect(calls.filter((c) => c.startsWith('pageAppearance') || c.startsWith('imageFill'))).toEqual([]);
+      (popovers[0]?.querySelector('button.image-choice') as HTMLElement).click();
+      expect(calls.at(-1)).toBe('imageFill ["page",{"asset":"as_photo"}]');
+      expect((page.querySelector(':scope > sf-disclosure') as Opener).open).toBe(true);
+    });
+
+    it('Fill › Colour behaves the same: one add, the colour popover on the new top row', async () => {
+      const { el, root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance({ fills: [{ paint: '#FF5C39' }] }) });
+      const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;
+      await choose(fill, 'Add fill', ['colour']);
+      expect(calls.filter((c) => c.startsWith('appearance'))).toEqual(['appearance [{"op":"add","stack":"fills","item":{"paint":"#D9D9D9"}}]']);
+      await arrive(el, calls, 'appearance');
+      const popovers = opened(fill);
+      expect(popovers.map((p) => p.getAttribute('label'))).toEqual(['Fill 1 paint']);
+      expect(popovers[0]?.querySelector('sf-color-popover')).not.toBeNull();
+      expect((fill.querySelector(':scope > sf-disclosure') as Opener).open).toBe(true);
+    });
+
+    it('the pending editor is dropped when the selection changes before the row arrives', async () => {
+      const { el, root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance({ fills: [{ paint: '#FF5C39' }] }) });
+      const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;
+      await choose(fill, 'Add fill', ['colour']);
+      expect(calls.filter((c) => c.startsWith('appearance'))).toHaveLength(1);
+      // Another element with two fills is selected instead (the add failed or went elsewhere).
+      el.model = { ...el.model, selection: summary('shape', { common: 'rectangle', nodes: ['b'] }), appearance: appearance({ node: 'b', fills: [{ paint: '#FF5C39' }, { paint: '#FFFFFF' }] }) };
+      await settle(6);
+      expect(opened(root.querySelector('section[data-section="fill"]') as HTMLElement)).toEqual([]);
+    });
+  });
+
   it('expanding a row shows its second line: kind, blend and reorder (Alt+↑ moves it up)', async () => {
     const { root, calls } = await mount({ ...MODEL, selection: summary('shape', { common: 'rectangle' }), appearance: appearance() });
     const fill = root.querySelector('section[data-section="fill"]') as HTMLElement;

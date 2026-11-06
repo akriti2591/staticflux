@@ -172,6 +172,11 @@ export interface PaintHost {
   readonly images?: readonly LibraryImage[];
   /** B11c: put an image on the selection's or the page's fills: a new top row, or `index`'s row turned into it. */
   imageFill?(to: 'selection' | 'page', source: ImageSource, index?: number): void;
+  /**
+   * #44 (F-67 step 3): `+ Add ▾` just added row `index` (key `page:fills:2`) to `node`'s fills; open that row's paint
+   * popover once the model carries it. The row only exists after the edit's round trip, so the host waits for it.
+   */
+  editAdded?(key: string, node: string, index: number): void;
 }
 
 type Item = Readonly<Record<string, JsonValue>>;
@@ -366,7 +371,7 @@ function fillSwatch(host: PaintHost, label: string, paint: JsonValue | undefined
         host.imageFill?.(o.to, source, o.index);
       })}`,
   };
-  return html`<sf-popover label=${`${label} paint`} outside="pass">
+  return html`<sf-popover label=${`${label} paint`} outside="pass" data-paint-row=${o.key}>
     <sf-icon-button slot="trigger" size="sm" variant="ghost" label=${label}>${trigger}</sf-icon-button>
     <div class="paint-popover">
       <sf-segmented
@@ -541,17 +546,29 @@ export function fillStack(
     });
   });
   const full = count >= MAX_STACK_ITEMS;
-  // `+ Add ▾ › Image…` opens the chooser popover beside the menu (its button is the visible way in too).
+  // `+ Add ▾ › Colour / Gradient`: one step adds the row, then its editor opens on it (#44, F-67 step 3).
+  const add = (paint: PaintValue): void => {
+    edit({ op: 'add', stack: 'fills', item: { paint } });
+    host.editAdded?.(`${to}:fills:${count}`, model.node, count);
+  };
+  // `+ Add ▾ › Image…` opens the chooser anchored to the menu's trigger (OVERLAYS §1.2 Menu → popover; #44); its own
+  // button is the other way in, anchored to itself again once the chooser closes.
   const openChooser = (e: Event): void => {
-    const popover = (e.target as HTMLElement).closest('.add-row')?.querySelector<HTMLElement & { open: boolean }>('sf-popover.image-picker');
-    if (popover !== null && popover !== undefined) popover.open = true;
+    const menu = e.currentTarget as HTMLElement;
+    const popover = menu.closest('.add-row')?.querySelector<HTMLElement & { anchor: Element | undefined; show(): unknown }>('sf-popover.image-picker');
+    if (popover === null || popover === undefined) return;
+    popover.anchor = menu.querySelector(':scope > [slot="trigger"]') ?? undefined;
+    popover.show();
+  };
+  const unanchor = (e: CustomEvent<{ open: boolean }>): void => {
+    if (e.target === e.currentTarget && !e.detail.open) (e.currentTarget as HTMLElement & { anchor: Element | undefined }).anchor = undefined;
   };
   return html`${count === 0 ? html`<p class="muted">${paintMessages.noFill}</p>` : rows}
     <div class="add-row">
-      ${addPaintMenu(o.page === true ? `${paintMessages.add} ${name.toLowerCase()}` : paintMessages.addFill, count, 'fills', (paint) => edit({ op: 'add', stack: 'fills', item: { paint } }), base, false, host.imageFill === undefined ? undefined : openChooser)}
+      ${addPaintMenu(o.page === true ? `${paintMessages.add} ${name.toLowerCase()}` : paintMessages.addFill, count, 'fills', add, base, false, host.imageFill === undefined ? undefined : openChooser)}
       ${host.imageFill === undefined
         ? nothing
-        : html`<sf-popover class="image-picker" label=${paintMessages.chooseImage} outside="pass">
+        : html`<sf-popover class="image-picker" label=${paintMessages.chooseImage} outside="pass" @sf-toggle=${unanchor}>
             <sf-icon-button slot="trigger" size="sm" variant="ghost" label=${paintMessages.addImage(name)} ?disabled=${full}><sf-icon .icon=${imageIcon} size="14"></sf-icon></sf-icon-button>
             ${imageChooser(host, (source) => host.imageFill?.(to, source))}
           </sf-popover>`}
