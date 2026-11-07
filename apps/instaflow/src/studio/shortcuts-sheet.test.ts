@@ -15,6 +15,10 @@ import { STUDIO_KEY_COMMANDS } from '../app/studio-commands.js';
 import { cleanPopTheme } from '../theme/clean-pop.js';
 import { printShortcuts, SHORTCUT_GROUPS, shortcutGroupOf, type ShortcutGroupName, shortcutSheet, shortcutsPrintHtml } from './shortcuts-sheet.js';
 import { ChromeShortcuts } from './studio-element.js';
+import { createScope } from '@staticflux/core';
+import { gateSpecDecide } from '../spec/index.js';
+import { editorGate, studioRegistries } from '../spec/testing/fixtures.js';
+import { createStudio } from './studio.js';
 
 let dispose: (() => Promise<void>) | undefined;
 beforeAll(() => defineShortcutSheet());
@@ -27,6 +31,7 @@ afterEach(async () => {
 
 const ctx = {
   lenses: new Set(['instaflow/lens-pixel']),
+  tools: new Set(['instaflow/tool-rect']),
   commands: new Map<string, ShortcutGroupName>(STUDIO_KEY_COMMANDS.map((k) => [k.def.id as string, k.group === 'Style' ? 'Edit' : k.group] as const)),
 };
 
@@ -42,6 +47,7 @@ function registry() {
 describe('shortcut groups', () => {
   it('names each card from the id: tools, selection, transform, view, the key commands’ own cards, Studio for the rest', () => {
     expect(shortcutGroupOf({ id: 'instaflow/tool-rect-shortcut' }, ctx)).toBe('Tools');
+    expect(shortcutGroupOf({ id: 'instaflow/pen-shortcut' }, ctx)).toBeUndefined(); // #56: not mounted, not listed
     expect(shortcutGroupOf({ id: 'instaflow/lens-pixel-shortcut' }, ctx)).toBe('Studio');
     expect(shortcutGroupOf({ id: 'instaflow/select-next' }, ctx)).toBe('Selection');
     expect(shortcutGroupOf({ id: 'instaflow/arrow-left-large' }, ctx)).toBe('Transform');
@@ -66,6 +72,23 @@ describe('shortcut groups', () => {
     for (const entry of r.list()) if (entry.shadowedBy === undefined) expect(listed.has(entry.id), entry.id).toBe(true);
     const edit = groups.find((g) => g.heading === 'Edit');
     expect(edit?.rows.map((row) => row.label)).toEqual(expect.arrayContaining(['Cut', 'Copy', 'Paste', 'Paste in place', 'Copy style']));
+  });
+
+  it('#56: Tools lists only the tools that run now (nothing inert): no Pen, Brush, Heal, Crop, Split or Connect', async () => {
+    const { gate } = editorGate('pro');
+    const studio = createStudio({ registries: studioRegistries(), decideFor: (s) => gateSpecDecide(gate, s), reducedMotion: () => true });
+    await studio.open();
+    const r = createShortcutRegistry({ isMac: true });
+    const scope = createScope('test');
+    expect(studio.bindShortcuts(r, { focusHud: () => undefined, focusCommandBar: () => undefined, focusCanvas: () => undefined }, scope).ok).toBe(true);
+    const toolsCard = () => shortcutSheet(r.list(), { ...ctx, lenses: new Set(studio.registries.lenses.map((l) => l.id as string)), tools: new Set(studio.mountedTools) }).find((g) => g.heading === 'Tools');
+    const labels = toolsCard()?.rows.map((row) => row.label) ?? [];
+    expect(labels).toEqual(expect.arrayContaining(['Select tool', 'Frame tool', 'Rectangle tool', 'Ellipse tool', 'Line tool', 'Text tool', 'Hand tool']));
+    for (const inert of ['Pen', 'Brush', 'Heal', 'Crop', 'Split', 'Connect']) expect(labels, inert).not.toContain(`${inert} tool`);
+    // Every listed tool key picks a mounted tool.
+    for (const row of toolsCard()?.rows ?? []) expect(studio.mountedTools, row.id).toContain(row.id.replace(/-shortcut$/, ''));
+    await scope.dispose();
+    await studio.dispose();
   });
 
   it('the sheet over the snapshot passes the audit under Clean Pop', async () => {

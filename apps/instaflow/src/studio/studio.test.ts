@@ -27,6 +27,10 @@ describe('createStudio', () => {
     expect(studio.lens?.label).toBe('Canvas');
     expect(studio.density).toBe('standard');
     expect(studio.activeTool).toBe(StudioIds.tool.select);
+    // #56: the toolbar's tools (what a tool key can pick now); Pen has no controller yet, so it is not mounted.
+    expect(studio.mountedTools[0]).toBe(StudioIds.tool.select);
+    expect(studio.mountedTools).toContain(StudioIds.tool.hand);
+    expect(studio.mountedTools).not.toContain(StudioIds.tool.pen);
     expect(studio.port.groups()).toMatchObject({
       'lens@default': ['lens:instaflow/lens-canvas'],
       'panel@dock': ['panel:instaflow/layers', 'panel:instaflow/pages', 'panel:instaflow/assets', 'panel:instaflow/milestones'],

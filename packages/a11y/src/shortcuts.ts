@@ -203,14 +203,38 @@ function normalizedCombos(def: ShortcutDef, isMac: boolean): Result<readonly str
 
 const MAC_SYMBOLS: Readonly<Record<string, string>> = { Ctrl: '⌃', Alt: '⌥', Shift: '⇧', Meta: '⌘' };
 
-/** Human label for a combo (`⌘⇧K` on mac, `Ctrl+Shift+K` elsewhere). */
+/** Arrow glyphs (both platforms). */
+const ARROW_KEYS: Readonly<Record<string, string>> = { ArrowLeft: '←', ArrowUp: '↑', ArrowRight: '→', ArrowDown: '↓' };
+/** Named keys on Apple platforms (Apple's key symbols). */
+const MAC_KEYS: Readonly<Record<string, string>> = {
+  ...ARROW_KEYS,
+  Enter: '⏎',
+  Backspace: '⌫',
+  Delete: '⌦',
+  Escape: '⎋',
+  Tab: '⇥',
+  Space: '␣',
+  PageUp: '⇞',
+  PageDown: '⇟',
+  Home: '↖',
+  End: '↘',
+};
+/** Named keys elsewhere (the words printed on the keycaps). */
+const OTHER_KEYS: Readonly<Record<string, string>> = { ...ARROW_KEYS, Delete: 'Del', Escape: 'Esc', PageUp: 'PgUp', PageDown: 'PgDn' };
+
+/**
+ * Human label for a combo: `⇧⌘→` on mac (modifiers in Apple's order ⌃ ⌥ ⇧ ⌘, no separators), `Ctrl+Shift+→`
+ * elsewhere; named keys print as glyphs or keycap words, never as `ArrowRight` (#56). A symbol prints as typed (`?`,
+ * not `⇧?`): Shift is part of the character, as at match time (with Alt the physical key and Shift count, R15.7).
+ */
 export function comboLabel(combo: KeyCombo | string, isMac: boolean): string {
   const parsed = parseCombo(combo, isMac);
   if (!parsed.ok) return combo;
   const p = parsed.value;
-  const mods = [p.ctrl ? 'Ctrl' : '', p.alt ? 'Alt' : '', p.shift ? 'Shift' : '', p.meta ? 'Meta' : ''].filter((m) => m !== '');
-  if (isMac) return `${mods.map((m) => MAC_SYMBOLS[m] ?? m).join('')}${p.key}`;
-  return [...mods.map((m) => (m === 'Meta' ? 'Win' : m)), p.key].join('+');
+  const shift = p.shift && !(isSymbol(p.key) && !(p.alt && ALT_PHYSICAL.has(p.key)));
+  const mods = [p.ctrl ? 'Ctrl' : '', p.alt ? 'Alt' : '', shift ? 'Shift' : '', p.meta ? 'Meta' : ''].filter((m) => m !== '');
+  if (isMac) return `${mods.map((m) => MAC_SYMBOLS[m] ?? m).join('')}${MAC_KEYS[p.key] ?? p.key}`;
+  return [...mods.map((m) => (m === 'Meta' ? 'Win' : m)), OTHER_KEYS[p.key] ?? p.key].join('+');
 }
 
 // ------------------------------------------------------------- static check (CLI)
