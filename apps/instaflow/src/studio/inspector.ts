@@ -485,6 +485,8 @@ export class IfInspectorElement extends SfElement<typeof spec> {
   declare recent: readonly string[];
   /** W and H keep their ratio (the link toggle). */
   declare linked: boolean;
+  /** #44: the fill row `+ Add ▾` just added, whose paint popover opens once the model carries it. */
+  private addedRow: { readonly key: string; readonly node: string; readonly index: number } | undefined;
 
   constructor() {
     super();
@@ -496,6 +498,26 @@ export class IfInspectorElement extends SfElement<typeof spec> {
     this.more = new Set();
     this.recent = readRecent();
     this.linked = false;
+    this.addedRow = undefined;
+  }
+
+  protected override updated(): void {
+    this.openAddedRow();
+  }
+
+  /**
+   * #44 (F-67 step 3): open the added row's paint popover (Solid or Gradient tab, anchored to its swatch) once the
+   * model carries the row; forget it when the page or selection moved on, or the stack changed some other way.
+   */
+  private openAddedRow(): void {
+    const added = this.addedRow;
+    if (added === undefined) return;
+    const stack = added.key.startsWith('page:') ? this.model.pageFill : this.model.appearance;
+    if (stack?.node === added.node && stack.fills.length === added.index) return; // not arrived yet
+    this.addedRow = undefined;
+    if (stack?.node !== added.node || stack.fills.length !== added.index + 1) return;
+    const popover = [...this.renderRoot.querySelectorAll<HTMLElement & { show(): unknown }>('sf-popover[data-paint-row]')].find((p) => p.dataset['paintRow'] === added.key);
+    popover?.show();
   }
 
   /** Expand a section and scroll it into view (`?inspect=<section>`, NAVIGATION-DEEPLINKS §2.2). False when not shown. */
@@ -567,6 +589,9 @@ export class IfInspectorElement extends SfElement<typeof spec> {
       images: this.model.images ?? [],
       ...(this.pageBackground() === undefined ? {} : { background: this.pageBackground() as string }),
       imageFill: (to, source, index) => this.port?.imageFill(to, source, index),
+      editAdded: (key, node, index) => {
+        this.addedRow = { key, node, index };
+      },
       isMoreOpen: (key) => this.more.has(key),
       toggleMore: (key) => {
         const next = new Set(this.more);
