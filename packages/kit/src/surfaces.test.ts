@@ -3,7 +3,7 @@ import { createRoutableDialogBridge, createSurfaceManager, defineSurface, type S
 import { auditA11y, deepFocused, press } from '@staticflux/testkit/a11y';
 import { html } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { defineDialogSurface, defineSurfaces, defineToastSurface, isBackdropClick, type SfSurfaceLayerElement, supportsModalDialog } from './surfaces.js';
+import { defineDialogSurface, defineSurfaces, defineToastSurface, isBackdropClick, SfDialogElement, SfSurfaceLayerElement, supportsModalDialog } from './surfaces.js';
 import { cleanup, fixture, settle, shadow } from './test-helpers.js';
 
 beforeAll(() => defineSurfaces());
@@ -156,6 +156,17 @@ describe('<sf-surface-layer> modals', () => {
     } finally {
       HTMLDialogElement.prototype.showModal = original;
     }
+  });
+});
+
+describe('#56: one scroll region in the settings dialog (COMPONENT-ANATOMY §13)', () => {
+  const cssOf = (styles: unknown): string => [styles].flat(Infinity).map((s) => (s !== null && typeof s === 'object' && 'cssText' in s ? String(s.cssText) : '')).join('\n');
+  it('the fixed-height settings frame does not scroll; the sf-dialog fills it, so its body is the one scroller', () => {
+    const layer = cssOf(SfSurfaceLayerElement.styles);
+    expect(layer).toMatch(/dialog\.modal:has\(sf-dialog\[size='settings'\]\)\s*\{[^}]*block-size: min\(600px, 90vh\);[^}]*overflow: hidden/);
+    const frame = cssOf(SfDialogElement.styles);
+    expect(frame).toMatch(/:host\(\[size='settings'\]\)\s*\{[^}]*block-size: 100%;[^}]*max-block-size: 100%/);
+    expect(frame.match(/overflow(-y)?: auto/g)).toHaveLength(1); // `.body`
   });
 });
 

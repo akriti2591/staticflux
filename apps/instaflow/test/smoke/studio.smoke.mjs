@@ -859,6 +859,38 @@ async function scenario(page) {
   log('canvas pixels changed');
   const metrics = await page.evaluate(async () => (await window.__studio.metrics()).value);
   log(`frame metrics: ${metrics.render?.draws} draws, ${metrics.render?.holds} holds, latency ${JSON.stringify(metrics.render?.latency ?? null)}, ${metrics.editor?.inputs} inputs in ${metrics.editor?.batches} batches`);
+
+  // #56: Settings › Keyboard shortcuts has one scroll region (the dialog body), glyph chips, single-line rows and only
+  // the tools that run (the toolbar's).
+  for (let i = 0; i < 3 && (await page.locator('dialog.modal[open]').count()) > 0; i += 1) await page.keyboard.press('Escape');
+  await page.evaluate(() => void window.__studio.openDialog('settings', 'shortcuts'));
+  await page.locator('sf-shortcut-sheet').first().waitFor({ timeout: 5000 });
+  const cheat = await page.evaluate(async () => {
+    const deep = (root, out = []) => {
+      for (const el of root.querySelectorAll('*')) {
+        out.push(el);
+        if (el.shadowRoot !== null) deep(el.shadowRoot, out);
+      }
+      return out;
+    };
+    const sheet = deep(document).find((e) => e.tagName === 'SF-SHORTCUT-SHEET');
+    await sheet.updateComplete;
+    const dialog = deep(document).find((e) => e.tagName === 'DIALOG' && e.open);
+    const frame = deep(document).find((e) => e.tagName === 'SF-DIALOG');
+    const scrollers = [...new Set([dialog, ...deep(dialog), frame, ...deep(frame)])].filter((e) => /(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight + 1);
+    const rows = [...sheet.shadowRoot.querySelectorAll('li')];
+    const tools = [...(sheet.shadowRoot.querySelector('section[aria-label="Tools"]')?.querySelectorAll('li .label') ?? [])].map((l) => l.textContent);
+    return { scrollers: scrollers.map((e) => `${e.tagName.toLowerCase()}.${e.className}`), chips: [...sheet.shadowRoot.querySelectorAll('kbd')].map((k) => k.textContent), heights: [...new Set(rows.map((r) => Math.round(r.getBoundingClientRect().height)))], tools };
+  });
+  if (cheat.scrollers.length !== 1) fail(`shortcuts dialog: ${cheat.scrollers.length} scroll regions (${cheat.scrollers.join(', ')}), want 1`);
+  const raw = cheat.chips.filter((c) => /Arrow|Escape|PageUp|PageDown|Delete/.test(c));
+  if (raw.length > 0) fail(`shortcut chips with raw key names: ${raw.join(', ')}`);
+  if (cheat.heights.some((h) => h > 30)) fail(`shortcut rows wrap: heights ${cheat.heights.join(', ')}`);
+  const inert = cheat.tools.filter((l) => /^(Pen|Brush|Heal|Crop|Split|Connect) tool$/.test(l));
+  if (inert.length > 0 || !cheat.tools.includes('Select tool')) fail(`Tools card: ${cheat.tools.join(', ')}`);
+  log(`shortcuts sheet: one scroll region, ${cheat.chips.length} glyph chips, rows ${cheat.heights.join('/')} px, tools ${cheat.tools.length}`);
+  await page.keyboard.press('Escape');
+
   if (screenshot !== undefined) await page.screenshot({ path: `${screenshot}-${topology}.png` });
   const relevant = errors.filter((e) => !/favicon/.test(e));
   if (relevant.length > 0) fail(`page errors:\n${relevant.join('\n')}`);

@@ -57,6 +57,8 @@ export interface Studio {
   readonly density: Density;
   /** Reactive: the picked tool (the first tool after each spec change, unless the picked one stays). */
   readonly activeTool: ToolId | undefined;
+  /** Reactive: the mounted spec's toolbar, in order (the tools a tool key can pick now; #56). */
+  readonly mountedTools: readonly ToolId[];
   /** Mount the initial spec (as a preset). */
   open(signal?: AbortSignal): Promise<Result<SpecApplied>>;
   switchLens(lens: LensContributionId, signal?: AbortSignal): Promise<Result<SpecProposal>>;
@@ -131,6 +133,9 @@ export function createStudio(options: StudioOptions): Studio {
     },
     get density() {
       return proposals.current?.density ?? DEFAULT_DENSITY;
+    },
+    get mountedTools() {
+      return mountedTools();
     },
     get activeTool() {
       return activeTool();

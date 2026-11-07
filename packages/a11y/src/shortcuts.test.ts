@@ -70,6 +70,55 @@ describe('combo parsing', () => {
     expect(comboLabel('Meta+K', false)).toBe('Win+K');
     expect(comboLabel('nonsense', false)).toBe('nonsense');
   });
+
+  it('#56: named keys print as glyphs (COMPONENT-ANATOMY §14), never as raw key names', () => {
+    const mac: Readonly<Record<string, string>> = {
+      'Mod+Shift+ArrowRight': '⇧⌘→',
+      'Mod+Shift+ArrowLeft': '⇧⌘←',
+      'Mod+Alt+ArrowUp': '⌥⌘↑',
+      'Mod+Alt+Shift+ArrowDown': '⌥⇧⌘↓',
+      Enter: '⏎',
+      'Shift+Enter': '⇧⏎',
+      Backspace: '⌫',
+      Delete: '⌦',
+      Escape: '⎋',
+      Tab: '⇥',
+      'Shift+Tab': '⇧⇥',
+      Space: '␣',
+      PageUp: '⇞',
+      PageDown: '⇟',
+      Home: '↖',
+      End: '↘',
+      'Ctrl+Alt+Shift+Meta+K': '⌃⌥⇧⌘K',
+      'Shift+?': '?',
+      'Alt+Shift+]': '⌥⇧]',
+      F2: 'F2',
+    };
+    const windows: Readonly<Record<string, string>> = {
+      'Mod+Shift+ArrowRight': 'Ctrl+Shift+→',
+      'Mod+Shift+ArrowLeft': 'Ctrl+Shift+←',
+      'Mod+Alt+ArrowUp': 'Ctrl+Alt+↑',
+      ArrowDown: '↓',
+      Enter: 'Enter',
+      'Alt+Enter': 'Alt+Enter',
+      Backspace: 'Backspace',
+      Delete: 'Del',
+      Escape: 'Esc',
+      Tab: 'Tab',
+      Space: 'Space',
+      PageUp: 'PgUp',
+      PageDown: 'PgDn',
+      Home: 'Home',
+      End: 'End',
+      'Shift+?': '?',
+      'Alt+Shift+]': 'Alt+Shift+]',
+    };
+    for (const [combo, label] of Object.entries(mac)) expect(comboLabel(combo, true), combo).toBe(label);
+    for (const [combo, label] of Object.entries(windows)) expect(comboLabel(combo, false), combo).toBe(label);
+    for (const combo of [...Object.keys(mac), ...Object.keys(windows)]) {
+      for (const isMac of [true, false]) expect(comboLabel(combo, isMac)).not.toMatch(/Arrow|Escape|PageUp|PageDown|Delete/);
+    }
+  });
 });
 
 describe('shortcut registry', () => {

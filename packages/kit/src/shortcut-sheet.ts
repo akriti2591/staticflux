@@ -73,6 +73,12 @@ const spec = component({
   description: 'Keyboard cheat sheet: searchable cards of shortcuts per group over a registry snapshot, with a platform switch.',
 });
 
+/**
+ * Layout (COMPONENT-ANATOMY §13, #56): one column of single-line 28 px rows (labels ellipsize), two columns only above
+ * 1 100 px; nothing inside the sheet scrolls (the dialog body or the page is the one scroller). Key chips are §14's.
+ * The search field's ring is for keyboard focus only (#41): a text field matches `:focus-visible` on a pointer press
+ * too, so a press marks it `data-focus="pointer"` until it blurs.
+ */
 export class SfShortcutSheetElement extends SfElement<typeof spec> {
   static override readonly spec = spec;
   static override properties = {
@@ -93,6 +99,7 @@ export class SfShortcutSheetElement extends SfElement<typeof spec> {
         flex-direction: column;
         gap: ${t.space.md.css};
         min-inline-size: 0;
+        container-type: inline-size;
       }
       .bar {
         display: flex;
@@ -105,10 +112,13 @@ export class SfShortcutSheetElement extends SfElement<typeof spec> {
         block-size: ${t.size.control.css};
         padding-inline: ${t.space.sm.css};
         border: 1px solid ${t.color.controlEdge.css};
-        border-radius: ${t.radius.sm.css};
+        border-radius: ${t.radius.md.css};
         background: ${t.color.surface1.css};
         color: ${t.color.text.css};
         font: inherit;
+      }
+      input[data-focus='pointer']:focus-visible {
+        outline: none;
       }
       .platform {
         display: inline-flex;
@@ -132,13 +142,18 @@ export class SfShortcutSheetElement extends SfElement<typeof spec> {
       }
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+        grid-template-columns: minmax(0, 1fr);
         gap: ${t.space.md.css};
         align-items: start;
       }
+      @container (min-width: 1100px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(320px, 1fr));
+        }
+      }
       section {
         border: 1px solid ${t.color.border.css};
-        border-radius: ${t.radius.md.css};
+        border-radius: ${t.radius.lg.css};
         padding: ${t.space.sm.css} ${t.space.md.css};
         background: ${t.color.surface2.css};
       }
@@ -146,7 +161,7 @@ export class SfShortcutSheetElement extends SfElement<typeof spec> {
         margin: 0 0 ${t.space.xs.css};
         font-size: ${t.type.sizeXs.css};
         font-weight: 600;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: ${t.color.textMuted.css};
       }
@@ -159,9 +174,16 @@ export class SfShortcutSheetElement extends SfElement<typeof spec> {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: ${t.space.sm.css};
-        min-block-size: 28px;
-        font-size: ${t.type.sizeSm.css};
+        gap: ${t.space.md.css};
+        block-size: 28px;
+        font-size: ${t.type.sizeMd.css};
+      }
+      .label {
+        flex: 1;
+        min-inline-size: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
       }
       li:hover {
         color: ${t.color.text.css};
@@ -172,12 +194,20 @@ export class SfShortcutSheetElement extends SfElement<typeof spec> {
         flex-shrink: 0;
       }
       kbd {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        block-size: 20px;
+        min-inline-size: 20px;
+        padding: 0 6px;
         font-family: ${t.font.familyMono.css};
         font-size: ${t.type.sizeXs.css};
+        line-height: 1;
+        white-space: nowrap;
         color: ${t.color.text.css};
         border: 1px solid ${t.color.border.css};
-        border-radius: ${t.radius.sm.css};
-        padding-inline: ${t.space.xs.css};
+        border-radius: 6px;
         background: ${t.color.surface1.css};
       }
       mark {
@@ -219,10 +249,20 @@ export class SfShortcutSheetElement extends SfElement<typeof spec> {
     this.query = '';
   }
 
-  /** Focus the search field (the dialog calls it on open). */
-  async focusSearch(): Promise<void> {
+  /**
+   * Focus the search field (the dialog calls it on open). The ring follows the input that caused the move (#41): pass
+   * `focusVisible`, or the sheet reads it from the element focus comes from (a pointer press leaves it without
+   * `:focus-visible`, a key gives it one); a text field would otherwise match `:focus-visible` on any focus.
+   */
+  async focusSearch(options: { readonly focusVisible?: boolean } = {}): Promise<void> {
     await this.updateComplete;
-    this.renderRoot.querySelector<HTMLInputElement>('input')?.focus();
+    const input = this.renderRoot.querySelector<HTMLInputElement>('input');
+    if (input === null) return;
+    const visible = options.focusVisible ?? keyboardFocused(input.ownerDocument);
+    if (visible) delete input.dataset['focus'];
+    else input.dataset['focus'] = 'pointer';
+    const focusOptions: FocusOptions & { readonly focusVisible?: boolean } = { focusVisible: visible };
+    input.focus(focusOptions);
   }
 
   private hover(id: string | undefined): void {
@@ -243,7 +283,16 @@ export class SfShortcutSheetElement extends SfElement<typeof spec> {
       html`<button type="button" class="focus-target" aria-pressed=${this.platform === value ? 'true' : 'false'} @click=${() => (this.platform = value)}>${label}</button>`;
     return html`<div class="bar">
         <label class="sr-only" for="q">${this.searchLabel}</label>
-        <input id="q" type="search" class="focus-target" placeholder=${this.searchLabel} .value=${this.query} @input=${(e: Event) => (this.query = (e.target as HTMLInputElement).value)} />
+        <input
+          id="q"
+          type="search"
+          class="focus-target"
+          placeholder=${this.searchLabel}
+          .value=${this.query}
+          @input=${(e: Event) => (this.query = (e.target as HTMLInputElement).value)}
+          @pointerdown=${(e: Event) => ((e.currentTarget as HTMLInputElement).dataset['focus'] = 'pointer')}
+          @blur=${(e: Event) => delete (e.currentTarget as HTMLInputElement).dataset['focus']}
+        />
         <div class="platform" role="group" aria-label=${this.platformLabel}>${platform('mac', 'Mac')}${platform('windows', 'Windows')}</div>
       </div>
       ${shown.length === 0
@@ -255,7 +304,7 @@ export class SfShortcutSheetElement extends SfElement<typeof spec> {
                 <ul>
                   ${g.rows.map(
                     (r) => html`<li data-id=${r.id} @pointerenter=${() => this.hover(r.id)} @pointerleave=${() => this.hover(undefined)}>
-                      <span>${this.mark(r.label)}</span>
+                      <span class="label" title=${r.label}>${this.mark(r.label)}</span>
                       <span class="keys">${r.keys.map((k) => html`<kbd>${this.mark(comboLabel(k, mac))}</kbd>`)}</span>
                     </li>`,
                   )}
@@ -263,6 +312,18 @@ export class SfShortcutSheetElement extends SfElement<typeof spec> {
               </section>`,
             )}
           </div>`}`;
+  }
+}
+
+/** Whether the element that has focus now (through shadow roots) shows the keyboard focus ring. */
+function keyboardFocused(doc: Document): boolean {
+  let active: Element | null = doc.activeElement;
+  while (active?.shadowRoot?.activeElement != null) active = active.shadowRoot.activeElement;
+  if (active === null || active === doc.body) return false;
+  try {
+    return active.matches(':focus-visible');
+  } catch {
+    return false;
   }
 }
 

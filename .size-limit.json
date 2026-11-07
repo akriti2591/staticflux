@@ -101,13 +101,13 @@
     "limit": "7.5 KB"
   },
   {
-    "name": "@staticflux/a11y (full; B11c 6.7 → 6.9 KB: Alt + punctuation shortcuts matched by physical key (R15.7))",
+    "name": "@staticflux/a11y (full; B11c 6.7 → 6.9 KB: Alt + punctuation shortcuts matched by physical key (R15.7); #56 6.9 → 7 KB: key glyphs in comboLabel (→ ⏎ ⎋ ⌫, Esc / PgUp elsewhere), COMPONENT-ANATOMY §14)",
     "path": "packages/a11y/dist/index.js",
     "ignore": [
       "mobx",
       "@staticflux/core"
     ],
-    "limit": "6.9 KB"
+    "limit": "7 KB"
   },
   {
     "name": "@staticflux/handoff (full)",
@@ -778,7 +778,7 @@
     "limit": "5.75 KB"
   },
   {
-    "name": "@staticflux/kit/shortcut-sheet (<sf-shortcut-sheet>: the keyboard cheat sheet over a registry snapshot; B11b)",
+    "name": "@staticflux/kit/shortcut-sheet (<sf-shortcut-sheet>: the keyboard cheat sheet over a registry snapshot; B11b; #56 2.5 → 2.6 KB: one column of single-line rows, §14 key chips, keyboard-only focus ring on the search field)",
     "path": "packages/kit/dist/shortcut-sheet.js",
     "ignore": [
       "mobx",
@@ -792,7 +792,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "2.5 KB"
+    "limit": "2.6 KB"
   },
   {
     "name": "@staticflux/kit/size-field (<sf-size-field>: the size field pair of New design; with the number field, segmented, icon button; B11b; B11c measured 9 KB → 12.5 KB: it carries the number field (5 KB), the segmented switch, the icon button with the tooltip core and the lock icons)",
@@ -863,7 +863,7 @@
     "limit": "1.7 KB"
   },
   {
-    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>; B11c 43.75 KB → 45.5 KB: <sf-size-field> (R13.48), card action and selection slots (R13.49), icon fill; B11c 45.5 → 45.75 KB: the colour popover Image tab; #46 45.75 → 45.8 KB: the number field's font hook, the size field in the UI face with labels above)",
+    "name": "@staticflux/kit (full, excl. lit + framework; raised 22.5 → 22.6 KB by C0: the new card component; 22.6 → 27.5 KB by B11a: icon element, number field, inline edit, swatch; 42.5 KB by B11a2: overlays, feedback, hints and the shared colour, font and alignment popovers; 43.25 KB by B11b: the tree’s inline rename and decorated rows; 43.75 KB by B11b slice 4: the keyboard cheat sheet <sf-shortcut-sheet>; B11c 43.75 KB → 45.5 KB: <sf-size-field> (R13.48), card action and selection slots (R13.49), icon fill; B11c 45.5 → 45.75 KB: the colour popover Image tab; #46 45.75 → 45.8 KB: the number field's font hook, the size field in the UI face with labels above; #56 45.8 → 46 KB: the cheat sheet's one-column rows, §14 chips and keyboard-only search ring, the settings dialog's one scroller)",
     "path": "packages/kit/dist/index.js",
     "ignore": [
       "mobx",
@@ -877,7 +877,7 @@
       "@staticflux/i18n",
       "@staticflux/capabilities"
     ],
-    "limit": "45.8 KB"
+    "limit": "46 KB"
   },
   {
     "name": "@staticflux/stage (stage, attribution, undo service; excl. framework)",
@@ -1346,7 +1346,7 @@
     "limit": "117 KB"
   },
   {
-    "name": "@instaflow/app/home (Home's own code: model, element, index read, routes, theme; excl. lit, kit and framework; C0; B11c 10.75 KB → 34 KB: the Home element and styles grew into Files / projects / trash / file operations / import / first run, the journal, the file capabilities and the New design dialog; kit modules and the blob store are excluded like lit; B11c 34 → 40.5 KB: same growth, Home code only; C4 splits it)",
+    "name": "@instaflow/app/home (Home's own code: model, element, index read, routes, theme; excl. lit, kit and framework; C0; B11c 10.75 KB → 34 KB: the Home element and styles grew into Files / projects / trash / file operations / import / first run, the journal, the file capabilities and the New design dialog; kit modules and the blob store are excluded like lit; B11c 34 → 40.5 KB: same growth, Home code only; C4 splits it; #56 40.5 → 40.6 KB: Settings › Keyboard shortcuts (key glyphs, one-column sheet, keyboard-only search ring))",
     "path": "apps/instaflow/dist/home/index.js",
     "import": "{ bootHome }",
     "ignore": [
@@ -1383,7 +1383,7 @@
       "@staticflux/kit/disclosure",
       "@staticflux/blob"
     ],
-    "limit": "40.5 KB"
+    "limit": "40.6 KB"
   },
   {
     "name": "@instaflow/app/export (C1 on main: formats, errors, export service spawning the export worker, the export capability; excl. framework)",

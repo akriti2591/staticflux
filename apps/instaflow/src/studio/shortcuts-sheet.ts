@@ -56,6 +56,11 @@ export function printShortcuts(groups: readonly ShortcutSheetGroup[], doc: Docum
 export interface ShortcutGroupContext {
   /** Lens ids (their `<id>-shortcut` keys are Studio's; every other `<id>-shortcut` is a tool's). */
   readonly lenses: ReadonlySet<string>;
+  /**
+   * The tools mounted now (`studio.mountedTools`). A tool key is registered for every tool in the vocabulary and runs
+   * only while its tool is mounted, so the others (Pen, Brush, Heal, Crop, Split, Connect in M1) are absent (#56).
+   */
+  readonly tools: ReadonlySet<string>;
   /** Key command id → its card (`Style` keys sit on the Edit card). */
   readonly commands: ReadonlyMap<string, ShortcutGroupName>;
 }
@@ -68,13 +73,16 @@ const PATTERNS: readonly (readonly [RegExp, ShortcutGroupName])[] = [
   [/^instaflow\/(cut|copy|paste|paste-in-place)-key$/, 'Edit'],
 ];
 
-/** The card a registered shortcut belongs to; Studio's own keys (focus, rename, save, help, export…) are `Studio`. */
-export function shortcutGroupOf(entry: Pick<ActiveShortcut, 'id'>, ctx: ShortcutGroupContext): ShortcutGroupName {
+/**
+ * The card a registered shortcut belongs to; Studio's own keys (focus, rename, save, help, export…) are `Studio`.
+ * `undefined` for a tool key whose tool is not mounted (the sheet leaves it out: nothing inert, #56).
+ */
+export function shortcutGroupOf(entry: Pick<ActiveShortcut, 'id'>, ctx: ShortcutGroupContext): ShortcutGroupName | undefined {
   const id = entry.id.replace(/-chrome$/, '');
   const command = ctx.commands.get(id);
   if (command !== undefined) return command;
   const owner = id.replace(/-shortcut$/, '');
-  if (id.endsWith('-shortcut')) return ctx.lenses.has(owner) ? 'Studio' : 'Tools';
+  if (id.endsWith('-shortcut')) return ctx.lenses.has(owner) ? 'Studio' : ctx.tools.has(owner) ? 'Tools' : undefined;
   for (const [pattern, group] of PATTERNS) if (pattern.test(id)) return group;
   return 'Studio';
 }

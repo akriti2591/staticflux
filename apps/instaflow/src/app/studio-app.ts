@@ -490,7 +490,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
     body: () => html`${copyLinkButton('export')}<if-export-panel ${ref(bindExportOnce)}></if-export-panel>`,
   });
   // B11c: Settings over Studio (STUDIO §2.4): the same `<if-settings>` Home shows as a page.
-  const sheetGroups = () => shortcutSheet(shortcuts.list(), { lenses: lensIds, commands: commandGroups });
+  const sheetGroups = () => shortcutSheet(shortcuts.list(), { lenses: lensIds, tools: new Set(studio.mountedTools), commands: commandGroups });
   const settingsDialog = defineDialogSurface<{ readonly section: SettingsSection }>({
     id: 'instaflow/settings-dialog',
     scope: 'app',
@@ -822,7 +822,7 @@ export async function createStudioApp(options: StudioAppOptions): Promise<Result
   // The cheat sheet (STUDIO §2.3.1): a snapshot of the registry when it opens.
   const commandGroups = new Map<string, ShortcutGroupName>(STUDIO_KEY_COMMANDS.map((k) => [k.def.id as string, k.group === 'Style' ? 'Edit' : k.group] as const));
   const lensIds = new Set<string>(registries.value.lenses.map((l) => l.id as string));
-  const sheetDialog = shortcutsSheetSurface(() => shortcutSheet(shortcuts.list(), { lenses: lensIds, commands: commandGroups }));
+  const sheetDialog = shortcutsSheetSurface(() => shortcutSheet(shortcuts.list(), { lenses: lensIds, tools: new Set(studio.mountedTools), commands: commandGroups }));
   let sheet: { dismiss(): void; readonly state: string } | undefined;
   const pageAction = async (action: 'add' | 'duplicate' | 'delete' | 'size', arg?: string): Promise<void> => {
     const current = lens.current();

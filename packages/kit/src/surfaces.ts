@@ -15,7 +15,7 @@
  *   at the bottom; their timers pause while the pointer is over the stack, a toast has focus, or the tab is hidden.
  *   Below 720 px dialogs become full-height sheets (Home; Studio never gets that narrow).
  * - `<sf-dialog>` — the dialog frame for every dialog type (§2.1): `size` (confirm 420, form 520, wizard 640,
- *   settings 840 px), `tone="danger"`, a wizard **step frame** (`step`, `steps`: back chevron from step 2, `2 of 3`
+ *   settings 840 × 600 px: the frame fills the dialog, whose body is the one scroller, #56), `tone="danger"`, a wizard **step frame** (`step`, `steps`: back chevron from step 2, `2 of 3`
  *   from three steps, sliding body; Escape on a later step goes back), held changes (`dirty`: Escape, the backdrop,
  *   Back and × show the inline `Discard changes?` row instead of closing).
  * - `<sf-takeover>` — the full-screen takeover frame (milestone preview, Compare, the blocking error): a one-line
@@ -211,6 +211,7 @@ export class SfSurfaceLayerElement extends SfElement<typeof layerSpec> {
       dialog.modal:has(sf-dialog[size='settings']) {
         inline-size: min(${DIALOG_WIDTHS.settings}px, calc(100vw - 32px));
         block-size: min(600px, 90vh);
+        overflow: hidden;
       }
       /* Takeovers fill the surface (milestone preview, Compare, the blocking error). */
       dialog.modal:has(sf-takeover),
@@ -559,6 +560,10 @@ export class SfDialogElement extends SfElement<typeof dialogSpec> {
         gap: ${t.space.lg.css};
         padding: ${t.space.xl.css};
         max-block-size: 90vh;
+      }
+      :host([size='settings']) {
+        block-size: 100%;
+        max-block-size: 100%;
       }
       header {
         display: flex;

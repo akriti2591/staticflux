@@ -1,7 +1,7 @@
 import { expectNoA11yIssues } from '@staticflux/testkit/a11y';
 import { html } from 'lit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { defineShortcutSheet, filterShortcutSheet, type SfShortcutSheetElement, type ShortcutSheetGroup, shortcutSheetGroups } from './shortcut-sheet.js';
+import { defineShortcutSheet, filterShortcutSheet, SfShortcutSheetElement, type ShortcutSheetGroup, shortcutSheetGroups } from './shortcut-sheet.js';
 import { cleanup, events, fixture, shadowAll } from './test-helpers.js';
 
 beforeAll(() => defineShortcutSheet());
@@ -65,6 +65,60 @@ describe('<sf-shortcut-sheet>', () => {
     await element.updateComplete;
     expect(shadowAll(element, '.empty')[0]?.textContent).toBe('No shortcuts match');
     expectNoA11yIssues(element);
+  });
+
+  it('#56: named keys are glyph chips on Mac and on Windows (COMPONENT-ANATOMY §14)', async () => {
+    const arrows: readonly ShortcutSheetGroup[] = [
+      {
+        heading: 'Selection',
+        rows: [
+          { id: 'n', label: 'Add the next element to the selection', keys: ['Mod+Shift+ArrowRight'] },
+          { id: 'p', label: 'Add the previous element to the selection', keys: ['Mod+Shift+ArrowLeft'] },
+          { id: 'e', label: 'Select inside', keys: ['Enter', 'Escape', 'Tab', 'Delete', 'Backspace', 'Space', 'PageUp', 'PageDown', 'Home', 'End'] },
+        ],
+      },
+    ];
+    const { element } = await fixture<SfShortcutSheetElement>(html`<sf-shortcut-sheet platform="mac" .groups=${arrows}></sf-shortcut-sheet>`);
+    const chips = (): string[] => shadowAll(element, 'kbd').map((k) => k.textContent ?? '');
+    expect(chips()).toEqual(['⇧⌘→', '⇧⌘←', '⏎', '⎋', '⇥', '⌦', '⌫', '␣', '⇞', '⇟', '↖', '↘']);
+    element.platform = 'windows';
+    await element.updateComplete;
+    expect(chips()).toEqual(['Ctrl+Shift+→', 'Ctrl+Shift+←', 'Enter', 'Esc', 'Tab', 'Del', 'Backspace', 'Space', 'PgUp', 'PgDn', 'Home', 'End']);
+    // Searching by the raw name still finds the row.
+    element.query = 'arrowright';
+    await element.updateComplete;
+    expect(shadowAll(element, 'li').map((li) => li.dataset['id'])).toEqual(['n']);
+  });
+
+  it('#56: one column of single-line rows, nothing inside the sheet scrolls (the dialog body is the only scroller)', () => {
+    const cssText = SfShortcutSheetElement.styles.map((s) => ('cssText' in s ? s.cssText : '')).join('\n');
+    expect(cssText).not.toMatch(/overflow(-[xy])?:\s*(auto|scroll)/);
+    expect(cssText).not.toMatch(/auto-fill/);
+    expect(cssText).toMatch(/\.label\s*\{[^}]*text-overflow:\s*ellipsis/);
+    expect(cssText).toMatch(/\.label\s*\{[^}]*white-space:\s*nowrap/);
+  });
+
+  it('#56 / #41: the search field shows the focus ring for keyboard focus only, not after a pointer press', async () => {
+    const { element } = await fixture<SfShortcutSheetElement>(html`<sf-shortcut-sheet .groups=${groups}></sf-shortcut-sheet>`);
+    const input = element.shadowRoot?.querySelector('input') as HTMLInputElement;
+    input.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    input.focus();
+    expect(input.dataset['focus']).toBe('pointer');
+    input.blur();
+    expect(input.dataset['focus']).toBeUndefined();
+    input.focus(); // keyboard (Tab): no pointer press before it
+    expect(input.dataset['focus']).toBeUndefined();
+    input.blur();
+    await element.focusSearch({ focusVisible: false }); // opened by a pointer: no ring
+    expect(input.dataset['focus']).toBe('pointer');
+    input.blur();
+    await element.focusSearch({ focusVisible: true }); // opened by a key: the ring
+    expect(input.dataset['focus']).toBeUndefined();
+    input.blur();
+    await element.focusSearch(); // nothing had keyboard focus (opened from a link or a click): no ring
+    expect(input.dataset['focus']).toBe('pointer');
+    const cssText = SfShortcutSheetElement.styles.map((s) => ('cssText' in s ? s.cssText : '')).join('\n');
+    expect(cssText).toMatch(/input\[data-focus='pointer'\]:focus-visible\s*\{[^}]*outline:\s*none/);
   });
 
   it('reports the hovered row', async () => {
